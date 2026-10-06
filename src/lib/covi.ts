@@ -1,4 +1,5 @@
-import { supabase } from './supabase'\nimport{cacheStock,cachedStock}from'./offline'
+import { supabase } from './supabase'
+import{cacheStock,cachedStock}from'./offline'
 export type Product={id:string;shop_id:string;arrival_id:string|null;name:string;category:string|null;brand:string|null;size:string|null;initial_sale_price:number;quantity_on_hand:number;is_unique_piece:boolean;status:'active'|'sold'|'archived'}
 export const paymentMap:Record<string,string>={'Espèces':'cash','Mobile Money':'mobile_money','Carte':'card','Virement':'bank_transfer','Autre':'other'}
 export async function listProducts(shopId:string,includeSold=false){try{let q=supabase.from('products').select('*').eq('shop_id',shopId).order('created_at',{ascending:false});if(!includeSold)q=q.eq('status','active');const{data,error}=await q;if(error)throw error;const rows=(data??[])as Product[];if(!includeSold)cacheStock(shopId,rows);return rows}catch(e){if(!includeSold){const local=cachedStock<Product>(shopId);if(local.length||!navigator.onLine)return local}throw e}}
