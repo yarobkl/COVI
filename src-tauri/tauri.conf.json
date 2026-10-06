@@ -1,0 +1,41 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "COVI",
+  "version": "0.1.0",
+  "identifier": "com.yaroconsulting.covi",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:5173",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "COVI — Le système d’exploitation de votre commerce",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1024,
+        "minHeight": 700,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "nsis"
+    ],
+    "shortDescription": "Le système d’exploitation de votre commerce",
+    "longDescription": "COVI centralise stock, ventes, arrivages, ballons, charges et pilotage de votre commerce.",
+    "windows": {
+      "nsis": {
+        "installerIcon": null
+      }
+    }
+  }
+}
