@@ -34,6 +34,20 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
       - run: npm install
+      - name: Generate temporary Windows icon
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force src-tauri/icons | Out-Null
+          Add-Type -AssemblyName System.Drawing
+          $bmp = New-Object System.Drawing.Bitmap 256,256
+          $g = [System.Drawing.Graphics]::FromImage($bmp)
+          $g.Clear([System.Drawing.Color]::FromArgb(8,40,61))
+          $font = New-Object System.Drawing.Font('Arial',110,[System.Drawing.FontStyle]::Bold)
+          $brush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(246,163,19))
+          $g.DrawString('C',$font,$brush,55,55)
+          $icon=[System.Drawing.Icon]::FromHandle($bmp.GetHicon())
+          $fs=New-Object System.IO.FileStream('src-tauri/icons/icon.ico',[System.IO.FileMode]::Create)
+          $icon.Save($fs); $fs.Close(); $g.Dispose(); $bmp.Dispose()
       - run: npm run tauri build
       - uses: actions/upload-artifact@v4
         with:
