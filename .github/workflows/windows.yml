@@ -20,7 +20,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - run: npm install
       - run: npm run build
   build-windows:
     needs: test-web
@@ -35,7 +35,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: './src-tauri -> target'
-      - run: npm ci
+      - run: npm install
       - run: npm run tauri build
       - uses: actions/upload-artifact@v4
         with:
