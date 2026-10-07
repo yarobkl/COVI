@@ -13,7 +13,10 @@ COVI est un outil de pilotage simple pour les petits commerces africains. Il rel
 - Authentification et création du commerce
 - Stock réel, quantités et pièces uniques
 - Commandes fournisseurs et ballons / lots mixtes
-- Pays d’origine recherchable
+- Pays d’origine recherchable dans la liste des régions reconnues par le navigateur
+- Photos produits privées dans Supabase Storage, accessibles uniquement au propriétaire
+- Historique détaillé des ventes et vue détaillée de la rentabilité des arrivages
+- Charges modifiables et supprimables avec filtre de période
 - Cycle brouillon → commandé → en transit → reçu
 - Ajout de références fournisseur avec quantité
 - Découverte progressive des pièces d’un ballon
@@ -43,7 +46,7 @@ npm run build
 npm run tauri build
 ```
 
-Le pipeline `COVI Windows` compile d’abord le front puis construit l’installateur Windows sur un runner Windows. Une modification qui ne compile pas ne produit pas d’installateur.
+Le pipeline `COVI Windows` compile d’abord le front puis construit l’installateur Windows NSIS sur un runner Windows. Une modification qui ne compile pas ne produit pas d’installateur. La connexion OAuth Tauri utilise le navigateur système et revient à l’application par `covi://auth/callback`; cette URL doit figurer dans Supabase Auth → URL Configuration → Redirect URLs.
 
 ## Principes produit
 

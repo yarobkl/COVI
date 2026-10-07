@@ -8,6 +8,7 @@ on:
       - 'src-tauri/**'
       - 'package.json'
       - 'package-lock.json'
+      - 'supabase/**'
       - '.github/workflows/windows.yml'
 permissions:
   contents: read

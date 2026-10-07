@@ -6,6 +6,16 @@
     "main"
   ],
   "permissions": [
-    "core:default"
+    "core:default",
+    "core:event:default",
+    "deep-link:default",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        {
+          "url": "https://bmbwmwgfzrijglzcgjut.supabase.co/auth/v1/authorize*"
+        }
+      ]
+    }
   ]
 }
