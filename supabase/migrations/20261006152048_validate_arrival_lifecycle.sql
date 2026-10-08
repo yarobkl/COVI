@@ -1,0 +1,1 @@
+alter table public.arrivals add constraint arrivals_status_check check (status in ('draft','ordered','in_transit','received')); alter table public.arrivals add constraint arrivals_dates_check check (order_date is null or received_date is null or received_date >= order_date);
