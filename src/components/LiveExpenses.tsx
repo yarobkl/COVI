@@ -1,9 +1,10 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { Plus } from 'lucide-react'
 import { createExpense, deleteExpense, Expense, listExpenses, updateExpense } from '../lib/operations'
+import { localDay } from '../lib/dates'
 
 const categories = ['Loyer','Électricité','Eau','Internet','Téléphone','Salaire','Prime','Transport','Livraison','Carburant','Manutention','Emballage','Sacs','Cintres','Nettoyage','Réparations','Fournitures','Publicité Facebook / Instagram / TikTok','Influenceurs','Frais bancaires','Frais Mobile Money','Taxes / frais administratifs','Autre']
-const today = () => new Date().toISOString().slice(0, 10)
+const today = () => localDay(new Date())
 const money = (n: number) => new Intl.NumberFormat('fr-FR').format(n) + ' FCFA'
 type FormValues = { category: string; label: string; amount: number; expense_date: string; recurring: boolean }
 
