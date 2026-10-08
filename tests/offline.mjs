@@ -20,7 +20,8 @@ window.addEventListener('covi-sync', () => syncEvents++)
 const source = await readFile(new URL('../src/lib/offline.ts', import.meta.url), 'utf8')
 const compiled = stripTypeScriptTypes(source)
 const moduleSource = compiled.replaceAll("await import('./covi')", 'globalThis.testBackend')
-const offline = await import('data:text/javascript;base64,' + Buffer.from(moduleSource).toString('base64'))
+const offlineUrl = 'data:text/javascript;base64,' + Buffer.from(moduleSource).toString('base64')
+const offline = await import(offlineUrl)
 const input = { shopId: 'test-shop', productId: 'test-product', quantity: 1, soldUnitPrice: 15000, paymentLabel: 'Espèces' }
 const seed = () => offline.cacheStock(input.shopId, [{ id: input.productId, quantity_on_hand: 1, status: 'active' }])
 seed()
@@ -140,4 +141,64 @@ offline.queueSale({ ...input, userId: 'user-a' }, 'queued-during-sync')
 release()
 await running
 assert.deepEqual(offline.pendingSales().map(x => x.id), ['queued-during-sync'])
+
+// listProducts (covi.ts) against a mocked Supabase: the active stock, test products included, feeds the offline cache.
+let productRows = [], productsFail = null, authListener
+const productFilters = []
+globalThis.mockSupabase = {
+  auth: { onAuthStateChange: cb => { authListener = cb; return { data: { subscription: { unsubscribe() {} } } } } },
+  storage: { from: () => ({ createSignedUrl: async path => ({ data: { signedUrl: 'signed:' + path }, error: null }) }) },
+  from: () => { const filters = []; productFilters.push(filters); const q = { select: () => q, order: () => q, eq: (col, v) => { filters.push([col, v]); return q }, then: (ok, ko) => (productsFail ? Promise.reject(productsFail) : Promise.resolve({ data: productRows.filter(row => filters.every(([col, v]) => col === 'shop_id' || row[col] === v)), error: null })).then(ok, ko) }; return q },
+}
+const coviSource = stripTypeScriptTypes(await readFile(new URL('../src/lib/covi.ts', import.meta.url), 'utf8'))
+  .replace(/import\s*\{\s*supabase\s*\}\s*from\s*'\.\/supabase'/, 'const supabase=globalThis.mockSupabase')
+  .replace("from'./offline'", `from'${offlineUrl}'`)
+assert.ok(coviSource.includes(offlineUrl), 'covi.ts must share the tested offline module')
+const covi = await import('data:text/javascript;base64,' + Buffer.from(coviSource).toString('base64'))
+// The auth listener binds the queue to the signed-in account (deferred out of the auth callback).
+authListener('SIGNED_OUT', null)
+await fireTimers()
+assert.equal(offline.pendingCount(), 0)
+authListener('SIGNED_IN', { user: { id: 'user-a' } })
+await fireTimers()
+assert.equal(offline.pendingCount(), 1)
+const shop = 'shop-cache'
+productRows = [
+  { id: 'real', shop_id: shop, name: 'Robe', status: 'active', is_test: false, quantity_on_hand: 2, image_path: null },
+  { id: 'demo', shop_id: shop, name: 'Robe test', status: 'active', is_test: true, quantity_on_hand: 1, image_path: 'p/demo.jpg' },
+  { id: 'gone', shop_id: shop, name: 'Vendue', status: 'sold', is_test: false, quantity_on_hand: 0, image_path: null },
+]
+navigator.onLine = true
+assert.deepEqual((await covi.listProducts(shop, false, true)).map(x => x.id), ['real', 'demo'])
+assert.deepEqual(offline.cachedStock(shop).map(x => x.id), ['real', 'demo'], 'test products are cached')
+assert.equal(offline.cachedStock(shop)[1].image_url, 'signed:p/demo.jpg')
+assert.deepEqual((await covi.listProducts(shop)).map(x => x.id), ['real'], 'includeTest=false hides test products')
+assert.deepEqual(offline.cachedStock(shop).map(x => x.id), ['real', 'demo'], 'includeTest=false still caches the full active stock')
+assert.ok(!productFilters.at(-1).some(([col]) => col === 'is_test'))
+assert.deepEqual((await covi.listProducts(shop, true, false)).map(x => x.id), ['real', 'gone'])
+assert.deepEqual(productFilters.at(-1), [['shop_id', shop], ['is_test', false]])
+assert.deepEqual(offline.cachedStock(shop).map(x => x.id), ['real', 'demo'], 'the sold history does not overwrite the cache')
+// Offline fallback serves the cache (test products only when requested), and the cached test product can be sold offline.
+productsFail = new Error('Failed to fetch')
+navigator.onLine = false
+assert.deepEqual((await covi.listProducts(shop, false, true)).map(x => x.id), ['real', 'demo'])
+assert.deepEqual((await covi.listProducts(shop)).map(x => x.id), ['real'])
+await assert.rejects(covi.listProducts(shop, true, true), /Failed to fetch/)
+assert.deepEqual(await offline.resilientSale({ ...input, shopId: shop, productId: 'demo' }), { offline: true })
+assert.equal(offline.cachedStock(shop).find(x => x.id === 'demo').status, 'sold')
+assert.deepEqual((await covi.listProducts(shop, false, true)).map(x => x.id), ['real'], 'a product sold out offline leaves the offline list')
+await assert.rejects(offline.resilientSale({ ...input, shopId: shop, productId: 'demo' }), /insuffisant/)
+// Coming back online cancels the pending backoff so the queue is retried right away.
+navigator.onLine = true
+globalThis.testBackend = { recordSale: async () => { throw new Error('Failed to fetch') } }
+await offline.syncPendingSales()
+assert.ok(offline.nextSyncRetryAt() > now)
+assert.equal(timers.size, 1)
+window.dispatchEvent(new Event('online'))
+assert.equal(offline.nextSyncRetryAt(), 0)
+assert.equal(timers.size, 0)
+navigator.onLine = false
+// First launch offline: no cache yet, an empty list rather than an error.
+assert.deepEqual(await covi.listProducts('never-cached', false, true), [])
+console.log('PASS listProducts caches the active stock including test products and serves it offline (mocked Supabase).')
 console.log('PASS offline reservation, oversell prevention, network retry with exponential backoff and no sync loop, stable operation id, concurrent sync exclusion, server rejection kept with its reason and stock restoration, per-account queue (mocked RPC).')

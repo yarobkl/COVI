@@ -9,6 +9,7 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - 'supabase/**'
+      - 'tests/**'
       - '.github/workflows/windows.yml'
 permissions:
   contents: read
@@ -23,6 +24,7 @@ jobs:
       - run: npm ci
       - run: npm list --depth=0
       - run: npm run build
+      - run: node tests/offline.mjs
   build-windows:
     needs: test-web
     runs-on: windows-latest
