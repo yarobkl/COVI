@@ -1,5 +1,7 @@
 import { supabase } from './supabase'
-import{cacheStock,cachedStock}from'./offline'
+import{cacheStock,cachedStock,setSyncUser}from'./offline'
+// Bind the offline sales queue to the signed-in account (deferred: auth callbacks must not call back into supabase).
+supabase.auth.onAuthStateChange((_event,session)=>{const id=session?.user?.id??null;setTimeout(()=>setSyncUser(id),0)})
 export type Product={id:string;shop_id:string;arrival_id:string|null;name:string;category:string|null;brand:string|null;size:string|null;initial_sale_price:number;quantity_on_hand:number;is_unique_piece:boolean;status:'active'|'sold'|'archived';is_test?:boolean;image_path?:string|null;image_url?:string|null}
 export const paymentMap:Record<string,string>={'Espèces':'cash','Mobile Money':'mobile_money','Carte':'card','Virement':'bank_transfer','Autre':'other'}
 export async function signedProductImage(path:string|null|undefined){if(!path)return null;const{data,error}=await supabase.storage.from('covi-product-images').createSignedUrl(path,3600);if(error)throw error;return data.signedUrl}

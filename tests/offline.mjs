@@ -24,7 +24,12 @@ const offline = await import('data:text/javascript;base64,' + Buffer.from(module
 const input = { shopId: 'test-shop', productId: 'test-product', quantity: 1, soldUnitPrice: 15000, paymentLabel: 'Espèces' }
 const seed = () => offline.cacheStock(input.shopId, [{ id: input.productId, quantity_on_hand: 1, status: 'active' }])
 seed()
+// Without a signed-in account an offline sale cannot be attributed: refuse it instead of queueing an orphan.
+await assert.rejects(offline.resilientSale(input), /Session introuvable/)
+assert.equal(values.get('covi:pending-sales:v1'), undefined)
+offline.setSyncUser('user-a')
 assert.deepEqual(await offline.resilientSale(input), { offline: true })
+assert.equal(offline.pendingSales()[0].userId, 'user-a')
 assert.equal(offline.pendingCount(), 1)
 assert.equal(offline.cachedStock(input.shopId)[0].quantity_on_hand, 0)
 assert.equal(offline.cachedStock(input.shopId)[0].status, 'sold')
@@ -79,4 +84,60 @@ assert.equal(offline.pendingCount(), 0)
 assert.equal(offline.cachedStock(input.shopId)[0].quantity_on_hand, 1)
 assert.equal(offline.cachedStock(input.shopId)[0].status, 'active')
 assert.equal(offline.rejectedSaleCount(), 1)
-console.log('PASS offline reservation, oversell prevention, network retry with exponential backoff and no sync loop, stable operation id, concurrent sync exclusion, server rejection and stock restoration (mocked RPC).')
+// A rejected sale is never dropped: it is kept with its reason, and dismissing the notice keeps the record.
+const kept = JSON.parse(values.get('covi:rejected-sales:v2'))
+assert.equal(kept.length, 1)
+assert.equal(kept[0].reason, 'Insufficient stock')
+assert.equal(kept[0].userId, 'user-a')
+assert.equal(kept[0].productId, input.productId)
+offline.clearRejectedSaleCount()
+assert.equal(offline.rejectedSaleCount(), 0)
+assert.equal(offline.rejectedSales().length, 1)
+assert.equal(offline.rejectedSales()[0].dismissed, true)
+
+// Per-account queue: user A's offline sale is neither shown to nor sent by user B, and survives the switch.
+navigator.onLine = false
+seed()
+await offline.resilientSale(input)
+const saleOfA = offline.pendingSales()[0].id
+offline.setSyncUser(null)
+assert.equal(offline.pendingCount(), 0)
+offline.setSyncUser('user-b')
+assert.equal(offline.pendingCount(), 0)
+assert.equal(offline.rejectedSales().length, 0)
+navigator.onLine = true
+const sent = []
+globalThis.testBackend = { recordSale: async (...args) => { sent.push(args[5]) } }
+assert.deepEqual(await offline.syncPendingSales(), { synced: 0, pending: 0, rejected: 0 })
+assert.deepEqual(sent, [])
+assert.equal(JSON.parse(values.get('covi:pending-sales:v1')).length, 1, 'user A sale still stored')
+offline.setSyncUser('user-a')
+assert.equal(offline.pendingCount(), 1)
+await offline.syncPendingSales()
+assert.deepEqual(sent, [saleOfA])
+assert.equal(offline.pendingCount(), 0)
+
+// Sales queued before userId existed are synced by the signed-in account; a legacy rejection counter is still shown.
+values.set('covi:pending-sales:v1', JSON.stringify([{ id: 'legacy-op', shopId: input.shopId, productId: input.productId, quantity: 1, soldUnitPrice: 1, paymentLabel: 'Espèces', createdAt: '2026-01-01T00:00:00.000Z', attempts: 0 }]))
+values.set('covi:rejected-sales:v1', '2')
+assert.equal(offline.pendingCount(), 1)
+assert.equal(offline.rejectedSaleCount(), 2)
+await offline.syncPendingSales()
+assert.deepEqual(sent, [saleOfA, 'legacy-op'])
+offline.clearRejectedSaleCount()
+assert.equal(offline.rejectedSaleCount(), 0)
+
+// A sale queued while a sync is awaiting the server must not be overwritten by the sync.
+navigator.onLine = false
+seed()
+await offline.resilientSale(input)
+navigator.onLine = true
+let release
+globalThis.testBackend = { recordSale: () => new Promise(r => { release = r }) }
+const running = offline.syncPendingSales()
+await new Promise(r => setImmediate(r))
+offline.queueSale({ ...input, userId: 'user-a' }, 'queued-during-sync')
+release()
+await running
+assert.deepEqual(offline.pendingSales().map(x => x.id), ['queued-during-sync'])
+console.log('PASS offline reservation, oversell prevention, network retry with exponential backoff and no sync loop, stable operation id, concurrent sync exclusion, server rejection kept with its reason and stock restoration, per-account queue (mocked RPC).')
