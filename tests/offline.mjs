@@ -188,6 +188,15 @@ assert.deepEqual(await offline.resilientSale({ ...input, shopId: shop, productId
 assert.equal(offline.cachedStock(shop).find(x => x.id === 'demo').status, 'sold')
 assert.deepEqual((await covi.listProducts(shop, false, true)).map(x => x.id), ['real'], 'a product sold out offline leaves the offline list')
 await assert.rejects(offline.resilientSale({ ...input, shopId: shop, productId: 'demo' }), /insuffisant/)
+// Refreshing from the server keeps queued offline sales reserved in the cache (the server has not seen them yet).
+productsFail = null
+navigator.onLine = true
+assert.deepEqual((await covi.listProducts(shop, false, true)).map(x => x.id), ['real', 'demo'], 'the server still lists the piece')
+assert.equal(offline.cachedStock(shop).find(x => x.id === 'demo').status, 'sold')
+assert.equal(offline.cachedStock(shop).find(x => x.id === 'demo').quantity_on_hand, 0)
+assert.equal(offline.cachedStock(shop).find(x => x.id === 'real').quantity_on_hand, 2)
+navigator.onLine = false
+await assert.rejects(offline.resilientSale({ ...input, shopId: shop, productId: 'demo' }), /insuffisant/)
 // Coming back online cancels the pending backoff so the queue is retried right away.
 navigator.onLine = true
 globalThis.testBackend = { recordSale: async () => { throw new Error('Failed to fetch') } }
@@ -199,6 +208,7 @@ assert.equal(offline.nextSyncRetryAt(), 0)
 assert.equal(timers.size, 0)
 navigator.onLine = false
 // First launch offline: no cache yet, an empty list rather than an error.
+productsFail = new Error('Failed to fetch')
 assert.deepEqual(await covi.listProducts('never-cached', false, true), [])
 console.log('PASS listProducts caches the active stock including test products and serves it offline (mocked Supabase).')
 console.log('PASS offline reservation, oversell prevention, network retry with exponential backoff and no sync loop, stable operation id, concurrent sync exclusion, server rejection kept with its reason and stock restoration, per-account queue (mocked RPC).')

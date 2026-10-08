@@ -30,6 +30,8 @@ export async function resilientSale(input:{shopId:string;productId:string;quanti
 const stockKey=(shopId:string)=>'covi:stock:'+shopId
 export function cachedStock<T>(shopId:string):T[]{try{return JSON.parse(localStorage.getItem(stockKey(shopId))||'[]')}catch{return[]}}
 export function cacheStock<T>(shopId:string,products:T[]){localStorage.setItem(stockKey(shopId),JSON.stringify(products));localStorage.setItem(stockKey(shopId)+':at',new Date().toISOString())}
+// Server stock does not yet include queued offline sales: keep them reserved so a refresh cannot re-open sold pieces offline.
+export function cacheServerStock<T extends{id:string;quantity_on_hand:number;status:string}>(shopId:string,products:T[]){const held=new Map<string,number>();for(const s of read())if(s.shopId===shopId)held.set(s.productId,(held.get(s.productId)||0)+Number(s.quantity));cacheStock(shopId,products.map(p=>{const q=held.get(p.id);if(!q)return p;const left=Number(p.quantity_on_hand)-q;return{...p,quantity_on_hand:Math.max(0,left),status:left<=0?'sold':p.status}}))}
 export function stockCacheDate(shopId:string){return localStorage.getItem(stockKey(shopId)+':at')}
 
 function assertOfflineStock(shopId:string,productId:string,quantity:number){const p=cachedStock<any>(shopId).find(x=>x.id===productId);if(!p)throw new Error('Produit absent du stock hors connexion. Reconnectez-vous pour actualiser le stock.');if(Number(p.quantity_on_hand)<quantity)throw new Error('Stock hors connexion insuffisant pour cette vente.')}
