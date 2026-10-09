@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react'
-import { Eye, EyeOff } from 'lucide-react'
+import { EyeIcon, EyeOffIcon } from '../../components/icons'
 import { supabase } from '../../lib/supabase'
 import { desktopAuthRedirect, isTauriApp, openOAuthInSystemBrowser } from '../../lib/desktopAuth'
 import { authError } from './authErrors'
@@ -90,7 +90,7 @@ export function LoginForm({
               aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
               onClick={() => onShowPasswordChange(!showPassword)}
             >
-              {showPassword ? <EyeOff /> : <Eye />}
+              {showPassword ? <EyeOffIcon /> : <EyeIcon />}
             </button>
           </div>
         </label>

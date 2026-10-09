@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Menu } from 'lucide-react'
+import { MenuIcon } from '../components/icons'
 import { Brand } from '../components/Brand'
 import { ArrivalsPage } from '../features/arrivals/ArrivalsPage'
 import { DashboardPage } from '../features/dashboard/DashboardPage'
@@ -99,7 +99,7 @@ export function App({
       <main>
         <header>
           <button className="menub" onClick={() => setOpen(!open)}>
-            <Menu />
+            <MenuIcon />
           </button>
           <div className="mobilebrand">
             <Brand />

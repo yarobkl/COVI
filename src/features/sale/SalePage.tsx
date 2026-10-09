@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Search } from 'lucide-react'
+import { SearchIcon } from '../../components/icons'
 import { listProducts } from '../../lib/covi'
 import type { Product } from '../../lib/types'
 import { pendingCount, resilientSale, syncPendingSales } from '../../lib/offline'
@@ -88,7 +88,7 @@ export function SalePage({ shopId }: { shopId: string }) {
       <div className="sale">
         <section className="card">
           <div className="search">
-            <Search />
+            <SearchIcon />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
