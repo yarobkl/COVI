@@ -223,7 +223,12 @@ let productRows = [],
   productsFail = null,
   authListener
 const productFilters = []
+const rpcCalls = []
 globalThis.mockSupabase = {
+  rpc: async (fn, args) => {
+    rpcCalls.push([fn, args])
+    return { data: 'sale-id', error: null }
+  },
   auth: {
     onAuthStateChange: (cb) => {
       authListener = cb
@@ -259,6 +264,12 @@ globalThis.mockSupabase = {
     return q
   },
 }
+// format.ts (payment codes) is a pure module without imports: load it as is.
+const formatSource = stripTypeScriptTypes(
+  await readFile(new URL('../src/lib/format.ts', import.meta.url), 'utf8'),
+)
+assert.ok(!/^\s*import\s/m.test(formatSource), 'format.ts must stay free of imports')
+const formatUrl = 'data:text/javascript;base64,' + Buffer.from(formatSource).toString('base64')
 const coviSource = stripTypeScriptTypes(
   await readFile(new URL('../src/lib/covi.ts', import.meta.url), 'utf8'),
 )
@@ -267,11 +278,39 @@ const coviSource = stripTypeScriptTypes(
     'const supabase=globalThis.mockSupabase',
   )
   .replace(/from\s*'\.\/offline'/, `from'${offlineUrl}'`)
+  .replace(/from\s*'\.\/format'/, `from'${formatUrl}'`)
 assert.ok(coviSource.includes(offlineUrl), 'covi.ts must share the tested offline module')
 assert.ok(!/from\s*'\.\//.test(coviSource), 'covi.ts has no unmocked relative import')
 const covi = await import(
   'data:text/javascript;base64,' + Buffer.from(coviSource).toString('base64')
 )
+// recordSale stores the payment code matching the checkout label (unknown labels become 'other').
+assert.equal(await covi.recordSale('s', 'p', 2, 1500, 'Mobile Money', 'op-1'), 'sale-id')
+await covi.recordSale('s', 'p', 1, 1500, 'Bon d’achat', 'op-2')
+assert.deepEqual(rpcCalls, [
+  [
+    'record_sale',
+    {
+      p_shop_id: 's',
+      p_product_id: 'p',
+      p_quantity: 2,
+      p_sold_unit_price: 1500,
+      p_payment_method: 'mobile_money',
+      p_client_operation_id: 'op-1',
+    },
+  ],
+  [
+    'record_sale',
+    {
+      p_shop_id: 's',
+      p_product_id: 'p',
+      p_quantity: 1,
+      p_sold_unit_price: 1500,
+      p_payment_method: 'other',
+      p_client_operation_id: 'op-2',
+    },
+  ],
+])
 // The auth listener binds the queue to the signed-in account (deferred out of the auth callback).
 authListener('SIGNED_OUT', null)
 await fireTimers()

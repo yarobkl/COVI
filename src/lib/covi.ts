@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { cacheServerStock, cachedStock, setSyncUser } from './offline'
+import { paymentCode } from './format'
 // Bind the offline sales queue to the signed-in account (deferred: auth callbacks must not call back into supabase).
 supabase.auth.onAuthStateChange((_event, session) => {
   const id = session?.user?.id ?? null
@@ -21,13 +22,30 @@ export type Product = {
   image_path?: string | null
   image_url?: string | null
 }
-export const paymentMap: Record<string, string> = {
-  Espèces: 'cash',
-  'Mobile Money': 'mobile_money',
-  Carte: 'card',
-  Virement: 'bank_transfer',
-  Autre: 'other',
+/** One line of a sale, with its product (signed photo URL) and the product's arrival. */
+export type SaleLine = {
+  quantity: number
+  initial_unit_price: number
+  sold_unit_price: number
+  products: {
+    name: string
+    brand: string | null
+    arrival_id: string | null
+    image_path: string | null
+    image_url: string | null
+    arrivals: { code: string; kind: string } | null
+  } | null
 }
+export type Sale = {
+  id: string
+  sold_at: string
+  payment_method: string
+  total_amount: number
+  is_test: boolean
+  sale_items: SaleLine[]
+}
+/** A sale line flattened with its sale's id, date, payment method and test flag. */
+export type SoldItem = SaleLine & Pick<Sale, 'id' | 'sold_at' | 'payment_method' | 'is_test'>
 export async function signedProductImage(path: string | null | undefined) {
   if (!path) return null
   const { data, error } = await supabase.storage
@@ -127,13 +145,13 @@ export async function recordSale(
     p_product_id: productId,
     p_quantity: quantity,
     p_sold_unit_price: soldUnitPrice,
-    p_payment_method: paymentMap[paymentLabel] ?? 'other',
+    p_payment_method: paymentCode(paymentLabel),
     p_client_operation_id: clientOperationId,
   })
   if (error) throw error
   return data as string
 }
-export async function listSales(shopId: string) {
+export async function listSales(shopId: string): Promise<Sale[]> {
   const { data, error } = await supabase
     .from('sales')
     .select(

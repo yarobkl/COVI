@@ -4,7 +4,7 @@ import {
   pendingCount,
   rejectedSaleCount,
   syncPendingSales,
-} from '../lib/offline'
+} from '../../lib/offline'
 export function SyncStatus() {
   const [online, setOnline] = useState(navigator.onLine),
     [pending, setPending] = useState(pendingCount()),

@@ -24,6 +24,13 @@ export type Expense = {
   recurring: boolean
   is_test?: boolean
 }
+export type ExpenseInput = {
+  category: string
+  label?: string
+  amount: number
+  expense_date: string
+  recurring: boolean
+}
 export async function listArrivals(shopId: string) {
   const { data, error } = await supabase
     .from('arrivals')
@@ -62,16 +69,7 @@ export async function listExpenses(shopId: string) {
   if (error) throw error
   return (data ?? []) as Expense[]
 }
-export async function createExpense(
-  shopId: string,
-  input: {
-    category: string
-    label?: string
-    amount: number
-    expense_date: string
-    recurring: boolean
-  },
-) {
+export async function createExpense(shopId: string, input: ExpenseInput) {
   const { data, error } = await supabase
     .from('shop_expenses')
     .insert({ shop_id: shopId, ...input })
@@ -80,17 +78,7 @@ export async function createExpense(
   if (error) throw error
   return data as Expense
 }
-export async function updateExpense(
-  shopId: string,
-  id: string,
-  input: {
-    category: string
-    label?: string
-    amount: number
-    expense_date: string
-    recurring: boolean
-  },
-) {
+export async function updateExpense(shopId: string, id: string, input: ExpenseInput) {
   const { data, error } = await supabase
     .from('shop_expenses')
     .update(input)
@@ -229,6 +217,7 @@ export async function arrivalProfitability(shopId: string) {
     }
   })
 }
+export type ArrivalProfit = Awaited<ReturnType<typeof arrivalProfitability>>[number]
 export async function liveStatistics(shopId: string) {
   const [sales, products, profit] = await Promise.all([
     supabase

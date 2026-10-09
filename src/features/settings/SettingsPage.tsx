@@ -1,32 +1,27 @@
-import { FormEvent, useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
-type Shop = {
-  id: string
-  name: string
-  city: string | null
-  country: string | null
-  currency: string
-}
-export function LiveSettings({
+import { useEffect, useState, type FormEvent } from 'react'
+import { supabase } from '../../lib/supabase'
+import type { Shop } from '../../lib/types'
+
+/** Shop identity (name, city, country); the currency stays XAF. */
+export function SettingsPage({
   shopId,
   onShopUpdated,
 }: {
   shopId: string
   onShopUpdated: (shop: Shop) => void
 }) {
-  const [shop, setShop] = useState<Shop | null>(null),
-    [msg, setMsg] = useState('')
-  async function load() {
-    const { data, error } = await supabase
+  const [shop, setShop] = useState<Shop | null>(null)
+  const [msg, setMsg] = useState('')
+  useEffect(() => {
+    supabase
       .from('shops')
       .select('id,name,city,country,currency')
       .eq('id', shopId)
       .single()
-    if (error) setMsg(error.message)
-    else setShop(data as Shop)
-  }
-  useEffect(() => {
-    void load()
+      .then(({ data, error }) => {
+        if (error) setMsg(error.message)
+        else setShop(data as Shop)
+      })
   }, [shopId])
   async function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
