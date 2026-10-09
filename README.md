@@ -81,7 +81,11 @@ src/
     offline.ts          cache du stock et file des ventes hors connexion
     format.ts           montants, moyens de paiement, accords (plural)
     dates.ts            clés de jour et de mois en heure locale
-  styles.css          styles globaux (classes CSS utilisées par les composants)
+  styles/             système de design « Le Cahier » (couches CSS) : index.css (point d’entrée,
+                      importé par app/Root.tsx), tokens.css, base.css, components.css,
+                      app/ (styles propres aux écrans refaits), legacy.css (anciennes classes,
+                      limitées à `.legacy`, pour les pages pas encore refaites)
+  styles.css          vide, gardé tant que main.tsx l’importe
 tests/offline.mjs     test Node de la file hors connexion (charge offline.ts, covi.ts et format.ts depuis les sources)
 ```
 

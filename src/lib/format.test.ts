@@ -1,20 +1,53 @@
 import { describe, expect, it } from 'vitest'
-import { money, paymentCode, paymentLabel, paymentLabels, plural, pluralize } from './format'
+import {
+  fcfa,
+  money,
+  parseAmount,
+  paymentCode,
+  paymentLabel,
+  paymentLabels,
+  percent,
+  plural,
+  pluralize,
+} from './format'
 
-// fr-FR groups thousands with a narrow no-break space (U+202F).
-const nbsp = ' '
+// The app fonts have the no-break space (U+00A0) but not the narrow one (U+202F) of fr-FR.
+const nbsp = '\u00a0'
 
-describe('money', () => {
-  it('formats CFA franc amounts with French digit grouping', () => {
-    expect(money(0)).toBe('0 FCFA')
-    expect(money(950)).toBe('950 FCFA')
-    expect(money(15000)).toBe(`15${nbsp}000 FCFA`)
-    expect(money(2334000)).toBe(`2${nbsp}334${nbsp}000 FCFA`)
+describe('fcfa', () => {
+  it('groups thousands with no-break spaces only', () => {
+    expect(fcfa(0)).toBe('0')
+    expect(fcfa(950)).toBe('950')
+    expect(fcfa(126000)).toBe(`126${nbsp}000`)
+    expect(fcfa(2334000)).toBe(`2${nbsp}334${nbsp}000`)
+    expect(fcfa(2334000)).not.toMatch(/[\u202f ]/)
   })
 
-  it('keeps the sign and decimals', () => {
-    expect(money(-314000)).toBe(`-314${nbsp}000 FCFA`)
-    expect(money(1234.5)).toBe(`1${nbsp}234,5 FCFA`)
+  it('writes money going out with the true minus sign and rounds to whole francs', () => {
+    expect(fcfa(-90000)).toBe(`\u2212${nbsp}90${nbsp}000`)
+    expect(fcfa(1234.5)).toBe(`1${nbsp}235`)
+    expect(fcfa(-0.2)).toBe('0')
+  })
+})
+
+describe('money', () => {
+  it('adds the currency after a no-break space', () => {
+    expect(money(0)).toBe(`0${nbsp}FCFA`)
+    expect(money(15000)).toBe(`15${nbsp}000${nbsp}FCFA`)
+    expect(money(-314000)).toBe(`\u2212${nbsp}314${nbsp}000${nbsp}FCFA`)
+  })
+})
+
+describe('percent and parseAmount', () => {
+  it('formats a percentage the French way', () => {
+    expect(percent(74.4)).toBe(`74${nbsp}%`)
+  })
+
+  it('reads the digits of a typed amount', () => {
+    expect(parseAmount('13 000')).toBe(13000)
+    expect(parseAmount(`13${nbsp}000 FCFA`)).toBe(13000)
+    expect(parseAmount('')).toBeNull()
+    expect(parseAmount('abc')).toBeNull()
   })
 })
 

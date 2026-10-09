@@ -1,0 +1,17 @@
+/* Point d’entrée des styles (importé par src/app/Root.tsx).
+   Ordre des couches : le système de design (tokens → base → components), puis les styles propres
+   à l’application (app), puis les utilitaires du système (ils gagnent sur app, voir
+   DESIGN-SYSTEM.md : `.margin-rule` doit garder son padding), puis les anciennes classes
+   (legacy, limitées à `.legacy`, à supprimer en partie 2). */
+@layer tokens, base, components, app, utilities, legacy;
+
+/* Polices auto-hébergées : sous-ensemble latin, graisses du système uniquement (≈ 95 Ko woff2). */
+@import '@fontsource/atkinson-hyperlegible/latin-400.css';
+@import '@fontsource/atkinson-hyperlegible/latin-700.css';
+@import '@fontsource/courier-prime/latin-400.css';
+@import '@fontsource/courier-prime/latin-700.css';
+@import '@fontsource/kalam/latin-400.css';
+
+@import './tokens.css';
+@import './base.css';
+@import './components.css';
