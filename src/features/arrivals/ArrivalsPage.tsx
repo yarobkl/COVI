@@ -13,7 +13,8 @@ import type { Arrival } from '../../lib/types'
 import { ArrivalCard } from './ArrivalCard'
 import { ArrivalForm } from './ArrivalForm'
 import { ArrivalProductForm } from './ArrivalProductForm'
-import { arrivalCode, nextStatus } from './arrivalStatus'
+import { arrivalFromForm, arrivalProductFromForm } from './arrivalForms'
+import { nextStatus } from './arrivalStatus'
 
 const titles = {
   supplier_order: 'Mes commandes',
@@ -45,28 +46,11 @@ export function ArrivalsPage({ shopId, kind }: { shopId: string; kind?: Arrival[
   }, [load])
   async function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    const f = new FormData(e.currentTarget),
-      k = kind ?? arrivalKind,
-      goods = Number(f.get('goods') || 0),
-      transport = Number(f.get('transport') || 0),
-      customs = Number(f.get('customs') || 0),
-      global = k === 'balloon' ? Number(f.get('global') || 0) : goods + transport + customs
+    const input = arrivalFromForm(new FormData(e.currentTarget), kind ?? arrivalKind)
     setBusy(true)
     setMsg('')
     try {
-      await createArrival(shopId, {
-        code: arrivalCode(k === 'balloon' ? 'BAL' : 'CMD'),
-        kind: k,
-        origin_country: String(f.get('country') || ''),
-        supplier_name: k === 'supplier_order' ? String(f.get('supplier') || '') : null,
-        merchandise_cost: goods,
-        transport_cost: transport,
-        customs_cost: customs,
-        global_cost: global,
-        order_date: k === 'supplier_order' ? String(f.get('orderDate') || '') || null : null,
-        received_date: null,
-        status: 'draft',
-      })
+      await createArrival(shopId, input)
       setShow(false)
       setMsg('Arrivage enregistré en brouillon.')
       load()
@@ -101,22 +85,9 @@ export function ArrivalsPage({ shopId, kind }: { shopId: string; kind?: Arrival[
   async function saveProduct(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!addTo) return
-    const f = new FormData(e.currentTarget),
-      unique = addTo.kind === 'balloon',
-      qty = unique ? 1 : Math.max(1, Number(f.get('quantity') || 1))
+    const input = arrivalProductFromForm(new FormData(e.currentTarget), addTo)
     try {
-      await addProduct(shopId, {
-        arrival_id: addTo.id,
-        is_test: addTo.is_test ?? false,
-        name: String(f.get('name') || ''),
-        category: String(f.get('category') || ''),
-        brand: String(f.get('brand') || ''),
-        size: String(f.get('size') || ''),
-        initial_sale_price: Number(f.get('price') || 0),
-        quantity_on_hand: qty,
-        is_unique_piece: unique,
-        image: (f.get('image') as File)?.size ? (f.get('image') as File) : null,
-      })
+      await addProduct(shopId, input)
       setMsg('Produit ajouté à ' + addTo.code + '.')
       setAddTo(null)
       load()

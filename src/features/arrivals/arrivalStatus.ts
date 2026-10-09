@@ -24,7 +24,3 @@ export function statusLabel(status: string) {
         ? 'COMMANDÉ'
         : 'BROUILLON'
 }
-
-/** Short random arrival code, e.g. `CMD-1A2B3C`. */
-export const arrivalCode = (prefix: string) =>
-  prefix + '-' + crypto.randomUUID().slice(0, 6).toUpperCase()
