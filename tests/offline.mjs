@@ -19,7 +19,9 @@ let syncEvents = 0
 window.addEventListener('covi-sync', () => syncEvents++)
 const source = await readFile(new URL('../src/lib/offline.ts', import.meta.url), 'utf8')
 const compiled = stripTypeScriptTypes(source)
-const moduleSource = compiled.replaceAll("await import('./covi')", 'globalThis.testBackend')
+// Whitespace-agnostic so that reformatting offline.ts cannot silently skip the mock.
+const moduleSource = compiled.replaceAll(/await\s+import\(\s*'\.\/covi'\s*\)/g, 'globalThis.testBackend')
+assert.ok(!moduleSource.includes("'./covi'"), 'every backend import of offline.ts is mocked')
 const offlineUrl = 'data:text/javascript;base64,' + Buffer.from(moduleSource).toString('base64')
 const offline = await import(offlineUrl)
 const input = { shopId: 'test-shop', productId: 'test-product', quantity: 1, soldUnitPrice: 15000, paymentLabel: 'Espèces' }
@@ -152,8 +154,9 @@ globalThis.mockSupabase = {
 }
 const coviSource = stripTypeScriptTypes(await readFile(new URL('../src/lib/covi.ts', import.meta.url), 'utf8'))
   .replace(/import\s*\{\s*supabase\s*\}\s*from\s*'\.\/supabase'/, 'const supabase=globalThis.mockSupabase')
-  .replace("from'./offline'", `from'${offlineUrl}'`)
+  .replace(/from\s*'\.\/offline'/, `from'${offlineUrl}'`)
 assert.ok(coviSource.includes(offlineUrl), 'covi.ts must share the tested offline module')
+assert.ok(!/from\s*'\.\//.test(coviSource), 'covi.ts has no unmocked relative import')
 const covi = await import('data:text/javascript;base64,' + Buffer.from(coviSource).toString('base64'))
 // The auth listener binds the queue to the signed-in account (deferred out of the auth callback).
 authListener('SIGNED_OUT', null)
