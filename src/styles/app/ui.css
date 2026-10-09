@@ -1,0 +1,19 @@
+/* Petits compléments aux composants du système, pour les composants React de src/components/ui. */
+@layer app {
+  .numpad__discount {
+    color: var(--danger);
+  }
+
+  .stepper__value {
+    min-width: 2.5ch;
+  }
+
+  /* Un bouton-lien (« Nouvelle vente ») ne prend pas le soulignement des liens. */
+  a.btn:not(.btn--ghost) {
+    text-decoration: none;
+  }
+  a.btn--primary:hover,
+  a.btn--sale:hover {
+    color: var(--action-ink);
+  }
+}
