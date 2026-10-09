@@ -14,6 +14,7 @@ export function StockPage({ shopId }: { shopId: string }) {
   const [arrivals, setArrivals] = useState<Arrival[]>([])
   const [show, setShow] = useState(false)
   const [msg, setMsg] = useState('')
+  const [query, setQuery] = useState('')
   const load = useCallback(
     () =>
       listProducts(shopId, false, true)
@@ -59,6 +60,10 @@ export function StockPage({ shopId }: { shopId: string }) {
       setMsg((e as Error).message)
     }
   }
+  const q = query.toLowerCase()
+  const visible = p.filter((v) =>
+    (v.name + ' ' + (v.brand ?? '') + ' ' + (v.category ?? '')).toLowerCase().includes(q),
+  )
   const cacheDate = stockCacheDate(shopId)
   return (
     <>
@@ -84,24 +89,14 @@ export function StockPage({ shopId }: { shopId: string }) {
           <Search />
           <input
             placeholder="Rechercher…"
-            onChange={(e) => {
-              const q = e.target.value.toLowerCase()
-              listProducts(shopId, false, true).then((x) =>
-                setP(
-                  x.filter((v) =>
-                    (v.name + ' ' + (v.brand ?? '') + ' ' + (v.category ?? ''))
-                      .toLowerCase()
-                      .includes(q),
-                  ),
-                ),
-              )
-            }}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
           />
         </div>
-        {p.length === 0 ? (
+        {visible.length === 0 ? (
           <p>Aucun produit disponible. Ajoutez votre premier produit.</p>
         ) : (
-          p.map((x) => <StockRow key={x.id} product={x} />)
+          visible.map((x) => <StockRow key={x.id} product={x} />)
         )}
       </section>
     </>

@@ -1,6 +1,6 @@
 import { ProductThumb } from '../../components/ProductThumb'
 import type { Product } from '../../lib/types'
-import { money } from '../../lib/format'
+import { money, plural } from '../../lib/format'
 
 export function StockRow({ product: x }: { product: Product }) {
   return (
@@ -14,7 +14,7 @@ export function StockRow({ product: x }: { product: Product }) {
       </div>
       <b>{money(Number(x.initial_sale_price))}</b>
       <span className="qty">
-        {x.quantity_on_hand} {x.is_unique_piece ? 'pièce' : 'en stock'}
+        {x.is_unique_piece ? plural(x.quantity_on_hand, 'pièce') : x.quantity_on_hand + ' en stock'}
       </span>
     </div>
   )

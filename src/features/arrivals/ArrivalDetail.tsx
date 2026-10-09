@@ -1,4 +1,4 @@
-import { money } from '../../lib/format'
+import { money, plural } from '../../lib/format'
 import type { ArrivalProfit } from '../../lib/operations'
 import type { Arrival } from '../../lib/types'
 
@@ -43,8 +43,7 @@ export function ArrivalDetail({
               <span>
                 {[product.category, product.brand, product.size].filter(Boolean).join(' · ') ||
                   'Référence'}{' '}
-                · {product.quantity_on_hand} restant
-                {product.quantity_on_hand === 1 ? '' : 's'} · prix initial{' '}
+                · {plural(product.quantity_on_hand, 'restant')} · prix initial{' '}
                 {money(Number(product.initial_sale_price))}
               </span>
             </div>

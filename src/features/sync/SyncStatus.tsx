@@ -5,6 +5,7 @@ import {
   rejectedSaleCount,
   syncPendingSales,
 } from '../../lib/offline'
+import { plural } from '../../lib/format'
 export function SyncStatus() {
   const [online, setOnline] = useState(navigator.onLine),
     [pending, setPending] = useState(pendingCount()),
@@ -32,15 +33,14 @@ export function SyncStatus() {
       {!online ? (
         '● Hors connexion'
       ) : pending ? (
-        '● ' + pending + ' vente' + (pending > 1 ? 's' : '') + ' à synchroniser'
+        '● ' + plural(pending, 'vente') + ' à synchroniser'
       ) : rejected ? (
         <button
           type="button"
           onClick={clearRejectedSaleCount}
           title="Le stock local a été rétabli. Cliquez pour fermer."
         >
-          ● {rejected} vente{rejected > 1 ? 's' : ''} refusée{rejected > 1 ? 's' : ''} · stock
-          rétabli ×
+          ● {plural(rejected, 'vente refusée', 'ventes refusées')} · stock rétabli ×
         </button>
       ) : (
         '● Synchronisé'

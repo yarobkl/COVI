@@ -24,3 +24,14 @@ export const paymentCode = (label: string): string =>
 /** Label shown for a stored payment code (the code itself when unknown). */
 export const paymentLabel = (code: string): string =>
   paymentMethods.find((m) => m.code === code)?.label ?? code
+
+/**
+ * Word agreeing with `count` under the French rule: singular below 2 (0 and 1), plural from 2.
+ * `pluralForm` defaults to the singular followed by « s ».
+ */
+export const pluralize = (count: number, singular: string, pluralForm = singular + 's') =>
+  Math.abs(count) < 2 ? singular : pluralForm
+
+/** Count followed by the agreeing word: « 1 vente », « 2 ventes ». */
+export const plural = (count: number, singular: string, pluralForm?: string) =>
+  `${count} ${pluralize(count, singular, pluralForm)}`

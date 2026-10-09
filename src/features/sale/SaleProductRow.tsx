@@ -1,6 +1,6 @@
 import { ProductThumb } from '../../components/ProductThumb'
 import type { Product } from '../../lib/types'
-import { money } from '../../lib/format'
+import { money, plural } from '../../lib/format'
 
 export function SaleProductRow({
   product: x,
@@ -17,7 +17,7 @@ export function SaleProductRow({
           {x.name} {x.is_test && <em className="test-tag">TEST</em>}
         </b>
         <span>
-          {money(Number(x.initial_sale_price))} · {x.quantity_on_hand} disponible
+          {money(Number(x.initial_sale_price))} · {plural(x.quantity_on_hand, 'disponible')}
         </span>
       </div>
       <button className="add" onClick={onSelect}>

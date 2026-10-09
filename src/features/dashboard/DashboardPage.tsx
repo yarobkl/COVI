@@ -1,15 +1,20 @@
-import { useEffect, useState } from 'react'
-import { money } from '../../lib/format'
+import { useCallback } from 'react'
+import { LoadError } from '../../components/LoadError'
+import { useAsyncData } from '../../hooks/useAsyncData'
+import { money, plural, pluralize } from '../../lib/format'
 import { dashboard } from '../../lib/operations'
 import { Kpi } from './Kpi'
 
-type Dashboard = Awaited<ReturnType<typeof dashboard>>
-
 export function DashboardPage({ shopId }: { shopId: string }) {
-  const [d, setD] = useState<Dashboard | null>(null)
-  useEffect(() => {
-    dashboard(shopId).then(setD)
-  }, [shopId])
+  const load = useCallback(() => dashboard(shopId), [shopId])
+  const { data: d, error, retry } = useAsyncData(load)
+  if (error)
+    return (
+      <LoadError
+        message="Impossible de charger le tableau de bord. Vérifiez votre connexion puis réessayez."
+        onRetry={retry}
+      />
+    )
   if (!d) return <p>Chargement du commerce…</p>
   return (
     <div>
@@ -21,9 +26,9 @@ export function DashboardPage({ shopId }: { shopId: string }) {
       </div>
       <div className="kpis">
         <Kpi t="Ventes aujourd’hui" v={money(d.todaySales)} s="encaissées" />
-        <Kpi t="Ventes ce mois" v={money(d.monthSales)} s={d.saleCount + ' ventes'} />
+        <Kpi t="Ventes ce mois" v={money(d.monthSales)} s={plural(d.saleCount, 'vente')} />
         <Kpi t="Bénéfice final estimé" v={money(d.profit)} s="Après arrivages et charges" />
-        <Kpi t="Stock disponible" v={String(d.stock)} s="articles" />
+        <Kpi t="Stock disponible" v={String(d.stock)} s={pluralize(d.stock, 'article')} />
       </div>
       <div className="grid">
         <section className="card">

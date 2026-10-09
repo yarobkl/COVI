@@ -1,15 +1,20 @@
-import { useEffect, useState } from 'react'
-import { money } from '../../lib/format'
+import { useCallback } from 'react'
+import { LoadError } from '../../components/LoadError'
+import { useAsyncData } from '../../hooks/useAsyncData'
+import { money, plural } from '../../lib/format'
 import { liveStatistics } from '../../lib/operations'
 import { ArrivalProfitRow } from './ArrivalProfitRow'
 
-type Statistics = Awaited<ReturnType<typeof liveStatistics>>
-
 export function StatisticsPage({ shopId }: { shopId: string }) {
-  const [d, setD] = useState<Statistics | null>(null)
-  useEffect(() => {
-    void liveStatistics(shopId).then(setD)
-  }, [shopId])
+  const load = useCallback(() => liveStatistics(shopId), [shopId])
+  const { data: d, error, retry } = useAsyncData(load)
+  if (error)
+    return (
+      <LoadError
+        message="Impossible de calculer les statistiques. Vérifiez votre connexion puis réessayez."
+        onRetry={retry}
+      />
+    )
   if (!d) return <p>Calcul des statistiques…</p>
   const max = Math.max(1, ...d.days.map((x) => x.amount))
   return (
@@ -41,9 +46,7 @@ export function StatisticsPage({ shopId }: { shopId: string }) {
             d.categories.map(([category, count]) => (
               <div className="statline" key={category}>
                 <span>{category}</span>
-                <b>
-                  {count} vendu{count > 1 ? 's' : ''}
-                </b>
+                <b>{plural(count, 'vendu')}</b>
               </div>
             ))
           )}
