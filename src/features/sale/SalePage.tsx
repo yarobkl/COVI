@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Search } from 'lucide-react'
-import { listProducts, type Product } from '../../lib/covi'
+import { listProducts } from '../../lib/covi'
+import type { Product } from '../../lib/types'
 import { pendingCount, resilientSale, syncPendingSales } from '../../lib/offline'
 import { Checkout } from './Checkout'
 import { SaleProductRow } from './SaleProductRow'

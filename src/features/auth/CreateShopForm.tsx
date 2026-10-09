@@ -24,7 +24,7 @@ export function CreateShopForm({
       p_currency: 'XAF',
     })
     if (error) onMessage(authError(error))
-    else onCreated(data as Shop)
+    else onCreated(data)
   }
   return (
     <div className="authshell">

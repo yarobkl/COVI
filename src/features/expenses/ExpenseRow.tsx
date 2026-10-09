@@ -1,5 +1,5 @@
 import { money } from '../../lib/format'
-import type { Expense } from '../../lib/operations'
+import type { Expense } from '../../lib/types'
 
 export function ExpenseRow({
   expense: x,

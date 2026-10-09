@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react'
-import type { Expense } from '../../lib/operations'
+import type { Expense } from '../../lib/types'
 import { expenseCategories } from './expenseCategories'
 
 /** Creates an expense, or edits `editing` when set. */

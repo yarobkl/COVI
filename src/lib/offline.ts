@@ -11,6 +11,8 @@ export type PendingSale = {
   userId?: string
 }
 export type RejectedSale = PendingSale & { reason: string; rejectedAt: string; dismissed?: boolean }
+/** `message` of a thrown value (errors from Supabase are plain objects, not Error instances). */
+const errorMessage = (e: unknown) => (e as { message?: unknown } | null | undefined)?.message
 const KEY = 'covi:pending-sales:v1'
 const LEGACY_REJECTED_KEY = 'covi:rejected-sales:v1'
 const REJECTED_KEY = 'covi:rejected-sales:v2'
@@ -116,8 +118,8 @@ export async function syncPendingSales() {
         )
         write(read().filter((x) => x.id !== item.id))
         synced++
-      } catch (e: any) {
-        const message = String(e?.message || 'Erreur de synchronisation'),
+      } catch (e) {
+        const message = String(errorMessage(e) || 'Erreur de synchronisation'),
           network =
             /fetch|network|offline|failed to fetch|timeout|jwt|token|unauthorized|401|not authenticated/i.test(
               message,
@@ -184,14 +186,16 @@ export async function resilientSale(input: {
       operationId,
     )
     return { offline: false }
-  } catch (e: any) {
-    const network = /fetch|network|offline|failed to fetch/i.test(String(e?.message || e))
+  } catch (e) {
+    const network = /fetch|network|offline|failed to fetch/i.test(String(errorMessage(e) || e))
     if (!network) throw e
     return queue()
   }
 }
 
 const stockKey = (shopId: string) => 'covi:stock:' + shopId
+/** Fields of a cached product that the offline queue reads; other fields are kept as they are. */
+type StockEntry = { id: string; quantity_on_hand: number; status: string }
 export function cachedStock<T>(shopId: string): T[] {
   try {
     return JSON.parse(localStorage.getItem(stockKey(shopId)) || '[]')
@@ -226,7 +230,7 @@ export function stockCacheDate(shopId: string) {
 }
 
 function assertOfflineStock(shopId: string, productId: string, quantity: number) {
-  const p = cachedStock<any>(shopId).find((x) => x.id === productId)
+  const p = cachedStock<StockEntry>(shopId).find((x) => x.id === productId)
   if (!p)
     throw new Error(
       'Produit absent du stock hors connexion. Reconnectez-vous pour actualiser le stock.',
@@ -235,7 +239,7 @@ function assertOfflineStock(shopId: string, productId: string, quantity: number)
     throw new Error('Stock hors connexion insuffisant pour cette vente.')
 }
 function reserveOfflineStock(shopId: string, productId: string, quantity: number) {
-  const rows = cachedStock<any>(shopId),
+  const rows = cachedStock<StockEntry>(shopId),
     next = rows.map((p) =>
       p.id === productId
         ? {
@@ -249,7 +253,7 @@ function reserveOfflineStock(shopId: string, productId: string, quantity: number
 }
 
 function restoreOfflineStock(shopId: string, productId: string, quantity: number) {
-  const rows = cachedStock<any>(shopId)
+  const rows = cachedStock<StockEntry>(shopId)
   cacheStock(
     shopId,
     rows.map((p) =>

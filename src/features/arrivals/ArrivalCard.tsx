@@ -1,5 +1,6 @@
 import { money } from '../../lib/format'
-import type { Arrival, ArrivalProfit } from '../../lib/operations'
+import type { ArrivalProfit } from '../../lib/operations'
+import type { Arrival } from '../../lib/types'
 import { ArrivalDetail } from './ArrivalDetail'
 import { nextStatusLabel, statusLabel } from './arrivalStatus'
 

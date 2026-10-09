@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react'
-import type { Arrival } from '../../lib/operations'
+import type { Arrival } from '../../lib/types'
 
 /** Adds a product to the stock, optionally attached to an arrival. */
 export function StockProductForm({

@@ -7,9 +7,9 @@ import {
   deleteExpense,
   listExpenses,
   updateExpense,
-  type Expense,
   type ExpenseInput,
 } from '../../lib/operations'
+import type { Expense } from '../../lib/types'
 import { ExpenseForm } from './ExpenseForm'
 import { ExpenseRow } from './ExpenseRow'
 import { ExpenseSummary } from './ExpenseSummary'

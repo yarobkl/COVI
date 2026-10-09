@@ -1,5 +1,6 @@
 import { money } from '../../lib/format'
-import type { Arrival, ArrivalProfit } from '../../lib/operations'
+import type { ArrivalProfit } from '../../lib/operations'
+import type { Arrival } from '../../lib/types'
 
 /** Recovery progress and registered products of an arrival. */
 export function ArrivalDetail({

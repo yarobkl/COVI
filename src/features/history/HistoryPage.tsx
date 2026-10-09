@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { listSales, type SoldItem } from '../../lib/covi'
+import { listSales } from '../../lib/covi'
+import type { SoldItem } from '../../lib/types'
 import { SoldRow } from './SoldRow'
 
 type Sales = Awaited<ReturnType<typeof listSales>>

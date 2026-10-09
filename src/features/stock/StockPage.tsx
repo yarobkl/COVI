@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Plus, Search } from 'lucide-react'
-import { addProduct, listProducts, type Product } from '../../lib/covi'
+import { addProduct, listProducts } from '../../lib/covi'
 import { stockCacheDate } from '../../lib/offline'
-import { listArrivals, type Arrival } from '../../lib/operations'
+import { listArrivals } from '../../lib/operations'
+import type { Arrival, Product } from '../../lib/types'
 import { StockProductForm } from './StockProductForm'
 import { StockRow } from './StockRow'
 

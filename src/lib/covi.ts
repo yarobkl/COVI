@@ -1,51 +1,13 @@
 import { supabase } from './supabase'
 import { cacheServerStock, cachedStock, setSyncUser } from './offline'
 import { paymentCode } from './format'
+import type { TablesInsert } from './database.types'
+import type { Product, Sale } from './types'
 // Bind the offline sales queue to the signed-in account (deferred: auth callbacks must not call back into supabase).
 supabase.auth.onAuthStateChange((_event, session) => {
   const id = session?.user?.id ?? null
   setTimeout(() => setSyncUser(id), 0)
 })
-export type Product = {
-  id: string
-  shop_id: string
-  arrival_id: string | null
-  name: string
-  category: string | null
-  brand: string | null
-  size: string | null
-  initial_sale_price: number
-  quantity_on_hand: number
-  is_unique_piece: boolean
-  status: 'active' | 'sold' | 'archived'
-  is_test?: boolean
-  image_path?: string | null
-  image_url?: string | null
-}
-/** One line of a sale, with its product (signed photo URL) and the product's arrival. */
-export type SaleLine = {
-  quantity: number
-  initial_unit_price: number
-  sold_unit_price: number
-  products: {
-    name: string
-    brand: string | null
-    arrival_id: string | null
-    image_path: string | null
-    image_url: string | null
-    arrivals: { code: string; kind: string } | null
-  } | null
-}
-export type Sale = {
-  id: string
-  sold_at: string
-  payment_method: string
-  total_amount: number
-  is_test: boolean
-  sale_items: SaleLine[]
-}
-/** A sale line flattened with its sale's id, date, payment method and test flag. */
-export type SoldItem = SaleLine & Pick<Sale, 'id' | 'sold_at' | 'payment_method' | 'is_test'>
 export async function signedProductImage(path: string | null | undefined) {
   if (!path) return null
   const { data, error } = await supabase.storage
@@ -66,6 +28,7 @@ export async function listProducts(shopId: string, includeSold = false, includeT
     if (!includeSold) q = q.eq('status', 'active')
     const { data, error } = await q
     if (error) throw error
+    // `status` is narrowed to the values allowed by its CHECK constraint (see types.ts).
     const rows = await Promise.all(
       ((data ?? []) as Product[]).map(async (p) => ({
         ...p,
@@ -86,18 +49,18 @@ export async function listProducts(shopId: string, includeSold = false, includeT
 }
 export async function addProduct(
   shopId: string,
-  input: {
-    name: string
-    category?: string
-    brand?: string
-    size?: string
-    initial_sale_price: number
-    quantity_on_hand: number
-    is_unique_piece: boolean
-    arrival_id?: string | null
-    image?: File | null
-    is_test?: boolean
-  },
+  input: Pick<
+    TablesInsert<'products'>,
+    | 'name'
+    | 'category'
+    | 'brand'
+    | 'size'
+    | 'initial_sale_price'
+    | 'quantity_on_hand'
+    | 'is_unique_piece'
+    | 'arrival_id'
+    | 'is_test'
+  > & { image?: File | null },
 ) {
   const productId = crypto.randomUUID(),
     image = input.image
@@ -130,7 +93,7 @@ export async function addProduct(
     if (imagePath) await supabase.storage.from('covi-product-images').remove([imagePath])
     throw error
   }
-  return data as Product
+  return data as Product // status narrowed as in listProducts
 }
 export async function recordSale(
   shopId: string,
@@ -149,7 +112,7 @@ export async function recordSale(
     p_client_operation_id: clientOperationId,
   })
   if (error) throw error
-  return data as string
+  return data
 }
 export async function listSales(shopId: string): Promise<Sale[]> {
   const { data, error } = await supabase
@@ -162,10 +125,10 @@ export async function listSales(shopId: string): Promise<Sale[]> {
     .limit(500)
   if (error) throw error
   return Promise.all(
-    (data ?? []).map(async (sale: any) => ({
+    (data ?? []).map(async (sale) => ({
       ...sale,
       sale_items: await Promise.all(
-        (sale.sale_items ?? []).map(async (item: any) => ({
+        (sale.sale_items ?? []).map(async (item) => ({
           ...item,
           products: item.products
             ? {

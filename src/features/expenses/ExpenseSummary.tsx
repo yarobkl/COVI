@@ -1,5 +1,5 @@
 import { money } from '../../lib/format'
-import type { Expense } from '../../lib/operations'
+import type { Expense } from '../../lib/types'
 
 /** Totals of the expenses visible for the selected period. */
 export function ExpenseSummary({

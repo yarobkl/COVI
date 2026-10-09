@@ -1,36 +1,19 @@
 import { supabase } from './supabase'
 import { localDay, localMonth } from './dates'
-export type Arrival = {
-  id: string
-  code: string
-  kind: 'supplier_order' | 'balloon'
-  origin_country: string | null
-  supplier_name: string | null
-  order_date: string | null
-  received_date: string | null
-  merchandise_cost: number
-  transport_cost: number
-  customs_cost: number
-  global_cost: number
-  status: string
-  is_test?: boolean
+import type { TablesInsert, TablesUpdate } from './database.types'
+import type { Arrival, ArrivalKind } from './types'
+
+// Arrival rows are cast to `Arrival`: `kind` is narrowed to the values allowed by its CHECK
+// constraint (see types.ts), the generated types only know it as a string.
+
+/** Fields of a new arrival (the shop is given separately). */
+export type ArrivalInput = Omit<TablesInsert<'arrivals'>, 'shop_id' | 'kind'> & {
+  kind: ArrivalKind
 }
-export type Expense = {
-  id: string
-  category: string
-  label: string | null
-  amount: number
-  expense_date: string
-  recurring: boolean
-  is_test?: boolean
-}
-export type ExpenseInput = {
-  category: string
-  label?: string
-  amount: number
-  expense_date: string
-  recurring: boolean
-}
+export type ExpenseInput = Pick<
+  TablesInsert<'shop_expenses'>,
+  'category' | 'label' | 'amount' | 'expense_date' | 'recurring'
+>
 export async function listArrivals(shopId: string) {
   const { data, error } = await supabase
     .from('arrivals')
@@ -40,7 +23,7 @@ export async function listArrivals(shopId: string) {
   if (error) throw error
   return (data ?? []) as Arrival[]
 }
-export async function createArrival(shopId: string, input: Partial<Arrival>) {
+export async function createArrival(shopId: string, input: ArrivalInput) {
   const { data, error } = await supabase
     .from('arrivals')
     .insert({ shop_id: shopId, ...input })
@@ -49,7 +32,7 @@ export async function createArrival(shopId: string, input: Partial<Arrival>) {
   if (error) throw error
   return data as Arrival
 }
-export async function updateArrival(shopId: string, id: string, input: Partial<Arrival>) {
+export async function updateArrival(shopId: string, id: string, input: TablesUpdate<'arrivals'>) {
   const { data, error } = await supabase
     .from('arrivals')
     .update(input)
@@ -67,7 +50,7 @@ export async function listExpenses(shopId: string) {
     .eq('shop_id', shopId)
     .order('expense_date', { ascending: false })
   if (error) throw error
-  return (data ?? []) as Expense[]
+  return data ?? []
 }
 export async function createExpense(shopId: string, input: ExpenseInput) {
   const { data, error } = await supabase
@@ -76,7 +59,7 @@ export async function createExpense(shopId: string, input: ExpenseInput) {
     .select()
     .single()
   if (error) throw error
-  return data as Expense
+  return data
 }
 export async function updateExpense(shopId: string, id: string, input: ExpenseInput) {
   const { data, error } = await supabase
@@ -87,7 +70,7 @@ export async function updateExpense(shopId: string, id: string, input: ExpenseIn
     .select()
     .single()
   if (error) throw error
-  return data as Expense
+  return data
 }
 export async function deleteExpense(shopId: string, id: string) {
   const { error } = await supabase.from('shop_expenses').delete().eq('shop_id', shopId).eq('id', id)
@@ -182,22 +165,19 @@ export async function arrivalProfitability(shopId: string) {
       .eq('shop_id', shopId),
   ])
   for (const r of [a, p, s]) if (r.error) throw r.error
-  return (a.data ?? []).map((x: any) => {
-    const products = (p.data ?? []).filter((v: any) => v.arrival_id === x.id),
+  return ((a.data ?? []) as Arrival[]).map((x) => {
+    const products = (p.data ?? []).filter((v) => v.arrival_id === x.id),
       items = (s.data ?? [])
-        .flatMap((v: any) => v.sale_items ?? [])
-        .filter((v: any) => v.products?.arrival_id === x.id)
-    const revenue = items.reduce(
-        (n: number, v: any) => n + Number(v.sold_unit_price) * Number(v.quantity),
-        0,
-      ),
+        .flatMap((v) => v.sale_items ?? [])
+        .filter((v) => v.products?.arrival_id === x.id)
+    const revenue = items.reduce((n, v) => n + Number(v.sold_unit_price) * Number(v.quantity), 0),
       computedCost =
         Number(x.merchandise_cost || 0) +
         Number(x.transport_cost || 0) +
         Number(x.customs_cost || 0),
       cost = Number(x.global_cost) || computedCost,
-      sold = items.reduce((n: number, v: any) => n + Number(v.quantity), 0),
-      remaining = products.reduce((n: number, v: any) => n + Number(v.quantity_on_hand), 0)
+      sold = items.reduce((n, v) => n + Number(v.quantity), 0),
+      remaining = products.reduce((n, v) => n + Number(v.quantity_on_hand), 0)
     return {
       id: x.id,
       code: x.code,
@@ -247,7 +227,7 @@ export async function liveStatistics(shopId: string) {
   for (const s of sales.data ?? []) {
     if (!months.some((x) => x.date === localMonth(new Date(s.sold_at)))) continue
     for (const i of s.sale_items ?? []) {
-      const k = (i.products as any)?.category || 'Autre'
+      const k = i.products?.category || 'Autre'
       cats.set(k, (cats.get(k) || 0) + Number(i.quantity))
     }
   }

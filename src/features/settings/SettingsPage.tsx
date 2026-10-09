@@ -20,7 +20,7 @@ export function SettingsPage({
       .single()
       .then(({ data, error }) => {
         if (error) setMsg(error.message)
-        else setShop(data as Shop)
+        else setShop(data)
       })
   }, [shopId])
   async function save(e: FormEvent<HTMLFormElement>) {

@@ -1,4 +1,4 @@
-import type { Product } from '../../lib/covi'
+import type { Product } from '../../lib/types'
 import { money, paymentLabels } from '../../lib/format'
 
 /** Current sale: sold price, quantity, payment method and validation. */

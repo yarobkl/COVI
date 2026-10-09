@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react'
-import type { Arrival } from '../../lib/operations'
+import type { Arrival } from '../../lib/types'
 
 /** Adds a product to a received arrival (a single piece for a balloon). */
 export function ArrivalProductForm({

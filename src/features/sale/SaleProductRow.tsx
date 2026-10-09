@@ -1,5 +1,5 @@
 import { ProductThumb } from '../../components/ProductThumb'
-import type { Product } from '../../lib/covi'
+import type { Product } from '../../lib/types'
 import { money } from '../../lib/format'
 
 export function SaleProductRow({

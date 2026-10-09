@@ -1,7 +1,7 @@
 import type { FormEvent } from 'react'
 import { countries } from '../../lib/countries'
 import { localDay } from '../../lib/dates'
-import type { Arrival } from '../../lib/operations'
+import type { Arrival } from '../../lib/types'
 
 /** New arrival (supplier order or balloon), created as a draft. */
 export function ArrivalForm({

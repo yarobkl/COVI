@@ -66,7 +66,7 @@ export function AuthGate({
           setMessage(
             'Impossible de charger votre commerce. Vérifiez votre connexion puis réessayez.',
           )
-        setShop(data as Shop | null)
+        setShop(data)
         setLoading(false)
       })
   }, [session])

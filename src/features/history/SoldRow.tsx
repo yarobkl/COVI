@@ -1,5 +1,5 @@
 import { ProductThumb } from '../../components/ProductThumb'
-import type { SoldItem } from '../../lib/covi'
+import type { SoldItem } from '../../lib/types'
 import { money, paymentLabel } from '../../lib/format'
 
 /** One sold line: product, date, payment, quantity, arrival and prices. */

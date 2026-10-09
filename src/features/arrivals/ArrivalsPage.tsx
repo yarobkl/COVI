@@ -7,9 +7,9 @@ import {
   createArrival,
   listArrivals,
   updateArrival,
-  type Arrival,
   type ArrivalProfit,
 } from '../../lib/operations'
+import type { Arrival } from '../../lib/types'
 import { ArrivalCard } from './ArrivalCard'
 import { ArrivalForm } from './ArrivalForm'
 import { ArrivalProductForm } from './ArrivalProductForm'
