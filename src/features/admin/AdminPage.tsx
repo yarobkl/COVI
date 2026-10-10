@@ -12,7 +12,9 @@ type SubscriptionRow = {
 }
 
 type RpcResult<T> = Promise<{ data: T | null; error: { message: string } | null }>
-const adminRpc = supabase.rpc as unknown as (
+// bind : rpc lit this.rest ; détachée du client, elle levait « Cannot read properties of
+// undefined (reading 'rest') » et la page restait sur « Vérification des autorisations… ».
+const adminRpc = supabase.rpc.bind(supabase) as unknown as (
   name: string,
   args?: Record<string, unknown>,
 ) => RpcResult<unknown>
