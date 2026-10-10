@@ -10,6 +10,8 @@ type Fake = {
   account: { id: string } | null
   subs: unknown[]
   createShop: (args: Record<string, unknown>) => { data: Shop | null; error: unknown }
+  /** Answer of covi_my_subscription_state(); null: function missing (PGRST202 → tables). */
+  state: Record<string, unknown> | null | 'error'
   authCallback: ((event: string, session: unknown) => void) | null
   shopRequests: number
 }
@@ -20,6 +22,7 @@ const fake: Fake = {
   account: null,
   subs: [],
   createShop: () => ({ data: null, error: null }),
+  state: null,
   authCallback: null,
   shopRequests: 0,
 }
@@ -50,7 +53,19 @@ function query(table: string) {
 vi.mock('../../lib/supabase', () => ({
   supabase: {
     from: (table: string) => query(table),
-    rpc: (_name: string, args: Record<string, unknown>) => Promise.resolve(fake.createShop(args)),
+    rpc: (name: string, args: Record<string, unknown>) =>
+      Promise.resolve(
+        name === 'covi_my_subscription_state'
+          ? fake.state === 'error'
+            ? { data: null, error: { code: 'XX000', message: 'Internal error' } }
+            : fake.state
+              ? { data: fake.state, error: null }
+              : {
+                  data: null,
+                  error: { code: 'PGRST202', message: 'Could not find the function' },
+                }
+          : fake.createShop(args),
+      ),
     auth: {
       getSession: () => Promise.resolve({ data: { session: sessionOf(fake.userId) } }),
       onAuthStateChange: (cb: Fake['authCallback']) => {
@@ -88,6 +103,7 @@ function renderGate() {
           <p>ouverte:{s.id}</p>
           <p>boutiques:{account.shopCount}</p>
           <p>lecture-seule:{String(account.readOnly)}</p>
+          {account.addShopBlocked && <p>ajout-bloqué:{account.addShopBlocked}</p>}
           {account.switchShop && (
             <button type="button" onClick={account.switchShop}>
               Changer de boutique
@@ -113,6 +129,7 @@ beforeEach(() => {
     account: null,
     subs: [],
     createShop: () => ({ data: null, error: null }),
+    state: null,
     authCallback: null,
     shopRequests: 0,
   })
@@ -227,7 +244,11 @@ describe('AuthGate: network cut while loading the shops', () => {
   })
 })
 
-describe('AuthGate: adding a shop', () => {
+describe('AuthGate: adding a shop (state unknown: the server decides and is translated)', () => {
+  beforeEach(() => {
+    fake.state = 'error'
+  })
+
   it('within the quota: created and opened', async () => {
     fake.shopsByUser.u1 = [A]
     const created = shop('shop-new', 'Boutique Neuve')
@@ -245,7 +266,7 @@ describe('AuthGate: adding a shop', () => {
     expect(screen.getByText('boutiques:2')).toBeTruthy()
   })
 
-  it('« Shop quota reached »: says how many shops the subscription covers', async () => {
+  it('« Shop quota reached » refused by the server (quota unknown here): translated', async () => {
     fake.account = { id: 'acc-1' }
     fake.subs = [
       {
@@ -267,7 +288,7 @@ describe('AuthGate: adding a shop', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Créer cette boutique' }))
     expect(
       await screen.findByText(
-        'Votre abonnement couvre 2 boutiques. Pour en ajouter une, contactez COVI.',
+        'Votre abonnement ne couvre pas d’autre boutique. Pour en ajouter une, contactez COVI.',
       ),
     ).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Annuler' }))
@@ -358,5 +379,103 @@ describe('AuthGate: subscription', () => {
       window.dispatchEvent(new Event('covi-sync'))
     })
     await waitFor(() => expect(screen.getByText('lecture-seule:true')).toBeTruthy())
+  })
+})
+
+describe('AuthGate: covi_my_subscription_state()', () => {
+  const state = (over: Record<string, unknown>) => ({
+    status: 'active',
+    writable: true,
+    shopLimit: 2,
+    shopCount: 1,
+    canAddShop: true,
+    periodEnd: '2099-01-01T00:00:00Z',
+    isLegacyV1: false,
+    ...over,
+  })
+
+  it('active with room: « Ajouter une boutique » offered', async () => {
+    fake.shopsByUser.u1 = [A]
+    fake.state = state({})
+    renderGate()
+    expect(await screen.findByRole('button', { name: 'Ajouter une boutique' })).toBeTruthy()
+    expect(screen.queryByText(/ajout-bloqué/)).toBeNull()
+  })
+
+  it('suspended: read only, adding a shop hidden with the reason', async () => {
+    fake.shopsByUser.u1 = [A]
+    fake.state = state({ status: 'suspended', writable: false, canAddShop: false })
+    renderGate()
+    expect(await screen.findByText('lecture-seule:true')).toBeTruthy()
+    expect(
+      await screen.findByText(
+        'ajout-bloqué:Votre abonnement est suspendu. Contactez COVI pour le renouveler.',
+      ),
+    ).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Ajouter une boutique' })).toBeNull()
+  })
+
+  it('past its period: « n’est pas actif »', async () => {
+    fake.shopsByUser.u1 = [A]
+    fake.state = state({ writable: false, canAddShop: false })
+    renderGate()
+    expect(
+      await screen.findByText(
+        'ajout-bloqué:Votre abonnement n’est pas actif. Contactez COVI pour le renouveler.',
+      ),
+    ).toBeTruthy()
+  })
+
+  it('quota reached: the picker’s button is disabled and says how many shops are covered', async () => {
+    fake.state = state({ shopCount: 2, canAddShop: false })
+    renderGate()
+    const add = (await screen.findByRole('button', {
+      name: 'Ajouter une boutique',
+    })) as HTMLButtonElement
+    await waitFor(() => expect(add.disabled).toBe(true))
+    expect(
+      screen.getByText('Votre abonnement couvre 2 boutiques. Pour en ajouter une, contactez COVI.'),
+    ).toBeTruthy()
+    fireEvent.click(add)
+    expect(screen.queryByLabelText('Nom de la boutique')).toBeNull()
+  })
+
+  it('after adding the last shop of the quota, adding is closed', async () => {
+    fake.shopsByUser.u1 = [A]
+    fake.state = state({})
+    fake.createShop = () => ({ data: B, error: null })
+    renderGate()
+    fireEvent.click(await screen.findByRole('button', { name: 'Ajouter une boutique' }))
+    fireEvent.change(screen.getByLabelText('Nom de la boutique'), { target: { value: 'B' } })
+    fake.state = state({ shopCount: 2, canAddShop: false })
+    fireEvent.click(screen.getByRole('button', { name: 'Créer cette boutique' }))
+    expect(await screen.findByText('ouverte:shop-b')).toBeTruthy()
+    expect(
+      await screen.findByText(
+        'ajout-bloqué:Votre abonnement couvre 2 boutiques. Pour en ajouter une, contactez COVI.',
+      ),
+    ).toBeTruthy()
+  })
+
+  it('function missing (PGRST202): same rules from the readable tables', async () => {
+    fake.shopsByUser.u1 = [A]
+    fake.state = null
+    fake.account = { id: 'acc-1' }
+    fake.subs = [
+      {
+        status: 'suspended',
+        shop_limit: 2,
+        period_start: '2026-09-01T00:00:00Z',
+        period_end: '2099-10-01T00:00:00Z',
+        grace_until: null,
+      },
+    ]
+    renderGate()
+    expect(await screen.findByText('lecture-seule:true')).toBeTruthy()
+    expect(
+      await screen.findByText(
+        'ajout-bloqué:Votre abonnement est suspendu. Contactez COVI pour le renouveler.',
+      ),
+    ).toBeTruthy()
   })
 })

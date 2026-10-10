@@ -224,4 +224,11 @@
   .sale-tile[data-locked='true'] .sale-tile__price {
     text-decoration: none;
   }
+  /* « Ajouter une boutique » impossible : pourquoi, en une ligne */
+  .shop-actions__note {
+    flex-basis: 100%;
+    padding-inline: var(--space-3);
+    color: var(--ink-soft);
+    font-size: var(--step--1);
+  }
 }

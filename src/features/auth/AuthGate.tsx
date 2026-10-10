@@ -12,6 +12,7 @@ import { rejectedSales } from '../../lib/offline'
 import { supabase } from '../../lib/supabase'
 import { listenForDesktopOAuth } from '../../lib/desktopAuth'
 import {
+  addShopBlockedReason,
   isSubscriptionInactive,
   loadSubscriptionAccess,
   OPEN_ACCESS,
@@ -32,6 +33,8 @@ export type ShopAccount = {
   switchShop?: () => void
   /** « Ajouter une boutique »: `create_my_shop`, within the subscription quota (needs the list). */
   addShop?: () => void
+  /** Why adding a shop is not possible (suspended, not active, quota reached): button disabled. */
+  addShopBlocked?: string
   /** Subscription suspended or over: data can be read, nothing can be written. */
   readOnly: boolean
 }
@@ -230,8 +233,22 @@ export function AuthGate({
     setActive({ userId, shop })
     setAdding(false)
   }
+  // Known before trying (covi_my_subscription_state); the server still refuses on its own.
+  const addBlocked = list ? addShopBlockedReason(access, list.length) : null
+  const startAdding =
+    list && !addBlocked
+      ? () => {
+          setMessage('')
+          setAdding(true)
+        }
+      : undefined
+  // A new shop changes what the account may still do (quota): asked again.
+  const refreshAccess = () =>
+    void loadSubscriptionAccess(userId).then((a) =>
+      setAccess((current) => ({ ...a, readOnly: a.readOnly || current.readOnly })),
+    )
 
-  if (adding && list)
+  if (adding && list && !addBlocked)
     return (
       <CreateShopForm
         message={message}
@@ -248,6 +265,7 @@ export function AuthGate({
           setMessage('')
           setShops({ status: 'loaded', userId, list: [...list, shop] })
           open(shop)
+          refreshAccess()
         }}
       />
     )
@@ -271,12 +289,8 @@ export function AuthGate({
           {
             shopCount: list?.length ?? 1,
             switchShop: list && list.length > 1 ? () => setActive(null) : undefined,
-            addShop: list
-              ? () => {
-                  setMessage('')
-                  setAdding(true)
-                }
-              : undefined,
+            addShop: startAdding,
+            addShopBlocked: addBlocked ?? undefined,
             readOnly: access.readOnly,
           },
         )}
@@ -326,6 +340,7 @@ export function AuthGate({
         onCreated={(shop) => {
           setShops({ status: 'loaded', userId, list: [shop] })
           open(shop)
+          refreshAccess()
         }}
       />
     )
@@ -335,10 +350,8 @@ export function AuthGate({
       shops={list}
       currentId={readActiveShop(userId)}
       onChoose={open}
-      onAdd={() => {
-        setMessage('')
-        setAdding(true)
-      }}
+      onAdd={startAdding}
+      addBlocked={addBlocked}
       onSignOut={() => void signOut()}
     />
   )

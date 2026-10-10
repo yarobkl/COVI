@@ -12,13 +12,17 @@ export function ShopPicker({
   currentId,
   onChoose,
   onAdd,
+  addBlocked,
   onSignOut,
 }: {
   shops: readonly Shop[]
   /** The shop open before « Changer de boutique », marked on its label. */
   currentId?: string | null
   onChoose: (shop: Shop) => void
-  onAdd: () => void
+  /** Missing when adding a shop is not possible (see `addBlocked`). */
+  onAdd?: () => void
+  /** Why adding a shop is not possible: the button is disabled and says why. */
+  addBlocked?: string | null
   onSignOut: () => void
 }) {
   return (
@@ -44,13 +48,24 @@ export function ShopPicker({
         ))}
       </ul>
       <div className="shop-picker__foot">
-        <Button variant="secondary" icon={<PlusIcon />} onClick={onAdd}>
+        <Button
+          variant="secondary"
+          icon={<PlusIcon />}
+          onClick={onAdd}
+          disabled={!onAdd}
+          aria-describedby={addBlocked ? 'ajout-boutique-impossible' : undefined}
+        >
           Ajouter une boutique
         </Button>
         <button type="button" className="btn btn--ghost" onClick={onSignOut}>
           Se déconnecter
         </button>
       </div>
+      {addBlocked && (
+        <p className="shop-actions__note" id="ajout-boutique-impossible">
+          {addBlocked}
+        </p>
+      )}
     </AuthPage>
   )
 }

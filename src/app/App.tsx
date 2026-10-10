@@ -109,8 +109,9 @@ function ShopActions({
   onAction?: () => void
   className?: string
 }) {
-  const { switchShop, addShop } = account
-  if (!switchShop && !addShop) return null
+  const { switchShop, addShop, addShopBlocked } = account
+  const noteId = useId()
+  if (!switchShop && !addShop && !addShopBlocked) return null
   return (
     <div className={cx('shop-actions', className)}>
       {switchShop && (
@@ -136,6 +137,21 @@ function ShopActions({
         >
           Ajouter une boutique
         </button>
+      )}
+      {!addShop && addShopBlocked && (
+        <>
+          <button
+            type="button"
+            className="btn btn--ghost shop-actions__btn"
+            disabled
+            aria-describedby={noteId}
+          >
+            Ajouter une boutique
+          </button>
+          <p className="shop-actions__note" id={noteId}>
+            {addShopBlocked}
+          </p>
+        </>
       )}
     </div>
   )

@@ -225,6 +225,22 @@ describe('App shell: several shops and read only', () => {
     expect(switchShop).toHaveBeenCalledTimes(2)
   })
 
+  it('adding a shop impossible: the button is disabled and says why', () => {
+    const { sommaire } = renderWith({
+      shopCount: 1,
+      addShopBlocked: 'Votre abonnement est suspendu. Contactez COVI pour le renouveler.',
+      readOnly: true,
+    })
+    const add = within(sommaire).getByRole('button', {
+      name: 'Ajouter une boutique',
+    }) as HTMLButtonElement
+    expect(add.disabled).toBe(true)
+    const note = within(sommaire).getByText(
+      'Votre abonnement est suspendu. Contactez COVI pour le renouveler.',
+    )
+    expect(add.getAttribute('aria-describedby')).toBe(note.id)
+  })
+
   it('no banner while the subscription is fine', () => {
     renderWith({ shopCount: 1, readOnly: false })
     expect(screen.queryByText(READ_ONLY)).toBeNull()
