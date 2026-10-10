@@ -16,6 +16,8 @@ on:
       - 'tsconfig.json'
       - 'eslint.config.js'
       - 'vitest.config.ts'
+      - 'vite.config.ts'
+      - 'public/**'
       - '.prettierrc.json'
       - '.prettierignore'
       - '.github/workflows/windows.yml'
