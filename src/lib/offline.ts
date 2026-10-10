@@ -671,6 +671,10 @@ export async function syncPendingSales(): Promise<SyncResult> {
         lock ? run() : undefined,
       )
     else await run()
+  } catch (e) {
+    // Unexpected (storage read failure…): the queue is untouched, try again later.
+    console.warn('COVI : synchronisation interrompue', e)
+    failed = true
   } finally {
     syncInProgress = false
     if (failed) scheduleSyncRetry()
