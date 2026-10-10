@@ -303,17 +303,15 @@ describe('record_sale SQL permission failures', () => {
   it('does not retry a permanent shop ownership refusal (42501)', async () => {
     const offline = await load()
     expect(offline.isRetryableSyncError({ code: '42501', message: 'Shop not found' })).toBe(false)
-    expect(
-      offline.isRetryableSyncError({ code: '42501', message: 'permission denied for table sales' }),
-    ).toBe(false)
+    const denied = { code: '42501', message: 'permission denied for table sales' }
+    expect(offline.isRetryableSyncError(denied)).toBe(false)
     expect(offline.isRetryableSyncError({ code: '42501', message: 'Forbidden' })).toBe(false)
   })
 
   it('retries expired authentication only after a renewed session is possible', async () => {
     const offline = await load()
-    expect(offline.isRetryableSyncError({ code: '42501', message: 'Authentication required' })).toBe(
-      true,
-    )
+    const expiredSession = { code: '42501', message: 'Authentication required' }
+    expect(offline.isRetryableSyncError(expiredSession)).toBe(true)
     expect(offline.isRetryableSyncError({ message: 'JWT expired' })).toBe(true)
     expect(offline.isRetryableSyncError({ message: 'Failed to fetch' })).toBe(true)
   })
