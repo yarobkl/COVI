@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   fcfa,
   money,
+  paidWith,
   parseAmount,
   paymentCode,
   paymentLabel,
@@ -65,6 +66,16 @@ describe('payment methods', () => {
   it('falls back to « other » / the raw code for unknown values', () => {
     expect(paymentCode('Bon d’achat')).toBe('other')
     expect(paymentLabel('voucher')).toBe('voucher')
+  })
+})
+
+describe('paidWith', () => {
+  it('says how it was paid, from a label or a stored code', () => {
+    expect(paidWith('Espèces')).toBe('en espèces')
+    expect(paidWith('mobile_money')).toBe('en Mobile Money')
+    expect(paidWith('Carte')).toBe('par carte')
+    expect(paidWith('bank_transfer')).toBe('par virement')
+    expect(paidWith('other')).toBe('autrement')
   })
 })
 

@@ -1,55 +1,50 @@
 import type { ComponentType } from 'react'
 import {
-  BaleIcon,
   BarsIcon,
   BillIcon,
   BoxIcon,
   HangerIcon,
   HomeIcon,
-  MenuIcon,
   NotebookIcon,
   ReceiptIcon,
   ShopIcon,
   type IconProps,
 } from '../components/icons'
+import type { PageId } from './routes'
 
-/** Pages of the signed-in application, identified by their title in the side navigation. */
-export type Page =
-  | 'Tableau de bord'
-  | 'Nouvelle vente'
-  | 'Mon stock'
-  | 'Mes arrivages'
-  | 'Mes commandes'
-  | 'Mes ballons'
-  | 'Produits vendus'
-  | 'Charges de la boutique'
-  | 'Statistiques'
-  | 'Paramètres'
+export type NavEntry = { page: PageId; label: string; icon: ComponentType<IconProps> }
 
-export const defaultPage: Page = 'Tableau de bord'
+/** Every page, with the words of the shop (TON-ET-VOCABULAIRE.md). */
+export const pages: Record<PageId, NavEntry> = {
+  accueil: { page: 'accueil', label: 'Accueil', icon: HomeIcon },
+  vendre: { page: 'vendre', label: 'Vendre', icon: ReceiptIcon },
+  stock: { page: 'stock', label: 'Stock', icon: HangerIcon },
+  arrivages: { page: 'arrivages', label: 'Arrivages', icon: BoxIcon },
+  ventes: { page: 'ventes', label: 'Ventes', icon: NotebookIcon },
+  charges: { page: 'charges', label: 'Charges', icon: BillIcon },
+  bilan: { page: 'bilan', label: 'Bilan', icon: BarsIcon },
+  boutique: { page: 'boutique', label: 'Ma boutique', icon: ShopIcon },
+}
 
-/** Side navigation, in display order. */
-export const sideNavigation: readonly { page: Page; icon: ComponentType<IconProps> }[] = [
-  { page: 'Tableau de bord', icon: HomeIcon },
-  { page: 'Nouvelle vente', icon: ReceiptIcon },
-  { page: 'Mon stock', icon: HangerIcon },
-  { page: 'Mes arrivages', icon: BoxIcon },
-  { page: 'Mes commandes', icon: BoxIcon },
-  { page: 'Mes ballons', icon: BaleIcon },
-  { page: 'Produits vendus', icon: NotebookIcon },
-  { page: 'Charges de la boutique', icon: BillIcon },
-  { page: 'Statistiques', icon: BarsIcon },
-  { page: 'Paramètres', icon: ShopIcon },
+/** Computer « Sommaire », under the « Nouvelle vente » key (which leads to Vendre). */
+export const sommaire: readonly NavEntry[] = [
+  pages.accueil,
+  pages.stock,
+  pages.arrivages,
+  pages.ventes,
+  pages.charges,
+  pages.bilan,
+  pages.boutique,
 ]
 
-/** Bottom navigation shown on small screens: short label and target page. */
-export const bottomNavigation: readonly {
-  label: string
-  icon: ComponentType<IconProps>
-  page: Page
-}[] = [
-  { label: 'Accueil', icon: HomeIcon, page: 'Tableau de bord' },
-  { label: 'Vendre', icon: ReceiptIcon, page: 'Nouvelle vente' },
-  { label: 'Stock', icon: HangerIcon, page: 'Mon stock' },
-  { label: 'Plus', icon: MenuIcon, page: 'Mes arrivages' },
+/** Phone bottom bar: Accueil · Vendre (key) · Stock, then « Plus » opens the menu. */
+export const bottomBar: readonly NavEntry[] = [pages.accueil, pages.vendre, pages.stock]
+
+/** Pages listed in the « Plus » menu on phones. */
+export const morePages: readonly NavEntry[] = [
+  pages.arrivages,
+  pages.ventes,
+  pages.charges,
+  pages.bilan,
+  pages.boutique,
 ]

@@ -49,6 +49,22 @@ export const paymentCode = (label: string): string =>
 export const paymentLabel = (code: string): string =>
   paymentMethods.find((m) => m.code === code)?.label ?? code
 
+/** How it was paid, as said at the counter: « en espèces », « par carte »… (label or code). */
+export function paidWith(method: string): string {
+  switch (paymentLabel(method) === method ? paymentCode(method) : method) {
+    case 'cash':
+      return 'en espèces'
+    case 'mobile_money':
+      return 'en Mobile Money'
+    case 'card':
+      return 'par carte'
+    case 'bank_transfer':
+      return 'par virement'
+    default:
+      return 'autrement'
+  }
+}
+
 /**
  * Word agreeing with `count` under the French rule: singular below 2 (0 and 1), plural from 2.
  * `pluralForm` defaults to the singular followed by « s ».

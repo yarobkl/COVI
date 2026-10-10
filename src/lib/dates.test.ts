@@ -1,5 +1,35 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { localDay, localMonth } from './dates'
+import {
+  clock,
+  localDay,
+  localMonth,
+  longDay,
+  monthName,
+  shortDay,
+  ticketClock,
+  ticketDay,
+  whenLabel,
+} from './dates'
+
+describe('spoken dates', () => {
+  it('writes days and times the French way', () => {
+    const d = new Date(2026, 9, 8, 14, 32)
+    expect(longDay(d)).toBe('Jeudi 8 octobre')
+    expect(monthName(d)).toBe('octobre')
+    expect(shortDay(new Date(2026, 9, 2))).toBe('2 oct.')
+    expect(clock(new Date(2026, 9, 8, 9, 5))).toBe('9 h 05')
+    expect(ticketClock(new Date(2026, 9, 8, 9, 5))).toBe('09:05')
+    expect(ticketDay(d)).toBe('08/10')
+  })
+
+  it('says today and yesterday', () => {
+    const now = new Date(2026, 9, 8, 18, 0)
+    expect(whenLabel(new Date(2026, 9, 8, 14, 32), now)).toBe('aujourd’hui 14 h 32')
+    expect(whenLabel(new Date(2026, 9, 7, 18, 5), now)).toBe('hier 18 h 05')
+    expect(whenLabel(new Date(2026, 9, 2, 11, 48), now)).toBe('2 oct. 11 h 48')
+    expect(whenLabel(new Date(2026, 8, 30, 23, 0), new Date(2026, 9, 1, 8, 0))).toBe('hier 23 h 00')
+  })
+})
 
 describe('localMonth', () => {
   it('formats the local year and zero-padded month', () => {
