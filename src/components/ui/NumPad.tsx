@@ -3,7 +3,7 @@ import { fcfa } from '../../lib/format'
 import { BackspaceIcon } from '../icons'
 import { Button } from './Button'
 import { cx } from './cx'
-import { keyFromKeyboard, lowerBy, PAD_KEYS, pressKey, type PadKey } from './numpad'
+import { keyFromKeyboard, lowerBy, PAD_KEYS, pressKey, type PadKey } from './pricePadLogic'
 
 const keyLabel = (key: PadKey) =>
   key === 'back' ? 'Effacer un chiffre' : key === '000' ? 'Trois zéros' : undefined
