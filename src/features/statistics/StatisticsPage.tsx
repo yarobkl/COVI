@@ -1,65 +1,235 @@
-import { useCallback } from 'react'
-import { LoadError } from '../../components/LoadError'
+import { useCallback, useMemo, useState } from 'react'
+import { CloudOffIcon } from '../../components/icons'
+import {
+  Amount,
+  Button,
+  EmptyState,
+  Ledger,
+  LedgerRow,
+  Notice,
+  Skeleton,
+} from '../../components/ui'
+import { Switch } from '../../components/ui/Switch'
 import { useAsyncData } from '../../hooks/useAsyncData'
-import { money, plural } from '../../lib/format'
+import { fcfa, plural } from '../../lib/format'
 import { liveStatistics } from '../../lib/operations'
-import { ArrivalProfitRow } from './ArrivalProfitRow'
+import '../../styles/app/bilan.css'
+import { ArrivalResults } from './ArrivalResults'
+import {
+  arrivalResults,
+  bilanTotal,
+  hasExamples,
+  lastMonths,
+  monthlyBilan,
+  topCategories,
+  type BilanMonth,
+} from './bilanMath'
+import { MonthBars } from './MonthBars'
 
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+
+/**
+ * Bilan: the last three months (sales, charges, what is left), what sells best, and what each
+ * arrival brought back. Example data is left out unless the seller switches it on.
+ */
 export function StatisticsPage({ shopId }: { shopId: string }) {
-  const load = useCallback(() => liveStatistics(shopId), [shopId])
-  const { data: d, error, retry } = useAsyncData(load)
+  const [now] = useState(() => new Date())
+  const load = useCallback(() => liveStatistics(shopId, now), [shopId, now])
+  const { data, error, retry } = useAsyncData(load)
+  const [withExamples, setWithExamples] = useState(false)
+  const months = useMemo(() => lastMonths(now), [now])
+
+  const head = (
+    <header className="page-head">
+      <div>
+        <h1>Bilan</h1>
+        <p className="page-head__sub">Les 3 derniers mois, et ce que chaque arrivage a rapporté.</p>
+      </div>
+    </header>
+  )
+
   if (error)
     return (
-      <LoadError
-        message="Impossible de calculer les statistiques. Vérifiez votre connexion puis réessayez."
-        onRetry={retry}
-      />
-    )
-  if (!d) return <p>Calcul des statistiques…</p>
-  const max = Math.max(1, ...d.days.map((x) => x.amount))
-  return (
-    <div>
-      <div className="hello">
-        <div>
-          <h1>Statistiques</h1>
-          <span>Vos performances réelles et les arrivages de simulation identifiés TEST.</span>
-        </div>
+      <div className="bilan">
+        {head}
+        <Notice
+          icon={CloudOffIcon}
+          title="Le bilan ne s’affiche pas : pas de réseau."
+          actions={
+            <Button variant="secondary" onClick={retry}>
+              Réessayer
+            </Button>
+          }
+        >
+          <p>Réessayez dans un instant.</p>
+        </Notice>
       </div>
-      <div className="grid">
-        <section className="card">
-          <small>VENTES · 3 DERNIERS MOIS COMPLETS · TEST INCLUS ET SIGNALÉ</small>
-          <div className="bars">
-            {d.days.map((x) => (
-              <div className="barcol" key={x.date}>
-                <div className="bar" style={{ height: Math.max(4, (x.amount / max) * 150) }}></div>
-                <span>{x.label}</span>
-                <small>{x.amount ? money(x.amount) : '0'}</small>
-              </div>
-            ))}
-          </div>
+    )
+  if (!data)
+    return (
+      <div className="bilan">
+        {head}
+        <Skeleton caption="On fait les comptes…" />
+      </div>
+    )
+
+  const examples = hasExamples(data)
+  const include = examples && withExamples
+  const bilan = monthlyBilan(data, months, include)
+  const total = bilanTotal(bilan)
+  const categories = topCategories(data.sales, months, include)
+  const arrivals = arrivalResults(data.profit, include)
+  const period = `${capitalize(months[0].label)} à ${months[months.length - 1].label}`
+
+  return (
+    <div className="bilan">
+      {head}
+
+      {examples && (
+        <div className="bilan__examples">
+          <Switch checked={withExamples} onChange={setWithExamples}>
+            Inclure la boutique d’exemple
+          </Switch>
+          <p className="muted">
+            {withExamples
+              ? 'Les chiffres comptent aussi les ventes, charges et arrivages « Exemple ».'
+              : 'Les ventes, charges et arrivages « Exemple » ne sont pas comptés.'}
+          </p>
+        </div>
+      )}
+
+      <section className="bilan-hero" aria-labelledby="bilan-hero">
+        <h2 className="bilan-hero__lead" id="bilan-hero">
+          {period}, la caisse a reçu
+        </h2>
+        <p className="amount amount--hero">
+          {fcfa(total.sales)}
+          <span className="amount__unit">FCFA</span>
+        </p>
+        <p className="bilan-hero__count">
+          en <strong>{plural(total.count, 'vente')}</strong>.
+        </p>
+      </section>
+
+      <div className="bilan-grid">
+        <section className="bilan-months" aria-labelledby="bilan-months">
+          <h2 className="section-title" id="bilan-months">
+            Ventes par mois
+          </h2>
+          <MonthBars months={bilan.map((m) => ({ key: m.key, label: m.label, amount: m.sales }))} />
+          <MonthTable months={bilan} total={total} />
+          <p className="bilan-note">
+            <strong>Reste après charges</strong> = ventes encaissées − charges du mois. Ce que vous
+            avez payé pour la marchandise n’est pas retiré : voyez plus bas ce que chaque arrivage a
+            rapporté. C’est un repère pour vous, pas une comptabilité officielle.
+          </p>
         </section>
-        <section className="card">
-          <small>CATÉGORIES VENDUES</small>
-          {d.categories.length === 0 ? (
-            <p>Les catégories apparaîtront après vos premières ventes.</p>
+
+        <section className="bilan-categories" aria-labelledby="bilan-categories">
+          <h2 className="section-title" id="bilan-categories">
+            Ce qui part le mieux
+          </h2>
+          {categories.length === 0 ? (
+            <p className="muted">Après quelques ventes, vous verrez ici ce qui part le mieux.</p>
           ) : (
-            d.categories.map(([category, count]) => (
-              <div className="statline" key={category}>
-                <span>{category}</span>
-                <b>{plural(count, 'vendu')}</b>
-              </div>
-            ))
+            <Ledger>
+              {categories.map((c) => (
+                <LedgerRow
+                  key={c.category}
+                  label={c.category}
+                  value={
+                    <span className="bilan-categories__count">
+                      <span className="figures">{c.pieces}</span>{' '}
+                      {c.pieces > 1 ? 'pièces vendues' : 'pièce vendue'}
+                    </span>
+                  }
+                />
+              ))}
+            </Ledger>
           )}
         </section>
       </div>
-      <section className="card">
-        <small>RENTABILITÉ DES ARRIVAGES</small>
-        {d.profit.length === 0 ? (
-          <p>Aucun arrivage à analyser.</p>
+
+      <section className="bilan-arrivals" aria-labelledby="bilan-arrivals">
+        <h2 className="section-title" id="bilan-arrivals">
+          Ce que chaque arrivage a rapporté
+        </h2>
+        {arrivals.shown.length === 0 ? (
+          <EmptyState title="Pas encore d’arrivage à comparer.">
+            <p>
+              Notez vos ballons et vos commandes dans <a href="#/arrivages">Arrivages</a> : vous
+              verrez ici ce que chacun vous rapporte.
+            </p>
+          </EmptyState>
         ) : (
-          d.profit.map((x) => <ArrivalProfitRow key={x.id} arrival={x} />)
+          <ArrivalResults arrivals={arrivals.shown} />
+        )}
+        {arrivals.notReceived > 0 && (
+          <p className="muted">
+            {arrivals.notReceived > 1
+              ? `${arrivals.notReceived} arrivages pas encore reçus ne sont pas comptés ici.`
+              : '1 arrivage pas encore reçu n’est pas compté ici.'}{' '}
+            <a href="#/arrivages">Voir les arrivages</a>
+          </p>
         )}
       </section>
     </div>
+  )
+}
+
+/** The months in a real table: sales, charges and what is left after charges. */
+function MonthTable({
+  months,
+  total,
+}: {
+  months: BilanMonth[]
+  total: ReturnType<typeof bilanTotal>
+}) {
+  return (
+    <table className="bilan-table">
+      <caption className="visually-hidden">
+        Ventes, charges et reste après charges, par mois
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Mois</th>
+          <th scope="col">Ventes</th>
+          <th scope="col">Charges</th>
+          <th scope="col">
+            Reste <span className="bilan-table__long">après charges</span>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {months.map((m) => (
+          <tr key={m.key}>
+            <th scope="row">{capitalize(m.label)}</th>
+            <td>
+              <Amount value={m.sales} regular />
+            </td>
+            <td>
+              <Amount value={-m.charges} tone={m.charges > 0 ? 'out' : undefined} regular />
+            </td>
+            <td>
+              <Amount value={m.rest} tone={m.rest < 0 ? 'out' : undefined} />
+            </td>
+          </tr>
+        ))}
+      </tbody>
+      <tfoot>
+        <tr>
+          <th scope="row">Total</th>
+          <td>
+            <Amount value={total.sales} />
+          </td>
+          <td>
+            <Amount value={-total.charges} tone={total.charges > 0 ? 'out' : undefined} />
+          </td>
+          <td>
+            <Amount value={total.rest} tone={total.rest < 0 ? 'out' : undefined} />
+          </td>
+        </tr>
+      </tfoot>
+    </table>
   )
 }

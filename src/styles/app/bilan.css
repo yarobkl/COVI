@@ -1,0 +1,206 @@
+/* Bilan : un chiffre, les mois en barres d’encre et en tableau, puis les arrivages. */
+@layer app {
+  .bilan {
+    display: grid;
+    gap: var(--space-8);
+    min-width: 0;
+  }
+  .bilan > .page-head {
+    margin-bottom: 0;
+  }
+  .bilan__examples {
+    display: grid;
+    gap: 0;
+    max-width: 36rem;
+  }
+  .bilan__examples .muted {
+    font-size: var(--step--1);
+  }
+
+  .bilan-hero {
+    display: grid;
+    gap: var(--space-2);
+  }
+  .bilan-hero__lead {
+    color: var(--ink-soft);
+    font-size: var(--step-1);
+    font-weight: var(--weight-regular);
+  }
+  .bilan-hero__count {
+    font-size: var(--step-1);
+  }
+
+  .bilan-grid {
+    display: grid;
+    gap: var(--space-10);
+    align-items: start;
+  }
+  .bilan-months,
+  .bilan-categories,
+  .bilan-arrivals {
+    display: grid;
+    gap: var(--space-4);
+    min-width: 0;
+    align-content: start;
+  }
+  .bilan-months {
+    max-width: 36rem;
+  }
+  .bilan-categories__count {
+    white-space: nowrap;
+  }
+  .bilan-note {
+    color: var(--ink-muted);
+    font-size: var(--step--1);
+  }
+
+  /* Barres d’encre : une colonne par mois, posée sur une règle. */
+  .month-bars {
+    margin: 0;
+    max-width: 30rem;
+  }
+  .month-bars__plot {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+    height: 11rem;
+    padding-top: var(--space-2);
+    border-bottom: var(--border-total) solid var(--ink);
+  }
+  .month-bars__col {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    gap: var(--space-1);
+    min-width: 0;
+  }
+  .month-bars__value {
+    font-size: 0.9375rem;
+    font-weight: var(--weight-bold);
+    white-space: nowrap;
+  }
+  .month-bars__bar {
+    width: min(100%, 3.5rem);
+    /* Hauteur proportionnelle, sous le montant écrit au-dessus. */
+    height: max(calc((100% - 1.75rem) * var(--ratio, 0)), 2px);
+    border-radius: 4px 4px 0 0;
+    background: var(--action);
+    transform-origin: bottom center;
+    animation: covi-grow var(--dur-slow) var(--ease-out) both;
+  }
+  .month-bars__bar--zero {
+    height: 2px;
+    background: var(--ink-muted);
+  }
+  .month-bars__axis {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+    padding-top: var(--space-1);
+    color: var(--ink-soft);
+    text-align: center;
+  }
+  @keyframes covi-grow {
+    from {
+      transform: scaleY(0);
+    }
+  }
+
+  /* Tableau des mois : mêmes filets que les lignes de cahier. */
+  .bilan-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .bilan-table th,
+  .bilan-table td {
+    padding: var(--space-2) 0 var(--space-2) var(--space-2);
+    border-bottom: var(--border-hair) solid var(--line);
+    text-align: end;
+    white-space: nowrap;
+  }
+  .bilan-table th:first-child {
+    padding-inline-start: 0;
+    text-align: start;
+  }
+  .bilan-table thead th {
+    color: var(--ink-muted);
+    font-size: var(--step--1);
+    font-weight: var(--weight-regular);
+    white-space: normal;
+    vertical-align: bottom;
+  }
+  .bilan-table tbody th {
+    font-weight: var(--weight-regular);
+  }
+  .bilan-table tfoot th,
+  .bilan-table tfoot td {
+    border-top: var(--border-total) solid var(--line-strong);
+    border-bottom: 4px double var(--line-strong);
+    font-weight: var(--weight-bold);
+  }
+  .bilan-table .amount {
+    font-size: var(--amount-sm);
+  }
+  @media (max-width: 26rem) {
+    .bilan-table__long {
+      display: none;
+    }
+  }
+
+  /* Arrivages : règle graduée et tampon RENTABILISÉ */
+  .arrival-results {
+    display: grid;
+    gap: 0;
+    max-width: 44rem;
+  }
+  .arrival-result {
+    position: relative;
+    display: grid;
+    gap: var(--space-1);
+    padding-block: var(--space-4);
+    border-bottom: var(--border-hair) solid var(--line);
+  }
+  .arrival-result .ruler {
+    margin-block: var(--space-1);
+  }
+  .arrival-result__title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-2);
+    padding-inline-end: 7.5rem;
+    font-weight: var(--weight-bold);
+  }
+  .arrival-result__origin {
+    color: var(--ink-soft);
+    font-weight: var(--weight-regular);
+  }
+  .arrival-result__figures,
+  .arrival-result__pieces {
+    color: var(--ink-soft);
+  }
+  .arrival-result__figures strong {
+    color: var(--ink);
+  }
+  .arrival-result__gain {
+    color: var(--success);
+  }
+  .arrival-result__stamp {
+    position: absolute;
+    top: var(--space-4);
+    inset-inline-end: var(--space-1);
+  }
+  .arrival-result--done .arrival-result__stamp .stamp {
+    animation: covi-stamp-drop var(--dur-slow) var(--ease-stamp) both;
+  }
+
+  @media (min-width: 1024px) {
+    .bilan-grid {
+      grid-template-columns: minmax(0, 1.2fr) minmax(16rem, 1fr);
+      column-gap: var(--space-12);
+    }
+  }
+}
