@@ -63,8 +63,11 @@ export function AdminPage() {
   }, [])
 
   useEffect(() => {
-    void load()
-    const { data } = supabase.auth.onAuthStateChange(() => void load())
+    // INITIAL_SESSION déclenche le premier chargement. Différé : un rappel
+    // d'auth ne doit pas rappeler Supabase de manière synchrone (cf. lib/covi.ts).
+    const { data } = supabase.auth.onAuthStateChange(() => {
+      setTimeout(() => void load(), 0)
+    })
     return () => data.subscription.unsubscribe()
   }, [load])
 
