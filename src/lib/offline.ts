@@ -34,12 +34,18 @@ export class RetryLaterError extends Error {
 // timeouts, expired or missing JWT, and gateway errors are temporary: the sale is kept and retried.
 // Business refusals raised by record_sale ("Insufficient stock", "Product unavailable"…) are not.
 const RETRYABLE =
-  /fetch|network|offline|load failed|timeout|timed out|abort|jwt|token|unauthori[sz]ed|\b401\b|not authenticated|permission denied|42501|service unavailable|bad gateway|gateway time|\b50[234]\b/i
+  /fetch|network|offline|load failed|timeout|timed out|abort|jwt|token|unauthori[sz]ed|\b401\b|not authenticated|service unavailable|bad gateway|gateway time|\b50[234]\b/i
 /** Whether a failed send should be retried later (true) or is a definitive refusal (false). */
 export function isRetryableSyncError(e: unknown) {
   if (e instanceof TypeError) return true
   if ((e as { retryable?: unknown } | null | undefined)?.retryable === true) return true
-  return RETRYABLE.test(String(errorMessage(e) ?? e ?? ''))
+  const message = String(errorMessage(e) ?? e ?? '')
+  const code = String((e as { code?: unknown } | null | undefined)?.code ?? '')
+  // A shop ownership / SQL permission refusal must not be retried forever.
+  // A missing or expired session can be retried after authentication is restored.
+  if (/shop not found|permission denied/i.test(message)) return false
+  if (code === '42501' || /42501/.test(message)) return /authentication required|jwt|token|not authenticated/i.test(message)
+  return RETRYABLE.test(message)
 }
 
 /** Rejects with a retryable error when `promise` takes longer than `ms` (the work itself goes on). */
