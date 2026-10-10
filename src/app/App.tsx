@@ -61,14 +61,10 @@ function ArrivalsScreen({ shopId, filter }: { shopId: string; filter?: ArrivalFi
   )
 }
 
-function renderPage(route: Route, { shop, updateShop }: PageContext) {
+function renderPage(route: Route, { shop, updateShop, onSimulation }: PageContext) {
   switch (route.page) {
     case 'accueil':
-      return (
-        <LegacyPage>
-          <DashboardPage shopId={shop.id} />
-        </LegacyPage>
-      )
+      return <DashboardPage shop={shop} onSimulation={onSimulation} />
     case 'vendre':
       return <SalePage shopId={shop.id} shopName={shop.name} />
     case 'stock':

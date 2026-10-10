@@ -1,0 +1,242 @@
+/* Accueil : un chiffre héros, puis des lignes de cahier. */
+@layer app {
+  .home {
+    display: grid;
+    gap: var(--space-8);
+  }
+  .home-head {
+    margin-bottom: 0;
+    align-items: center;
+  }
+  .home-date {
+    display: inline-block;
+    font-size: var(--step-2);
+    padding-bottom: var(--space-1);
+    border-bottom: 2px solid var(--danger);
+  }
+
+  .home-hero {
+    display: grid;
+    gap: var(--space-2);
+  }
+  .home-hero__lead {
+    color: var(--ink-soft);
+    font-size: var(--step-1);
+    font-weight: var(--weight-regular);
+  }
+  .home-hero__count {
+    font-size: var(--step-1);
+  }
+
+  /* Répartition par moyen de paiement : une barre à l’encre, motifs plutôt que couleurs. */
+  .pay-split {
+    display: grid;
+    gap: var(--space-2);
+    max-width: 32rem;
+    margin-top: var(--space-3);
+  }
+  .pay-split__bar {
+    display: flex;
+    height: 18px;
+    overflow: hidden;
+    border: var(--border-field) solid var(--action);
+    border-radius: 2px;
+    background: var(--sheet);
+  }
+  .pay-split__part {
+    flex: 0 0 var(--share);
+    animation: covi-fill var(--dur-slow) var(--ease-out) both;
+    transform-origin: left center;
+  }
+  .pay-split__part + .pay-split__part {
+    border-inline-start: var(--border-field) solid var(--action);
+  }
+  .pay-split__part--0 {
+    background: var(--action);
+  }
+  .pay-split__part--1 {
+    background: repeating-linear-gradient(45deg, var(--action) 0 1.8px, var(--sheet) 1.8px 6px);
+  }
+  .pay-split__part--2 {
+    background: radial-gradient(var(--action) 1.2px, var(--sheet) 1.4px) 0 0 / 5px 5px;
+  }
+  .pay-split__part--3 {
+    background: repeating-linear-gradient(90deg, var(--action) 0 1.5px, var(--sheet) 1.5px 5px);
+  }
+  .pay-split__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-5);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: var(--step--1);
+  }
+  .pay-split__legend li {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .pay-split__legend .figures {
+    font-weight: var(--weight-bold);
+  }
+  .pay-split__swatch {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: var(--border-field) solid var(--action);
+    border-radius: 2px;
+  }
+
+  .home-grid {
+    display: grid;
+    gap: var(--space-10);
+    grid-template-areas:
+      'follow'
+      'sales'
+      'month';
+  }
+  .home-grid__follow {
+    grid-area: follow;
+  }
+  .home-grid__sales {
+    grid-area: sales;
+    display: grid;
+    gap: var(--space-5);
+    align-content: start;
+  }
+  .home-grid__month {
+    grid-area: month;
+  }
+
+  /* À suivre */
+  .follow {
+    display: grid;
+    gap: var(--space-3);
+    align-content: start;
+  }
+  .follow__list {
+    display: grid;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .follow__item {
+    display: grid;
+    gap: var(--space-1);
+    padding-block: var(--space-4);
+    border-bottom: var(--border-hair) solid var(--line);
+  }
+  .follow__item .ruler {
+    margin-block: var(--space-2);
+  }
+  .follow__title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-2);
+    font-weight: var(--weight-bold);
+  }
+  .follow__calm,
+  .follow__stock {
+    color: var(--ink-soft);
+  }
+
+  /* Le mois */
+  .home-month {
+    display: grid;
+    gap: var(--space-3);
+    align-content: start;
+    max-width: 34rem;
+  }
+  .home-month__note {
+    color: var(--ink-muted);
+    font-size: var(--step--1);
+  }
+  .home-month__hand {
+    max-width: 22rem;
+    font-size: 1.25rem;
+    rotate: -1.5deg;
+  }
+
+  /* Dernières ventes */
+  .home-sales {
+    display: grid;
+    gap: var(--space-3);
+  }
+  .home-sales .ticket {
+    width: 100%;
+  }
+  .home-sales .ticket__head {
+    text-transform: uppercase;
+  }
+  .home-sales__list {
+    display: grid;
+    gap: var(--space-2);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .home-sales__time {
+    color: var(--ink-muted);
+  }
+  .home-sales__more {
+    color: var(--ink-soft);
+  }
+  .home-sales__link {
+    margin-top: var(--space-2);
+    font-family: var(--font-text);
+    word-spacing: normal;
+  }
+
+  /* Premier jour */
+  .first-day {
+    display: grid;
+    gap: var(--space-3);
+    max-width: 36rem;
+  }
+  .first-day__title {
+    font-size: var(--step-3);
+    color: var(--action);
+  }
+  .first-day__steps {
+    counter-reset: step;
+    display: grid;
+    margin: var(--space-3) 0;
+  }
+  .first-day__steps li {
+    counter-increment: step;
+    display: grid;
+    grid-template-columns: 2.5rem minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-2) 0;
+    padding-block: var(--space-3);
+    border-bottom: var(--border-hair) solid var(--line);
+  }
+  .first-day__steps li::before {
+    content: counter(step);
+    grid-row: span 2;
+    color: var(--action);
+    font-family: var(--font-figures);
+    font-size: var(--amount-lg);
+    font-weight: var(--weight-bold);
+    line-height: 1;
+  }
+  .first-day__steps li > .btn {
+    justify-self: start;
+  }
+  .first-day__example {
+    justify-self: start;
+    padding-inline: 0;
+  }
+
+  @media (min-width: 1024px) {
+    .home-grid {
+      grid-template-columns: minmax(0, 1.25fr) minmax(16rem, 1fr);
+      grid-template-areas:
+        'follow sales'
+        'month sales';
+      column-gap: var(--space-10);
+    }
+  }
+}

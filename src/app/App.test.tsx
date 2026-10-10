@@ -6,7 +6,7 @@ import { App } from './App'
 
 // The shell is tested on its own: pages are replaced by stubs showing their props.
 vi.mock('../features/dashboard/DashboardPage', () => ({
-  DashboardPage: ({ shopId }: { shopId: string }) => <p>page:dashboard:{shopId}</p>,
+  DashboardPage: ({ shop }: { shop: { id: string } }) => <p>page:dashboard:{shop.id}</p>,
 }))
 vi.mock('../features/sale/SalePage', () => ({ SalePage: () => <p>page:sale</p> }))
 vi.mock('../features/stock/StockPage', () => ({ StockPage: () => <p>page:stock</p> }))
