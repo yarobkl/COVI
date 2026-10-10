@@ -80,23 +80,24 @@ diagnostic. Ne le comparez pas.
 - **Définitive** : le même panier échouera toujours. Retirez-le de la file automatique et
   montrez-le au vendeur pour qu’il le corrige ou l’abandonne.
 
-| `message`                                  | SQLSTATE (`code`) | Cause                                                                                                                                                      | Nature                                                                                                    |
-| ------------------------------------------ | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `Authentication required`                  | `42501`           | Pas de session (JWT absent ou expiré).                                                                                                                     | Réessayable après reconnexion                                                                             |
-| `Shop not found`                           | `42501`           | La boutique n’existe pas ou n’appartient pas à l’utilisateur connecté.                                                                                     | Définitive. Exception : si un autre compte est connecté, réessayer une fois reconnecté avec le bon compte |
-| `Sale operation id is required`            | `P0001`           | `p_client_operation_id` nul.                                                                                                                               | Définitive (bug client)                                                                                   |
-| `Invalid payment method`                   | `P0001`           | Moyen de paiement hors liste.                                                                                                                              | Définitive (bug client)                                                                                   |
-| `Cart items must be a JSON array`          | `P0001`           | `p_items` nul ou pas un tableau.                                                                                                                           | Définitive (bug client)                                                                                   |
-| `Cart must contain between 1 and 50 items` | `P0001`           | Panier vide ou de plus de 50 lignes.                                                                                                                       | Définitive                                                                                                |
-| `Invalid cart item`                        | `P0001`           | Ligne mal formée : pas un objet, clé manquante ou inconnue, mauvais type JSON, uuid invalide, quantité non entière ou > 2 147 483 647.                     | Définitive (bug client)                                                                                   |
-| `Quantity must be positive`                | `P0001`           | Quantité ≤ 0.                                                                                                                                              | Définitive                                                                                                |
-| `Sold price cannot be negative`            | `P0001`           | Prix < 0.                                                                                                                                                  | Définitive                                                                                                |
-| `Duplicate product in cart`                | `P0001`           | Le même `product_id` apparaît sur deux lignes.                                                                                                             | Définitive (fusionner les lignes)                                                                         |
-| `Sale total too large`                     | `P0001`           | Total > 999 999 999 999,99.                                                                                                                                | Définitive                                                                                                |
-| `Product unavailable`                      | `P0001`           | Produit inexistant, d’une autre boutique, déjà vendu (`sold`) ou archivé. C’est aussi l’erreur de la pièce unique vendue entre-temps par une autre caisse. | Définitive                                                                                                |
-| `Unique piece quantity must be 1`          | `P0001`           | Pièce unique demandée en quantité ≠ 1.                                                                                                                     | Définitive                                                                                                |
-| `Insufficient stock`                       | `P0001`           | Stock du produit < quantité demandée.                                                                                                                      | Définitive                                                                                                |
-| `Cannot mix test and real products`        | `P0001`           | Le panier contient des produits de test et des produits réels.                                                                                             | Définitive                                                                                                |
+| `message`                                  | SQLSTATE (`code`) | Cause                                                                                                                                                           | Nature                                                                                                    |
+| ------------------------------------------ | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `Authentication required`                  | `42501`           | Pas de session (JWT absent ou expiré).                                                                                                                          | Réessayable après reconnexion                                                                             |
+| `Shop not found`                           | `42501`           | La boutique n’existe pas ou n’appartient pas à l’utilisateur connecté.                                                                                          | Définitive. Exception : si un autre compte est connecté, réessayer une fois reconnecté avec le bon compte |
+| `Sale operation id is required`            | `P0001`           | `p_client_operation_id` nul.                                                                                                                                    | Définitive (bug client)                                                                                   |
+| `Invalid payment method`                   | `P0001`           | Moyen de paiement hors liste.                                                                                                                                   | Définitive (bug client)                                                                                   |
+| `Cart items must be a JSON array`          | `P0001`           | `p_items` nul ou pas un tableau.                                                                                                                                | Définitive (bug client)                                                                                   |
+| `Cart must contain between 1 and 50 items` | `P0001`           | Panier vide ou de plus de 50 lignes.                                                                                                                            | Définitive                                                                                                |
+| `Invalid cart item`                        | `P0001`           | Ligne mal formée : pas un objet, clé manquante ou inconnue, mauvais type JSON, uuid invalide, quantité non entière ou > 2 147 483 647.                          | Définitive (bug client)                                                                                   |
+| `Quantity must be positive`                | `P0001`           | Quantité ≤ 0.                                                                                                                                                   | Définitive                                                                                                |
+| `Sold price cannot be negative`            | `P0001`           | Prix < 0.                                                                                                                                                       | Définitive                                                                                                |
+| `Duplicate product in cart`                | `P0001`           | Le même `product_id` apparaît sur deux lignes.                                                                                                                  | Définitive (fusionner les lignes)                                                                         |
+| `Sale total too large`                     | `P0001`           | Total > 999 999 999 999,99.                                                                                                                                     | Définitive                                                                                                |
+| `Product unavailable`                      | `P0001`           | Produit inexistant, d’une autre boutique, déjà vendu (`sold`) ou archivé. C’est aussi l’erreur de la pièce unique vendue entre-temps par une autre caisse.      | Définitive                                                                                                |
+| `Unique piece quantity must be 1`          | `P0001`           | Pièce unique demandée en quantité ≠ 1.                                                                                                                          | Définitive                                                                                                |
+| `Insufficient stock`                       | `P0001`           | Stock du produit < quantité demandée.                                                                                                                           | Définitive                                                                                                |
+| `Cannot mix test and real products`        | `P0001`           | Le panier contient des produits de test et des produits réels.                                                                                                  | Définitive                                                                                                |
+| `Subscription inactive: shop is read-only` | `P0001`           | Abonnement SaaS du propriétaire de la boutique suspendu, annulé ou échu (trigger `covi_subscription_write_guard`, migration `20261010180000`, branche d'audit). | **Définitive mais à conserver et afficher** : voir « Abonnement inactif » ci-dessous                      |
 
 Erreurs hors de la fonction, toutes **réessayables** avec la même clé :
 
@@ -119,6 +120,36 @@ dans cet ordre :
 
 Un panier déjà enregistré (même clé) renvoie son id **avant** l’étape 4. Un rejeu ne peut donc
 pas échouer pour « stock insuffisant » à cause de sa propre vente.
+
+## Abonnement inactif (SaaS, PR #12 + correctif d'audit)
+
+Message exact : `Subscription inactive: shop is read-only` — SQLSTATE `P0001`. Le même message est
+renvoyé par `record_sale`, `record_cart_sale` et toute écriture directe sur `products`,
+`arrivals`, `sales`, `shop_expenses` (et la suppression d'une boutique). Le contrôle porte sur
+l'abonnement du **propriétaire de la boutique** au moment où le serveur reçoit l'appel, pas au
+moment où la vente a été saisie hors ligne : une vente mise en file pendant que l'abonnement était
+actif puis synchronisée après la suspension est refusée (pas de contournement).
+
+Règle de reprise côté client :
+
+1. Ne pas réessayer automatiquement (ce n'est pas une erreur réseau ; le message ne contient
+   aucun des mots `fetch|network|offline|timeout|jwt|token|unauthorized|401|not authenticated`).
+2. **Ne jamais supprimer la vente en silence** : la retirer de la file active, la conserver avec
+   son motif, son `client_operation_id` et son contenu, restaurer le stock local, et l'afficher
+   (« abonnement suspendu : vente non enregistrée »).
+3. Après renouvellement de l'abonnement, la vente peut être renvoyée **avec la même clé** :
+   rien n'ayant été écrit, elle est enregistrée normalement (testé, étape 12 de
+   `tests/sql/saas_simulation.sql`).
+4. Un rejeu d'une vente **déjà enregistrée** avant la suspension (même clé) renvoie toujours son
+   id sans rien écrire : l'idempotence est vérifiée avant le contrôle d'abonnement.
+
+Commerçants V1 sans compte SaaS et premier abonnement jamais payé (`pending_payment`,
+`period_start` nul) : aucune restriction. Contexte serveur sans utilisateur (`auth.uid()` nul) :
+aucune restriction.
+
+Tests : `tests/sql/saas_simulation.sql` (étapes « 10 Hors ligne » et « 12 Renouvellement ») et
+`tests/offline_subscription.mjs` (file hors ligne actuelle de `src/lib/offline.ts`, inchangée :
+rejet définitif conservé avec son motif, stock restauré, pas de boucle).
 
 ## Concurrence
 

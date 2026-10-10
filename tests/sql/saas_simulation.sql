@@ -297,6 +297,27 @@ select pg_temp.try('10 Suspension', 'motif trop court refusé',
 select pg_temp.try('10 Suspension', 'S suspend l''abonnement (motif journalisé)',
   format($$select public.covi_admin_suspend_subscription(%L, 'Impayé simulation audit')$$, :'sub_o'), 'ok');
 select set_config('request.jwt.claim.sub', :'O', true);
+-- Hors ligne : vente déjà synchronisée AVANT la suspension puis renvoyée (même operation id)
+-- -> idempotence : même id renvoyé, rien d'écrit. Vente enregistrée hors ligne avant la
+-- suspension mais synchronisée APRÈS -> refus définitif P0001 'Subscription inactive...'.
+select pg_temp.chk('10 Hors ligne', 'record_sale rejoué (op déjà synchronisée avant suspension) : même id, aucune écriture',
+  public.record_sale(:'shop_a', '30000000-0000-0000-0000-0000000000aa', 1, 5000, 'cash',
+    '40000000-0000-0000-0000-0000000000a1')
+  = (select id from public.sales where client_operation_id = '40000000-0000-0000-0000-0000000000a1'),
+  'ventes A=' || (select count(*) from public.sales where shop_id = :'shop_a'));
+select pg_temp.chk('10 Hors ligne', 'record_cart_sale rejoué (op déjà synchronisée) : même id, aucune écriture',
+  public.record_cart_sale(:'shop_b',
+    '[{"product_id":"30000000-0000-0000-0000-0000000000ab","quantity":1,"sold_unit_price":8000}]',
+    'mobile_money', '40000000-0000-0000-0000-0000000000a2')
+  = (select id from public.sales where client_operation_id = '40000000-0000-0000-0000-0000000000a2'),
+  'ventes B=' || (select count(*) from public.sales where shop_id = :'shop_b'));
+select pg_temp.try('10 Hors ligne', 'vente hors ligne (avant suspension) synchronisée après : refus P0001 Subscription inactive',
+  format($$select public.record_sale(%L, '30000000-0000-0000-0000-0000000000aa', 2, 5000, 'cash',
+           '40000000-0000-0000-0000-0000000000b0')$$, :'shop_a'), 'Subscription inactive: shop is read-only');
+select pg_temp.try('10 Hors ligne', 'panier hors ligne synchronisé après suspension : refus P0001 Subscription inactive',
+  format($$select public.record_cart_sale(%L,
+           '[{"product_id":"30000000-0000-0000-0000-0000000000aa","quantity":1,"sold_unit_price":5000}]',
+           'cash', '40000000-0000-0000-0000-0000000000b9')$$, :'shop_a'), 'Subscription inactive: shop is read-only');
 select pg_temp.try('10 Suspension', 'record_sale refusé pendant la suspension',
   format($$select public.record_sale(%L, '30000000-0000-0000-0000-0000000000aa', 1, 5000, 'cash',
            '40000000-0000-0000-0000-0000000000b1')$$, :'shop_a'), 'Subscription inactive');
@@ -356,6 +377,13 @@ select pg_temp.chk('12 Renouvellement', 'données intactes : 3 ventes, stock Rob
   and (select quantity_on_hand from public.products where id = '30000000-0000-0000-0000-0000000000aa') = 8,
   'ventes=' || (select count(*) from public.sales) || ' stock Robe A='
   || (select quantity_on_hand from public.products where id = '30000000-0000-0000-0000-0000000000aa'));
+reset role;
+
+select set_config('request.jwt.claim.sub', :'O', true);
+set local role authenticated;
+select pg_temp.try('12 Renouvellement', 'reprise : la vente hors ligne refusée (même operation id) passe après renouvellement',
+  format($$select public.record_sale(%L, '30000000-0000-0000-0000-0000000000aa', 2, 5000, 'cash',
+           '40000000-0000-0000-0000-0000000000b0')$$, :'shop_a'), 'ok');
 reset role;
 
 -- 12b. Expiration sans suspension explicite (statut resté 'active', période échue).

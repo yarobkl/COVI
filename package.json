@@ -12,7 +12,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc -b",
-    "test": "vitest run && node tests/offline.mjs"
+    "test": "vitest run && node tests/offline.mjs && node tests/offline_subscription.mjs"
   },
   "dependencies": {
     "@fontsource/atkinson-hyperlegible": "5.3.0",
