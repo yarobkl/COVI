@@ -139,7 +139,7 @@ export function SettingsPage({
           <p className="boutique-currency__value">FCFA (francs CFA)</p>
           <p className="field__hint">
             Tous les montants sont en francs CFA (code bancaire XAF). La monnaie ne se change pas :
-            vos ventes, vos charges et vos arrivages restent comptés dans la même.
+            ventes, charges et arrivages sont tous comptés en FCFA.
           </p>
         </div>
         {status === 'failed' && (
@@ -190,7 +190,7 @@ export function SettingsPage({
         <Ledger>
           <LedgerRow
             label="Stock gardé"
-            meta={copied ? `copie de ${copied}` : 'pas encore de copie : ouvrez Stock ou Vendre'}
+            meta={copied ? `copie faite ${copied}` : 'pas encore de copie : ouvrez Stock ou Vendre'}
             value={
               <span className="boutique-device__value">
                 {device.models > 0 ? plural(device.pieces, 'pièce') : 'aucun'}

@@ -171,7 +171,6 @@
     flex-wrap: wrap;
     align-items: baseline;
     gap: var(--space-1) var(--space-2);
-    padding-inline-end: 7.5rem;
     font-weight: var(--weight-bold);
   }
   .arrival-result__origin {
@@ -188,10 +187,21 @@
   .arrival-result__gain {
     color: var(--success);
   }
+  /* Téléphone : le tampon suit la phrase ; plus large : il est posé dans le coin. */
   .arrival-result__stamp {
-    position: absolute;
-    top: var(--space-4);
-    inset-inline-end: var(--space-1);
+    justify-self: start;
+    margin-top: var(--space-2);
+  }
+  @media (min-width: 40rem) {
+    .arrival-result__title {
+      padding-inline-end: 8rem;
+    }
+    .arrival-result__stamp {
+      position: absolute;
+      top: var(--space-4);
+      inset-inline-end: var(--space-1);
+      margin: 0;
+    }
   }
   .arrival-result--done .arrival-result__stamp .stamp {
     animation: covi-stamp-drop var(--dur-slow) var(--ease-stamp) both;
@@ -202,5 +212,10 @@
       grid-template-columns: minmax(0, 1.2fr) minmax(16rem, 1fr);
       column-gap: var(--space-12);
     }
+  }
+
+  /* « Réessayer » : cible de 44 px au moins, comme tout ce qui se touche. */
+  .bilan .notice__actions .btn {
+    min-height: var(--tap-min);
   }
 }

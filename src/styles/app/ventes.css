@@ -37,7 +37,7 @@
   .jday {
     display: grid;
     min-width: 0;
-    max-width: 52rem;
+    max-width: 46rem;
   }
   .jday__head {
     display: flex;
@@ -146,5 +146,10 @@
   }
   .journal__limit {
     max-width: 44rem;
+  }
+
+  /* « Réessayer » : cible de 44 px au moins, comme tout ce qui se touche. */
+  .sales-page .notice__actions .btn {
+    min-height: var(--tap-min);
   }
 }

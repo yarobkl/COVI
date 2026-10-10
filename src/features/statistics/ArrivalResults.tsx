@@ -53,8 +53,8 @@ export function ArrivalResults({ arrivals }: { arrivals: ArrivalResult[] }) {
                   <strong className="arrival-result__gain">
                     A rapporté <span className="figures">{fcfa(a.revenue - a.cost)}</span>
                     &nbsp;FCFA
-                  </strong>{' '}
-                  une fois payé.
+                  </strong>
+                  .
                 </>
               ) : (
                 <>

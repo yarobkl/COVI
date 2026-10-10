@@ -69,7 +69,7 @@ export function DemoHome({ go }: { go: (page: DemoPageId) => void }) {
                 <h3 className="demo-month__title">
                   {m.name}{' '}
                   <span className="demo-month__sub">
-                    · {plural(m.buyers, 'vente')} · {m.units} pièces
+                    {plural(m.buyers, 'vente')} · {m.units} pièces
                   </span>
                 </h3>
                 <Ledger>
@@ -123,11 +123,11 @@ export function DemoHome({ go }: { go: (page: DemoPageId) => void }) {
           Où en sont les arrivages
         </h2>
         <ArrivalResults arrivals={demoArrivals()} />
-        <div>
-          <Button variant="secondary" onClick={() => go('ventes')}>
-            Voir les ventes
+        <p>
+          <Button variant="ghost" onClick={() => go('ventes')}>
+            Voir les ventes, jour par jour
           </Button>
-        </div>
+        </p>
       </section>
     </div>
   )

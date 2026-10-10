@@ -243,8 +243,7 @@ function DeleteDialog({
       {shown && (
         <div className="dialog__body">
           <h2 className="dialog__title" id={titleId}>
-            Supprimer « {shown.label || categoryLabel(shown.category)} » (
-            {money(Number(shown.amount))}) ?
+            {`Supprimer «\u00a0${shown.label || categoryLabel(shown.category)}\u00a0» (${money(Number(shown.amount))})\u00a0?`}
           </h2>
           <p className="dialog__text">Elle sortira des comptes du mois.</p>
           {failed && (

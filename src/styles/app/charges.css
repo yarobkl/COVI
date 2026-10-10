@@ -53,6 +53,9 @@
     font-size: var(--step--2);
     font-weight: var(--weight-regular);
   }
+  .charge-row .ledger__dots {
+    align-self: center;
+  }
   .charge-row__open {
     padding: 0;
     border: 0;
@@ -97,5 +100,10 @@
   .expense-form__delete {
     padding-top: var(--space-3);
     border-top: var(--border-hair) solid var(--line);
+  }
+
+  /* « Réessayer » : cible de 44 px au moins, comme tout ce qui se touche. */
+  .charges-page .notice__actions .btn {
+    min-height: var(--tap-min);
   }
 }

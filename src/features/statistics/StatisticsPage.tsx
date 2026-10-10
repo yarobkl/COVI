@@ -18,8 +18,6 @@ import {
 import { MonthBars } from './MonthBars'
 import { MonthTable } from './MonthTable'
 
-const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
-
 /**
  * Bilan: the last three months (sales, charges, what is left), what sells best, and what each
  * arrival brought back. Example data is left out unless the seller switches it on.
@@ -71,7 +69,7 @@ export function StatisticsPage({ shopId }: { shopId: string }) {
   const total = bilanTotal(bilan)
   const categories = topCategories(data.sales, months, include)
   const arrivals = arrivalResults(data.profit, include)
-  const period = `${capitalize(months[0].label)} à ${months[months.length - 1].label}`
+  const period = `De ${months[0].label} à ${months[months.length - 1].label}`
 
   return (
     <div className="bilan">

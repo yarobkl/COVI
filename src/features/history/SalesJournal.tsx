@@ -99,7 +99,7 @@ export function SalesJournal({
       {filtered.length === 0 ? (
         <p className="journal__none" role="status">
           {query.trim()
-            ? `Rien ne correspond à « ${query.trim()} ».`
+            ? `Rien ne correspond à «\u00a0${query.trim()}\u00a0».`
             : period === 'today'
               ? 'Pas encore de vente aujourd’hui.'
               : 'Aucune vente sur cette période.'}
@@ -184,7 +184,7 @@ function JournalRow({ line }: { line: JournalLine }) {
           {line.quantity > 1 && (
             <>
               {' · '}
-              <span className="figures">{fcfa(line.soldUnit)}</span> pièce
+              <span className="figures">{fcfa(line.soldUnit)}</span> la pièce
             </>
           )}
           {line.example && (
