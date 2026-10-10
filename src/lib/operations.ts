@@ -263,7 +263,7 @@ export type ArrivalProfit = Awaited<ReturnType<typeof arrivalProfitability>>[num
  */
 export async function liveStatistics(shopId: string, now: Date = new Date()) {
   const from = new Date(now.getFullYear(), now.getMonth() - 3, 1)
-  const [sales, expenses, profit] = await Promise.all([
+  const [sales, expenses] = await Promise.all([
     supabase
       .from('sales')
       .select('total_amount,sold_at,is_test,sale_items(quantity,products(category))')
@@ -275,9 +275,8 @@ export async function liveStatistics(shopId: string, now: Date = new Date()) {
       .select('amount,expense_date,is_test')
       .eq('shop_id', shopId)
       .gte('expense_date', localDay(from)),
-    arrivalProfitability(shopId),
   ])
   for (const r of [sales, expenses]) if (r.error) throw r.error
-  return { from, sales: sales.data ?? [], expenses: expenses.data ?? [], profit }
+  return { from, sales: sales.data ?? [], expenses: expenses.data ?? [] }
 }
 export type Statistics = Awaited<ReturnType<typeof liveStatistics>>

@@ -2,7 +2,8 @@
 // what each arrival brought back. Only figures read from the account; examples are left out
 // unless the seller asks to include them.
 import { localMonth } from '../../lib/dates'
-import type { ArrivalProfit, Statistics } from '../../lib/operations'
+import type { ArrivalProfitability } from '../../lib/insights'
+import type { Statistics } from '../../lib/operations'
 
 const monthNames = [
   'janvier',
@@ -119,28 +120,41 @@ export type ArrivalResult = {
  * Arrivals to compare: those received (or already selling). Those still ordered or on their way
  * are only counted, to say they are not there yet.
  */
-export function arrivalResults(profit: ArrivalProfit[], includeExamples: boolean) {
-  const kept = profit.filter(keep(includeExamples))
+export function arrivalResults(profit: ArrivalProfitability[], includeExamples: boolean) {
+  const kept = profit.filter((a) => includeExamples || !a.isTest)
   const shown = kept.filter((a) => a.status === 'received' || a.revenue > 0)
   return {
     shown: shown.map((a): ArrivalResult => ({
-      id: a.id,
+      id: a.arrivalId,
       code: a.code,
-      kind: a.kind,
-      origin: a.origin,
+      kind: a.kind === 'balloon' ? 'balloon' : 'supplier_order',
+      origin: a.originCountry,
       cost: a.cost,
       revenue: a.revenue,
-      recovery: a.recovery,
-      sold: a.sold,
-      remaining: a.remaining,
-      example: a.is_test,
+      recovery: a.recoveryPercent,
+      sold: a.soldUnits,
+      remaining: a.remainingUnits,
+      example: a.isTest,
     })),
     notReceived: kept.length - shown.length,
   }
 }
 
 /** Example data present in the Bilan (sales, charges or arrivals): the switch is offered. */
-export const hasExamples = (stats: Statistics) =>
+export const hasExamples = (
+  stats: Pick<Statistics, 'sales' | 'expenses'>,
+  arrivals: Pick<ArrivalProfitability, 'isTest'>[],
+) =>
   stats.sales.some((s) => s.is_test) ||
   stats.expenses.some((e) => e.is_test) ||
-  stats.profit.some((a) => a.is_test)
+  arrivals.some((a) => a.isTest)
+
+/** Local bounds [from, to) of a 'YYYY-MM' month, as shop_estimated_profit takes them. */
+export function monthRange(key: string) {
+  const [y, m] = key.split('-').map(Number)
+  const next = new Date(Date.UTC(y, m, 1))
+  return {
+    from: `${key}-01`,
+    to: `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, '0')}-01`,
+  }
+}

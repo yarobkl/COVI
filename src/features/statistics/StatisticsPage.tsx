@@ -4,6 +4,11 @@ import { Button, EmptyState, Ledger, LedgerRow, Notice, Skeleton } from '../../c
 import { Switch } from '../../components/ui/Switch'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { fcfa, plural } from '../../lib/format'
+import {
+  fetchArrivalProfitability,
+  fetchEstimatedProfit,
+  type EstimatedProfit,
+} from '../../lib/insights'
 import { liveStatistics } from '../../lib/operations'
 import '../../styles/app/bilan.css'
 import { ArrivalResults } from './ArrivalResults'
@@ -13,10 +18,43 @@ import {
   hasExamples,
   lastMonths,
   monthlyBilan,
+  monthRange,
   topCategories,
 } from './bilanMath'
 import { MonthBars } from './MonthBars'
 import { MonthTable } from './MonthTable'
+import { ProfitTable } from './ProfitTable'
+
+type Month = { key: string; label: string }
+
+/**
+ * The estimated profit of each month (shop_estimated_profit), or null when the database cannot
+ * give it (function not there yet, or an error): the page then keeps « Reste après charges ».
+ */
+async function monthEstimates(shopId: string, months: Month[], includeTest: boolean) {
+  try {
+    const rows = await Promise.all(
+      months.map((m) => fetchEstimatedProfit(shopId, monthRange(m.key), { includeTest })),
+    )
+    return rows.every((r): r is EstimatedProfit => r !== null) ? rows : null
+  } catch {
+    return null
+  }
+}
+
+async function loadBilan(shopId: string, now: Date, months: Month[]) {
+  const [stats, arrivals, withoutExamples] = await Promise.all([
+    liveStatistics(shopId, now),
+    fetchArrivalProfitability(shopId, { includeTest: true }),
+    monthEstimates(shopId, months, false),
+  ])
+  // With the examples only when there are some, and only if the database answers.
+  const withExamples =
+    withoutExamples && hasExamples(stats, arrivals)
+      ? await monthEstimates(shopId, months, true)
+      : null
+  return { stats, arrivals, estimates: { withoutExamples, withExamples } }
+}
 
 /**
  * Bilan: the last three months (sales, charges, what is left), what sells best, and what each
@@ -24,10 +62,10 @@ import { MonthTable } from './MonthTable'
  */
 export function StatisticsPage({ shopId }: { shopId: string }) {
   const [now] = useState(() => new Date())
-  const load = useCallback(() => liveStatistics(shopId, now), [shopId, now])
+  const months = useMemo(() => lastMonths(now), [now])
+  const load = useCallback(() => loadBilan(shopId, now, months), [shopId, now, months])
   const { data, error, retry } = useAsyncData(load)
   const [withExamples, setWithExamples] = useState(false)
-  const months = useMemo(() => lastMonths(now), [now])
 
   const head = (
     <header className="page-head">
@@ -63,12 +101,14 @@ export function StatisticsPage({ shopId }: { shopId: string }) {
       </div>
     )
 
-  const examples = hasExamples(data)
+  const { stats } = data
+  const examples = hasExamples(stats, data.arrivals)
   const include = examples && withExamples
-  const bilan = monthlyBilan(data, months, include)
+  const bilan = monthlyBilan(stats, months, include)
   const total = bilanTotal(bilan)
-  const categories = topCategories(data.sales, months, include)
-  const arrivals = arrivalResults(data.profit, include)
+  const categories = topCategories(stats.sales, months, include)
+  const arrivals = arrivalResults(data.arrivals, include)
+  const estimates = include ? data.estimates.withExamples : data.estimates.withoutExamples
   const period = `De ${months[0].label} à ${months[months.length - 1].label}`
 
   return (
@@ -108,11 +148,29 @@ export function StatisticsPage({ shopId }: { shopId: string }) {
           </h2>
           <MonthBars months={bilan.map((m) => ({ key: m.key, label: m.label, amount: m.sales }))} />
           <MonthTable months={bilan} total={total} />
-          <p className="bilan-note">
-            <strong>Reste après charges</strong> = ventes encaissées − charges du mois. Ce que vous
-            avez payé pour la marchandise n’est pas retiré : voyez plus bas ce que chaque arrivage a
-            rapporté. C’est un repère pour vous, pas une comptabilité officielle.
-          </p>
+          {estimates ? (
+            <>
+              <p className="bilan-note">
+                <strong>Reste après charges</strong> = ventes encaissées − charges du mois, sans
+                compter ce que les articles vous ont coûté à l’achat. Le bénéfice estimé, lui, le
+                retire :
+              </p>
+              <ProfitTable months={months.map((m, i) => ({ ...m, estimate: estimates[i] }))} />
+              <p className="bilan-note">
+                <strong>Bénéfice estimé</strong> = ventes − coût des articles vendus − charges. Le
+                prix d’un arrivage est réparti sur ses articles ; pour un ballon : son prix ÷ les
+                pièces enregistrées. Il s’affine à mesure que vous enregistrez les pièces. C’est un
+                repère pour vous, pas une comptabilité officielle.
+              </p>
+            </>
+          ) : (
+            <p className="bilan-note">
+              <strong>Repère provisoire.</strong> <strong>Reste après charges</strong> = ventes
+              encaissées − charges du mois. Sans compter ce que les articles vous ont coûté à
+              l’achat : voyez plus bas ce que chaque arrivage a rapporté. C’est un repère pour vous,
+              pas une comptabilité officielle.
+            </p>
+          )}
         </section>
 
         <section className="bilan-categories" aria-labelledby="bilan-categories">

@@ -167,7 +167,15 @@ const firstOfMonth = (d: Date) => `${localMonth(d)}-01`
 
 // Tableau de bord ----------------------------------------------------------------------------
 
-export function fetchShopDashboard(shopId: string, opts: InsightOptions = {}) {
+/**
+ * `base` : le dashboard() déjà demandé par l'écran (listes de l'accueil), réutilisé par le repli
+ * pour ne pas relire les mêmes tables deux fois.
+ */
+export function fetchShopDashboard(
+  shopId: string,
+  opts: InsightOptions = {},
+  base: () => ReturnType<typeof dashboard> = () => dashboard(shopId),
+) {
   return withFallback<ShopDashboard>(
     'shop_dashboard',
     async () => {
@@ -182,17 +190,20 @@ export function fetchShopDashboard(shopId: string, opts: InsightOptions = {}) {
         source: 'database',
       }
     },
-    () => clientDashboard(shopId),
+    () => clientDashboard(shopId, base),
   )
 }
 
 /** Repli : dashboard() (heure de l'appareil, exemples exclus) + coût des arrivages reçus. */
-async function clientDashboard(shopId: string): Promise<ShopDashboard> {
+async function clientDashboard(
+  shopId: string,
+  base: () => ReturnType<typeof dashboard>,
+): Promise<ShopDashboard> {
   const now = new Date(),
     monthStart = new Date(now.getFullYear(), now.getMonth(), 1),
     nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
   const [d, received] = await Promise.all([
-    dashboard(shopId),
+    base(),
     supabase
       .from('arrivals')
       .select('global_cost,merchandise_cost,transport_cost,customs_cost')
@@ -387,6 +398,19 @@ export function fetchArrivalProfitability(shopId: string, opts: InsightOptions =
           productCount: r.productCount,
         })),
   )
+}
+
+/** Premier jour du mois local de `at` dans le fuseau `timeZone` ('YYYY-MM-01'), décalé de `shift` mois. */
+export function monthStartIn(at: Date, timeZone = DEFAULT_TIME_ZONE, shift = 0) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: 'numeric',
+  }).formatToParts(at)
+  const y = Number(parts.find((p) => p.type === 'year')?.value)
+  const m = Number(parts.find((p) => p.type === 'month')?.value)
+  const d = new Date(Date.UTC(y, m - 1 + shift, 1))
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-01`
 }
 
 // Bénéfice estimé réel -----------------------------------------------------------------------

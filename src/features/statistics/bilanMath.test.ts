@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import type { ArrivalProfit, Statistics } from '../../lib/operations'
+import type { ArrivalProfitability } from '../../lib/insights'
+import type { Statistics } from '../../lib/operations'
 import {
   arrivalResults,
   bilanTotal,
   hasExamples,
+  monthRange,
   lastMonths,
   monthlyBilan,
   topCategories,
@@ -92,32 +94,33 @@ describe('what sells best', () => {
   })
 })
 
-const arrival = (id: string, extra: Partial<ArrivalProfit>): ArrivalProfit =>
-  ({
-    id,
-    code: id.toUpperCase(),
-    kind: 'supplier_order',
-    origin: 'Chine',
-    supplier: null,
-    status: 'received',
-    is_test: false,
-    cost: 100000,
-    revenue: 0,
-    profit: 0,
-    recovery: 0,
-    sold: 0,
-    remaining: 0,
-    productCount: 0,
-    products: [],
-    ...extra,
-  }) as ArrivalProfit
+const arrival = (id: string, extra: Partial<ArrivalProfitability>): ArrivalProfitability => ({
+  arrivalId: id,
+  code: id.toUpperCase(),
+  kind: 'supplier_order',
+  status: 'received',
+  originCountry: 'Chine',
+  supplierName: null,
+  orderDate: null,
+  receivedDate: null,
+  isTest: false,
+  cost: 100000,
+  revenue: 0,
+  profit: 0,
+  recoveryPercent: 0,
+  remainingToRecover: 0,
+  soldUnits: 0,
+  remainingUnits: 0,
+  productCount: 0,
+  ...extra,
+})
 
 describe('arrivals', () => {
   const profit = [
-    arrival('bal-003', { kind: 'balloon', cost: 250000, revenue: 186000, recovery: 74 }),
-    arrival('ind-002', { cost: 360000, revenue: 700000, recovery: 194 }),
+    arrival('bal-003', { kind: 'balloon', cost: 250000, revenue: 186000, recoveryPercent: 74 }),
+    arrival('ind-002', { cost: 360000, revenue: 700000, recoveryPercent: 194 }),
     arrival('cmd-0412', { status: 'in_transit' }),
-    arrival('ex-1', { is_test: true }),
+    arrival('ex-1', { isTest: true }),
   ]
 
   it('compares received arrivals and counts those not there yet', () => {
@@ -127,6 +130,7 @@ describe('arrivals', () => {
       kind: 'balloon',
       cost: 250000,
       revenue: 186000,
+      recovery: 74,
       example: false,
     })
     expect(notReceived).toBe(1)
@@ -134,14 +138,20 @@ describe('arrivals', () => {
   })
 
   it('offers the switch only when example data is there', () => {
-    const base = { from: new Date(), ...stats, profit: profit.slice(0, 2) }
-    expect(hasExamples(base)).toBe(true) // an example sale
-    expect(
-      hasExamples({
-        ...base,
-        sales: stats.sales.filter((s) => !s.is_test),
-        expenses: stats.expenses.filter((e) => !e.is_test),
-      }),
-    ).toBe(false)
+    const real = profit.slice(0, 2)
+    expect(hasExamples(stats, real)).toBe(true) // an example sale
+    const clean = {
+      sales: stats.sales.filter((s) => !s.is_test),
+      expenses: stats.expenses.filter((e) => !e.is_test),
+    }
+    expect(hasExamples(clean, real)).toBe(false)
+    expect(hasExamples(clean, profit)).toBe(true) // an example arrival
+  })
+})
+
+describe('monthRange', () => {
+  it('gives the local bounds of a month, across the new year', () => {
+    expect(monthRange('2026-07')).toEqual({ from: '2026-07-01', to: '2026-08-01' })
+    expect(monthRange('2026-12')).toEqual({ from: '2026-12-01', to: '2027-01-01' })
   })
 })
