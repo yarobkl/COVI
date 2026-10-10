@@ -1,3 +1,5 @@
+import { NBSP } from '../../lib/format'
+
 // Product photos are shrunk on the phone before they leave it: a 12-megapixel photo (4 to 8 Mo)
 // becomes a JPEG of about 200 to 400 Ko, which goes through a weak network.
 
@@ -32,7 +34,12 @@ type Picture = { width: number; height: number; source: CanvasImageSource; close
 async function decode(file: Blob): Promise<Picture> {
   if (typeof createImageBitmap === 'function') {
     const bitmap = await createImageBitmap(file)
-    return { width: bitmap.width, height: bitmap.height, source: bitmap, close: () => bitmap.close() }
+    return {
+      width: bitmap.width,
+      height: bitmap.height,
+      source: bitmap,
+      close: () => bitmap.close(),
+    }
   }
   const url = URL.createObjectURL(file)
   try {
@@ -102,3 +109,9 @@ export async function preparePhoto(
   if (ready.size > PHOTO_MAX_BYTES) return { file: null, error: PHOTO_SIZE_ERROR }
   return { file: ready, error: null }
 }
+
+/** « 312 Ko », « 1,4 Mo ». */
+export const weight = (bytes: number) =>
+  bytes < 1024 * 1024
+    ? `${Math.max(1, Math.round(bytes / 1024))}${NBSP}Ko`
+    : `${(bytes / 1024 / 1024).toFixed(1).replace('.', ',')}${NBSP}Mo`

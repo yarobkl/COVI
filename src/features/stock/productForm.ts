@@ -1,7 +1,7 @@
 // The « Ajouter au stock » form, without its interface: what was typed becomes the product to
 // save, or the messages to show under the fields.
 import type { addProduct } from '../../lib/covi'
-import { parseAmount } from '../../lib/format'
+import { fcfa, parseAmount } from '../../lib/format'
 import type { Arrival } from '../../lib/types'
 
 export type ProductValues = {
@@ -76,8 +76,7 @@ export function productFromValues(
 const messageOf = (error: unknown) =>
   String((error as { message?: unknown } | null | undefined)?.message ?? error ?? '')
 
-const offlineText =
-  'Pas de réseau : rien n’est enregistré. Réessayez quand le réseau revient.'
+const offlineText = 'Pas de réseau : rien n’est enregistré. Réessayez quand le réseau revient.'
 
 /** What to tell when saving a product fails: what happened and what to do, never English. */
 export function productSaveError(error: unknown): string {
@@ -92,4 +91,14 @@ export function productSaveError(error: unknown): string {
   if (m.includes('jwt') || m.includes('authentication') || m.includes('not authorized'))
     return 'Votre session a pris fin. Reconnectez-vous, puis réessayez.'
   return 'Ça n’a pas marché. Vérifiez le réseau puis réessayez.'
+}
+
+/** « BAL-003 · ballon », « CHN-001 · Fournisseur de Canton ». */
+export const arrivalOption = (a: Pick<Arrival, 'code' | 'kind' | 'supplier_name'>) =>
+  `${a.code} · ${a.kind === 'balloon' ? 'ballon' : a.supplier_name || 'commande'}`
+
+/** An amount as it is typed, grouped by thousands: « 19000 » → « 19 000 ». */
+export function typedAmount(text: string) {
+  const n = parseAmount(text)
+  return n === null ? '' : fcfa(n)
 }

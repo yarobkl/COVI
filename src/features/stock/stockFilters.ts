@@ -1,5 +1,6 @@
 // Stock list arithmetic, kept apart from the components to be tested: what is shown for a search
 // and a filter, and how many pieces are in the shop.
+import { clock, localDay, shortDay } from '../../lib/dates'
 import type { Product } from '../../lib/types'
 import { matchesSearch } from '../sale/saleMath'
 
@@ -41,9 +42,25 @@ export function filterStock(
 export const piecesInShop = (products: readonly Product[]) =>
   products.reduce((n, p) => n + (p.is_test ? 0 : Math.max(0, Number(p.quantity_on_hand))), 0)
 
+/**
+ * « Stock gardé sur ce téléphone · mis à jour à 14 h 32 » (« le 2 oct. à 14 h 32 » another day),
+ * from the date of the copy kept on the device.
+ */
+export function keptStockLabel(savedAt: string | null, now: Date = new Date()) {
+  const base = 'Stock gardé sur ce téléphone'
+  const at = savedAt ? new Date(savedAt) : null
+  if (!at || Number.isNaN(at.getTime())) return base
+  const day = localDay(at) === localDay(now) ? '' : `le ${shortDay(at)} `
+  return `${base} · mis à jour ${day}à ${clock(at)}`
+}
+
 /** How many products each filter would show, for the chips (« Bientôt épuisé (2) »). */
 export const filterCounts = (products: readonly Product[]) => ({
   all: products.length,
   low: products.filter(isLow).length,
   unique: products.filter((p) => p.is_unique_piece).length,
 })
+
+/** « Robes · Wax Hollandais · M » (only what is known). */
+export const productDetails = (p: Pick<Product, 'category' | 'brand' | 'size'>) =>
+  [p.category, p.brand, p.size].filter(Boolean).join(' · ')

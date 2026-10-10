@@ -1,6 +1,8 @@
 import { Amount } from '../../components/ui'
 import type { Product } from '../../lib/types'
+import '../../styles/app/stock.css'
 import { stockNote } from '../sale/saleMath'
+import { productDetails } from './stockFilters'
 
 /** Photo of the article, or its initial written in cash-register figures. */
 export function ProductPicture({
@@ -20,10 +22,6 @@ export function ProductPicture({
     </span>
   )
 }
-
-/** « Robes · Wax Hollandais · M » (only what is known). */
-export const productDetails = (p: Pick<Product, 'category' | 'brand' | 'size'>) =>
-  [p.category, p.brand, p.size].filter(Boolean).join(' · ')
 
 /**
  * One line of the stock notebook: photo or initial, name, type · brand · size, where it came

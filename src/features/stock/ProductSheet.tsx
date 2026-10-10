@@ -1,29 +1,20 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { CloseIcon } from '../../components/icons'
 import { CheckField } from '../../components/ui/CheckField'
-import {
-  AmountInput,
-  Button,
-  Dialog,
-  Field,
-  IconButton,
-  Input,
-  Notice,
-} from '../../components/ui'
+import { AmountInput, Button, Dialog, Field, IconButton, Input, Notice } from '../../components/ui'
 import { addProduct } from '../../lib/covi'
 import type { Arrival, Product } from '../../lib/types'
+import '../../styles/app/stock.css'
 import { PhotoField } from './PhotoField'
 import {
+  arrivalOption,
   emptyProduct,
   productFromValues,
   productSaveError,
+  typedAmount,
   type ProductErrors,
   type ProductValues,
 } from './productForm'
-
-/** « BAL-003 · ballon », « CHN-001 · Fournisseur de Canton ». */
-export const arrivalOption = (a: Pick<Arrival, 'code' | 'kind' | 'supplier_name'>) =>
-  `${a.code} · ${a.kind === 'balloon' ? 'ballon' : a.supplier_name || 'commande'}`
 
 function ProductForm({
   shopId,
@@ -46,8 +37,16 @@ function ProductForm({
   const [busy, setBusy] = useState(false)
   const [photoBusy, setPhotoBusy] = useState(false)
   const form = useRef<HTMLFormElement>(null)
-  const set = <K extends keyof ProductValues>(key: K, value: ProductValues[K]) =>
+  const set = <K extends keyof ProductValues>(key: K, value: ProductValues[K]) => {
     setValues((v) => ({ ...v, [key]: value }))
+    // A field being corrected loses its message.
+    if (key in errors)
+      setErrors((e) => {
+        const next = { ...e }
+        delete next[key as keyof ProductErrors]
+        return next
+      })
+  }
 
   const chosen = arrival ?? arrivals.find((a) => a.id === values.arrivalId) ?? null
   const balloon = chosen?.kind === 'balloon'
@@ -154,7 +153,7 @@ function ProductForm({
             <AmountInput
               {...control}
               value={values.price}
-              onChange={(e) => set('price', e.target.value.replace(/[^\d\s]/g, ''))}
+              onChange={(e) => set('price', typedAmount(e.target.value))}
               placeholder="18 000"
             />
           )}
@@ -226,12 +225,7 @@ function ProductForm({
         <Button variant="ghost" onClick={onClose}>
           Annuler
         </Button>
-        <Button
-          variant="primary"
-          type="submit"
-          busy={busy}
-          disabled={photoBusy}
-        >
+        <Button variant="primary" type="submit" busy={busy} disabled={photoBusy}>
           {photoBusy ? 'On prépare la photo…' : 'Mettre en stock'}
         </Button>
       </div>

@@ -1,13 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { CloseIcon, InfoIcon } from '../../components/icons'
 import { Button } from '../../components/ui'
-import { preparePhoto } from './imageCompression'
-
-/** « 312 Ko », « 1,4 Mo ». */
-export const weight = (bytes: number) =>
-  bytes < 1024 * 1024
-    ? `${Math.max(1, Math.round(bytes / 1024))} Ko`
-    : `${(bytes / 1024 / 1024).toFixed(1).replace('.', ',')} Mo`
+import { preparePhoto, weight } from './imageCompression'
 
 /**
  * « Photo (facultatif) »: take or choose a picture, see it, change or remove it. The picture is
