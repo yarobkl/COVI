@@ -99,8 +99,13 @@ begin
   update public.covi_subscription_invoices
     set status = 'paid' where id = p_invoice_id;
 
-  -- Ne pas modifier une période déjà active avec une facture historique.
-  -- La date de début et le quota sont ceux de la facture payée.
+  -- Refuser l'activation d'une période déjà terminée ou incohérente.
+  if v_invoice.period_end <= now() or v_invoice.period_start > now() then
+    raise exception 'Invoice period is not currently valid' using errcode = 'P0001';
+  end if;
+
+  -- La confirmation d'une facture ne peut pas écraser une période active.
+  -- Le renouvellement anticipé sera traité par un workflow distinct.
   update public.covi_subscriptions
     set status = 'active',
         shop_limit = v_invoice.shop_limit,
