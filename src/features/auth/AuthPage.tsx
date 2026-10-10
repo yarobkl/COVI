@@ -15,7 +15,7 @@ export function AuthPage({
   lead: string
   /** Shown beside the form on a computer, under it on a phone. */
   aside?: ReactNode
-  children: ReactNode
+  children?: ReactNode
 }) {
   return (
     <div className="auth">

@@ -82,7 +82,9 @@ src/
     types.ts            types métier (Shop, Arrival, Product, Expense, Sale…)
     covi.ts             produits, ventes, photos
     operations.ts       arrivages, charges, tableau de bord, statistiques
-    offline.ts          cache du stock et file des ventes hors connexion
+    offline.ts          file des ventes hors connexion, ventes refusées, cache du stock et dernière boutique (IndexedDB)
+    idb.ts              petite couche IndexedDB (transactions) utilisée par offline.ts
+    pwa.ts              état « nouvelle version disponible » (useAppUpdate) ; pwaRegister.ts enregistre le service worker (web seulement)
     format.ts           montants (fcfa, money : espaces insécables U+00A0), moyens de paiement, accords
     dates.ts            clés de jour et de mois en heure locale, dates dites (« jeudi 8 octobre », « 14 h 32 »)
   styles/             système de design « Le Cahier » (couches CSS) : index.css (point d’entrée,
@@ -90,12 +92,27 @@ src/
                       app/ (styles propres aux écrans refaits), legacy.css (anciennes classes,
                       limitées à `.legacy`, pour les pages pas encore refaites)
   styles.css          vide, gardé tant que main.tsx l’importe
-tests/offline.mjs     test Node de la file hors connexion (charge offline.ts, covi.ts et format.ts depuis les sources)
+tests/offline.mjs     test Node de la file hors connexion (charge offline.ts, idb.ts, covi.ts et format.ts depuis les sources)
+tests/e2e/            test de bout en bout hors connexion (Playwright, hors dépendances du projet)
+vite.config.ts        React et PWA (manifest, service worker Workbox)
 ```
 
 Les montants s’affichent toujours avec `fcfa()` / `money()` (les polices n’ont pas l’espace fine U+202F de `Intl`).
 
-Les tests unitaires sont placés à côté du code (`*.test.ts(x)`). `tests/offline.mjs` réécrit les imports relatifs de `covi.ts` pour le charger hors navigateur : `covi.ts` ne doit importer que `./supabase`, `./offline` et `./format` (plus des `import type`), et `format.ts` doit rester sans import.
+Les tests unitaires sont placés à côté du code (`*.test.ts(x)`). `tests/offline.mjs` réécrit les imports relatifs de `covi.ts` pour le charger hors navigateur : `covi.ts` ne doit importer que `./supabase`, `./offline` et `./format` (plus des `import type`), `offline.ts` que `./idb` (et `await import('./covi')`), et `format.ts` comme `idb.ts` doivent rester sans import.
+
+### Hors connexion et PWA
+
+- Les ventes en attente, les ventes refusées, le cache du stock et la dernière boutique chargée (par compte) sont dans IndexedDB (`covi-offline`), avec un miroir en mémoire chargé par `initOfflineStore()` avant le premier rendu. Les anciennes données localStorage (v1/v2) y sont migrées automatiquement ; si IndexedDB est indisponible, localStorage reste utilisé.
+- Sans réseau, une session persistée (même expirée) et la boutique mémorisée suffisent pour ouvrir la caisse ; la session est rafraîchie et la file envoyée au retour du réseau, au retour au premier plan et après `TOKEN_REFRESHED`/`SIGNED_IN`.
+- Le service worker (web seulement, jamais dans Tauri ni en développement) précache l’application ; les appels Supabase ne sont jamais mis en cache, seules les photos produits signées le sont (50 photos, 7 jours).
+- Test de bout en bout hors connexion (Supabase simulé, aucune requête vers le vrai projet) :
+
+```bash
+VITE_SUPABASE_URL=https://covi-e2e.supabase.co npm run build
+npm run preview -- --port 4173 --strictPort &
+PLAYWRIGHT_DIR=/dossier/avec/playwright node tests/e2e/offline-pwa.mjs
+```
 
 Après une migration Supabase, régénérez `src/lib/database.types.ts` (Supabase CLI : `supabase gen types typescript --project-id bmbwmwgfzrijglzcgjut`, ou l’outil MCP Supabase) puis lancez `npm run format`.
 

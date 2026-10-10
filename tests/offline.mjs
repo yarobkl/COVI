@@ -36,12 +36,19 @@ let syncEvents = 0
 window.addEventListener('covi-sync', () => syncEvents++)
 const source = await readFile(new URL('../src/lib/offline.ts', import.meta.url), 'utf8')
 const compiled = stripTypeScriptTypes(source)
-// Whitespace-agnostic so that reformatting offline.ts cannot silently skip the mock.
-const moduleSource = compiled.replaceAll(
-  /await\s+import\(\s*'\.\/covi'\s*\)/g,
-  'globalThis.testBackend',
+// idb.ts (IndexedDB layer) has no import: load it as is. offline.ts stays in localStorage mode here
+// (initOfflineStore() is not called); the IndexedDB mode is covered by src/lib/offline.test.ts.
+const idbSource = stripTypeScriptTypes(
+  await readFile(new URL('../src/lib/idb.ts', import.meta.url), 'utf8'),
 )
+assert.ok(!/^\s*import\s/m.test(idbSource), 'idb.ts must stay free of imports')
+const idbUrl = 'data:text/javascript;base64,' + Buffer.from(idbSource).toString('base64')
+// Whitespace-agnostic so that reformatting offline.ts cannot silently skip the mock.
+const moduleSource = compiled
+  .replaceAll(/await\s+import\(\s*'\.\/covi'\s*\)/g, 'globalThis.testBackend')
+  .replace(/from\s*'\.\/idb'/, `from'${idbUrl}'`)
 assert.ok(!moduleSource.includes("'./covi'"), 'every backend import of offline.ts is mocked')
+assert.ok(!/from\s*'\.\//.test(moduleSource), 'offline.ts has no unmocked relative import')
 const offlineUrl = 'data:text/javascript;base64,' + Buffer.from(moduleSource).toString('base64')
 const offline = await import(offlineUrl)
 const input = {
@@ -221,7 +228,8 @@ assert.deepEqual(
 // listProducts (covi.ts) against a mocked Supabase: the active stock, test products included, feeds the offline cache.
 let productRows = [],
   productsFail = null,
-  authListener
+  authListener,
+  mockSession = { access_token: 'token', user: { id: 'user-a' } }
 const productFilters = []
 const rpcCalls = []
 globalThis.mockSupabase = {
@@ -230,6 +238,7 @@ globalThis.mockSupabase = {
     return { data: 'sale-id', error: null }
   },
   auth: {
+    getSession: async () => ({ data: { session: mockSession }, error: null }),
     onAuthStateChange: (cb) => {
       authListener = cb
       return { data: { subscription: { unsubscribe() {} } } }
@@ -264,6 +273,8 @@ globalThis.mockSupabase = {
     return q
   },
 }
+// No persisted session in this test: covi.ts binds the queue through the auth listener only.
+globalThis.mockSupabaseModule = { supabase: globalThis.mockSupabase, persistedUserId: () => null }
 // format.ts (payment codes) is a pure module without imports: load it as is.
 const formatSource = stripTypeScriptTypes(
   await readFile(new URL('../src/lib/format.ts', import.meta.url), 'utf8'),
@@ -274,8 +285,8 @@ const coviSource = stripTypeScriptTypes(
   await readFile(new URL('../src/lib/covi.ts', import.meta.url), 'utf8'),
 )
   .replace(
-    /import\s*\{\s*supabase\s*\}\s*from\s*'\.\/supabase'/,
-    'const supabase=globalThis.mockSupabase',
+    /import\s*\{([^}]*)\}\s*from\s*'\.\/supabase'/,
+    'const {$1}=globalThis.mockSupabaseModule',
   )
   .replace(/from\s*'\.\/offline'/, `from'${offlineUrl}'`)
   .replace(/from\s*'\.\/format'/, `from'${formatUrl}'`)
@@ -312,6 +323,8 @@ assert.deepEqual(rpcCalls, [
   ],
 ])
 // The auth listener binds the queue to the signed-in account (deferred out of the auth callback).
+// Offline here, so that SIGNED_IN (which resumes the sync) does not send the queue yet.
+navigator.onLine = false
 authListener('SIGNED_OUT', null)
 await fireTimers()
 assert.equal(offline.pendingCount(), 0)
@@ -434,13 +447,125 @@ globalThis.testBackend = {
 await offline.syncPendingSales()
 assert.ok(offline.nextSyncRetryAt() > now)
 assert.equal(timers.size, 1)
+let onlineAttempts = 0
+globalThis.testBackend = {
+  recordSale: async () => {
+    onlineAttempts++
+    throw new Error('Failed to fetch')
+  },
+}
+const backoffBefore = offline.nextSyncRetryAt()
 window.dispatchEvent(new Event('online'))
-assert.equal(offline.nextSyncRetryAt(), 0)
-assert.equal(timers.size, 0)
+await new Promise((r) => setImmediate(r))
+assert.equal(onlineAttempts, 1, 'the queue is retried at once, before the backoff deadline')
+assert.ok(now < backoffBefore)
+assert.equal(offline.nextSyncRetryAt(), now + 5000, 'the backoff restarts from 5 s')
+assert.equal(timers.size, 1)
 navigator.onLine = false
 // First launch offline: no cache yet, an empty list rather than an error.
 productsFail = new Error('Failed to fetch')
 assert.deepEqual(await covi.listProducts('never-cached', false, true), [])
+
+// Safari reports network failures as "Load failed"; record_sale business refusals are definitive.
+assert.ok(offline.isRetryableSyncError({ message: 'TypeError: Load failed' }))
+assert.ok(offline.isRetryableSyncError(new TypeError('Failed to fetch')))
+assert.ok(offline.isRetryableSyncError({ message: 'JWT expired', code: 'PGRST301' }))
+assert.ok(offline.isRetryableSyncError({ message: 'permission denied for function record_sale' }))
+assert.ok(!offline.isRetryableSyncError({ message: 'Product unavailable', code: 'P0001' }))
+assert.ok(!offline.isRetryableSyncError(new Error('Insufficient stock')))
+
+// No valid session (token expired, refresh impossible): covi.ts never sends with the publishable
+// key only. record_sale fails with a retryable error (the sale is not refused) and the stock list
+// keeps the offline copy instead of overwriting it with an empty anonymous answer.
+navigator.onLine = true
+mockSession = null
+const rpcBefore = rpcCalls.length
+await assert.rejects(covi.recordSale('s', 'p', 1, 1, 'Espèces', 'op-3'), (e) =>
+  offline.isRetryableSyncError(e),
+)
+assert.equal(rpcCalls.length, rpcBefore, 'no anonymous RPC')
+const copyBefore = offline.cachedStock(shop)
+productRows = []
+assert.deepEqual(
+  (await covi.listProducts(shop, false, true)).map((x) => x.id),
+  ['real'],
+  'served from the offline copy',
+)
+assert.deepEqual(offline.cachedStock(shop), copyBefore, 'the copy is kept')
+mockSession = { access_token: 'token', user: { id: 'user-a' } }
+await fireTimers()
+
+// A sale tried online whose answer never comes is queued after 10 s with the SAME operation id:
+// if the server recorded it anyway, the later send is deduplicated by record_sale.
+now = Math.max(now, offline.nextSyncRetryAt())
+globalThis.testBackend = { recordSale: async () => {} }
+await offline.syncPendingSales()
+assert.equal(offline.pendingCount(), 0)
+assert.equal(timers.size, 0, 'no retry timer left')
+let hungOperation
+globalThis.testBackend = {
+  recordSale: (...args) => {
+    hungOperation = args[5]
+    return new Promise(() => {})
+  },
+}
+const hung = offline.resilientSale({ ...input, shopId: shop, productId: 'real' })
+await new Promise((r) => setImmediate(r))
+now += 10000
+await fireTimers()
+assert.deepEqual(await hung, { offline: true })
+assert.equal(offline.pendingSales().at(-1).id, hungOperation)
+
+// Expired JWT while sending: the sale stays queued (never refused) and the sync backs off…
+let jwtFailures = 0
+globalThis.testBackend = {
+  recordSale: async () => {
+    jwtFailures++
+    throw { message: 'JWT expired', code: 'PGRST301' }
+  },
+}
+const queuedBefore = offline.pendingCount(),
+  refusedBefore = offline.rejectedSales().length
+await offline.syncPendingSales()
+assert.equal(jwtFailures, 1)
+assert.equal(offline.pendingCount(), queuedBefore)
+assert.equal(offline.rejectedSales().length, refusedBefore)
+assert.ok(offline.nextSyncRetryAt() > now, 'backing off')
+// …until supabase-js refreshes the token: TOKEN_REFRESHED cancels the backoff and sends right away.
+const resent = []
+globalThis.testBackend = {
+  recordSale: async (...args) => {
+    resent.push(args[5])
+  },
+}
+authListener('TOKEN_REFRESHED', { user: { id: 'user-a' } })
+await fireTimers()
+await new Promise((r) => setImmediate(r))
+assert.equal(resent.length, queuedBefore)
+assert.equal(resent.filter((id) => id === hungOperation).length, 1, 'sent once')
+assert.equal(offline.pendingCount(), 0)
+assert.equal(offline.nextSyncRetryAt(), 0)
+// SIGNED_IN resets it too.
+navigator.onLine = false
+seed()
+await offline.resilientSale(input)
+navigator.onLine = true
+globalThis.testBackend = {
+  recordSale: async () => {
+    throw new Error('Failed to fetch')
+  },
+}
+await offline.syncPendingSales()
+assert.ok(offline.nextSyncRetryAt() > now)
+globalThis.testBackend = { recordSale: async () => {} }
+authListener('SIGNED_IN', { user: { id: 'user-a' } })
+await fireTimers()
+await new Promise((r) => setImmediate(r))
+assert.equal(offline.pendingCount(), 0)
+assert.equal(offline.nextSyncRetryAt(), 0)
+console.log(
+  'PASS session handling: no anonymous write, stock copy kept without session, online timeout queued with the same operation id, backoff reset on online, TOKEN_REFRESHED and SIGNED_IN (mocked Supabase).',
+)
 console.log(
   'PASS listProducts caches the active stock including test products and serves it offline (mocked Supabase).',
 )

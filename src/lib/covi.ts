@@ -1,13 +1,44 @@
-import { supabase } from './supabase'
-import { cacheServerStock, cachedStock, setSyncUser } from './offline'
+import { persistedUserId, supabase } from './supabase'
+import {
+  RetryLaterError,
+  cacheServerStock,
+  cachedStock,
+  resumeSync,
+  setSyncUser,
+  withTimeout,
+} from './offline'
 import { paymentCode } from './format'
 import type { TablesInsert } from './database.types'
 import type { Product, Sale } from './types'
 // Bind the offline sales queue to the signed-in account (deferred: auth callbacks must not call back into supabase).
-supabase.auth.onAuthStateChange((_event, session) => {
-  const id = session?.user?.id ?? null
-  setTimeout(() => setSyncUser(id), 0)
+// Without network, supabase-js reports no session (INITIAL_SESSION null) while it still keeps the
+// expired one: the queue stays bound to that account so that sales can be recorded offline, and is
+// only unbound on SIGNED_OUT (sign-out, or refresh token refused by the server).
+supabase.auth.onAuthStateChange((event, session) => {
+  const id = session?.user?.id ?? (event === 'SIGNED_OUT' ? null : persistedUserId())
+  setTimeout(() => {
+    setSyncUser(id)
+    // A fresh token: whatever failed with the old one can be sent now, without waiting for the backoff.
+    if (session && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) resumeSync()
+  }, 0)
 })
+// Bound right away from the persisted session: supabase-js may take ~25 s to report it offline.
+const persistedUser = persistedUserId()
+if (persistedUser) setSyncUser(persistedUser)
+
+/**
+ * Ensures a valid access token before a write. Without one, supabase-js would send the request
+ * with the publishable key only: RLS would then return empty lists, and record_sale would fail with
+ * a permission error that must not count as a refusal of the sale.
+ */
+async function requireSession() {
+  const { data } = await supabase.auth.getSession()
+  if (!data.session)
+    throw new RetryLaterError('Session non disponible : jeton à rafraîchir (token).')
+  return data.session
+}
+// Above this, the stock list falls back to the offline copy (slow or unreliable network).
+const LIST_TIMEOUT_MS = 12000
 export async function signedProductImage(path: string | null | undefined) {
   if (!path) return null
   const { data, error } = await supabase.storage
@@ -18,7 +49,12 @@ export async function signedProductImage(path: string | null | undefined) {
 }
 export async function listProducts(shopId: string, includeSold = false, includeTest = false) {
   const visible = (x: Product[]) => (includeTest ? x : x.filter((p) => !p.is_test))
-  try {
+  const offlineList = () =>
+    visible(cachedStock<Product>(shopId).filter((x) => x.status === 'active'))
+  // Offline, the copy is served at once instead of waiting for supabase-js to give up.
+  if (!includeSold && !navigator.onLine) return offlineList()
+  const fromServer = async () => {
+    await requireSession()
     let q = supabase
       .from('products')
       .select('*')
@@ -38,12 +74,12 @@ export async function listProducts(shopId: string, includeSold = false, includeT
     if (includeSold) return rows
     cacheServerStock(shopId, rows)
     return visible(rows)
+  }
+  if (includeSold) return fromServer()
+  try {
+    return await withTimeout(fromServer(), LIST_TIMEOUT_MS)
   } catch (e) {
-    if (!includeSold) {
-      const local = cachedStock<Product>(shopId)
-      if (local.length || !navigator.onLine)
-        return visible(local.filter((x) => x.status === 'active'))
-    }
+    if (cachedStock(shopId).length || !navigator.onLine) return offlineList()
     throw e
   }
 }
@@ -103,6 +139,7 @@ export async function recordSale(
   paymentLabel: string,
   clientOperationId: string,
 ) {
+  await requireSession()
   const { data, error } = await supabase.rpc('record_sale', {
     p_shop_id: shopId,
     p_product_id: productId,
