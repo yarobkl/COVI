@@ -1,9 +1,13 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import '../styles/index.css'
 import { AuthGate } from '../features/auth/AuthGate'
-import { DemoMode } from '../features/demo/DemoMode'
 import { App } from './App'
 import { LegacyPage } from './LegacyPage'
+
+// The example shop is only opened on demand: kept out of the first download.
+const DemoMode = lazy(() =>
+  import('../features/demo/DemoMode').then((m) => ({ default: m.DemoMode })),
+)
 
 // index.html has no <html lang>: screen readers must read French.
 document.documentElement.lang = 'fr'
@@ -14,7 +18,15 @@ export function Root() {
   if (simulation)
     return (
       <LegacyPage>
-        <DemoMode onExit={() => setSimulation(false)} />
+        <Suspense
+          fallback={
+            <p className="authshell" role="status">
+              Ouverture de la boutique d’exemple…
+            </p>
+          }
+        >
+          <DemoMode onExit={() => setSimulation(false)} />
+        </Suspense>
       </LegacyPage>
     )
   return (
