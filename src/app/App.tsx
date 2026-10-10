@@ -15,7 +15,6 @@ import { useSyncState } from '../features/sync/useSyncState'
 import { plural } from '../lib/format'
 import type { Shop } from '../lib/types'
 import { initials, ownerName, shortName } from './identity'
-import { LegacyPage } from './LegacyPage'
 import { bottomBar, morePages, pages, sommaire } from './navigation'
 import { routeHash, routeKey, type ArrivalFilter, type PageId, type Route } from './routes'
 import { useHashRoute } from './useHashRoute'
@@ -25,6 +24,7 @@ type PageContext = {
   updateShop: (shop: Shop) => void
   navigate: (route: Route) => void
   onSimulation: () => void
+  askSignOut: () => void
 }
 
 /** « Tous · Commandes · Ballons »: filters of Arrivages (each one keeps its own state). */
@@ -59,7 +59,7 @@ function ArrivalsScreen({ shopId, filter }: { shopId: string; filter?: ArrivalFi
   )
 }
 
-function renderPage(route: Route, { shop, updateShop, onSimulation }: PageContext) {
+function renderPage(route: Route, { shop, updateShop, onSimulation, askSignOut }: PageContext) {
   switch (route.page) {
     case 'accueil':
       return <DashboardPage shop={shop} onSimulation={onSimulation} />
@@ -70,29 +70,13 @@ function renderPage(route: Route, { shop, updateShop, onSimulation }: PageContex
     case 'arrivages':
       return <ArrivalsScreen shopId={shop.id} filter={route.filter} />
     case 'ventes':
-      return (
-        <LegacyPage>
-          <HistoryPage shopId={shop.id} />
-        </LegacyPage>
-      )
+      return <HistoryPage shopId={shop.id} />
     case 'charges':
-      return (
-        <LegacyPage>
-          <ExpensesPage shopId={shop.id} />
-        </LegacyPage>
-      )
+      return <ExpensesPage shopId={shop.id} />
     case 'bilan':
-      return (
-        <LegacyPage>
-          <StatisticsPage shopId={shop.id} />
-        </LegacyPage>
-      )
+      return <StatisticsPage shopId={shop.id} />
     case 'boutique':
-      return (
-        <LegacyPage>
-          <SettingsPage shopId={shop.id} onShopUpdated={updateShop} />
-        </LegacyPage>
-      )
+      return <SettingsPage shop={shop} onShopUpdated={updateShop} onSignOut={askSignOut} />
   }
 }
 
@@ -218,7 +202,7 @@ export function App({
     setMenuOpen(false)
     setSignOutOpen(true)
   }
-  const ctx: PageContext = { shop, updateShop, navigate, onSimulation }
+  const ctx: PageContext = { shop, updateShop, navigate, onSimulation, askSignOut }
 
   return (
     <div className="shell">
