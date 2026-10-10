@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { MenuIcon, PlusIcon } from '../components/icons'
+import { InfoIcon, MenuIcon, PlusIcon } from '../components/icons'
 import {
   Button,
   ButtonLink,
@@ -337,7 +337,7 @@ export function App({
           tabIndex={-1}
         >
           {readOnly && (
-            <Notice className="read-only-banner" live={false}>
+            <Notice className="read-only-banner" icon={InfoIcon} live={false}>
               <p id={READ_ONLY_ID}>{READ_ONLY_TEXT}</p>
             </Notice>
           )}

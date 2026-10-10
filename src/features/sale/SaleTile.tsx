@@ -26,6 +26,7 @@ export function SaleTile({
       className={cx('sale-tile', 'sale-tile--thumb', selected && 'sale-tile--in')}
       disabled={stock.out || Boolean(locked)}
       aria-describedby={locked?.reasonId}
+      data-locked={locked ? 'true' : undefined}
       aria-pressed={selected}
       aria-label={`Vendre ${product.name}, ${money(price)}, ${stock.text.toLowerCase()}`}
       onClick={onSelect}

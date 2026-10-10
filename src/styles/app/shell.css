@@ -220,4 +220,8 @@
     justify-items: start;
     margin-bottom: var(--space-2);
   }
+  /* Vendre en lecture seule : l'article n'est pas épuisé, son prix reste lisible */
+  .sale-tile[data-locked='true'] .sale-tile__price {
+    text-decoration: none;
+  }
 }
