@@ -44,7 +44,9 @@ export function isRetryableSyncError(e: unknown) {
   // A shop ownership / SQL permission refusal must not be retried forever.
   // A missing or expired session can be retried after authentication is restored.
   if (/shop not found|permission denied/i.test(message)) return false
-  if (code === '42501' || /42501/.test(message)) return /authentication required|jwt|token|not authenticated/i.test(message)
+  if (code === '42501' || /42501/.test(message)) {
+    return /authentication required|jwt|token|not authenticated/i.test(message)
+  }
   return RETRYABLE.test(message)
 }
 
