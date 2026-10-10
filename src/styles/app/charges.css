@@ -1,0 +1,101 @@
+/* Charges : le total du mois, puis les lignes rouges du cahier. */
+@layer app {
+  .charges-page {
+    display: grid;
+    gap: var(--space-6);
+    min-width: 0;
+  }
+  .charges-page > .page-head {
+    margin-bottom: 0;
+  }
+  .charges-done {
+    max-width: 36rem;
+  }
+  .charges-filters {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .charges-hero {
+    display: grid;
+    gap: var(--space-1);
+  }
+  .charges-hero__lead {
+    color: var(--ink-soft);
+    font-size: var(--step-1);
+  }
+  .charges-hero__amount {
+    line-height: var(--leading-tight);
+  }
+  .charges-hero__sub {
+    font-size: var(--step-1);
+  }
+  .charges-hero__note {
+    margin-top: var(--space-2);
+    color: var(--ink-muted);
+    font-size: var(--step--1);
+  }
+
+  .charges-month {
+    display: grid;
+    gap: var(--space-3);
+  }
+  .charges-ledger {
+    max-width: 40rem;
+  }
+  .charge-row {
+    align-items: center;
+  }
+  .charge-row .ledger__label {
+    flex: 0 1 auto;
+  }
+  .charge-row .ledger__meta .badge {
+    font-size: var(--step--2);
+    font-weight: var(--weight-regular);
+  }
+  .charge-row__open {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+  }
+  /* Toute la ligne ouvre la charge ; la corbeille reste au-dessus. */
+  .charge-row__open::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+  .charge-row__open:focus-visible {
+    outline: none;
+  }
+  .ledger__row--link:has(.charge-row__open:focus-visible) {
+    outline: var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .charge-row__delete {
+    position: relative;
+    z-index: 1;
+    flex: none;
+    margin-inline-end: calc(var(--space-1) * -1);
+  }
+  .charge-row__spacer {
+    flex: none;
+    width: var(--tap-min);
+  }
+  .charge-row--example .ledger__label,
+  .charge-row--example .amount {
+    opacity: 0.75;
+  }
+
+  /* Feuille « Nouvelle charge » */
+  .expense-form .switch {
+    margin-top: var(--space-1);
+  }
+  .expense-form__delete {
+    padding-top: var(--space-3);
+    border-top: var(--border-hair) solid var(--line);
+  }
+}
