@@ -20,7 +20,13 @@ document.documentElement.lang = 'fr'
 export function Root() {
   if (window.location.pathname === '/admin' || window.location.pathname === '/admin/') {
     return (
-      <Suspense fallback={<p className="authshell" role="status">Ouverture de l’administration…</p>}>
+      <Suspense
+        fallback={
+          <p className="authshell" role="status">
+            Ouverture de l’administration…
+          </p>
+        }
+      >
         <AdminPage />
       </Suspense>
     )

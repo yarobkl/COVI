@@ -1,10 +1,298 @@
-.covi-admin{min-height:100vh;background:var(--ground,#efede7);color:var(--ink,#1e2430);font-family:var(--font-text,Arial,sans-serif)}
-.covi-admin *{box-sizing:border-box}.covi-admin__top{height:72px;background:var(--paper,#fcfbf8);border-bottom:1px solid var(--line,#c9d5e8);display:flex;align-items:center;justify-content:space-between;padding:0 clamp(16px,4vw,60px)}
-.covi-admin__brand{font-weight:700;font-size:24px;letter-spacing:-.04em;text-decoration:none;color:var(--ink)}.covi-admin__brand span{font-size:14px;font-weight:400;letter-spacing:0;color:var(--ink-muted)}
-.covi-admin__back{font-size:14px;color:var(--action,#17408b)}.covi-admin__layout{display:grid;grid-template-columns:255px minmax(0,1fr);max-width:1440px;margin:auto;min-height:calc(100vh - 72px)}
-.covi-admin__side{border-right:1px solid var(--line);padding:46px 26px;display:flex;flex-direction:column;gap:15px}.covi-admin__side strong{font-size:28px}.covi-admin__side p,.covi-admin__side small{color:var(--ink-muted);line-height:1.5}.covi-admin__side nav{display:flex;flex-direction:column;gap:8px;margin:20px 0}.covi-admin__side nav a{color:var(--ink);padding:12px 10px;text-decoration:none;border-bottom:1px solid var(--line)}.covi-admin__side nav a:hover{background:var(--paper)}
-.covi-admin__main{padding:clamp(24px,4vw,64px);min-width:0}.covi-admin__eyebrow{font:700 12px var(--font-figures,monospace);letter-spacing:.12em;color:var(--ink-muted)}.covi-admin h1{font-size:clamp(32px,4vw,56px);letter-spacing:-.055em;line-height:1.12;margin:12px 0}.covi-admin h1 em{font-family:var(--font-hand,cursive);font-weight:400;font-style:normal;background:linear-gradient(transparent 65%,var(--highlight,#ffe36e) 65%)}.covi-admin__intro{max-width:630px;color:var(--ink-muted);line-height:1.6;margin-bottom:32px}
-.covi-admin__stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:22px}.covi-admin__stats>div{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:22px}.covi-admin__stats span{display:block;color:var(--ink-muted);font-size:13px}.covi-admin__stats strong{display:block;font:700 clamp(23px,2.4vw,32px) var(--font-figures,monospace);margin-top:10px}
-.covi-admin__panel{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:clamp(18px,2.5vw,30px);margin-bottom:22px;box-shadow:0 3px 0 var(--c-sheet-edge,#d9d4c8)}.covi-admin__panel h2{font-size:24px;margin:8px 0 12px}.covi-admin__panel p{color:var(--ink-muted);line-height:1.5}.covi-admin__sectionhead{display:flex;align-items:center;justify-content:space-between;gap:12px}.covi-admin__sectionhead button{background:transparent;color:var(--action);border:1px solid var(--line);padding:9px 14px;border-radius:5px;cursor:pointer}.covi-admin__tablewrap{overflow-x:auto}.covi-admin table{width:100%;border-collapse:collapse;text-align:left;white-space:nowrap}.covi-admin th,.covi-admin td{padding:14px 12px;border-bottom:1px solid var(--line);font-size:14px}.covi-admin th{font-size:12px;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.05em}.covi-admin td:nth-child(4){font-family:var(--font-figures,monospace)}.covi-admin__status{border-radius:20px;padding:5px 9px;background:var(--notice-bg);font-size:12px}.covi-admin__status--active{background:var(--success-tint);color:var(--success)}.covi-admin__status--suspended,.covi-admin__status--cancelled{background:var(--danger-tint);color:var(--danger)}
-.covi-admin__forms{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}.covi-admin form{display:grid;gap:14px;margin-top:24px}.covi-admin form label{display:grid;gap:7px;font-size:13px;font-weight:700}.covi-admin input,.covi-admin select{font:inherit;min-width:0;width:100%;padding:12px;border:1px solid var(--line-field);border-radius:5px;background:var(--sheet);color:var(--ink)}.covi-admin form button{border:0;border-radius:5px;background:var(--action);color:#fff;padding:14px;font:700 15px var(--font-text);cursor:pointer}.covi-admin button:disabled{opacity:.5;cursor:wait}.covi-admin__amount{font:700 18px var(--font-figures,monospace);color:var(--ink)!important}.covi-admin__warning{font-size:13px;border-left:3px solid var(--c-margin);padding-left:12px}.covi-admin__error,.covi-admin__success{padding:14px 18px;border-radius:5px}.covi-admin__error{background:var(--danger-tint);color:var(--danger)}.covi-admin__success{background:var(--success-tint);color:var(--success)}
-@media(max-width:950px){.covi-admin__layout{grid-template-columns:1fr}.covi-admin__side{padding:20px;border-right:0;border-bottom:1px solid var(--line)}.covi-admin__side nav{flex-direction:row;flex-wrap:wrap;margin:0}.covi-admin__side small,.covi-admin__side p{display:none}.covi-admin__forms{grid-template-columns:1fr}}@media(max-width:550px){.covi-admin__top{height:60px}.covi-admin__brand span{display:none}.covi-admin__main{padding:20px 14px}.covi-admin__stats{grid-template-columns:1fr}.covi-admin__stats>div{padding:16px}.covi-admin__stats strong{font-size:25px}.covi-admin__side nav a{padding:7px;font-size:12px}}
+.covi-admin {
+  min-height: 100vh;
+  background: var(--ground, #efede7);
+  color: var(--ink, #1e2430);
+  font-family: var(--font-text, Arial, sans-serif);
+}
+.covi-admin * {
+  box-sizing: border-box;
+}
+.covi-admin__top {
+  height: 72px;
+  background: var(--paper, #fcfbf8);
+  border-bottom: 1px solid var(--line, #c9d5e8);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 clamp(16px, 4vw, 60px);
+}
+.covi-admin__brand {
+  font-weight: 700;
+  font-size: 24px;
+  letter-spacing: -0.04em;
+  text-decoration: none;
+  color: var(--ink);
+}
+.covi-admin__brand span {
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--ink-muted);
+}
+.covi-admin__back {
+  font-size: 14px;
+  color: var(--action, #17408b);
+}
+.covi-admin__layout {
+  display: grid;
+  grid-template-columns: 255px minmax(0, 1fr);
+  max-width: 1440px;
+  margin: auto;
+  min-height: calc(100vh - 72px);
+}
+.covi-admin__side {
+  border-right: 1px solid var(--line);
+  padding: 46px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+.covi-admin__side strong {
+  font-size: 28px;
+}
+.covi-admin__side p,
+.covi-admin__side small {
+  color: var(--ink-muted);
+  line-height: 1.5;
+}
+.covi-admin__side nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 20px 0;
+}
+.covi-admin__side nav a {
+  color: var(--ink);
+  padding: 12px 10px;
+  text-decoration: none;
+  border-bottom: 1px solid var(--line);
+}
+.covi-admin__side nav a:hover {
+  background: var(--paper);
+}
+.covi-admin__main {
+  padding: clamp(24px, 4vw, 64px);
+  min-width: 0;
+}
+.covi-admin__eyebrow {
+  font: 700 12px var(--font-figures, monospace);
+  letter-spacing: 0.12em;
+  color: var(--ink-muted);
+}
+.covi-admin h1 {
+  font-size: clamp(32px, 4vw, 56px);
+  letter-spacing: -0.055em;
+  line-height: 1.12;
+  margin: 12px 0;
+}
+.covi-admin h1 em {
+  font-family: var(--font-hand, cursive);
+  font-weight: 400;
+  font-style: normal;
+  background: linear-gradient(transparent 65%, var(--highlight, #ffe36e) 65%);
+}
+.covi-admin__intro {
+  max-width: 630px;
+  color: var(--ink-muted);
+  line-height: 1.6;
+  margin-bottom: 32px;
+}
+.covi-admin__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.covi-admin__stats > div {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 22px;
+}
+.covi-admin__stats span {
+  display: block;
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+.covi-admin__stats strong {
+  display: block;
+  font: 700 clamp(23px, 2.4vw, 32px) var(--font-figures, monospace);
+  margin-top: 10px;
+}
+.covi-admin__panel {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: clamp(18px, 2.5vw, 30px);
+  margin-bottom: 22px;
+  box-shadow: 0 3px 0 var(--c-sheet-edge, #d9d4c8);
+}
+.covi-admin__panel h2 {
+  font-size: 24px;
+  margin: 8px 0 12px;
+}
+.covi-admin__panel p {
+  color: var(--ink-muted);
+  line-height: 1.5;
+}
+.covi-admin__sectionhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.covi-admin__sectionhead button {
+  background: transparent;
+  color: var(--action);
+  border: 1px solid var(--line);
+  padding: 9px 14px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.covi-admin__tablewrap {
+  overflow-x: auto;
+}
+.covi-admin table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  white-space: nowrap;
+}
+.covi-admin th,
+.covi-admin td {
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+.covi-admin th {
+  font-size: 12px;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.covi-admin td:nth-child(4) {
+  font-family: var(--font-figures, monospace);
+}
+.covi-admin__status {
+  border-radius: 20px;
+  padding: 5px 9px;
+  background: var(--notice-bg);
+  font-size: 12px;
+}
+.covi-admin__status--active {
+  background: var(--success-tint);
+  color: var(--success);
+}
+.covi-admin__status--suspended,
+.covi-admin__status--cancelled {
+  background: var(--danger-tint);
+  color: var(--danger);
+}
+.covi-admin__forms {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+.covi-admin form {
+  display: grid;
+  gap: 14px;
+  margin-top: 24px;
+}
+.covi-admin form label {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.covi-admin input,
+.covi-admin select {
+  font: inherit;
+  min-width: 0;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--line-field);
+  border-radius: 5px;
+  background: var(--sheet);
+  color: var(--ink);
+}
+.covi-admin form button {
+  border: 0;
+  border-radius: 5px;
+  background: var(--action);
+  color: #fff;
+  padding: 14px;
+  font: 700 15px var(--font-text);
+  cursor: pointer;
+}
+.covi-admin button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.covi-admin__amount {
+  font: 700 18px var(--font-figures, monospace);
+  color: var(--ink) !important;
+}
+.covi-admin__warning {
+  font-size: 13px;
+  border-left: 3px solid var(--c-margin);
+  padding-left: 12px;
+}
+.covi-admin__error,
+.covi-admin__success {
+  padding: 14px 18px;
+  border-radius: 5px;
+}
+.covi-admin__error {
+  background: var(--danger-tint);
+  color: var(--danger);
+}
+.covi-admin__success {
+  background: var(--success-tint);
+  color: var(--success);
+}
+@media (max-width: 950px) {
+  .covi-admin__layout {
+    grid-template-columns: 1fr;
+  }
+  .covi-admin__side {
+    padding: 20px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .covi-admin__side nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin: 0;
+  }
+  .covi-admin__side small,
+  .covi-admin__side p {
+    display: none;
+  }
+  .covi-admin__forms {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 550px) {
+  .covi-admin__top {
+    height: 60px;
+  }
+  .covi-admin__brand span {
+    display: none;
+  }
+  .covi-admin__main {
+    padding: 20px 14px;
+  }
+  .covi-admin__stats {
+    grid-template-columns: 1fr;
+  }
+  .covi-admin__stats > div {
+    padding: 16px;
+  }
+  .covi-admin__stats strong {
+    font-size: 25px;
+  }
+  .covi-admin__side nav a {
+    padding: 7px;
+    font-size: 12px;
+  }
+}
