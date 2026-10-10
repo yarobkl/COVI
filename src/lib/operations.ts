@@ -76,6 +76,23 @@ export async function deleteExpense(shopId: string, id: string) {
   const { error } = await supabase.from('shop_expenses').delete().eq('shop_id', shopId).eq('id', id)
   if (error) throw error
 }
+/** Today's real sales (examples excluded): how many and how much, from local midnight. */
+export async function todaySales(shopId: string) {
+  const now = new Date(),
+    today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const { data, error } = await supabase
+    .from('sales')
+    .select('total_amount')
+    .eq('shop_id', shopId)
+    .eq('is_test', false)
+    .gte('sold_at', today.toISOString())
+  if (error) throw error
+  return {
+    count: (data ?? []).length,
+    total: (data ?? []).reduce((a, x) => a + Number(x.total_amount), 0),
+  }
+}
+
 export async function dashboard(shopId: string) {
   const now = new Date(),
     start = new Date(now.getFullYear(), now.getMonth(), 1),

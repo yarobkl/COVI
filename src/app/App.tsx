@@ -70,11 +70,7 @@ function renderPage(route: Route, { shop, updateShop }: PageContext) {
         </LegacyPage>
       )
     case 'vendre':
-      return (
-        <LegacyPage>
-          <SalePage shopId={shop.id} />
-        </LegacyPage>
-      )
+      return <SalePage shopId={shop.id} shopName={shop.name} />
     case 'stock':
       return (
         <LegacyPage>
