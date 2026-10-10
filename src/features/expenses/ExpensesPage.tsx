@@ -41,8 +41,11 @@ export function ExpensesPage({ shopId }: { shopId: string }) {
   const { data, error, retry } = useAsyncData(load)
   // Changes made here are applied at once, without reloading the list.
   const [local, setLocal] = useState<{ from: Expense[]; rows: Expense[] } | null>(null)
-  const rows = local && local.from === data ? local.rows : (data ?? [])
-  const setRows = (next: Expense[]) => setLocal({ from: data ?? [], rows: next })
+  const rows = useMemo(
+    () => (local && local.from === data ? local.rows : (data ?? [])),
+    [local, data],
+  )
+  const setRows = (next: Expense[]) => data && setLocal({ from: data, rows: next })
 
   const [now] = useState(() => new Date())
   const [view, setView] = useState<ExpenseView>('month')
