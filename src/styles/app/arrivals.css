@@ -1,0 +1,243 @@
+/* Arrivages : chaque arrivage en entrée de cahier (tampon, chiffres, règle graduée), son détail
+   et les formulaires. Importé par src/features/arrivals (couche app, déclarée dans index.css). */
+@layer app {
+  .arrivals {
+    display: grid;
+    gap: var(--space-6);
+    max-width: 56rem;
+  }
+  .arrivals-head {
+    margin-bottom: 0;
+  }
+  .arrivals-part {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .arrival-list {
+    container-type: inline-size;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: var(--border-hair) solid var(--line);
+  }
+  .arrival {
+    position: relative;
+    display: grid;
+    gap: var(--space-2);
+    padding: var(--space-4) var(--space-1);
+    border-bottom: var(--border-hair) solid var(--line);
+    transition: background-color var(--dur-fast) var(--ease-out);
+  }
+  .arrival:hover {
+    background: color-mix(in srgb, var(--action-tint) 60%, transparent);
+  }
+  .arrival:has(.arrival__open:active) {
+    background: var(--action-tint-strong);
+  }
+  .arrival:has(.arrival__open:focus-visible) {
+    outline: var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .arrival__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+  .arrival__title {
+    min-width: 0;
+    font-size: var(--step-1);
+    line-height: var(--leading-snug);
+  }
+  .arrival__open {
+    min-height: var(--tap-min);
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--action);
+    font: inherit;
+    font-weight: var(--weight-bold);
+    text-align: start;
+    cursor: pointer;
+  }
+  /* Toute l’entrée ouvre le détail ; le bouton d’étape reste au-dessus. */
+  .arrival__open::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+  .arrival__open:focus-visible {
+    outline: none;
+  }
+  .arrival__test {
+    color: var(--ink-muted);
+    font-size: var(--step--1);
+    font-weight: var(--weight-regular);
+  }
+  .arrival__meta {
+    color: var(--ink-muted);
+    font-size: var(--step--1);
+  }
+  .arrival__figures .figures,
+  .arrival__result .figures,
+  .arrival__recovered .figures {
+    font-weight: var(--weight-bold);
+  }
+  .arrival__ruler {
+    display: grid;
+    gap: var(--space-1);
+    max-width: 30rem;
+  }
+  .arrival__recovered {
+    color: var(--ink-soft);
+    font-size: var(--step--1);
+  }
+  .arrival__result--done {
+    color: var(--success);
+    font-weight: var(--weight-bold);
+  }
+  .arrival__recovery {
+    display: grid;
+    gap: var(--space-2);
+  }
+  /* Ordinateur : la règle graduée passe à droite de l’entrée. */
+  @container (min-width: 44rem) {
+    .arrival {
+      grid-template-columns: minmax(0, 1fr) minmax(16rem, 24rem);
+      column-gap: var(--space-8);
+      align-items: start;
+    }
+    .arrival > * {
+      grid-column: 1;
+    }
+    .arrival > .arrival__head {
+      grid-column: 1 / -1;
+    }
+    .arrival > .arrival__recovery {
+      grid-column: 2;
+      grid-row: 2 / span 3;
+    }
+  }
+  .arrival__actions {
+    position: relative;
+    z-index: var(--z-raised);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  /* Tampons propres aux arrivages (les autres viennent du système). */
+  .arrival-stamp {
+    flex: none;
+    margin-top: var(--space-1);
+  }
+  .arrival-stamp--draft {
+    --_c: var(--ink-muted);
+    border-style: dotted;
+    border-width: 3px;
+  }
+  .arrival-stamp--ordered {
+    --_c: var(--ink-soft);
+  }
+
+  /* Détail d’un arrivage */
+  .arrival-detail {
+    gap: var(--space-4);
+  }
+  .arrival-detail__stamp {
+    padding-block: var(--space-1) var(--space-2);
+  }
+  .arrival-detail__stamp .stamp {
+    animation: covi-stamp-drop var(--dur-slow) var(--ease-stamp) both;
+  }
+  .arrival-detail__ruler {
+    display: grid;
+    gap: var(--space-1);
+  }
+  .arrival-detail__pieces {
+    display: grid;
+    gap: var(--space-2);
+  }
+  .arrival-detail__list .stock-row {
+    min-height: 60px;
+  }
+  .arrival-detail__none,
+  .arrival-detail__wait {
+    color: var(--ink-soft);
+  }
+  .arrival-detail__wait {
+    flex: 1 1 100%;
+    font-size: var(--step--1);
+  }
+  .arrival-form .dialog__actions,
+  .arrival-detail .dialog__actions {
+    position: sticky;
+    bottom: 0;
+    margin: 0 calc(-1 * var(--space-5)) calc(-1 * var(--space-5));
+    padding: var(--space-3) var(--space-5) var(--space-5);
+    border-top: var(--border-hair) solid var(--line);
+    background: var(--sheet);
+  }
+
+  /* Formulaire d’arrivage */
+  .arrival-form {
+    gap: var(--space-4);
+    container-type: inline-size;
+  }
+  .arrival-form__kind .segmented__options {
+    grid-template-columns: 1fr;
+  }
+  @container (min-width: 26rem) {
+    .arrival-form__kind .segmented__options {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  .arrival-form__date {
+    max-width: 14rem;
+  }
+  .arrival-form__total {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    padding-block: var(--space-3) var(--space-2);
+    border-top: var(--border-total) solid var(--line-strong);
+    border-bottom: 4px double var(--line-strong);
+    font-weight: var(--weight-bold);
+  }
+  .arrival-form__total .amount {
+    margin-inline-start: auto;
+  }
+
+  /* Pays proposés sous le champ */
+  .country-keys {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+  }
+  .country-key {
+    min-height: var(--tap-min);
+    padding: 0 var(--space-3);
+    border: var(--border-field) dashed var(--line-field);
+    border-radius: var(--radius-2);
+    background: var(--sheet);
+    color: var(--action);
+    font: inherit;
+    cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease-out);
+  }
+  .country-key:hover {
+    background: var(--action-tint);
+  }
+  .country-key:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .arrival-detail__stamp .stamp {
+      animation: none;
+    }
+  }
+}

@@ -1,0 +1,155 @@
+/* Ventes : le journal du cahier, une page par jour, et les ventes gardées sur l’appareil. */
+@layer app {
+  .sales-page {
+    display: grid;
+    gap: var(--space-8);
+    min-width: 0;
+  }
+
+  .journal {
+    display: grid;
+    gap: var(--space-6);
+    min-width: 0;
+  }
+  .journal__filters {
+    display: grid;
+    gap: var(--space-3);
+    max-width: 44rem;
+  }
+  .journal__search {
+    max-width: 30rem;
+  }
+  .journal__none,
+  .journal__examples {
+    color: var(--ink-soft);
+  }
+  .journal__examples {
+    font-size: var(--step--1);
+  }
+  .journal__more {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3) var(--space-4);
+  }
+
+  /* Une page du jour : « Aujourd’hui · 7 ventes · 126 000 » */
+  .jday {
+    display: grid;
+    min-width: 0;
+    max-width: 46rem;
+  }
+  .jday__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 var(--space-1);
+    padding-bottom: var(--space-2);
+    border-bottom: var(--border-total) solid var(--line-strong);
+    font-size: var(--step-1);
+  }
+  .jday__label {
+    color: var(--action);
+  }
+  .jday__count {
+    color: var(--ink-soft);
+    font-weight: var(--weight-regular);
+  }
+  .jday__total {
+    font-size: var(--amount-md);
+  }
+
+  .jday__lines {
+    display: grid;
+  }
+  .jline {
+    display: grid;
+    grid-template-columns: 3.4rem minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 0 var(--space-3);
+    padding-block: var(--space-2);
+    border-bottom: var(--border-hair) solid var(--line);
+  }
+  .jline__time {
+    color: var(--ink-muted);
+    font-family: var(--font-figures);
+    font-size: 0.9375rem;
+  }
+  .jline__what {
+    min-width: 0;
+  }
+  .jline__qty {
+    font-family: var(--font-figures);
+    font-weight: var(--weight-bold);
+  }
+  .jline__meta {
+    color: var(--ink-muted);
+    font-size: var(--step--1);
+  }
+  .jline__meta .badge {
+    font-size: var(--step--2);
+    font-weight: var(--weight-regular);
+  }
+  .jline__price {
+    display: grid;
+    justify-items: end;
+    text-align: end;
+    white-space: nowrap;
+  }
+  .jline__shown {
+    line-height: 1.2;
+  }
+  .jline__sold {
+    font-weight: var(--weight-bold);
+  }
+  /* Ligne d’exemple : présente, mais en retrait. */
+  .jline--example .jline__name,
+  .jline--example .jline__sold {
+    color: var(--ink-muted);
+  }
+
+  @media (max-width: 22rem) {
+    .jline {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .jline__time {
+      grid-column: 1 / -1;
+    }
+  }
+
+  /* Ventes gardées sur l’appareil : non enregistrées, puis en attente d’envoi. */
+  .device-sales {
+    display: grid;
+    gap: var(--space-3);
+    max-width: 44rem;
+  }
+  .device-sales__lead {
+    color: var(--ink-soft);
+  }
+  .device-sales__reason {
+    display: block;
+    color: var(--ink-soft);
+  }
+  .device-sales .ledger__label {
+    font-weight: var(--weight-bold);
+  }
+  .device-sales .ledger__meta {
+    font-weight: var(--weight-regular);
+  }
+  .device-sales__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+  .device-sales--refused .section-title::after {
+    background: var(--danger);
+  }
+  .journal__limit {
+    max-width: 44rem;
+  }
+
+  /* « Réessayer » : cible de 44 px au moins, comme tout ce qui se touche. */
+  .sales-page .notice__actions .btn {
+    min-height: var(--tap-min);
+  }
+}
