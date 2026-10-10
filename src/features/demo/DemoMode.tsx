@@ -1,14 +1,15 @@
 import { useState } from 'react'
+import type { ComponentType } from 'react'
 import {
-  ArrowLeft,
-  ChartNoAxesCombined,
-  History,
-  Home,
-  Package,
-  ReceiptText,
-  Ship,
-  type LucideIcon,
-} from 'lucide-react'
+  BarsIcon,
+  BillIcon,
+  BoxIcon,
+  ChevronLeftIcon,
+  HangerIcon,
+  HomeIcon,
+  NotebookIcon,
+  type IconProps,
+} from '../../components/icons'
 import { Brand } from '../../components/Brand'
 import { DemoArrivals } from './DemoArrivals'
 import { DemoDashboard } from './DemoDashboard'
@@ -25,20 +26,20 @@ type DemoPage =
   | 'Statistiques'
   | 'Charges de la boutique'
 
-const nav: readonly (readonly [DemoPage, LucideIcon])[] = [
-  ['Tableau de bord', Home],
-  ['Produits vendus', History],
-  ['Mon stock', Package],
-  ['Mes arrivages', Ship],
-  ['Statistiques', ChartNoAxesCombined],
-  ['Charges de la boutique', ReceiptText],
+const nav: readonly (readonly [DemoPage, ComponentType<IconProps>])[] = [
+  ['Tableau de bord', HomeIcon],
+  ['Produits vendus', NotebookIcon],
+  ['Mon stock', HangerIcon],
+  ['Mes arrivages', BoxIcon],
+  ['Statistiques', BarsIcon],
+  ['Charges de la boutique', BillIcon],
 ]
 
-const bottomNav: readonly (readonly [string, LucideIcon, DemoPage])[] = [
-  ['Accueil', Home, 'Tableau de bord'],
-  ['Ventes', History, 'Produits vendus'],
-  ['Stock', Package, 'Mon stock'],
-  ['Arrivages', Ship, 'Mes arrivages'],
+const bottomNav: readonly (readonly [string, ComponentType<IconProps>, DemoPage])[] = [
+  ['Accueil', HomeIcon, 'Tableau de bord'],
+  ['Ventes', NotebookIcon, 'Produits vendus'],
+  ['Stock', HangerIcon, 'Mon stock'],
+  ['Arrivages', BoxIcon, 'Mes arrivages'],
 ]
 
 /** Three-month store simulation with fictitious data, available without an account. */
@@ -100,7 +101,7 @@ export function DemoMode({ onExit }: { onExit: () => void }) {
             boutique.
           </span>
           <button onClick={onExit}>
-            <ArrowLeft />
+            <ChevronLeftIcon />
             Quitter
           </button>
         </div>

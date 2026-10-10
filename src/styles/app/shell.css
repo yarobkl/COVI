@@ -1,0 +1,195 @@
+/* Coque de l’application : bandeau du téléphone, sommaire de l’ordinateur, menu « Plus ». */
+@layer app {
+  .skip-link {
+    position: absolute;
+    inset-inline-start: var(--space-2);
+    top: -100px;
+    z-index: var(--z-toast);
+    padding: var(--space-2) var(--space-3);
+    border: var(--border-field) solid var(--action);
+    border-radius: var(--radius-2);
+    background: var(--sheet);
+  }
+  .skip-link:focus {
+    top: var(--space-2);
+  }
+
+  .shell__page:focus {
+    outline: none;
+  }
+  .page {
+    animation: covi-rise var(--dur-base) var(--ease-out) both;
+  }
+
+  /* Bandeau du téléphone : la boutique, le réseau (s’il y a lieu), le menu. */
+  .topbar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 60px;
+    padding: var(--space-2) var(--gutter) var(--space-2) calc(var(--margin-offset) + var(--space-3));
+    border-bottom: var(--border-hair) solid var(--line);
+    background: var(--paper);
+  }
+  .topbar::before {
+    content: '';
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: var(--margin-offset);
+    width: 2px;
+    background: var(--margin-line);
+  }
+  .topbar__shop {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--action);
+    font-weight: var(--weight-bold);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .topbar:has(.net-pill) .topbar__shop {
+    display: none;
+  }
+  .topbar .net-pill {
+    flex: 1 1 auto;
+    min-width: 0;
+    justify-content: flex-start;
+  }
+  .net-pill__second {
+    display: block;
+    font-weight: var(--weight-bold);
+  }
+
+  /* Initiales de la personne (ou de la boutique) : ouvre le menu « Ma boutique ». */
+  .avatar {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: var(--tap-min);
+    height: var(--tap-min);
+    margin-inline-start: auto;
+    border: var(--border-field) solid var(--action);
+    border-radius: 50%;
+    background: var(--sheet);
+    color: var(--action);
+    font-size: var(--step--1);
+    font-weight: var(--weight-bold);
+    box-shadow:
+      0 0 0 3px var(--sheet),
+      0 0 0 4.5px #a9b9d8;
+    transition: background-color var(--dur-fast) var(--ease-out);
+  }
+  .avatar:hover {
+    background: var(--action-tint);
+  }
+  .avatar:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: 5px;
+  }
+
+  @media (min-width: 1024px) {
+    .shell > .topbar {
+      display: none;
+    }
+    body:has(.shell) {
+      background: var(--ground);
+    }
+  }
+
+  /* Sommaire (ordinateur) */
+  .sommaire .label-card {
+    margin: 6px 6px var(--space-2);
+  }
+  .sommaire__sale .btn[aria-current='page'] {
+    --_shadow: var(--shadow-press-none);
+    transform: translate(var(--press-offset), var(--press-offset));
+  }
+  .sommaire__foot {
+    display: grid;
+    justify-items: start;
+    gap: var(--space-1);
+  }
+  .sommaire__foot .net-pill {
+    margin-bottom: var(--space-2);
+  }
+  .sommaire__quiet {
+    padding-inline: var(--space-3);
+    color: var(--ink-soft);
+    font-weight: var(--weight-regular);
+  }
+
+  .bottom-nav__item[aria-expanded='true'] {
+    color: var(--action);
+  }
+
+  /* Menu « Plus » / « Ma boutique » */
+  .menu-sheet {
+    gap: var(--space-4);
+  }
+  .menu-sheet .label-card {
+    margin: 6px;
+  }
+  .menu-sheet__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding-top: var(--space-4);
+    border-top: var(--border-hair) solid var(--line);
+  }
+
+  .rejected-list {
+    display: grid;
+    gap: var(--space-2);
+    padding-inline-start: 1.2em;
+    color: var(--ink-soft);
+  }
+
+  /* Filtres d’écran en liens (Arrivages : Tous · Commandes · Ballons) */
+  .page-tabs {
+    margin-bottom: var(--space-5);
+  }
+  a.tabs__tab {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+  }
+  .tabs__tab[aria-current='page'] {
+    color: var(--action);
+    font-weight: var(--weight-bold);
+  }
+  .tabs__tab[aria-current='page']::after {
+    content: '';
+    position: absolute;
+    inset-inline: var(--space-2);
+    bottom: 4px;
+    height: 3px;
+    border-radius: 40% 60% 50% 50% / 100%;
+    background: currentColor;
+    rotate: -1deg;
+    transform-origin: left;
+    animation: covi-underline var(--dur-base) var(--ease-out) both;
+  }
+
+  /* En-tête d’écran : titre (+ repère), et l’action principale à droite. */
+  .page-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-5);
+  }
+  .page-head__sub {
+    margin-top: var(--space-1);
+    color: var(--ink-soft);
+  }
+
+  /* Les pages pas encore refaites tiennent dans la feuille. */
+  .legacy {
+    min-width: 0;
+  }
+}

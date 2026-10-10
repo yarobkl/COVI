@@ -1,0 +1,260 @@
+/* ==========================================================================
+   COVI — Le Cahier de caisse · tokens.css
+   Hybride : piste B « Le Cahier » (identité, écrans calmes)
+           + piste C « L'Enseigne » (module de vente, scope .is-sale)
+
+   MODE SOMBRE : NON PRÉVU pour cette version. Le système est « papier » par
+   nature ; un mode sombre demandera son propre travail (encre claire sur
+   ardoise), pas une inversion automatique. `color-scheme: light` est forcé
+   dans base.css pour que les contrôles natifs restent clairs.
+
+   Ordre des couches. L'app peut écrire ses propres styles hors couche :
+   ils gagneront toujours sur le système (c'est voulu).
+   ========================================================================== */
+
+@layer tokens, base, components, utilities;
+
+@layer tokens {
+  :root {
+    /* ------------------------------------------------------------------
+       1. COULEURS — primitives (ne pas utiliser directement dans l'app)
+       ------------------------------------------------------------------ */
+    --c-desk: #efede7; /* la table sous le cahier                    */
+    --c-paper: #fcfbf8; /* la page du cahier                          */
+    --c-white: #ffffff; /* feuille volante, ticket, champ             */
+    --c-ink-900: #1e2430; /* encre noire                                */
+    --c-ink-700: #3d4454;
+    --c-ink-600: #4a5468;
+    --c-ink-500: #5a6170; /* plus clair autorisé pour du texte          */
+    --c-ink-400: #7a869c; /* bordure de champ (3,67:1, non-texte)       */
+    --c-blue-700: #0f3274;
+    --c-blue-600: #17408b; /* encre bleue du stylo = action              */
+    --c-blue-100: #eef2fa;
+    --c-blue-150: #dce5f4;
+    --c-blue-50: #f1f4f9;
+    --c-rule-300: #c9d5e8; /* filet de ligne                             */
+    --c-rule-200: #d5deec; /* Seyès : grand carreau                      */
+    --c-rule-100: #e8edf5; /* Seyès : petite ligne                       */
+    --c-margin: #e8968f; /* marge rouge (décor seulement)             */
+    --c-red-600: #b3261e; /* stylo rouge                                */
+    --c-red-100: #fbeae8;
+    --c-green-700: #0a6b36;
+    --c-green-100: #e6f2ea;
+    --c-highlighter: #ffe36e; /* surligneur pâle (partout, sous du texte)   */
+    --c-sign-yellow: #ffd23f; /* jaune enseigne (module vente SEULEMENT)    */
+    --c-sign-yellow-100: #fff6cc;
+    --c-sheet-edge: #d9d4c8; /* tranche des feuilles empilées              */
+
+    /* ------------------------------------------------------------------
+       2. COULEURS — sémantiques (à utiliser dans l'app)
+       Contrastes WCAG calculés : voir DESIGN-SYSTEM.md § Palette.
+       ------------------------------------------------------------------ */
+    --ground: var(--c-desk);
+    --paper: var(--c-paper);
+    --sheet: var(--c-white);
+    --ink: var(--c-ink-900); /* 15,0:1 sur paper */
+    --ink-soft: var(--c-ink-700); /*  9,4:1 */
+    --ink-muted: var(--c-ink-500); /*  6,0:1 */
+    --ink-on-dark: var(--c-white);
+
+    --action: var(--c-blue-600); /*  9,5:1 sur paper */
+    --action-hover: var(--c-blue-700);
+    --action-ink: var(--c-white); /*  9,8:1 sur action */
+    --action-tint: var(--c-blue-100); /* sélection calme */
+    --action-tint-strong: var(--c-blue-150); /* ligne touchée */
+
+    --danger: var(--c-red-600); /*  6,3:1 — sorties d'argent, erreurs */
+    --danger-ink: var(--c-white);
+    --danger-tint: var(--c-red-100);
+    --success: var(--c-green-700); /*  6,4:1 — argent rentré, rentabilisé */
+    --success-tint: var(--c-green-100);
+
+    --highlight: var(--c-highlighter); /* <mark> : stock bas, chiffre à voir */
+    --sale-accent: var(--c-sign-yellow); /* jaune enseigne, .is-sale uniquement */
+    --sale-accent-tint: var(--c-sign-yellow-100);
+
+    --line: var(--c-rule-300); /* filets de ligne de cahier */
+    --line-strong: var(--c-ink-900); /* trait de total, bordure tactile */
+    --line-field: var(--c-ink-400); /* bordure de champ (3,67:1) */
+    --line-dotted: #9aa6ba; /* pointillés (décor) */
+    --margin-line: var(--c-margin);
+    --grid-fine: var(--c-rule-100);
+    --grid-strong: var(--c-rule-200);
+
+    --notice-bg: var(--c-blue-50); /* réseau coupé : calme, pas rouge */
+    --notice-line: #c9d3e3;
+    --notice-ink: var(--c-ink-700);
+    --notice-icon: var(--c-ink-600);
+
+    --disabled-bg: #e4e8ef;
+    --disabled-ink: var(--c-ink-600); /* 6,2:1 : reste lisible */
+
+    --overlay: rgb(30 36 48 / 0.45); /* fond derrière un dialogue (pas de flou) */
+
+    /* ------------------------------------------------------------------
+       3. TYPOGRAPHIE
+       Polices auto-hébergées via @fontsource (voir DESIGN-SYSTEM.md).
+       ------------------------------------------------------------------ */
+    --font-text: 'Atkinson Hyperlegible', 'Segoe UI', 'Noto Sans', sans-serif;
+    --font-figures: 'Courier Prime', 'Courier New', ui-monospace, monospace;
+    --font-hand: 'Kalam', 'Segoe Print', 'Bradley Hand', cursive;
+
+    --weight-regular: 400;
+    --weight-bold: 700;
+
+    /* Échelle fluide — référence téléphone 360 px → ordinateur 1280 px. */
+    --step--2: 0.8125rem; /* 13 px, mentions minimes */
+    --step--1: clamp(0.875rem, 0.85rem + 0.11vw, 0.9375rem); /* 14 → 15 */
+    --step-0: clamp(1rem, 0.975rem + 0.11vw, 1.0625rem); /* 16 → 17 (texte courant) */
+    --step-1: clamp(1.125rem, 1.07rem + 0.22vw, 1.25rem); /* 18 → 20 */
+    --step-2: clamp(1.25rem, 1.15rem + 0.43vw, 1.5rem); /* 20 → 24 */
+    --step-3: clamp(1.5rem, 1.3rem + 0.87vw, 2rem); /* 24 → 32 */
+    --step-4: clamp(1.875rem, 1.6rem + 1.2vw, 2.75rem); /* 30 → 44 */
+    --step-hero: clamp(2.75rem, 1.9rem + 3.7vw, 5.25rem); /* 44 → 84 (LE chiffre de l'écran) */
+
+    /* Montants (Courier Prime) — tailles fixes pour ne jamais « sauter » au comptoir. */
+    --amount-sm: 1rem;
+    --amount-md: 1.1875rem; /* 19 px — ligne de liste */
+    --amount-lg: 1.875rem; /* 30 px — total de la note */
+    --amount-xl: 2.75rem; /* 44 px — pavé de prix */
+    --amount-hero: var(--step-hero);
+
+    --leading-tight: 1.1;
+    --leading-snug: 1.25;
+    --leading-base: 1.5;
+
+    --tracking-figures: -0.02em; /* gros montants seulement */
+
+    /* Chiffres : Courier Prime est à chasse fixe, donc toujours tabulaire.
+       Pour un chiffre en Atkinson (dans une phrase), activer tnum : */
+    --numeric-tabular: tabular-nums lining-nums;
+    /* Courier Prime n'a pas l'espace fine (U+202F) : on écrit U+00A0 et on
+       resserre l'espace (chasse fixe 0,6 em → ~0,3 em). Les colonnes restent
+       alignées tant que chaque nombre a le même nombre de groupes. */
+    --figures-gap: -0.3em;
+
+    /* ------------------------------------------------------------------
+       4. ESPACEMENTS — base 4 / 8
+       ------------------------------------------------------------------ */
+    --space-0: 0;
+    --space-1: 0.25rem; /*  4 */
+    --space-2: 0.5rem; /*  8 */
+    --space-3: 0.75rem; /* 12 */
+    --space-4: 1rem; /* 16 — gouttière téléphone */
+    --space-5: 1.25rem; /* 20 */
+    --space-6: 1.5rem; /* 24 */
+    --space-8: 2rem; /* 32 = un grand carreau Seyès */
+    --space-10: 2.5rem; /* 40 */
+    --space-12: 3rem; /* 48 */
+    --space-16: 4rem; /* 64 */
+
+    --gutter: var(--space-4);
+    --margin-offset: 1.5rem; /* position de la marge rouge (téléphone) */
+    --content-max: 82rem;
+    --reading-max: 40rem;
+    --sidenav-width: 15rem;
+
+    /* Seyès : 4 lignes fines dans un carreau de 8 px × 4 = 32 px */
+    --seyes-fine: 8px;
+    --seyes-big: 32px;
+
+    /* ------------------------------------------------------------------
+       5. RAYONS
+       ------------------------------------------------------------------ */
+    --radius-1: 3px; /* badge, tranche de feuille */
+    --radius-2: 6px; /* touche de pavé, puce */
+    --radius-3: 10px; /* bouton, champ, tuile */
+    --radius-4: 14px; /* carte d'identité de la boutique, dialogue */
+    --radius-pill: 999px;
+    --radius-sheet: 3px 10px 10px 3px; /* feuille : côté reliure serré */
+
+    /* ------------------------------------------------------------------
+       6. TRAITS ET OMBRES
+       Aucune ombre floue géante. Deux familles seulement :
+       - « feuille » : feuilles empilées (écrans calmes) ;
+       - « touche » : ombre pleine décalée, réservée aux éléments tactiles
+         primaires (vente + porte d'entrée « Nouvelle vente »).
+       ------------------------------------------------------------------ */
+    --border-hair: 1px;
+    --border-field: 1.5px;
+    --border-tactile: 2px;
+    --border-total: 1.5px; /* trait au-dessus d'un total ; dessous : 4px double */
+
+    --shadow-sheet: 0 1px 0 #d6d1c4, 4px 5px 0 -1px #f7f5ef, 4px 5px 0 0 var(--c-sheet-edge);
+    --shadow-ticket: 0 1px 2px rgb(30 36 48 / 0.14);
+    --shadow-lift:
+      0 2px 0 rgb(30 36 48 / 0.08), 0 6px 14px -6px rgb(30 36 48 / 0.25); /* dialogue, toast */
+
+    --press-offset: 4px; /* ombre pleine décalée */
+    --press-offset-sm: 2px;
+    --shadow-press: var(--press-offset) var(--press-offset) 0 0 var(--ink);
+    --shadow-press-sm: var(--press-offset-sm) var(--press-offset-sm) 0 0 var(--ink);
+    --shadow-press-none: 0 0 0 0 var(--ink);
+
+    /* ------------------------------------------------------------------
+       7. FOCUS — toujours visible au clavier
+       ------------------------------------------------------------------ */
+    --focus-color: var(--c-blue-600);
+    --focus-width: 3px;
+    --focus-offset: 2px;
+    --focus-ring: var(--focus-width) solid var(--focus-color);
+    --focus-halo: 0 0 0 var(--focus-offset) var(--paper); /* sépare l'anneau d'un fond bleu */
+
+    /* ------------------------------------------------------------------
+       8. MOUVEMENT — voir motion.md
+       ------------------------------------------------------------------ */
+    --dur-instant: 80ms; /* touche qui s'enfonce */
+    --dur-fast: 150ms; /* survol, couleur */
+    --dur-base: 220ms; /* entrée d'écran, toast */
+    --dur-slow: 320ms; /* tampon, feuille qui monte */
+    --dur-write: 500ms; /* écriture manuscrite */
+    --dur-loop: 1400ms; /* squelette qui s'écrit */
+
+    --ease-out: cubic-bezier(0.2, 0.7, 0.3, 1);
+    --ease-in: cubic-bezier(0.5, 0, 0.75, 0);
+    --ease-press: cubic-bezier(0.3, 0, 0.5, 1);
+    --ease-stamp: cubic-bezier(0.2, 0.8, 0.3, 1.15); /* léger rebond, vente uniquement */
+    --ease-sheet: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+    /* ------------------------------------------------------------------
+       9. Z-INDEX
+       ------------------------------------------------------------------ */
+    --z-base: 0;
+    --z-raised: 1;
+    --z-margin: 2; /* marge rouge au-dessus du quadrillage */
+    --z-sticky: 10; /* barre du total, en-tête collant */
+    --z-nav: 20; /* barre du bas */
+    --z-overlay: 40;
+    --z-dialog: 50;
+    --z-toast: 60;
+    --z-celebration: 70; /* « Vendu. » par-dessus tout */
+
+    /* ------------------------------------------------------------------
+       10. CIBLES TACTILES
+       ------------------------------------------------------------------ */
+    --tap-min: 44px; /* tout ce qui se touche */
+    --tap-comfort: 48px; /* champs */
+    --tap-sale: 56px; /* actions de vente */
+    --tap-sale-lg: 64px; /* « Valider la vente », touches du pavé */
+    --icon-size: 24px;
+    --icon-stroke: 1.75;
+
+    /* Composants : tokens dérivés communs */
+    --field-height: var(--tap-comfort);
+    --bottomnav-height: 66px;
+  }
+
+  /* ------------------------------------------------------------------
+     SCOPE VENTE — .is-sale (racine du module « Vendre »)
+     Mêmes encres, mêmes polices : seuls la matière et l'énergie changent.
+     ------------------------------------------------------------------ */
+  .is-sale {
+    --field-height: var(--tap-sale);
+    --border-field: var(--border-tactile);
+    --line-field: var(--ink);
+    --surface-key: var(--sheet);
+    --surface-key-on: var(--sale-accent);
+    --surface-total: var(--sale-accent);
+    --focus-width: 3px;
+  }
+}

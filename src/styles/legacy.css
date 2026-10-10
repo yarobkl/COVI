@@ -1,0 +1,1436 @@
+/* Anciennes classes, gardées seulement pour les pages pas encore refaites (Stock, Arrivages,
+   Ventes, Charges, Bilan, Ma boutique, boutique d’exemple). Chaque sélecteur est limité à
+   .legacy (enveloppe posée par src/app/LegacyPage.tsx et la boutique d’exemple).
+   À supprimer en partie 2 de la refonte. */
+@layer legacy {
+  .legacy {
+    color: #14233b;
+    font-synthesis: none;
+  }
+  .legacy .app {
+    display: flex;
+    min-height: 100vh;
+  }
+  .legacy aside {
+    width: 250px;
+    background: #fff;
+    border-right: 1px solid #e9e8e2;
+    padding: 28px 18px;
+    position: fixed;
+    inset: 0 auto 0 0;
+    display: flex;
+    flex-direction: column;
+    z-index: 20;
+  }
+  .legacy .brand {
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -2px;
+    display: flex;
+    align-items: center;
+    width: max-content;
+  }
+  .legacy .brand b {
+    background: linear-gradient(135deg, #f5c65c, #e79023);
+    color: white;
+    border-radius: 9px;
+    padding: 0 7px;
+    margin: 0 2px;
+    line-height: 34px;
+  }
+  .legacy .brand i {
+    width: 7px;
+    height: 7px;
+    background: #ee9d28;
+    border-radius: 50%;
+    margin: -22px 0 0 2px;
+  }
+  .legacy .tag {
+    font-size: 11px;
+    line-height: 1.5;
+    color: #89919d;
+    margin: 8px 0 28px;
+  }
+  .legacy nav {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .legacy nav button {
+    border: 0;
+    background: transparent;
+    padding: 11px 12px;
+    border-radius: 10px;
+    text-align: left;
+    display: flex;
+    gap: 11px;
+    align-items: center;
+    color: #687386;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .legacy nav button svg {
+    width: 17px;
+  }
+  .legacy .active {
+    color: #14233b !important;
+    background: #fff5e5 !important;
+    font-weight: 700;
+  }
+  .legacy .shop {
+    margin-top: auto;
+    background: #f7f7f4;
+    border-radius: 12px;
+    padding: 13px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .legacy .shop span,
+  .legacy .card small {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    color: #9a8060;
+  }
+  .legacy .shop b {
+    font-size: 12px;
+  }
+  .legacy .shop small {
+    color: #8b929b;
+  }
+  .legacy main {
+    margin-left: 250px;
+    width: calc(100% - 250px);
+  }
+  .legacy header {
+    height: 66px;
+    background: #fff;
+    border-bottom: 1px solid #e9e8e2;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 4%;
+    gap: 15px;
+  }
+  .legacy .sync {
+    font-size: 11px;
+    color: #579466;
+  }
+  .legacy .avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #14233b;
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .legacy .menub,
+  .legacy .mobilebrand {
+    display: none;
+  }
+  .legacy .content {
+    max-width: 1240px;
+    margin: auto;
+    padding: 38px 4% 90px;
+  }
+  .legacy .hello {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 28px;
+  }
+  .legacy .hello p {
+    margin: 0;
+    color: #9b8061;
+    font-size: 11px;
+    text-transform: uppercase;
+    font-weight: 800;
+    letter-spacing: 1px;
+  }
+  .legacy .hello h1 {
+    font-size: 29px;
+    margin: 5px 0;
+    color: #14233b;
+    letter-spacing: -0.8px;
+  }
+  .legacy .hello span {
+    font-size: 13px;
+    color: #89919d;
+  }
+  .legacy .hello button,
+  .legacy .primary,
+  .legacy .choice button {
+    border: 0;
+    background: #14233b;
+    color: white;
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .legacy .hello button svg {
+    width: 16px;
+  }
+  .legacy .kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .legacy .kpi,
+  .legacy .card,
+  .legacy .empty {
+    background: #fff;
+    border: 1px solid #ebe9e3;
+    border-radius: 15px;
+    padding: 20px;
+  }
+  .legacy .kpi {
+    display: flex;
+    flex-direction: column;
+  }
+  .legacy .kpi span {
+    font-size: 11px;
+    color: #7f8997;
+  }
+  .legacy .kpi b {
+    font-size: 20px;
+    margin: 9px 0 5px;
+  }
+  .legacy .kpi small {
+    font-size: 10px;
+    color: #739a78;
+  }
+  .legacy .grid {
+    display: grid;
+    grid-template-columns: 1.35fr 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .legacy .card h2 {
+    font-size: 16px;
+    margin: 5px 0 18px;
+  }
+  .legacy .cardhead {
+    display: flex;
+    justify-content: space-between;
+  }
+  .legacy .cardhead > b {
+    font-size: 18px;
+  }
+  .legacy .bars {
+    height: 160px;
+    display: flex;
+    align-items: flex-end;
+    gap: 7%;
+    padding-top: 15px;
+  }
+  .legacy .barwrap {
+    height: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+  }
+  .legacy .bar {
+    width: 100%;
+    max-width: 27px;
+    border-radius: 6px 6px 2px 2px;
+    background: linear-gradient(#f2b749, #e99a28);
+  }
+  .legacy .barwrap span {
+    font-size: 9px;
+    color: #999;
+  }
+  .legacy .arrival {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #f0eee9;
+    padding: 14px 0;
+  }
+  .legacy .arrival div {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .legacy .arrival b {
+    font-size: 12px;
+  }
+  .legacy .arrival span,
+  .legacy .arrival small {
+    font-size: 10px;
+    color: #9098a3;
+  }
+  .legacy .arrival .right {
+    text-align: right;
+  }
+  .legacy .link {
+    border: 0;
+    background: transparent;
+    color: #d88318;
+    padding: 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .legacy .link svg {
+    width: 14px;
+  }
+  .legacy .profit {
+    display: flex;
+    flex-direction: column;
+  }
+  .legacy .profit span,
+  .legacy .profit strong {
+    display: flex;
+    justify-content: space-between;
+    padding: 11px 0;
+    border-top: 1px solid #f0eee9;
+    font-size: 12px;
+  }
+  .legacy .profit strong {
+    font-size: 13px;
+  }
+  .legacy .profit em {
+    font-style: normal;
+    color: #d9841d;
+  }
+  .legacy .quick {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 9px;
+  }
+  .legacy .quick button {
+    background: #faf8f3;
+    border: 1px solid #eee9df;
+    border-radius: 12px;
+    padding: 16px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    color: #243149;
+  }
+  .legacy .quick svg {
+    width: 19px;
+    color: #df8d22;
+  }
+  .legacy .search {
+    background: #fff;
+    border: 1px solid #e8e6e0;
+    border-radius: 12px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    margin-bottom: 14px;
+  }
+  .legacy .search svg {
+    width: 18px;
+    color: #999;
+  }
+  .legacy .search input {
+    border: 0;
+    outline: 0;
+    width: 100%;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+  .legacy .table {
+    background: #fff;
+    border: 1px solid #ebe9e3;
+    border-radius: 15px;
+    overflow: hidden;
+  }
+  .legacy .row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 13px 16px;
+    border-bottom: 1px solid #f0eee9;
+    font-size: 12px;
+  }
+  .legacy .row:last-child {
+    border: 0;
+  }
+  .legacy .row svg {
+    width: 15px;
+    color: #aaa;
+  }
+  .legacy .grow {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+  }
+  .legacy .grow span {
+    color: #999;
+    font-size: 10px;
+  }
+  .legacy .thumb {
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
+    background: #f5ead8;
+    display: grid;
+    place-items: center;
+    font-weight: 800;
+    color: #c37b1e;
+  }
+  .legacy .qty {
+    min-width: 70px;
+    color: #7d8793;
+  }
+  .legacy .choice {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .legacy .choice article {
+    background: #fff;
+    border: 1px solid #ebe9e3;
+    border-radius: 16px;
+    padding: 26px;
+  }
+  .legacy .choice h2 {
+    margin: 8px 0;
+  }
+  .legacy .choice p {
+    font-size: 12px;
+    color: #7f8997;
+    line-height: 1.6;
+    max-width: 470px;
+  }
+  .legacy .choice small {
+    font-size: 9px;
+    color: #d1811e;
+    font-weight: 800;
+    letter-spacing: 1px;
+  }
+  .legacy .ico {
+    width: 44px;
+    height: 44px;
+    background: #fff4df;
+    color: #d9841d;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    margin-bottom: 16px;
+  }
+  .legacy .ico svg {
+    width: 21px;
+  }
+  .legacy .choice button {
+    margin-top: 18px;
+    font-size: 11px;
+  }
+  .legacy .choice button svg {
+    width: 15px;
+  }
+  .legacy .sale {
+    display: grid;
+    grid-template-columns: 1.5fr 0.8fr;
+    gap: 14px;
+  }
+  .legacy .sale .search {
+    background: #fafafa;
+  }
+  .legacy .add {
+    border: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: #fff1d8;
+    color: #d47d11;
+    font-size: 20px;
+  }
+  .legacy .checkout {
+    text-align: center;
+  }
+  .legacy .checkout p,
+  .legacy .empty p {
+    color: #8b939e;
+    font-size: 12px;
+  }
+  .legacy .total {
+    border-top: 1px solid #eee;
+    margin-top: 40px;
+    padding: 18px 0;
+    display: flex;
+    justify-content: space-between;
+  }
+  .legacy .primary {
+    width: 100%;
+    justify-content: center;
+  }
+  .legacy .empty {
+    text-align: center;
+    padding: 70px 20px;
+  }
+  .legacy .empty .ico {
+    margin: 0 auto 15px;
+  }
+  .legacy .empty h2 {
+    margin: 0;
+  }
+  .legacy .bottom {
+    display: none;
+  }
+  @media (max-width: 850px) {
+    .legacy aside {
+      transform: translateX(-100%);
+      transition: 0.2s;
+      box-shadow: 10px 0 30px #0001;
+    }
+    .legacy .open {
+      transform: translateX(0);
+    }
+    .legacy main {
+      margin: 0;
+      width: 100%;
+    }
+    .legacy header {
+      height: 58px;
+      justify-content: space-between;
+      padding: 0 18px;
+    }
+    .legacy .menub,
+    .legacy .mobilebrand {
+      display: block;
+    }
+    .legacy .menub {
+      border: 0;
+      background: transparent;
+    }
+    .legacy .menub svg {
+      width: 21px;
+    }
+    .legacy .mobilebrand .brand {
+      font-size: 22px;
+    }
+    .legacy .mobilebrand .brand b {
+      line-height: 27px;
+      border-radius: 7px;
+    }
+    .legacy .mobilebrand .brand i {
+      width: 5px;
+      height: 5px;
+      margin-top: -18px;
+    }
+    .legacy .sync {
+      display: none;
+    }
+    .legacy .content {
+      padding: 24px 16px 90px;
+    }
+    .legacy .hello {
+      align-items: flex-start;
+    }
+    .legacy .hello h1 {
+      font-size: 24px;
+    }
+    .legacy .hello span {
+      font-size: 12px;
+    }
+    .legacy .hello button {
+      font-size: 0;
+      padding: 11px;
+    }
+    .legacy .hello button svg {
+      margin: 0;
+    }
+    .legacy .kpis {
+      grid-template-columns: 1fr 1fr;
+    }
+    .legacy .kpi {
+      padding: 15px;
+    }
+    .legacy .kpi b {
+      font-size: 16px;
+    }
+    .legacy .grid,
+    .legacy .choice,
+    .legacy .sale {
+      grid-template-columns: 1fr;
+    }
+    .legacy .bars {
+      height: 130px;
+    }
+    .legacy .quick {
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .legacy .row {
+      gap: 9px;
+      padding: 11px;
+    }
+    .legacy .row > b {
+      font-size: 10px;
+    }
+    .legacy .qty {
+      display: none;
+    }
+    .legacy .bottom {
+      position: fixed;
+      z-index: 15;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 67px;
+      background: #fff;
+      border-top: 1px solid #e8e6e0;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .legacy .bottom button {
+      border: 0;
+      background: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      font-size: 9px;
+      color: #87909b;
+    }
+    .legacy .bottom svg {
+      width: 19px;
+    }
+    .legacy .bottom .active {
+      background: #fff !important;
+      color: #d27d16 !important;
+    }
+  }
+  .legacy .summary3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .legacy .sectiontitle {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+  }
+  .legacy .sectiontitle h2 {
+    margin: 6px 0;
+  }
+  .legacy .sectiontitle p,
+  .legacy .ordercard p {
+    font-size: 11px;
+    color: #8b939e;
+    margin: 4px 0;
+  }
+  .legacy .outline {
+    border: 1px solid #e7e2d9;
+    background: #fff;
+    color: #25334a;
+    border-radius: 9px;
+    padding: 9px 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .legacy .outline svg {
+    width: 14px;
+  }
+  .legacy .formgrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    background: #faf8f3;
+    border: 1px solid #eee9df;
+    border-radius: 13px;
+    padding: 16px;
+    margin: 12px 0 18px;
+  }
+  .legacy .formgrid label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #687386;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .legacy .formgrid input,
+  .legacy .formgrid select {
+    height: 40px;
+    border: 1px solid #dedbd4;
+    background: #fff;
+    border-radius: 8px;
+    padding: 0 10px;
+    color: #25334a;
+    outline: none;
+  }
+  .legacy .span2 {
+    grid-column: span 2;
+  }
+  .legacy .ordercard {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 0;
+    border-top: 1px solid #f0eee9;
+  }
+  .legacy .ordercard h3 {
+    font-size: 14px;
+    margin: 9px 0 0;
+  }
+  .legacy .orderstats {
+    display: flex;
+    gap: 35px;
+  }
+  .legacy .orderstats span {
+    font-size: 9px;
+    color: #9299a2;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-align: right;
+  }
+  .legacy .orderstats b {
+    font-size: 12px;
+    color: #25334a;
+  }
+  .legacy .pill {
+    display: inline-flex;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.7px;
+    border-radius: 20px;
+    padding: 5px 8px;
+  }
+  .legacy .pill.amber {
+    background: #fff2d8;
+    color: #c77810;
+  }
+  .legacy .pill.green {
+    background: #e6f6ed;
+    color: #237b4d;
+  }
+  .legacy .balloons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  .legacy .balloon {
+    background: #fff;
+    border: 1px solid #ebe9e3;
+    border-radius: 15px;
+    padding: 20px;
+  }
+  .legacy .balloon h2 {
+    font-size: 18px;
+    margin: 10px 0 3px;
+  }
+  .legacy .balloon .sectiontitle > b {
+    font-size: 12px;
+  }
+  .legacy .positive {
+    color: #168a55;
+  }
+  .legacy .progress {
+    height: 7px;
+    background: #f1eee8;
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 24px 0 12px;
+  }
+  .legacy .progress i {
+    height: 100%;
+    display: block;
+    background: #eda32e;
+    border-radius: 10px;
+  }
+  .legacy .balloonfoot {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: #8d959f;
+  }
+  .legacy .balloonfoot span {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .legacy .balloonfoot b {
+    font-size: 11px;
+    color: #25334a;
+  }
+  .legacy .formcard {
+    margin-bottom: 14px;
+  }
+  .legacy .fabadd {
+    display: none;
+  }
+  .legacy .expense {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 0;
+    border-top: 1px solid #f0eee9;
+    font-size: 12px;
+  }
+  .legacy .expense > svg {
+    width: 15px;
+    color: #aaa;
+  }
+  .legacy .expenseicon {
+    width: 35px;
+    height: 35px;
+    border-radius: 9px;
+    background: #fff3de;
+    color: #d8871c;
+    display: grid;
+    place-items: center;
+  }
+  .legacy .expenseicon svg {
+    width: 16px;
+  }
+  @media (max-width: 850px) {
+    .legacy .summary3 {
+      grid-template-columns: 1fr 1fr;
+    }
+    .legacy .summary3 .kpi:last-child {
+      grid-column: span 2;
+    }
+    .legacy .balloons {
+      grid-template-columns: 1fr;
+    }
+    .legacy .ordercard {
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .legacy .orderstats {
+      gap: 12px;
+      flex-direction: column;
+    }
+    .legacy .formgrid {
+      grid-template-columns: 1fr;
+    }
+    .legacy .span2 {
+      grid-column: span 1;
+    }
+    .legacy .fabadd {
+      display: flex;
+      position: fixed;
+      right: 16px;
+      bottom: 82px;
+      border: 0;
+      background: #14233b;
+      color: #fff;
+      border-radius: 24px;
+      padding: 12px 15px;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      box-shadow: 0 8px 24px #14233b33;
+    }
+    .legacy .fabadd svg {
+      width: 15px;
+    }
+  }
+
+  .legacy .selectedrow {
+    background: #fffaf0;
+  }
+  .legacy .sellprice {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    gap: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #687386;
+    margin: 18px 0;
+  }
+  .legacy .sellprice input {
+    height: 44px;
+    border: 1px solid #dedbd4;
+    border-radius: 9px;
+    padding: 0 12px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #14233b;
+  }
+  .legacy .payments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .legacy .payments button {
+    border: 1px solid #e4e0d8;
+    background: #fff;
+    border-radius: 20px;
+    padding: 7px 10px;
+    font-size: 9px;
+    color: #697485;
+  }
+  .legacy .payments .payactive {
+    background: #fff2d8;
+    border-color: #f1c878;
+    color: #b86c0c;
+    font-weight: 800;
+  }
+  .legacy .primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .legacy .successmsg {
+    color: #168a55 !important;
+    font-weight: 700;
+  }
+  .legacy .soldrow {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 13px 0;
+    border-top: 1px solid #f0eee9;
+    font-size: 11px;
+  }
+  .legacy .soldrow > span {
+    min-width: 120px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    color: #9198a2;
+    text-align: right;
+  }
+  .legacy .soldrow > span b {
+    color: #25334a;
+  }
+  .legacy .rank {
+    display: flex;
+    flex-direction: column;
+  }
+  .legacy .rank span {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 0;
+    border-top: 1px solid #f0eee9;
+    font-size: 12px;
+  }
+  .legacy .rank span > b {
+    color: #d8891d;
+  }
+  .legacy .rank em {
+    margin-left: auto;
+    font-style: normal;
+    font-weight: 800;
+  }
+  @media (max-width: 850px) {
+    .legacy .soldrow > span:first-of-type {
+      display: none;
+    }
+    .legacy .soldrow > span {
+      min-width: auto;
+    }
+    .legacy .payments button {
+      flex: 1;
+    }
+    .legacy .kpis {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .legacy .authshell {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: var(--cream, #fffaf2);
+  }
+  .legacy .authcard {
+    width: min(440px, 100%);
+    background: #fff;
+    border: 1px solid var(--line, #e8e3da);
+    border-radius: 24px;
+    padding: 32px;
+    box-shadow: 0 20px 60px rgba(8, 40, 61, 0.08);
+    display: grid;
+    gap: 16px;
+  }
+  .legacy .authlogo {
+    font-size: 30px;
+    font-weight: 900;
+    letter-spacing: -2px;
+    color: #08283d;
+  }
+  .legacy .authlogo span {
+    display: inline-grid;
+    place-items: center;
+    background: #f6a313;
+    color: #fff;
+    border-radius: 9px;
+    width: 34px;
+    height: 34px;
+    margin: 0 2px;
+  }
+  .legacy .authcard h1 {
+    margin: 6px 0 0;
+  }
+  .legacy .authcard p {
+    margin: 0;
+    color: #6d7780;
+  }
+  .legacy .authcard label {
+    display: grid;
+    gap: 7px;
+    font-weight: 700;
+    color: #13212c;
+  }
+  .legacy .authcard input {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #e8e3da;
+    border-radius: 12px;
+    padding: 13px 14px;
+    font: inherit;
+    outline: none;
+  }
+  .legacy .authcard input:focus {
+    border-color: #f6a313;
+    box-shadow: 0 0 0 3px rgba(246, 163, 19, 0.12);
+  }
+  .legacy .authcard .primary {
+    width: 100%;
+    justify-content: center;
+  }
+  .legacy .authswitch {
+    border: 0;
+    background: transparent;
+    color: #0d344b;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 8px;
+  }
+  .legacy .authmessage {
+    background: #fff4df;
+    padding: 11px 13px;
+    border-radius: 10px;
+    color: #8b5900 !important;
+    font-size: 14px;
+  }
+
+  .legacy .passwordfield {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .legacy .passwordfield input {
+    width: 100%;
+    padding-right: 48px;
+  }
+  .legacy .passwordeye {
+    position: absolute;
+    right: 8px;
+    width: 36px;
+    height: 36px;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    border-radius: 8px;
+  }
+  .legacy .passwordeye:hover {
+    background: var(--sand);
+    color: var(--navy);
+  }
+  .legacy .passwordeye svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .legacy .authdivider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 4px 0;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .legacy .authdivider:before,
+  .legacy .authdivider:after {
+    content: '';
+    height: 1px;
+    background: var(--line);
+    flex: 1;
+  }
+  .legacy .googleauth {
+    width: 100%;
+    min-height: 46px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    border-radius: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+  }
+  .legacy .googleauth:hover {
+    background: var(--cream);
+  }
+  .legacy .googlemark {
+    font-size: 18px;
+    font-weight: 800;
+    color: #4285f4;
+  }
+
+  .legacy .thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: inherit;
+  }
+
+  .legacy .arrival-detail {
+    border-top: 1px solid #f0eee9;
+    padding: 16px 0 4px;
+  }
+  .legacy .arrival-detail-kpis {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .legacy .arrival-detail-kpis span,
+  .legacy .arrival-product-list span {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 10px;
+    color: #8b939e;
+  }
+  .legacy .arrival-detail-kpis b {
+    color: #25334a;
+    font-size: 12px;
+  }
+  .legacy .arrival-product-list {
+    margin-top: 14px;
+    border-top: 1px solid #f0eee9;
+  }
+  .legacy .arrival-product-list > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid #f0eee9;
+    font-size: 11px;
+  }
+  .legacy .arrival-detail p {
+    font-size: 11px;
+    color: #8b939e;
+  }
+
+  .legacy .sync button {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .legacy .demo-app aside nav {
+    flex: 1;
+  }
+  .legacy .demo-banner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 4%;
+    background: #fff3d9;
+    border-bottom: 1px solid #f0dcaf;
+    color: #664a13;
+    font-size: 11px;
+  }
+  .legacy .demo-banner > b {
+    background: #e99a28;
+    color: #fff;
+    border-radius: 20px;
+    padding: 6px 10px;
+    font-size: 9px;
+    letter-spacing: 0.8px;
+  }
+  .legacy .demo-banner span {
+    flex: 1;
+  }
+  .legacy .demo-banner button {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    border: 1px solid #e4c98f;
+    background: #fffaf0;
+    color: #604810;
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .legacy .demo-banner button svg {
+    width: 14px;
+  }
+  .legacy .demo-top-label {
+    margin-right: auto;
+    font-size: 11px;
+    color: #7a8491;
+  }
+  .legacy .demo-page-select {
+    display: none;
+  }
+  .legacy .demo-month-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .legacy .demo-month-grid article {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .legacy .demo-month-grid article > span {
+    font-size: 11px;
+    color: #718092;
+  }
+  .legacy .demo-month-grid article > b {
+    font-size: 20px;
+  }
+  .legacy .demo-month-grid article > small {
+    font-size: 10px;
+    color: #87919c;
+  }
+  .legacy .demo-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .legacy .demo-kpis .kpi {
+    min-width: 0;
+  }
+  .legacy .demo-kpis .kpi b {
+    font-size: 15px;
+  }
+  .legacy .demo-kpis .kpi small {
+    font-size: 9px;
+    color: #87919c;
+  }
+  .legacy .demo-table-wrap {
+    max-width: 100%;
+    overflow: auto;
+  }
+  .legacy .demo-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 760px;
+    font-size: 11px;
+  }
+  .legacy .demo-table th,
+  .legacy .demo-table td {
+    padding: 11px 10px;
+    text-align: left;
+    border-bottom: 1px solid #f0eee9;
+    white-space: nowrap;
+  }
+  .legacy .demo-table th {
+    font-size: 9px;
+    color: #87919c;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .legacy .demo-table td small {
+    display: block;
+    color: #929aa4;
+    font-size: 9px;
+    margin-top: 4px;
+  }
+  .legacy .demo-table tfoot th {
+    color: #25334a;
+  }
+  .legacy .demo-history-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .legacy .demo-history-head h2 {
+    margin: 0 0 4px;
+  }
+  .legacy .demo-history-head p,
+  .legacy .demo-footnote {
+    font-size: 11px;
+    color: #87919c;
+  }
+  .legacy .demo-search {
+    height: 38px;
+    min-width: min(320px, 100%);
+    padding: 0 11px;
+    border: 1px solid #e8e6e0;
+    border-radius: 9px;
+  }
+  .legacy .demo-arrivals article {
+    border-top: 1px solid #f0eee9;
+  }
+  .legacy .demo-arrival-button {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    text-align: left;
+    border: 0;
+    background: #fff;
+    padding: 15px 3px;
+    cursor: pointer;
+  }
+  .legacy .demo-arrival-button > span {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .legacy .demo-arrival-button > span:last-child {
+    text-align: right;
+  }
+  .legacy .demo-arrival-button b {
+    font-size: 12px;
+    color: #25334a;
+  }
+  .legacy .demo-arrival-button small,
+  .legacy .demo-arrival-detail span {
+    font-size: 10px;
+    color: #87919c;
+  }
+  .legacy .demo-arrival-detail {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    padding: 0 3px 15px;
+  }
+  .legacy .demo-profitable {
+    color: #168a55;
+  }
+  .legacy .demo-negative {
+    color: #b84b45;
+  }
+  .legacy .demo-ranking {
+    padding-left: 22px;
+  }
+  .legacy .demo-ranking li {
+    padding: 8px 0;
+    font-size: 12px;
+  }
+  .legacy .demo-ranking li b {
+    float: right;
+  }
+  .legacy .demo-app .hello {
+    margin-bottom: 18px;
+  }
+  @media (max-width: 850px) {
+    .legacy .demo-banner {
+      padding: 9px 12px;
+      gap: 8px;
+      align-items: flex-start;
+      font-size: 9px;
+    }
+    .legacy .demo-banner > b {
+      font-size: 8px;
+      padding: 5px 7px;
+    }
+    .legacy .demo-banner button {
+      font-size: 9px;
+      padding: 6px 7px;
+      white-space: nowrap;
+    }
+    .legacy .demo-banner button svg {
+      width: 12px;
+    }
+    .legacy .demo-app header {
+      gap: 8px;
+    }
+    .legacy .demo-top-label {
+      display: none;
+    }
+    .legacy .demo-page-select {
+      display: block;
+      max-width: 55%;
+      height: 34px;
+      border: 1px solid #e8e6e0;
+      border-radius: 8px;
+      background: #fff;
+      padding: 0 8px;
+      font-size: 11px;
+    }
+    .legacy .demo-month-grid {
+      grid-template-columns: 1fr;
+    }
+    .legacy .demo-kpis {
+      grid-template-columns: 1fr 1fr;
+    }
+    .legacy .demo-kpis .kpi b {
+      font-size: 13px;
+    }
+    .legacy .demo-history-head {
+      display: block;
+    }
+    .legacy .demo-search {
+      width: 100%;
+      margin: 10px 0;
+    }
+    .legacy .demo-app .content {
+      padding-top: 20px;
+    }
+  }
+  .legacy .demo-entry {
+    margin-top: 8px;
+    border: 1px solid #efdcb9;
+    background: #fff9ed;
+    color: #9a6010;
+    border-radius: 8px;
+    padding: 9px 10px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .legacy .demo-entry:hover {
+    background: #fff1d2;
+  }
+  .legacy .test-tag {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 2px 6px;
+    border-radius: 8px;
+    background: #fff2d8;
+    color: #9a6010;
+    font-size: 8px;
+    font-style: normal;
+    letter-spacing: 0.5px;
+    vertical-align: middle;
+  }
+}
