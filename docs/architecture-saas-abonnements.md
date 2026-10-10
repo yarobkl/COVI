@@ -3,6 +3,18 @@
 Statut : **spécification validée pour conception**, aucun changement de base ni activation de facturation en production.
 Décision du porteur de projet, 10 octobre 2026.
 
+## Domaine unique et navigation par rôles — décision définitive
+
+**Un seul domaine public pour toute la plateforme.** Le domaine exact sera choisi après vérification et acquisition ; `covi.app` est uniquement un exemple et n'est pas déclaré acquis.
+
+- Site unique `https://<domaine-covi>/` ; aucune création de sous-domaines `app.`, `admin.` ou sous-domaines de boutiques.
+- Routes sur le **même hôte** : `/login` (authentification), `/admin` (Super Admin), `/mes-boutiques` (sélection Owner), `/boutiques/:shopId/...` (gestion d'une boutique). Ces chemins sont des propositions à adapter aux routes existantes sans casser la V1.
+- Après connexion, le serveur établit le rôle et les boutiques accessibles ; redirection vers l'espace correspondant. Ne jamais déterminer les droits à partir de la seule route ou de l'interface.
+- Le Super Admin ne peut ouvrir ses outils qu'avec une autorisation serveur dédiée ; un Owner ne peut voir que ses propres boutiques ; un employé ne voit que les boutiques explicitement autorisées.
+- La sélection de boutique est un contexte d'interface ; **toutes les opérations SQL/RPC revérifient l'appartenance à la boutique**.
+- Aucun domaine ni sous-domaine personnalisé n'est nécessaire pour un Owner ou une boutique. Un Owner peut gérer plusieurs boutiques depuis la même session.
+- DNS, HTTPS et déploiement Vercel restent centralisés. Prévoir des chemins de retour d'authentification compatibles avec le domaine final, sans modifier les URLs de production avant validation.
+
 ## Modèle commercial
 
 - Devise : XAF (FCFA), montants en unités entières.
