@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { keyFromKeyboard, lowerBy, MAX_DIGITS, pressKey } from './numpad'
+import { keyFromKeyboard, lowerBy, MAX_DIGITS, pressKey } from './pricePadLogic'
 
 describe('pressKey', () => {
   it('types digits from nothing and drops leading zeros', () => {
