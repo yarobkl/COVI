@@ -301,6 +301,44 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      arrival_cost_allocation: {
+        Args: { p_include_test?: boolean; p_shop_id: string }
+        Returns: {
+          arrival_id: string
+          arrival_kind: string
+          initial_sale_price: number
+          method: string
+          product_id: string
+          registered_units: number
+          remaining_cost: number
+          remaining_units: number
+          sold_cost: number
+          sold_units: number
+          unit_cost: number
+        }[]
+      }
+      arrival_profitability: {
+        Args: { p_include_test?: boolean; p_shop_id: string }
+        Returns: {
+          arrival_id: string
+          code: string
+          cost: number
+          is_test: boolean
+          kind: string
+          order_date: string
+          origin_country: string
+          product_count: number
+          profit: number
+          received_date: string
+          recovery_percent: number
+          remaining_to_recover: number
+          remaining_units: number
+          revenue: number
+          sold_units: number
+          status: string
+          supplier_name: string
+        }[]
+      }
       create_my_shop: {
         Args: {
           p_city?: string
@@ -334,6 +372,35 @@ export type Database = {
           p_sold_unit_price: number
         }
         Returns: string
+      }
+      shop_dashboard: {
+        Args: {
+          p_at?: string
+          p_include_test?: boolean
+          p_shop_id: string
+          p_tz?: string
+        }
+        Returns: Json
+      }
+      shop_estimated_profit: {
+        Args: {
+          p_from?: string
+          p_include_test?: boolean
+          p_shop_id: string
+          p_to?: string
+          p_tz?: string
+        }
+        Returns: Json
+      }
+      shop_monthly_sales: {
+        Args: {
+          p_at?: string
+          p_include_test?: boolean
+          p_months?: number
+          p_shop_id: string
+          p_tz?: string
+        }
+        Returns: Json
       }
     }
     Enums: {
