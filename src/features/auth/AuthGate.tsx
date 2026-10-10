@@ -5,6 +5,8 @@ import { listenForDesktopOAuth } from '../../lib/desktopAuth'
 import { cachedShop, rememberShop, setSyncUser, withTimeout } from '../../lib/offline'
 import { clearPrivateCaches } from '../../lib/pwa'
 import type { Shop } from '../../lib/types'
+import { Button } from '../../components/ui'
+import { AuthPage } from './AuthPage'
 import { CreateShopForm } from './CreateShopForm'
 import { LoginForm, type AuthMode } from './LoginForm'
 
@@ -208,11 +210,8 @@ export function AuthGate({
 
   if (gate.status === 'loading')
     return (
-      <div className="authshell">
-        <div className="authcard">
-          <h1>COVI</h1>
-          <p>Chargement de votre commerce…</p>
-        </div>
+      <div role="status">
+        <AuthPage title="Ouverture de la boutique…" lead="Un instant, COVI prépare votre cahier." />
       </div>
     )
   if (gate.status === 'signed-out')
@@ -229,24 +228,24 @@ export function AuthGate({
     )
   if (gate.status === 'error')
     return (
-      <div className="authshell">
-        <div className="authcard" role="alert">
-          <h1>COVI</h1>
-          <p>{gate.message}</p>
-          <button
-            className="primary"
-            type="button"
-            onClick={() => {
-              setGate({ status: 'loading' })
-              void retry()
-            }}
-          >
-            Réessayer
-          </button>
-          <button className="authswitch" type="button" onClick={signOut}>
-            Se déconnecter
-          </button>
-        </div>
+      <div role="alert">
+        <AuthPage title="La boutique ne s’ouvre pas" lead={gate.message}>
+          <div className="auth__form">
+            <Button
+              variant="primary"
+              block
+              onClick={() => {
+                setGate({ status: 'loading' })
+                void retry()
+              }}
+            >
+              Réessayer
+            </Button>
+            <Button variant="ghost" block onClick={signOut}>
+              Se déconnecter
+            </Button>
+          </div>
+        </AuthPage>
       </div>
     )
   if (gate.status === 'no-shop') {

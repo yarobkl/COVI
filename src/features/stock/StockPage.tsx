@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { Plus, Search } from 'lucide-react'
+import { PlusIcon, SearchIcon } from '../../components/icons'
 import { addProduct, listProducts } from '../../lib/covi'
 import { stockCacheDate } from '../../lib/offline'
 import { listArrivals } from '../../lib/operations'
@@ -78,7 +78,7 @@ export function StockPage({ shopId }: { shopId: string }) {
           </span>
         </div>
         <button onClick={() => setShow(!show)}>
-          <Plus />
+          <PlusIcon />
           Ajouter un produit
         </button>
       </div>
@@ -86,7 +86,7 @@ export function StockPage({ shopId }: { shopId: string }) {
       {msg && <p className="successmsg">{msg}</p>}
       <section className="card">
         <div className="search">
-          <Search />
+          <SearchIcon />
           <input
             placeholder="Rechercher…"
             value={query}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { Plus } from 'lucide-react'
+import { PlusIcon } from '../../components/icons'
 import { addProduct } from '../../lib/covi'
 import { localDay } from '../../lib/dates'
 import {
@@ -103,7 +103,7 @@ export function ArrivalsPage({ shopId, kind }: { shopId: string; kind?: Arrival[
           <span>Suivi des arrivages réels et de la simulation marquée TEST.</span>
         </div>
         <button onClick={() => setShow(!show)}>
-          <Plus />
+          <PlusIcon />
           Nouvel arrivage
         </button>
       </div>

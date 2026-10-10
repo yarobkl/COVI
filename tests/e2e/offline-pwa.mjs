@@ -133,14 +133,14 @@ await page.goto(BASE)
 await page.fill('input[name=email]', USER.email)
 await page.fill('input[name=password]', 'motdepasse')
 await page.click('button[type=submit]')
-await page.getByText(SHOP.name).first().waitFor()
+await page.getByText(SHOP.name).filter({ visible: true }).first().waitFor()
 step('online: open the sale page (stock cached)')
-await page.getByRole('button', { name: 'Vendre' }).click()
-await page.getByText(PRODUCT.name).first().waitFor()
+await page.evaluate(() => (location.hash = '#/vendre'))
+await page.getByText(PRODUCT.name).filter({ visible: true }).first().waitFor()
 await page.evaluate(() => navigator.serviceWorker.ready)
 // Make sure the page is controlled by the service worker before going offline.
 await page.reload()
-await page.getByText(SHOP.name).first().waitFor()
+await page.getByText(SHOP.name).filter({ visible: true }).first().waitFor()
 assert.ok(await page.evaluate(() => !!navigator.serviceWorker.controller), 'controlled by the SW')
 await shot('01-en-ligne.png')
 
@@ -156,21 +156,33 @@ await page.evaluate(() => {
 await context.setOffline(true)
 const started = Date.now()
 await page.reload()
-await page.getByText(SHOP.name).first().waitFor({ timeout: 5000 })
+// Offline, the top strip shows the calm network notice in place of the shop name.
+await page.getByText('Pas de réseau').filter({ visible: true }).first().waitFor({ timeout: 5000 })
 const openedIn = Date.now() - started
-assert.equal(await page.getByText('Bienvenue sur COVI').count(), 0, 'not the sign-in screen')
-assert.equal(await page.getByText('Créons votre commerce').count(), 0, 'not the creation form')
-await page.getByText('Hors connexion').first().waitFor({ state: 'attached' })
+assert.equal(
+  await page.getByRole('heading', { name: 'Connexion' }).count(),
+  0,
+  'not the sign-in screen',
+)
+assert.equal(
+  await page.getByRole('heading', { name: 'Comment s’appelle votre boutique ?' }).count(),
+  0,
+  'not the creation form',
+)
 await shot('02-hors-ligne-recharge.png')
 step(`offline: app opened on the shop in ${openedIn} ms`)
 
 step('offline: record a sale')
-await page.getByRole('button', { name: 'Vendre' }).click()
-const row = page.locator('.row', { hasText: PRODUCT.name })
-await row.waitFor({ timeout: 5000 })
-await row.locator('button.add').click()
-await page.getByRole('button', { name: 'Valider la vente' }).click()
-await page.getByText('Vente sauvegardée hors connexion').waitFor()
+await page.evaluate(() => (location.hash = '#/vendre'))
+const tile = page
+  .getByRole('button', { name: new RegExp(PRODUCT.name) })
+  .filter({ visible: true })
+  .first()
+await tile.waitFor({ timeout: 5000 })
+await tile.click()
+await page.getByText('Espèces', { exact: true }).filter({ visible: true }).first().click()
+await page.getByRole('button', { name: /Valider la vente/ }).click()
+await page.getByText('Vente gardée sur ce téléphone').first().waitFor()
 const queued = await page.evaluate(
   () =>
     new Promise((resolve, reject) => {
@@ -199,7 +211,10 @@ assert.equal(rpcCalls.length, 1, 'sent exactly once')
 assert.equal(rpcCalls[0].p_client_operation_id, queued[0].id, 'stable operation id')
 assert.equal(rpcCalls[0].p_product_id, PRODUCT.id)
 assert.equal(rpcCalls[0].p_quantity, 1)
-await page.getByText('Synchronisé').first().waitFor({ state: 'attached', timeout: 15000 })
+await page
+  .getByText(/à envoyer/)
+  .first()
+  .waitFor({ state: 'detached', timeout: 15000 })
 await shot('04-synchronise.png')
 const left = await page.evaluate(
   () =>

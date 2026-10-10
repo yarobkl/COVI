@@ -93,7 +93,7 @@ describe('AuthGate offline start', () => {
     // supabase-js gives up the refresh: INITIAL_SESSION without session, but the session is kept.
     await emit('INITIAL_SESSION', null)
     expect(screen.getByText('app:Boutique Élégance')).toBeTruthy()
-    expect(screen.queryByText('Bienvenue sur COVI')).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Connexion' })).toBeNull()
     expect(auth.shopsCalls).toBe(0)
   })
 
@@ -117,13 +117,13 @@ describe('AuthGate offline start', () => {
     await emit('INITIAL_SESSION', null)
     expect(screen.getByRole('alert').textContent).toMatch(/Pas de connexion/)
     expect(screen.getByText('Réessayer')).toBeTruthy()
-    expect(screen.queryByText('Créons votre commerce')).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Comment s’appelle votre boutique ?' })).toBeNull()
   })
 
   it('shows the sign-in form when no session is persisted', async () => {
     renderGate()
     await emit('INITIAL_SESSION', null)
-    expect(screen.getByText('Bienvenue sur COVI')).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Connexion' })).toBeTruthy()
   })
 
   it('signs out on SIGNED_OUT even with a remembered shop', async () => {
@@ -132,7 +132,7 @@ describe('AuthGate offline start', () => {
     renderGate()
     auth.persisted = null
     await emit('SIGNED_OUT', null)
-    expect(screen.getByText('Bienvenue sur COVI')).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Connexion' })).toBeTruthy()
   })
 })
 
@@ -144,7 +144,7 @@ describe('AuthGate online shop loading', () => {
     renderGate()
     await emit('INITIAL_SESSION', session())
     expect(screen.getByRole('alert').textContent).toMatch(/Impossible de charger votre commerce/)
-    expect(screen.queryByText('Créons votre commerce')).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Comment s’appelle votre boutique ?' })).toBeNull()
 
     auth.shopsAnswers.push({ data: shop, error: null })
     await act(async () => {
@@ -171,7 +171,7 @@ describe('AuthGate online shop loading', () => {
     renderGate()
     await emit('INITIAL_SESSION', session())
     expect(screen.getByText('app:Boutique Élégance')).toBeTruthy()
-    expect(screen.queryByText('Créons votre commerce')).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Comment s’appelle votre boutique ?' })).toBeNull()
   })
 
   it('offers to create the shop only when the server confirms there is none', async () => {
@@ -179,6 +179,6 @@ describe('AuthGate online shop loading', () => {
     auth.shopsAnswers.push({ data: null, error: null })
     renderGate()
     await emit('INITIAL_SESSION', session())
-    expect(screen.getByText('Créons votre commerce')).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Comment s’appelle votre boutique ?' })).toBeTruthy()
   })
 })

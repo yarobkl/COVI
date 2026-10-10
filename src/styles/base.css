@@ -1,0 +1,304 @@
+/* ==========================================================================
+   COVI — base.css
+   Reset léger, typographie, fond papier Seyès (CSS pur), liens, focus,
+   sélection, réduction des animations, quelques utilitaires indispensables.
+   Dépend de tokens.css.
+   ========================================================================== */
+
+@layer base {
+  /* ---------- Reset léger ---------- */
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    color-scheme: light; /* pas de mode sombre dans cette version */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    scroll-padding-block: var(--space-16);
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    font-family: var(--font-text);
+    font-size: var(--step-0);
+    line-height: var(--leading-base);
+    color: var(--ink);
+    background-color: var(--paper);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    overflow-wrap: break-word;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  p,
+  ul,
+  ol,
+  dl,
+  dd,
+  figure,
+  blockquote,
+  fieldset {
+    margin: 0;
+  }
+  ul[class],
+  ol[class] {
+    list-style: none;
+    padding: 0;
+  }
+  fieldset {
+    border: 0;
+    padding: 0;
+    min-width: 0;
+  }
+  legend {
+    padding: 0;
+  }
+
+  img,
+  svg,
+  video {
+    display: block;
+    max-width: 100%;
+  }
+  img {
+    height: auto;
+  }
+  svg {
+    flex-shrink: 0;
+  }
+  svg:not([fill]) {
+    fill: none;
+  }
+
+  input,
+  button,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+    letter-spacing: inherit;
+  }
+  button {
+    cursor: pointer;
+    background: none;
+    border: 0;
+    padding: 0;
+  }
+  button:disabled,
+  [aria-disabled='true'] {
+    cursor: not-allowed;
+  }
+  textarea {
+    resize: vertical;
+  }
+  table {
+    border-collapse: collapse;
+  }
+
+  /* Pas de flèches de champ numérique : on tape des FCFA, pas un compteur. */
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='search']::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+  }
+
+  /* ---------- Typographie ---------- */
+  h1,
+  h2,
+  h3,
+  h4 {
+    line-height: var(--leading-snug);
+    font-weight: var(--weight-bold);
+    text-wrap: balance;
+  }
+  h1 {
+    font-size: var(--step-4);
+    color: var(--action);
+    line-height: var(--leading-tight);
+  }
+  h2 {
+    font-size: var(--step-2);
+  }
+  h3 {
+    font-size: var(--step-1);
+  }
+  h4 {
+    font-size: var(--step-0);
+  }
+  p {
+    text-wrap: pretty;
+  }
+  small {
+    font-size: var(--step--1);
+  }
+  strong,
+  b {
+    font-weight: var(--weight-bold);
+  }
+
+  /* Chiffres en Atkinson (dans une phrase) : alignés et de même largeur. */
+  time,
+  data,
+  td,
+  th {
+    font-variant-numeric: var(--numeric-tabular);
+  }
+
+  /* ---------- Liens ---------- */
+  a {
+    color: var(--action);
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+    transition:
+      color var(--dur-fast) var(--ease-out),
+      text-decoration-thickness var(--dur-fast) var(--ease-out);
+  }
+  a:hover {
+    color: var(--action-hover);
+    text-decoration-thickness: 2px;
+  }
+
+  /* ---------- Surligneur ---------- */
+  mark {
+    background: var(--highlight);
+    color: var(--ink);
+    padding: 0 0.25em;
+    border-radius: 0.2em 0.5em 0.3em 0.6em; /* trait de surligneur, pas un rectangle */
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+
+  /* ---------- Sélection ---------- */
+  ::selection {
+    background: var(--highlight);
+    color: var(--ink);
+  }
+
+  /* ---------- Focus clavier : toujours visible ---------- */
+  :focus {
+    outline: none;
+  }
+  :focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+  }
+
+  /* ---------- Fond papier : quadrillage Seyès très pâle (CSS pur) ----------
+     Carreau de 32 px : 3 lignes fines tous les 8 px, une ligne plus marquée,
+     une verticale. Utilisé par body (téléphone) et .seyes (feuille). */
+  body,
+  .seyes {
+    background-color: var(--paper);
+    background-image:
+      linear-gradient(to right, transparent calc(var(--seyes-big) - 1px), var(--grid-fine) 0),
+      linear-gradient(to bottom, transparent calc(var(--seyes-big) - 1px), var(--grid-strong) 0),
+      linear-gradient(to bottom, transparent calc(var(--seyes-fine) - 1px), var(--grid-fine) 0);
+    background-size:
+      var(--seyes-big) var(--seyes-big),
+      var(--seyes-big) var(--seyes-big),
+      100% var(--seyes-fine);
+  }
+
+  /* Impression (reçu, bilan) : pas de quadrillage, pas de décor. */
+  @media print {
+    body,
+    .seyes {
+      background: #fff;
+    }
+  }
+
+  /* ---------- Réduction des animations ----------
+     On garde l'état final (le tampon est posé, le ticket est sorti),
+     on supprime le trajet. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 1ms !important;
+      animation-delay: 0ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 1ms !important;
+      transition-delay: 0ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ==========================================================================
+   Utilitaires indispensables (rien de plus)
+   ========================================================================== */
+@layer utilities {
+  /* Texte pour lecteurs d'écran seulement */
+  .visually-hidden:not(:focus):not(:active) {
+    position: absolute !important;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* Marge rouge du cahier : le contenu commence après elle. */
+  .margin-rule {
+    position: relative;
+    padding-inline-start: calc(var(--margin-offset) + var(--space-3));
+  }
+  .margin-rule::before {
+    content: '';
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: var(--margin-offset);
+    width: 2px;
+    background: var(--margin-line);
+    pointer-events: none;
+    z-index: var(--z-margin);
+  }
+
+  /* Chiffres */
+  .num {
+    font-variant-numeric: var(--numeric-tabular);
+  }
+  .figures {
+    font-family: var(--font-figures);
+    font-variant-numeric: var(--numeric-tabular);
+    word-spacing: var(--figures-gap);
+  }
+  .hand {
+    font-family: var(--font-hand);
+    font-weight: 400;
+    color: var(--action);
+    line-height: 1.2;
+  }
+  .nowrap {
+    white-space: nowrap;
+  }
+  .muted {
+    color: var(--ink-muted);
+  }
+
+  /* Empilement vertical régulier */
+  .stack > * + * {
+    margin-block-start: var(--stack-gap, var(--space-4));
+  }
+  .cluster {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--cluster-gap, var(--space-3));
+    align-items: center;
+  }
+}
