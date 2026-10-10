@@ -152,18 +152,27 @@ export function SalePage({ shopId, shopName }: { shopId: string; shopName: strin
             </Notice>
           )}
 
-          {products !== null && products.length === 0 && (
-            <EmptyState
-              title="Rien à vendre pour l’instant."
-              actions={
-                <ButtonLink variant="primary" href="#/stock">
-                  Ajouter au stock
-                </ButtonLink>
-              }
-            >
-              <p>Mettez vos pièces en stock : elles apparaîtront ici, prêtes à vendre.</p>
-            </EmptyState>
-          )}
+          {products !== null &&
+            products.length === 0 &&
+            (navigator.onLine ? (
+              <EmptyState
+                title="Rien à vendre pour l’instant."
+                actions={
+                  <ButtonLink variant="primary" href="#/stock">
+                    Ajouter au stock
+                  </ButtonLink>
+                }
+              >
+                <p>Mettez vos pièces en stock : elles apparaîtront ici, prêtes à vendre.</p>
+              </EmptyState>
+            ) : (
+              <Notice icon={CloudOffIcon}>
+                <p>
+                  Pas de réseau, et aucun stock n’est encore gardé sur cet appareil. Vous pourrez
+                  vendre dès que le réseau revient.
+                </p>
+              </Notice>
+            ))}
 
           {products !== null && products.length > 0 && visible.length === 0 && (
             <p className="sale-none" role="status">

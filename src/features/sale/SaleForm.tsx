@@ -89,9 +89,12 @@ export function SaleForm({
   const cash = payment === 'Espèces'
   const change = cash ? cashChange(total, received) : { kind: 'none' as const }
 
-  const blocked = !price ? 'Indiquez le prix auquel vous vendez' : !payment
-  const blockedLabel =
-    typeof blocked === 'string' ? blocked : blocked ? 'Choisissez comment la cliente paie' : ''
+  // The validate button says why it waits.
+  const blockedLabel = !price
+    ? 'Indiquez le prix auquel vous vendez'
+    : !payment
+      ? 'Choisissez comment la cliente paie'
+      : ''
 
   async function submit() {
     if (!price || !payment) return
