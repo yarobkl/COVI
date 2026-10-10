@@ -1,0 +1,167 @@
+/* Avant la boutique : connexion, création, ouverture. Une page du cahier ; sur ordinateur, posée
+   sur la table. */
+@layer app {
+  .auth {
+    min-height: 100dvh;
+  }
+  .auth__sheet {
+    display: grid;
+    align-content: start;
+    gap: var(--space-6);
+    min-height: 100dvh;
+    padding-block: var(--space-6) var(--space-10);
+    padding-inline-end: var(--gutter);
+  }
+  .auth__brand {
+    justify-self: start;
+    padding: var(--space-2) var(--space-4) var(--space-3);
+  }
+  .auth__name {
+    color: var(--action);
+    font-size: var(--step-2);
+    font-weight: var(--weight-bold);
+    letter-spacing: 0.04em;
+    line-height: var(--leading-snug);
+  }
+  .auth__tagline {
+    color: var(--ink-soft);
+    font-size: var(--step--1);
+  }
+  .auth__grid {
+    display: grid;
+    gap: var(--space-8);
+    align-items: start;
+  }
+  .auth__main {
+    display: grid;
+    gap: var(--space-2);
+    max-width: 26rem;
+  }
+  .auth__lead {
+    color: var(--ink-soft);
+    margin-bottom: var(--space-4);
+  }
+  .auth__form {
+    display: grid;
+    gap: var(--space-4);
+  }
+  .auth__or {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    color: var(--ink-muted);
+    font-size: var(--step--1);
+  }
+  .auth__or::before,
+  .auth__or::after {
+    content: '';
+    flex: 1;
+    border-top: var(--border-hair) solid var(--line);
+  }
+  .auth__switch {
+    margin-top: var(--space-3);
+    color: var(--ink-soft);
+  }
+  .auth__example {
+    display: grid;
+    gap: var(--space-3);
+    justify-items: start;
+    max-width: 24rem;
+    color: var(--ink-soft);
+  }
+  .auth__example .sheet__title {
+    margin-bottom: 0;
+    color: var(--ink);
+  }
+  .auth__link {
+    min-height: var(--tap-min);
+    color: var(--action);
+    font-weight: var(--weight-bold);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .auth__link:hover {
+    color: var(--action-hover);
+    text-decoration-thickness: 2px;
+  }
+
+  /* Champ mot de passe + œil */
+  .password {
+    position: relative;
+  }
+  .password .input {
+    padding-inline-end: 3.25rem;
+  }
+  .password__toggle {
+    position: absolute;
+    inset-inline-end: 2px;
+    top: 50%;
+    translate: 0 -50%;
+  }
+
+  /* Création : l’étiquette se remplit pendant qu’on tape. */
+  .auth__preview {
+    margin: 0;
+    max-width: 18rem;
+  }
+  .auth__preview .label-card {
+    rotate: -1.2deg;
+  }
+  .auth__preview-note {
+    margin-top: var(--space-3);
+    padding-inline-start: var(--space-4);
+    font-size: 1.25rem;
+    rotate: -2deg;
+  }
+
+  /* « Ouverture de la boutique… » (AuthGate) */
+  .authshell {
+    display: grid;
+    place-items: center;
+    min-height: 100dvh;
+    padding: var(--gutter);
+  }
+  .authcard {
+    padding: var(--space-4) var(--space-6) var(--space-5);
+    border: var(--border-field) solid var(--action);
+    border-radius: var(--radius-4);
+    background: var(--sheet);
+    box-shadow:
+      0 0 0 4px var(--sheet),
+      0 0 0 5.5px #a9b9d8;
+    text-align: center;
+  }
+  .authcard h1 {
+    font-size: var(--step-3);
+    letter-spacing: 0.04em;
+  }
+  .authcard p {
+    color: var(--ink-soft);
+  }
+
+  @media (min-width: 1024px) {
+    body:has(.auth) {
+      background: var(--ground);
+    }
+    .auth {
+      display: grid;
+      place-items: center;
+      padding: var(--space-8) var(--space-6);
+    }
+    .auth__sheet {
+      --margin-offset: var(--space-16);
+      width: min(100%, 60rem);
+      min-height: 0;
+      padding: var(--space-8) var(--space-10) var(--space-12) calc(var(--space-16) + var(--space-8));
+      border-radius: var(--radius-sheet);
+      box-shadow: var(--shadow-sheet);
+    }
+    .auth__grid {
+      grid-template-columns: minmax(0, 26rem) minmax(0, 1fr);
+      gap: var(--space-12);
+    }
+    .auth__aside {
+      padding-top: var(--space-16);
+    }
+  }
+}
