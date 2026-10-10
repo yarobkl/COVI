@@ -19,9 +19,17 @@
 --   - les montants sont en FCFA (XAF), sans conversion.
 
 -- Index ----------------------------------------------------------------------------------------
+-- Index vérifiés avec EXPLAIN ANALYZE sur 6 boutiques × 50 000 ventes (300 000 ventes, autant de
+-- lignes de vente, 12 000 produits) en tant qu'utilisateur authenticated (RLS active) :
+--   - ventes d'un mois (≈3 000 lignes) : Index Only Scan, 1,1 ms contre 2,0 ms en Bitmap Heap Scan ;
+--   - shop_dashboard complet : ≈14 ms ; shop_monthly_sales 3 mois ≈180 ms, 12 mois ≈360 ms ;
+--     arrival_profitability ≈390 ms ; shop_estimated_profit ≈400-700 ms (50 000 ventes).
 -- Couvrant pour les sommes de ventes par période : parcours d'index seul, sans lire la table.
+-- Il remplace sales_shop_sold_idx (mêmes colonnes de tête ; un B-tree se parcourt dans les deux
+-- sens, l'historique trié par sold_at desc reste servi).
 create index if not exists sales_shop_sold_cover_idx
   on public.sales (shop_id, sold_at) include (total_amount, is_test);
+drop index if exists public.sales_shop_sold_idx;
 -- Couvrant pour joindre les lignes de vente à leurs ventes sans lire sale_items.
 create index if not exists sale_items_sale_cover_idx
   on public.sale_items (sale_id) include (product_id, quantity, sold_unit_price);
@@ -29,8 +37,14 @@ create index if not exists sale_items_sale_cover_idx
 drop index if exists public.sale_items_sale_idx;
 
 -- Tableau de bord -----------------------------------------------------------------------------
--- Mêmes définitions que dashboard() de src/lib/operations.ts, en heure locale p_tz :
---   todaySales / monthSales / saleCount : ventes du jour / du mois civil en cours ;
+-- Définitions alignées sur dashboard() de src/lib/operations.ts (avant et après la refonte de
+-- l'accueil), en heure locale p_tz :
+--   todaySales / todayCount / todayByPaymentMethod : ventes du jour (montant, nombre, répartition
+--                  [{ method, amount }] par moyen de paiement, du plus gros au plus petit) ;
+--   monthSales / saleCount : ventes du mois civil en cours ;
+--   previousMonthSales / previousMonthStart : ventes du mois civil précédent ;
+--   expensesByCategory : charges du mois [{ category, amount }], de la plus grosse à la plus petite ;
+--   restAfterCharges = monthSales - charges (le coût des articles n'est pas compté) ;
 --   charges      : charges dont expense_date est dans le mois en cours (le front comptait aussi
 --                  les charges datées des mois suivants : elles sont ici exclues) ;
 --   arrivalCost  : coût des arrivages 'received' dont received_date est dans le mois en cours ;
@@ -69,6 +83,11 @@ declare
   v_arrival_cost numeric;
   v_stock bigint;
   v_in_progress jsonb;
+  v_today_count bigint;
+  v_today_methods jsonb;
+  v_previous_sales numeric;
+  v_previous_month date := (v_month - interval '1 month')::date;
+  v_expenses jsonb;
 begin
   if not exists (select 1 from public.shops s where s.id = p_shop_id) then
     raise exception 'Shop not found' using errcode = '42501';
@@ -77,18 +96,41 @@ begin
   select coalesce(sum(s.total_amount), 0),
          count(*),
          coalesce(sum(s.total_amount) filter (
-           where s.sold_at >= v_today_start and s.sold_at < v_tomorrow_start), 0)
-    into v_month_sales, v_sale_count, v_today_sales
+           where s.sold_at >= v_today_start and s.sold_at < v_tomorrow_start), 0),
+         count(*) filter (where s.sold_at >= v_today_start and s.sold_at < v_tomorrow_start)
+    into v_month_sales, v_sale_count, v_today_sales, v_today_count
   from public.sales s
   where s.shop_id = p_shop_id
     and s.sold_at >= v_month_start and s.sold_at < v_next_month_start
     and (p_include_test or not s.is_test);
 
-  select coalesce(sum(e.amount), 0) into v_charges
-  from public.shop_expenses e
-  where e.shop_id = p_shop_id
-    and e.expense_date >= v_month and e.expense_date < v_next_month
-    and (p_include_test or not e.is_test);
+  select coalesce(jsonb_agg(jsonb_build_object('method', t.method, 'amount', t.amount)
+                            order by t.amount desc, t.method), '[]'::jsonb)
+    into v_today_methods
+  from (select s.payment_method as method, sum(s.total_amount) as amount
+        from public.sales s
+        where s.shop_id = p_shop_id
+          and s.sold_at >= v_today_start and s.sold_at < v_tomorrow_start
+          and (p_include_test or not s.is_test)
+        group by s.payment_method) t;
+
+  select coalesce(sum(s.total_amount), 0) into v_previous_sales
+  from public.sales s
+  where s.shop_id = p_shop_id
+    and s.sold_at >= (v_previous_month::timestamp at time zone p_tz)
+    and s.sold_at < v_month_start
+    and (p_include_test or not s.is_test);
+
+  select coalesce(sum(t.amount), 0),
+         coalesce(jsonb_agg(jsonb_build_object('category', t.category, 'amount', t.amount)
+                            order by t.amount desc, t.category), '[]'::jsonb)
+    into v_charges, v_expenses
+  from (select e.category, sum(e.amount) as amount
+        from public.shop_expenses e
+        where e.shop_id = p_shop_id
+          and e.expense_date >= v_month and e.expense_date < v_next_month
+          and (p_include_test or not e.is_test)
+        group by e.category) t;
 
   select coalesce(sum(coalesce(nullif(a.global_cost, 0),
                                a.merchandise_cost + a.transport_cost + a.customs_cost)), 0)
@@ -122,9 +164,15 @@ begin
     'today', v_today,
     'monthStart', v_month,
     'todaySales', v_today_sales,
+    'todayCount', v_today_count,
+    'todayByPaymentMethod', v_today_methods,
     'monthSales', v_month_sales,
     'saleCount', v_sale_count,
+    'previousMonthStart', v_previous_month,
+    'previousMonthSales', v_previous_sales,
     'charges', v_charges,
+    'expensesByCategory', v_expenses,
+    'restAfterCharges', v_month_sales - v_charges,
     'arrivalCost', v_arrival_cost,
     'stock', v_stock,
     'profitBeforeCharges', v_month_sales - v_arrival_cost,
@@ -361,12 +409,19 @@ stable
 security invoker
 set search_path to ''
 as $function$
-  with product_units as (
+  with sold as (
+    select i.product_id, sum(i.quantity) as units
+    from public.sales s
+    join public.sale_items i on i.sale_id = s.id
+    where s.shop_id = p_shop_id
+    group by i.product_id
+  ),
+  product_units as (
     select p.id, p.arrival_id, p.is_test, p.initial_sale_price,
            p.quantity_on_hand::bigint as remaining,
-           coalesce((select sum(i.quantity) from public.sale_items i where i.product_id = p.id),
-                    0)::bigint as sold
+           coalesce(so.units, 0)::bigint as sold
     from public.products p
+    left join sold so on so.product_id = p.id
     where p.shop_id = p_shop_id
   ),
   arrival_basis as (
@@ -445,17 +500,28 @@ begin
     raise exception 'Shop not found' using errcode = '42501';
   end if;
 
-  select coalesce(sum(i.quantity * i.sold_unit_price), 0),
-         coalesce(sum(i.quantity * al.unit_cost), 0),
-         coalesce(sum(i.quantity * i.sold_unit_price) filter (where al.unit_cost is null), 0)
-    into v_revenue, v_cogs, v_revenue_without_cost
-  from public.sales s
-  join public.sale_items i on i.sale_id = s.id
-  join public.arrival_cost_allocation(p_shop_id, true) al on al.product_id = i.product_id
-  where s.shop_id = p_shop_id
-    and (v_from is null or s.sold_at >= v_from)
-    and (v_to is null or s.sold_at < v_to)
-    and (p_include_test or not s.is_test);
+  -- Une seule évaluation de la répartition, partagée par les deux agrégats.
+  with al as materialized (
+    select * from public.arrival_cost_allocation(p_shop_id, true)
+  ),
+  period_lines as (
+    select i.quantity, i.sold_unit_price, al.unit_cost
+    from public.sales s
+    join public.sale_items i on i.sale_id = s.id
+    join al on al.product_id = i.product_id
+    where s.shop_id = p_shop_id
+      and (v_from is null or s.sold_at >= v_from)
+      and (v_to is null or s.sold_at < v_to)
+      and (p_include_test or not s.is_test)
+  )
+  select coalesce(sum(pl.quantity * pl.sold_unit_price), 0),
+         coalesce(sum(pl.quantity * pl.unit_cost), 0),
+         coalesce(sum(pl.quantity * pl.sold_unit_price) filter (where pl.unit_cost is null), 0),
+         (select coalesce(sum(a2.remaining_cost), 0) from al a2
+          join public.products p on p.id = a2.product_id
+          where p_include_test or not p.is_test)
+    into v_revenue, v_cogs, v_revenue_without_cost, v_unsold
+  from period_lines pl;
 
   select coalesce(sum(e.amount), 0) into v_charges
   from public.shop_expenses e
@@ -463,9 +529,6 @@ begin
     and (p_from is null or e.expense_date >= p_from)
     and (p_to is null or e.expense_date < p_to)
     and (p_include_test or not e.is_test);
-
-  select coalesce(sum(al.remaining_cost), 0) into v_unsold
-  from public.arrival_cost_allocation(p_shop_id, p_include_test) al;
 
   select coalesce(sum(coalesce(nullif(a.global_cost, 0),
                                a.merchandise_cost + a.transport_cost + a.customs_cost)), 0)

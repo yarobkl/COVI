@@ -131,9 +131,18 @@ begin
   perform pg_temp.check_eq((d ->> 'profit')::numeric, 496000, 'dashboard août : résultat');
   perform pg_temp.check_eq((d ->> 'stock')::numeric, 12, 'dashboard : stock disponible');
   perform pg_temp.check_eq((d ->> 'arrivalsInProgress')::numeric, 0, 'dashboard : arrivages en cours');
+  perform pg_temp.check_eq((d ->> 'previousMonthSales')::numeric, 494000, 'dashboard août : ventes de juillet');
+  perform pg_temp.check_eq((d ->> 'restAfterCharges')::numeric, 856000, 'dashboard août : reste après charges');
+  perform pg_temp.check((d -> 'expensesByCategory') = '[{"category": "Loyer", "amount": 130000}]'::jsonb,
+    'dashboard août : charges par catégorie');
 
   d := public.shop_dashboard(shop, 'Africa/Brazzaville', false, '2026-07-28 15:00+01');
   perform pg_temp.check_eq((d ->> 'todaySales')::numeric, 494000, 'dashboard 28 juillet : ventes du jour');
+  perform pg_temp.check_eq((d ->> 'todayCount')::numeric, 35, 'dashboard 28 juillet : nb ventes du jour');
+  perform pg_temp.check_eq((select sum((x ->> 'amount')::numeric) from jsonb_array_elements(d -> 'todayByPaymentMethod') x),
+    494000, 'dashboard 28 juillet : répartition par moyen de paiement');
+  perform pg_temp.check(jsonb_array_length(d -> 'todayByPaymentMethod') = 5,
+    'dashboard 28 juillet : 5 moyens de paiement');
   perform pg_temp.check_eq((d ->> 'monthSales')::numeric, 494000, 'dashboard juillet : ventes du mois');
   perform pg_temp.check_eq((d ->> 'arrivalCost')::numeric, 870000, 'dashboard juillet : arrivages reçus');
   perform pg_temp.check_eq((d ->> 'charges')::numeric, 110000, 'dashboard juillet : charges');

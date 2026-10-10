@@ -113,6 +113,9 @@ create policy sales_shop_member_select on public.sales for select to authenticat
   using (exists (
     select 1 from public.shops s where s.id = shop_id and s.owner_id = (select auth.uid())
   ));
+-- Forme EXISTS corrélée conservée : coût proportionnel aux lignes de la boutique (recherche par
+-- index sales_pkey). Une forme « sale_id in (sous-requête) » est 2× plus rapide avec 6 boutiques
+-- mais parcourt toutes les lignes de vente de la plateforme : elle se dégraderait avec la croissance.
 create policy sale_items_shop_member_select on public.sale_items for select to authenticated
   using (exists (
     select 1 from public.sales v join public.shops s on s.id = v.shop_id
