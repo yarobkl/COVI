@@ -1,19 +1,33 @@
 import { useState, type FormEvent } from 'react'
 import { Button, Field, Input, LabelCard, Notice } from '../../components/ui'
+import { businessErrorMessage, shopQuotaMessage } from '../../lib/businessErrors'
 import { supabase } from '../../lib/supabase'
 import type { Shop } from '../../lib/types'
 import { AuthPage } from './AuthPage'
 import { authError } from './authErrors'
 
-/** First sign-in: creates the owner's shop (currency fixed to XAF). */
+/** Adding a shop to an account that already has one (multi-shop subscription). */
+export type AddingShop = {
+  /** Shops already on the account: `create_my_shop` returns one of them when the quota is 1. */
+  existingIds: readonly string[]
+  shopLimit: number | null
+  onCancel: () => void
+}
+
+/**
+ * First sign-in: creates the owner's shop (currency fixed to XAF). With `adding`: another shop
+ * for the same account, within the quota of the subscription (checked by `create_my_shop`).
+ */
 export function CreateShopForm({
   message,
   onMessage,
   onCreated,
+  adding,
 }: {
   message: string
   onMessage: (message: string) => void
   onCreated: (shop: Shop) => void
+  adding?: AddingShop
 }) {
   const [name, setName] = useState('')
   const [city, setCity] = useState('')
@@ -31,7 +45,11 @@ export function CreateShopForm({
         p_country: String(f.get('country') || 'Congo').trim(),
         p_currency: 'XAF',
       })
-      if (error) onMessage(authError(error))
+      if (error)
+        onMessage(businessErrorMessage(error, { shopLimit: adding?.shopLimit }) ?? authError(error))
+      // A V1 account (quota 1) gets its existing shop back instead of « Shop quota reached ».
+      else if (adding?.existingIds.includes(data.id))
+        onMessage(shopQuotaMessage(adding.shopLimit ?? adding.existingIds.length))
       else onCreated(data)
     } finally {
       setBusy(false)
@@ -54,8 +72,12 @@ export function CreateShopForm({
 
   return (
     <AuthPage
-      title="Comment s’appelle votre boutique ?"
-      lead="Ce nom s’affichera en haut de l’écran. Vous pourrez le changer plus tard."
+      title={adding ? 'Ajouter une boutique' : 'Comment s’appelle votre boutique ?'}
+      lead={
+        adding
+          ? 'Elle aura son propre cahier : son stock, ses ventes et ses charges, séparés des autres.'
+          : 'Ce nom s’affichera en haut de l’écran. Vous pourrez le changer plus tard.'
+      }
       aside={preview}
     >
       <form className="auth__form" onSubmit={createShop}>
@@ -91,8 +113,13 @@ export function CreateShopForm({
           </Notice>
         )}
         <Button variant="primary" size="lg" block type="submit" busy={busy}>
-          Créer ma boutique
+          {adding ? 'Créer cette boutique' : 'Créer ma boutique'}
         </Button>
+        {adding && (
+          <button type="button" className="btn btn--ghost auth__cancel" onClick={adding.onCancel}>
+            Annuler
+          </button>
+        )}
       </form>
     </AuthPage>
   )

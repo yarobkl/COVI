@@ -1,5 +1,6 @@
 // The « Ajouter au stock » form, without its interface: what was typed becomes the product to
 // save, or the messages to show under the fields.
+import { businessErrorMessage } from '../../lib/businessErrors'
 import type { addProduct } from '../../lib/covi'
 import { fcfa, parseAmount } from '../../lib/format'
 import type { Arrival } from '../../lib/types'
@@ -85,6 +86,8 @@ export function productSaveError(error: unknown): string {
     return 'Cette photo ne passe pas. Prenez une photo JPG ou PNG de moins de 5 Mo.'
   if (m.includes('photo n’a pas pu') || m.includes("photo n'a pas pu"))
     return 'La photo n’est pas partie, le réseau est trop faible. Réessayez, ou enregistrez l’article sans photo.'
+  const business = businessErrorMessage(error)
+  if (business) return business
   if (typeof navigator !== 'undefined' && !navigator.onLine) return offlineText
   if (m.includes('failed to fetch') || m.includes('network') || m.includes('load failed'))
     return offlineText

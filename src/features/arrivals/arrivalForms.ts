@@ -1,5 +1,6 @@
 // The two arrival forms without their interface: what was typed becomes the arrival to save, or
 // the messages to show under the fields.
+import { businessErrorMessage } from '../../lib/businessErrors'
 import { parseAmount } from '../../lib/format'
 import type { ArrivalInput } from '../../lib/operations'
 
@@ -108,6 +109,8 @@ export function arrivalSaveError(error: unknown): string {
   const { message } = textOf(error)
   if (message.includes('arrivals_dates_check'))
     return 'La réception ne peut pas être datée avant la commande. Vérifiez la date de commande.'
+  const business = businessErrorMessage(error)
+  if (business) return business
   if (typeof navigator !== 'undefined' && !navigator.onLine)
     return 'Pas de réseau : rien n’est enregistré. Réessayez quand le réseau revient.'
   if (message.includes('failed to fetch') || message.includes('network'))

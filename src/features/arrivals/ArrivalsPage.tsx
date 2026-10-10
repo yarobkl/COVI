@@ -95,7 +95,7 @@ function StepDialog({
             <Button variant="secondary" onClick={onClose} autoFocus>
               Pas encore
             </Button>
-            <Button variant="primary" busy={busy} onClick={() => void confirm()}>
+            <Button write variant="primary" busy={busy} onClick={() => void confirm()}>
               {step.confirm}
             </Button>
           </div>
@@ -163,7 +163,7 @@ export function ArrivalsPage({ shopId, kind }: { shopId: string; kind?: ArrivalK
           <p className="page-head__sub">{head.sub}</p>
         </div>
         {!(data && shown.length === 0) && (
-          <Button variant="primary" icon={<PlusIcon />} onClick={create}>
+          <Button write variant="primary" icon={<PlusIcon />} onClick={create}>
             {head.add}
           </Button>
         )}
@@ -174,7 +174,7 @@ export function ArrivalsPage({ shopId, kind }: { shopId: string; kind?: ArrivalK
           tone="success"
           actions={
             message.addTo ? (
-              <Button variant="secondary" onClick={() => setAddTo(message.addTo ?? null)}>
+              <Button write variant="secondary" onClick={() => setAddTo(message.addTo ?? null)}>
                 {find(message.addTo)?.kind === 'balloon' ? 'Ajouter ses pièces' : 'Mettre en stock'}
               </Button>
             ) : undefined
@@ -204,7 +204,7 @@ export function ArrivalsPage({ shopId, kind }: { shopId: string; kind?: ArrivalK
         <EmptyState
           title={head.empty}
           actions={
-            <Button variant="primary" onClick={create}>
+            <Button write variant="primary" onClick={create}>
               {head.add}
             </Button>
           }

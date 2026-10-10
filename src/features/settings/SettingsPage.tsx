@@ -148,7 +148,7 @@ export function SettingsPage({
           </p>
         )}
         <div className="boutique-form__actions">
-          <Button variant="primary" type="submit" busy={status === 'busy'}>
+          <Button write variant="primary" type="submit" busy={status === 'busy'}>
             Enregistrer
           </Button>
           {status === 'saved' && (

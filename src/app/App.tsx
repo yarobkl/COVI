@@ -1,7 +1,17 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { MenuIcon, PlusIcon } from '../components/icons'
-import { Button, ButtonLink, cx, Dialog, LabelCard } from '../components/ui'
+import {
+  Button,
+  ButtonLink,
+  cx,
+  Dialog,
+  LabelCard,
+  Notice,
+  WriteLockContext,
+  type WriteLock,
+} from '../components/ui'
 import { ArrivalsPage } from '../features/arrivals/ArrivalsPage'
+import type { ShopAccount } from '../features/auth/AuthGate'
 import { useCurrentUser } from '../features/auth/useCurrentUser'
 import { DashboardPage } from '../features/dashboard/DashboardPage'
 import { ExpensesPage } from '../features/expenses/ExpensesPage'
@@ -12,6 +22,7 @@ import { StatisticsPage } from '../features/statistics/StatisticsPage'
 import { StockPage } from '../features/stock/StockPage'
 import { NetStatus } from '../features/sync/NetStatus'
 import { useSyncState } from '../features/sync/useSyncState'
+import { READ_ONLY_TEXT } from '../lib/businessErrors'
 import { plural } from '../lib/format'
 import type { Shop } from '../lib/types'
 import { initials, ownerName, shortName } from './identity'
@@ -78,6 +89,56 @@ function renderPage(route: Route, { shop, updateShop, onSimulation, askSignOut }
     case 'boutique':
       return <SettingsPage shop={shop} onShopUpdated={updateShop} onSignOut={askSignOut} />
   }
+}
+
+const READ_ONLY_ID = 'abonnement-suspendu'
+const readOnlyLock: WriteLock = {
+  reasonId: READ_ONLY_ID,
+  reason: 'Abonnement suspendu : contactez COVI pour le renouveler.',
+}
+
+const singleShop: ShopAccount = { shopCount: 1, readOnly: false }
+
+/** « Changer de boutique » · « Ajouter une boutique » (multi-shop subscription). */
+function ShopActions({
+  account,
+  onAction,
+  className,
+}: {
+  account: ShopAccount
+  onAction?: () => void
+  className?: string
+}) {
+  const { switchShop, addShop } = account
+  if (!switchShop && !addShop) return null
+  return (
+    <div className={cx('shop-actions', className)}>
+      {switchShop && (
+        <button
+          type="button"
+          className="btn btn--ghost shop-actions__btn"
+          onClick={() => {
+            onAction?.()
+            switchShop()
+          }}
+        >
+          Changer de boutique
+        </button>
+      )}
+      {addShop && (
+        <button
+          type="button"
+          className="btn btn--ghost shop-actions__btn"
+          onClick={() => {
+            onAction?.()
+            addShop()
+          }}
+        >
+          Ajouter une boutique
+        </button>
+      )}
+    </div>
+  )
 }
 
 /** The notebook label: shop name, place and who keeps it. */
@@ -167,11 +228,14 @@ export function App({
   signOut,
   updateShop,
   onSimulation,
+  account = singleShop,
 }: {
   shop: Shop
   signOut: () => Promise<void>
   updateShop: (shop: Shop) => void
   onSimulation: () => void
+  /** Other shops of the account and subscription state (AuthGate). */
+  account?: ShopAccount
 }) {
   const { route, navigate } = useHashRoute()
   const sync = useSyncState()
@@ -204,124 +268,49 @@ export function App({
   }
   const ctx: PageContext = { shop, updateShop, navigate, onSimulation, askSignOut }
 
+  const readOnly = account.readOnly
   return (
-    <div className="shell">
-      <a className="skip-link" href="#contenu">
-        Aller au contenu
-      </a>
+    <WriteLockContext.Provider value={readOnly ? readOnlyLock : null}>
+      <div className={cx('shell', readOnly && 'shell--read-only')}>
+        <a className="skip-link" href="#contenu">
+          Aller au contenu
+        </a>
 
-      <header className="topbar">
-        <p className="topbar__shop">{shop.name}</p>
-        <NetStatus state={sync} shopId={shop.id} />
-        <button
-          type="button"
-          className="avatar"
-          aria-label="Ma boutique"
-          aria-haspopup="dialog"
-          onClick={() => setMenuOpen(true)}
-        >
-          {initials(owner ?? shop.name)}
-        </button>
-      </header>
-
-      <nav className="sommaire" aria-label="Sommaire">
-        <ShopLabel shop={shop} owner={owner} />
-        <div className="sommaire__sale">
-          <ButtonLink
-            variant="sale"
-            href={routeHash({ page: 'vendre' })}
-            aria-current={current('vendre')}
-            icon={<PlusIcon />}
-          >
-            Nouvelle vente
-          </ButtonLink>
-        </div>
-        <h2 className="sommaire__title">Sommaire</h2>
-        <ul className="sommaire__list">
-          {sommaire.map(({ page, label, icon: Icon }) => (
-            <li key={page}>
-              <a className="sommaire__link" href={routeHash({ page })} aria-current={current(page)}>
-                <Icon />
-                <span>{label}</span>
-              </a>
-            </li>
-          ))}
-        </ul>
-        <div className="sommaire__foot">
+        <header className="topbar">
+          <p className="topbar__shop">{shop.name}</p>
           <NetStatus state={sync} shopId={shop.id} />
-          <button type="button" className="btn btn--ghost sommaire__quiet" onClick={onSimulation}>
-            Voir une boutique d’exemple
+          <button
+            type="button"
+            className="avatar"
+            aria-label="Ma boutique"
+            aria-haspopup="dialog"
+            onClick={() => setMenuOpen(true)}
+          >
+            {initials(owner ?? shop.name)}
           </button>
-          <button type="button" className="btn btn--ghost sommaire__quiet" onClick={askSignOut}>
-            Se déconnecter
-          </button>
-        </div>
-      </nav>
+        </header>
 
-      <main
-        className={cx('shell__page seyes margin-rule', `page--${route.page}`)}
-        id="contenu"
-        ref={main}
-        tabIndex={-1}
-      >
-        <div key={routeKey(route)} className="page">
-          {renderPage(route, ctx)}
-        </div>
-      </main>
-
-      <nav className="bottom-nav" aria-label="Navigation principale">
-        {bottomBar.map(({ page, label, icon: Icon }) =>
-          page === 'vendre' ? (
-            <a
-              key={page}
-              className="bottom-nav__item bottom-nav__item--sale"
-              href={routeHash({ page })}
-              aria-current={current(page)}
-            >
-              <span className="bottom-nav__key">
-                <Icon />
-              </span>
-              {label}
-            </a>
-          ) : (
-            <a
-              key={page}
-              className="bottom-nav__item"
-              href={routeHash({ page })}
-              aria-current={current(page)}
-            >
-              <Icon />
-              {label}
-            </a>
-          ),
-        )}
-        <button
-          type="button"
-          className="bottom-nav__item"
-          aria-haspopup="dialog"
-          aria-expanded={menuOpen}
-          aria-current={morePages.some((p) => p.page === route.page) ? 'page' : undefined}
-          onClick={() => setMenuOpen(true)}
-        >
-          <MenuIcon />
-          Plus
-        </button>
-      </nav>
-
-      <Dialog open={menuOpen} onClose={() => setMenuOpen(false)} labelledBy={menuTitle} sheet>
-        <div className="dialog__body menu-sheet">
-          <h2 className="visually-hidden" id={menuTitle}>
-            Menu
-          </h2>
+        <nav className="sommaire" aria-label="Sommaire">
           <ShopLabel shop={shop} owner={owner} />
+          <div className="sommaire__sale">
+            <ButtonLink
+              variant="sale"
+              href={routeHash({ page: 'vendre' })}
+              aria-current={current('vendre')}
+              icon={<PlusIcon />}
+              write
+            >
+              Nouvelle vente
+            </ButtonLink>
+          </div>
+          <h2 className="sommaire__title">Sommaire</h2>
           <ul className="sommaire__list">
-            {morePages.map(({ page, label, icon: Icon }) => (
+            {sommaire.map(({ page, label, icon: Icon }) => (
               <li key={page}>
                 <a
                   className="sommaire__link"
                   href={routeHash({ page })}
                   aria-current={current(page)}
-                  onClick={() => setMenuOpen(false)}
                 >
                   <Icon />
                   <span>{label}</span>
@@ -329,31 +318,127 @@ export function App({
               </li>
             ))}
           </ul>
-          <div className="menu-sheet__foot">
-            <button
-              type="button"
-              className="btn btn--ghost"
-              onClick={() => {
-                setMenuOpen(false)
-                onSimulation()
-              }}
-            >
+          <div className="sommaire__foot">
+            <NetStatus state={sync} shopId={shop.id} />
+            <ShopActions account={account} className="shop-actions--sommaire" />
+            <button type="button" className="btn btn--ghost sommaire__quiet" onClick={onSimulation}>
               Voir une boutique d’exemple
             </button>
-            <Button variant="danger" onClick={askSignOut}>
+            <button type="button" className="btn btn--ghost sommaire__quiet" onClick={askSignOut}>
               Se déconnecter
-            </Button>
+            </button>
           </div>
-        </div>
-      </Dialog>
+        </nav>
 
-      <SignOutDialog
-        open={signOutOpen}
-        onClose={() => setSignOutOpen(false)}
-        shopName={shop.name}
-        pending={sync.pending}
-        signOut={signOut}
-      />
-    </div>
+        <main
+          className={cx('shell__page seyes margin-rule', `page--${route.page}`)}
+          id="contenu"
+          ref={main}
+          tabIndex={-1}
+        >
+          {readOnly && (
+            <Notice className="read-only-banner" live={false}>
+              <p id={READ_ONLY_ID}>{READ_ONLY_TEXT}</p>
+            </Notice>
+          )}
+          <div key={routeKey(route)} className="page">
+            {renderPage(route, ctx)}
+          </div>
+        </main>
+
+        <nav className="bottom-nav" aria-label="Navigation principale">
+          {bottomBar.map(({ page, label, icon: Icon }) =>
+            page === 'vendre' ? (
+              <a
+                key={page}
+                className="bottom-nav__item bottom-nav__item--sale"
+                {...(readOnly
+                  ? {
+                      role: 'link',
+                      'aria-disabled': true,
+                      'aria-describedby': READ_ONLY_ID,
+                      title: readOnlyLock.reason,
+                    }
+                  : { href: routeHash({ page }), 'aria-current': current(page) })}
+              >
+                <span className="bottom-nav__key">
+                  <Icon />
+                </span>
+                {label}
+              </a>
+            ) : (
+              <a
+                key={page}
+                className="bottom-nav__item"
+                href={routeHash({ page })}
+                aria-current={current(page)}
+              >
+                <Icon />
+                {label}
+              </a>
+            ),
+          )}
+          <button
+            type="button"
+            className="bottom-nav__item"
+            aria-haspopup="dialog"
+            aria-expanded={menuOpen}
+            aria-current={morePages.some((p) => p.page === route.page) ? 'page' : undefined}
+            onClick={() => setMenuOpen(true)}
+          >
+            <MenuIcon />
+            Plus
+          </button>
+        </nav>
+
+        <Dialog open={menuOpen} onClose={() => setMenuOpen(false)} labelledBy={menuTitle} sheet>
+          <div className="dialog__body menu-sheet">
+            <h2 className="visually-hidden" id={menuTitle}>
+              Menu
+            </h2>
+            <ShopLabel shop={shop} owner={owner} />
+            <ShopActions account={account} onAction={() => setMenuOpen(false)} />
+            <ul className="sommaire__list">
+              {morePages.map(({ page, label, icon: Icon }) => (
+                <li key={page}>
+                  <a
+                    className="sommaire__link"
+                    href={routeHash({ page })}
+                    aria-current={current(page)}
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <Icon />
+                    <span>{label}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <div className="menu-sheet__foot">
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={() => {
+                  setMenuOpen(false)
+                  onSimulation()
+                }}
+              >
+                Voir une boutique d’exemple
+              </button>
+              <Button variant="danger" onClick={askSignOut}>
+                Se déconnecter
+              </Button>
+            </div>
+          </div>
+        </Dialog>
+
+        <SignOutDialog
+          open={signOutOpen}
+          onClose={() => setSignOutOpen(false)}
+          shopName={shop.name}
+          pending={sync.pending}
+          signOut={signOut}
+        />
+      </div>
+    </WriteLockContext.Provider>
   )
 }

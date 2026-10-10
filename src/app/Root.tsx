@@ -52,9 +52,13 @@ function MerchantRoot() {
     )
   return (
     <AuthGate onSimulation={() => setSimulation('visitor')}>
-      {(shop, signOut, updateShop) => (
+      {(shop, signOut, updateShop, account) => (
+        // A new key per shop: changing shop unmounts every page and its state (products, stock,
+        // sales, figures) and loads the other shop from scratch. Nothing is carried over.
         <App
+          key={shop.id}
           shop={shop}
+          account={account}
           signOut={signOut}
           updateShop={updateShop}
           onSimulation={() => setSimulation('shop')}

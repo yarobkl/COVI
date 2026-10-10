@@ -63,7 +63,7 @@ export function DashboardPage({ shop, onSimulation }: { shop: Shop; onSimulation
   const head = (
     <header className="page-head home-head">
       <h1 className="home-date">{longDay(now)}</h1>
-      <ButtonLink variant="sale" href="#/vendre" icon={<PlusIcon />} className="home-sale">
+      <ButtonLink write variant="sale" href="#/vendre" icon={<PlusIcon />} className="home-sale">
         Nouvelle vente
       </ButtonLink>
     </header>
@@ -145,7 +145,7 @@ export function DashboardPage({ shop, onSimulation }: { shop: Shop; onSimulation
             <EmptyState
               title="Pas encore de vente aujourd’hui."
               actions={
-                <ButtonLink variant="sale" href="#/vendre">
+                <ButtonLink write variant="sale" href="#/vendre">
                   Nouvelle vente
                 </ButtonLink>
               }

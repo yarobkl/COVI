@@ -167,7 +167,7 @@ function DetailBody({
 
       <div className="dialog__actions arrival-detail__actions">
         {received ? (
-          <Button variant="primary" icon={<PlusIcon />} onClick={onAdd}>
+          <Button write variant="primary" icon={<PlusIcon />} onClick={onAdd}>
             {balloon ? 'Ajouter une pièce' : 'Ajouter un modèle'}
           </Button>
         ) : (
@@ -176,7 +176,7 @@ function DetailBody({
               Vous ajouterez les pièces quand la marchandise sera arrivée.
             </p>
             {step && (
-              <Button variant="primary" onClick={onStep}>
+              <Button write variant="primary" onClick={onStep}>
                 {step.action}
               </Button>
             )}

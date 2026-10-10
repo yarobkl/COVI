@@ -5,7 +5,7 @@ import { fcfa, parseAmount } from '../../lib/format'
 import type { ExpenseInput } from '../../lib/operations'
 import type { Expense } from '../../lib/types'
 import { categoryLabel, expenseCategories } from './expenseCategories'
-import { draftOf, readDraft, type ExpenseDraft } from './expenseForm'
+import { draftOf, expenseSaveError, readDraft, type ExpenseDraft } from './expenseForm'
 
 /**
  * « Nouvelle charge » / « Modifier », in a sheet that rises from the bottom on phones. `save`
@@ -61,7 +61,7 @@ function ExpenseForm({
 }) {
   const [draft, setDraft] = useState<ExpenseDraft>(() => draftOf(editing, today))
   const [errors, setErrors] = useState<{ amount?: string; date?: string }>({})
-  const [failed, setFailed] = useState(false)
+  const [failure, setFailure] = useState('')
   const [busy, setBusy] = useState(false)
   const set = <K extends keyof ExpenseDraft>(key: K, value: ExpenseDraft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }))
@@ -77,12 +77,12 @@ function ExpenseForm({
       return
     }
     setErrors({})
-    setFailed(false)
+    setFailure('')
     setBusy(true)
     try {
       await save(read.input)
-    } catch {
-      setFailed(true)
+    } catch (err) {
+      setFailure(expenseSaveError(err, editing ? 'edit' : 'new'))
     } finally {
       setBusy(false)
     }
@@ -144,18 +144,16 @@ function ExpenseForm({
       <Switch checked={draft.recurring} onChange={(v) => set('recurring', v)}>
         Revient chaque mois
       </Switch>
-      {failed && (
+      {failure && (
         <p className="field__error" role="alert">
-          {editing
-            ? 'Pas enregistré : le réseau ne répond pas. Réessayez.'
-            : 'Charge pas enregistrée. Vérifiez le réseau puis réessayez.'}
+          {failure}
         </p>
       )}
       <div className="dialog__actions">
         <Button variant="secondary" onClick={onClose}>
           Annuler
         </Button>
-        <Button variant="primary" type="submit" busy={busy}>
+        <Button write variant="primary" type="submit" busy={busy}>
           {editing ? 'Enregistrer' : 'Noter la charge'}
         </Button>
       </div>

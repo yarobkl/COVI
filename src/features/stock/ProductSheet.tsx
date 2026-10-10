@@ -225,7 +225,7 @@ function ProductForm({
         <Button variant="ghost" onClick={onClose}>
           Annuler
         </Button>
-        <Button variant="primary" type="submit" busy={busy} disabled={photoBusy}>
+        <Button write variant="primary" type="submit" busy={busy} disabled={photoBusy}>
           {photoBusy ? 'On prépare la photo…' : 'Mettre en stock'}
         </Button>
       </div>

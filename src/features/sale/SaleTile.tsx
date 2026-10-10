@@ -9,11 +9,14 @@ export function SaleTile({
   arrivalCode,
   selected,
   onSelect,
+  locked,
 }: {
   product: Product
   arrivalCode?: string
   selected: boolean
   onSelect: () => void
+  /** Read only (subscription suspended): the article stays visible but cannot be sold. */
+  locked?: { reasonId: string }
 }) {
   const stock = stockNote(product)
   const price = Number(product.initial_sale_price)
@@ -21,7 +24,8 @@ export function SaleTile({
     <button
       type="button"
       className={cx('sale-tile', 'sale-tile--thumb', selected && 'sale-tile--in')}
-      disabled={stock.out}
+      disabled={stock.out || Boolean(locked)}
+      aria-describedby={locked?.reasonId}
       aria-pressed={selected}
       aria-label={`Vendre ${product.name}, ${money(price)}, ${stock.text.toLowerCase()}`}
       onClick={onSelect}

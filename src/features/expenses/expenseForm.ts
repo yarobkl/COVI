@@ -1,4 +1,5 @@
 // The « Noter une charge » sheet: what was typed, checked before it is sent.
+import { businessErrorMessage } from '../../lib/businessErrors'
 import { parseAmount } from '../../lib/format'
 import type { ExpenseInput } from '../../lib/operations'
 import type { Expense } from '../../lib/types'
@@ -44,4 +45,14 @@ export function readDraft(
       recurring: draft.recurring,
     },
   }
+}
+
+/** What to tell when saving (or deleting) a charge fails: what happened and what to do. */
+export function expenseSaveError(error: unknown, action: 'new' | 'edit' | 'delete'): string {
+  const business = businessErrorMessage(error)
+  if (business) return business
+  if (action === 'delete') return 'Pas supprimée : le réseau ne répond pas. Réessayez.'
+  return action === 'edit'
+    ? 'Pas enregistré : le réseau ne répond pas. Réessayez.'
+    : 'Charge pas enregistrée. Vérifiez le réseau puis réessayez.'
 }

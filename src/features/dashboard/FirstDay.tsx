@@ -19,19 +19,19 @@ export function FirstDay({
       <ol className="first-day__steps">
         <li>
           <span>Notez un arrivage : un ballon ou une commande.</span>
-          <ButtonLink variant="secondary" href="#/arrivages">
+          <ButtonLink write variant="secondary" href="#/arrivages">
             Nouvel arrivage
           </ButtonLink>
         </li>
         <li>
           <span>Mettez vos pièces en stock.</span>
-          <ButtonLink variant="secondary" href="#/stock">
+          <ButtonLink write variant="secondary" href="#/stock">
             Ajouter au stock
           </ButtonLink>
         </li>
         <li>
           <span>Faites votre première vente.</span>
-          <ButtonLink variant="sale" href="#/vendre">
+          <ButtonLink write variant="sale" href="#/vendre">
             Vendre
           </ButtonLink>
         </li>

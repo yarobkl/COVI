@@ -116,7 +116,7 @@ export function StockPage({ shopId }: { shopId: string }) {
           )}
         </div>
         {products?.length !== 0 && (
-          <Button variant="primary" icon={<PlusIcon />} onClick={add}>
+          <Button write variant="primary" icon={<PlusIcon />} onClick={add}>
             Ajouter au stock
           </Button>
         )}
@@ -155,10 +155,10 @@ export function StockPage({ shopId }: { shopId: string }) {
           title="Pas encore de produits."
           actions={
             <>
-              <Button variant="primary" onClick={add}>
+              <Button write variant="primary" onClick={add}>
                 Ajouter au stock
               </Button>
-              <ButtonLink variant="secondary" href="#/arrivages">
+              <ButtonLink write variant="secondary" href="#/arrivages">
                 Nouvel arrivage
               </ButtonLink>
             </>

@@ -16,6 +16,7 @@ import {
 import type { Expense } from '../../lib/types'
 import '../../styles/app/charges.css'
 import { categoryLabel } from './expenseCategories'
+import { expenseSaveError } from './expenseForm'
 import { ExpenseLedger, ExpensesHero, type ExpenseView } from './ExpenseLedger'
 import {
   byMonth,
@@ -97,7 +98,7 @@ export function ExpensesPage({ shopId }: { shopId: string }) {
             <a href="#/arrivages">Arrivages</a>.
           </p>
         </div>
-        <Button variant="primary" icon={<PlusIcon />} onClick={() => open(null)}>
+        <Button write variant="primary" icon={<PlusIcon />} onClick={() => open(null)}>
           Noter une charge
         </Button>
       </header>
@@ -167,7 +168,7 @@ export function ExpensesPage({ shopId }: { shopId: string }) {
                   : 'Aucune charge notée pour l’instant.'
               }
               actions={
-                <Button variant="primary" icon={<PlusIcon />} onClick={() => open(null)}>
+                <Button write variant="primary" icon={<PlusIcon />} onClick={() => open(null)}>
                   Noter une charge
                 </Button>
               }
@@ -219,21 +220,21 @@ function DeleteDialog({
 }) {
   const titleId = useId()
   const [busy, setBusy] = useState(false)
-  const [failed, setFailed] = useState(false)
+  const [failure, setFailure] = useState('')
   // Kept while the dialog closes, so its text does not vanish mid-animation.
   const [shown, setShown] = useState<Expense | null>(expense)
   if (expense && expense !== shown) {
     setShown(expense)
-    setFailed(false)
+    setFailure('')
   }
   const confirm = async () => {
     if (!expense) return
     setBusy(true)
-    setFailed(false)
+    setFailure('')
     try {
       await remove(expense)
-    } catch {
-      setFailed(true)
+    } catch (err) {
+      setFailure(expenseSaveError(err, 'delete'))
     } finally {
       setBusy(false)
     }
@@ -246,16 +247,16 @@ function DeleteDialog({
             {`Supprimer «\u00a0${shown.label || categoryLabel(shown.category)}\u00a0» (${money(Number(shown.amount))})\u00a0?`}
           </h2>
           <p className="dialog__text">Elle sortira des comptes du mois.</p>
-          {failed && (
+          {failure && (
             <p className="field__error" role="alert">
-              Pas supprimée : le réseau ne répond pas. Réessayez.
+              {failure}
             </p>
           )}
           <div className="dialog__actions">
             <Button variant="secondary" onClick={onClose} autoFocus>
               Garder
             </Button>
-            <Button variant="danger" solid busy={busy} onClick={() => void confirm()}>
+            <Button write variant="danger" solid busy={busy} onClick={() => void confirm()}>
               Supprimer
             </Button>
           </div>

@@ -274,7 +274,7 @@ function ArrivalForm({
         <Button variant="ghost" onClick={onClose}>
           Annuler
         </Button>
-        <Button variant="primary" type="submit" busy={busy}>
+        <Button write variant="primary" type="submit" busy={busy}>
           {kind === 'balloon' ? 'Enregistrer le ballon' : 'Enregistrer la commande'}
         </Button>
       </div>

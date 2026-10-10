@@ -181,7 +181,7 @@ export function SaleForm({
             {money(unitPrice)} au lieu de {fcfa(displayed)}, c’est bien ça ?
           </p>
           <p className="muted">Le prix fait est à moins de la moitié du prix affiché.</p>
-          <Button variant="sale" size="xl" block busy={busy} onClick={() => void submit()}>
+          <Button write variant="sale" size="xl" block busy={busy} onClick={() => void submit()}>
             Oui, valider
           </Button>
           <Button variant="secondary" size="lg" block onClick={() => setMode('form')}>
@@ -317,6 +317,7 @@ export function SaleForm({
       </div>
       <div className="sale-form__foot">
         <Button
+          write
           variant="sale"
           size="xl"
           block

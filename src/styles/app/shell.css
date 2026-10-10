@@ -187,4 +187,37 @@
     margin-top: var(--space-1);
     color: var(--ink-soft);
   }
+
+  /* Abonnement suspendu : bandeau calme et permanent, données lisibles, écritures fermées */
+  .read-only-banner {
+    margin-bottom: var(--space-4);
+  }
+  .bottom-nav__item--sale[aria-disabled='true'] {
+    color: var(--ink-soft);
+    cursor: not-allowed;
+  }
+  .bottom-nav__item--sale[aria-disabled='true'] .bottom-nav__key {
+    background: var(--sheet);
+    color: var(--ink-soft);
+    border-style: dashed;
+    border-color: var(--ink-muted);
+    box-shadow: none;
+  }
+
+  /* Changer de boutique · Ajouter une boutique (sous l'étiquette) */
+  .shop-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-2);
+  }
+  .shop-actions__btn {
+    padding-inline: var(--space-3);
+    color: var(--action);
+    font-weight: var(--weight-regular);
+  }
+  .shop-actions--sommaire {
+    display: grid;
+    justify-items: start;
+    margin-bottom: var(--space-2);
+  }
 }

@@ -26,7 +26,7 @@ export function HistoryPage({ shopId }: { shopId: string }) {
           <h1>Ventes</h1>
           <p className="page-head__sub">Les plus récentes en haut.</p>
         </div>
-        <ButtonLink variant="sale" href="#/vendre" icon={<PlusIcon />}>
+        <ButtonLink write variant="sale" href="#/vendre" icon={<PlusIcon />}>
           Nouvelle vente
         </ButtonLink>
       </header>
@@ -54,7 +54,7 @@ export function HistoryPage({ shopId }: { shopId: string }) {
           empty={
             <NoSaleYet
               actions={
-                <ButtonLink variant="sale" href="#/vendre">
+                <ButtonLink write variant="sale" href="#/vendre">
                   Nouvelle vente
                 </ButtonLink>
               }

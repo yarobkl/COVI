@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { WriteLockContext } from '../../components/ui'
 import { localDay } from '../../lib/dates'
 import {
   arrivalProfitability,
@@ -95,6 +96,18 @@ describe('ArrivalsPage', () => {
     ).toBeTruthy()
     expect(document.body.textContent).toContain(`Encore 64${nbsp}000${nbsp}FCFA à récupérer.`)
     expect(document.body.textContent).toContain(`A rapporté 340${nbsp}000${nbsp}FCFA.`)
+  })
+
+  it('read only (subscription suspended): arrivals readable, « Nouvel arrivage » disabled', async () => {
+    render(
+      <WriteLockContext.Provider value={{ reasonId: 'abonnement-suspendu', reason: 'Suspendu' }}>
+        <ArrivalsPage shopId="shop-1" />
+      </WriteLockContext.Provider>,
+    )
+    expect(await screen.findByText('Ballon BAL-003')).toBeTruthy()
+    const add = screen.getByRole('button', { name: 'Nouvel arrivage' }) as HTMLButtonElement
+    expect(add.disabled).toBe(true)
+    expect(add.getAttribute('aria-describedby')).toBe('abonnement-suspendu')
   })
 
   it('shows only the bales under « Ballons »', async () => {

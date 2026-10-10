@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { WriteLockContext } from '../../components/ui'
 import { addProduct, listProducts } from '../../lib/covi'
 import { listArrivals } from '../../lib/operations'
 import type { Arrival, Product } from '../../lib/types'
@@ -53,6 +54,20 @@ const names = () =>
     .map((li) => li.querySelector('.stock-row__name')?.textContent)
 
 describe('StockPage', () => {
+  it('read only (subscription suspended): stock readable, « Ajouter au stock » disabled', async () => {
+    render(
+      <WriteLockContext.Provider value={{ reasonId: 'abonnement-suspendu', reason: 'Suspendu' }}>
+        <StockPage shopId="shop-1" />
+      </WriteLockContext.Provider>,
+    )
+    expect(await screen.findByText('Robe wax')).toBeTruthy()
+    const add = screen.getByRole('button', { name: 'Ajouter au stock' }) as HTMLButtonElement
+    expect(add.disabled).toBe(true)
+    fireEvent.click(add)
+    expect(addProduct).not.toHaveBeenCalled()
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
   it('counts the pieces and writes what is left on each line', async () => {
     render(<StockPage shopId="shop-1" />)
     expect(await screen.findByText('Robe wax')).toBeTruthy()
