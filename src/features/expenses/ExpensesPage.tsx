@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Plus } from 'lucide-react'
+import { PlusIcon } from '../../components/icons'
 import { localDay } from '../../lib/dates'
 import { money } from '../../lib/format'
 import {
@@ -108,7 +108,7 @@ export function ExpensesPage({ shopId }: { shopId: string }) {
             setMsg('')
           }}
         >
-          <Plus />
+          <PlusIcon />
           Ajouter une charge
         </button>
       </div>

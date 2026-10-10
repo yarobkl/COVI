@@ -1,0 +1,2203 @@
+/* ==========================================================================
+   COVI — components.css
+   Composants de base + module de vente. Dépend de tokens.css et base.css.
+   Convention : BEM simple (.bloc, .bloc__element, .bloc--variante).
+   États : :hover, :active / .is-pressed, :focus-visible, :disabled /
+   [aria-disabled="true"], [aria-busy="true"] (chargement).
+   Les classes .is-hover et .is-focus servent UNIQUEMENT à la page
+   preview.html et aux tests visuels : ne pas les poser dans l'app.
+   ========================================================================== */
+
+/* Propriété animable pour le trait de stylo qui entoure (cercle dessiné). */
+@property --covi-sweep {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 100%;
+}
+
+@layer components {
+  /* ==========================================================================
+   0. Mise en page de l'application (shell)
+   Téléphone d'abord : page papier pleine largeur + barre du bas.
+   ≥ 1024 px : sommaire latéral + feuille posée sur la table.
+   ========================================================================== */
+  .shell {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+  .shell__page {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding-block: var(--space-5) var(--space-10);
+    padding-inline-end: var(--gutter);
+  }
+  .shell > .bottom-nav {
+    position: sticky;
+    bottom: 0;
+    z-index: var(--z-nav);
+  }
+  .shell > .sommaire {
+    display: none;
+  }
+
+  @media (min-width: 1024px) {
+    .shell {
+      display: grid;
+      grid-template-columns: var(--sidenav-width) minmax(0, 1fr);
+      align-items: start;
+      gap: var(--space-6);
+      max-width: var(--content-max);
+      margin-inline: auto;
+      padding: var(--space-6);
+    }
+    body:has(> .shell) {
+      background: var(--ground);
+    }
+    .shell > .sommaire {
+      display: block;
+      position: sticky;
+      top: var(--space-6);
+    }
+    .shell > .bottom-nav {
+      display: none;
+    }
+    .shell__page {
+      border-radius: var(--radius-sheet);
+      box-shadow: var(--shadow-sheet);
+      padding: var(--space-8) var(--space-10) var(--space-12) calc(var(--space-16) + var(--space-8));
+      --margin-offset: var(--space-16);
+    }
+  }
+
+  /* Titre de section : mot en gras + court trait rouge (le stylo du cahier). */
+  .section-title {
+    font-size: var(--step-2);
+    font-weight: var(--weight-bold);
+    color: var(--ink);
+    line-height: var(--leading-snug);
+  }
+  .section-title::after {
+    content: '';
+    display: block;
+    width: 44px;
+    height: 2px;
+    margin-top: 3px;
+    background: var(--danger);
+  }
+
+  /* ==========================================================================
+   1. Button
+   ========================================================================== */
+  .btn {
+    --_bg: var(--sheet);
+    --_ink: var(--action);
+    --_border: var(--action);
+    --_shadow: none;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    min-height: var(--tap-min);
+    padding: 0 var(--space-5);
+    border: var(--border-field) solid var(--_border);
+    border-radius: var(--radius-3);
+    background: var(--_bg);
+    color: var(--_ink);
+    box-shadow: var(--_shadow);
+    font-family: var(--font-text);
+    font-size: var(--step-0);
+    font-weight: var(--weight-bold);
+    line-height: 1.2;
+    text-align: center;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition:
+      background-color var(--dur-fast) var(--ease-out),
+      border-color var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out),
+      transform var(--dur-instant) var(--ease-press),
+      box-shadow var(--dur-instant) var(--ease-press);
+  }
+  .btn svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    stroke-width: var(--icon-stroke);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .btn:hover,
+  .btn.is-hover {
+    --_bg: var(--action-tint);
+  }
+  .btn:active,
+  .btn.is-pressed {
+    transform: translateY(1px);
+  }
+  .btn:focus-visible,
+  .btn.is-focus {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+  }
+
+  /* Principal : encre bleue pleine */
+  .btn--primary {
+    --_bg: var(--action);
+    --_ink: var(--action-ink);
+    --_border: var(--action);
+  }
+  .btn--primary:hover,
+  .btn--primary.is-hover {
+    --_bg: var(--action-hover);
+    --_border: var(--action-hover);
+  }
+
+  /* Secondaire : contour encre bleue (valeurs par défaut de .btn) */
+  .btn--secondary {
+    --_bg: var(--sheet);
+  }
+
+  /* Discret : texte bleu, sans cadre */
+  .btn--ghost {
+    --_bg: transparent;
+    --_border: transparent;
+    padding-inline: var(--space-3);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+  .btn--ghost:hover,
+  .btn--ghost.is-hover {
+    --_bg: var(--action-tint);
+    text-decoration-thickness: 2px;
+  }
+
+  /* Danger : stylo rouge (supprimer). Contour par défaut, plein dans un dialogue de confirmation. */
+  .btn--danger {
+    --_ink: var(--danger);
+    --_border: var(--danger);
+  }
+  .btn--danger:hover,
+  .btn--danger.is-hover {
+    --_bg: var(--danger-tint);
+  }
+  .btn--danger.btn--solid {
+    --_bg: var(--danger);
+    --_ink: var(--danger-ink);
+  }
+  .btn--danger.btn--solid:hover,
+  .btn--danger.btn--solid.is-hover {
+    --_bg: #8f1e18;
+    --_border: #8f1e18;
+  }
+
+  /* Vente (piste C) : touche tactile qui s'enfonce. Encre bleue + ombre pleine.
+   Réservé : actions de la vente + « Nouvelle vente » (la porte d'entrée). */
+  .btn--sale {
+    --_bg: var(--action);
+    --_ink: var(--action-ink);
+    --_border: var(--ink);
+    --_shadow: var(--shadow-press);
+    min-height: var(--tap-sale);
+    padding-inline: var(--space-6);
+    border-width: var(--border-tactile);
+    font-size: var(--step-1);
+    margin-inline-end: var(--press-offset); /* l'ombre a sa place, rien ne déborde */
+    margin-block-end: var(--press-offset);
+  }
+  .btn--sale:hover,
+  .btn--sale.is-hover {
+    --_bg: var(--action-hover);
+  }
+  .btn--sale:active,
+  .btn--sale.is-pressed {
+    transform: translate(var(--press-offset), var(--press-offset));
+    --_shadow: var(--shadow-press-none);
+  }
+  .btn--sale .amount {
+    font-size: 1em;
+  }
+
+  /* Touche secondaire de vente (−500, Prix affiché…) : blanche, petite ombre */
+  .btn--tactile {
+    --_bg: var(--sheet);
+    --_ink: var(--ink);
+    --_border: var(--ink);
+    --_shadow: var(--shadow-press-sm);
+    border-width: var(--border-tactile);
+    margin-inline-end: var(--press-offset-sm);
+    margin-block-end: var(--press-offset-sm);
+  }
+  .btn--tactile:hover,
+  .btn--tactile.is-hover {
+    --_bg: var(--sale-accent-tint);
+  }
+  .btn--tactile:active,
+  .btn--tactile.is-pressed {
+    transform: translate(var(--press-offset-sm), var(--press-offset-sm));
+    --_shadow: var(--shadow-press-none);
+  }
+
+  /* Tailles */
+  .btn--lg {
+    min-height: var(--tap-sale);
+    font-size: var(--step-1);
+  }
+  .btn--xl {
+    min-height: var(--tap-sale-lg);
+    font-size: var(--step-1);
+  }
+  .btn--block {
+    display: flex;
+    width: 100%;
+  }
+  .btn--sale.btn--block,
+  .btn--tactile.btn--block {
+    width: calc(100% - var(--press-offset));
+  }
+
+  /* Désactivé : lisible (6,2:1) et dit pourquoi dans son libellé */
+  .btn:disabled,
+  .btn[aria-disabled='true'] {
+    --_bg: var(--disabled-bg);
+    --_ink: var(--disabled-ink);
+    --_border: transparent;
+    --_shadow: none;
+    transform: none;
+    cursor: not-allowed;
+    text-decoration: none;
+  }
+  .btn--sale:disabled,
+  .btn--sale[aria-disabled='true'],
+  .btn--tactile:disabled,
+  .btn--tactile[aria-disabled='true'] {
+    --_bg: var(--sheet);
+    --_ink: var(--ink-soft);
+    --_border: var(--ink-muted);
+    border-style: dashed;
+    font-size: var(--step-0);
+  }
+
+  /* Chargement : le libellé devient « Un instant… », un trait s'écrit dessous */
+  .btn[aria-busy='true'] {
+    cursor: progress;
+  }
+  .btn[aria-busy='true']::after {
+    content: '';
+    position: absolute;
+    inset-inline: 22%;
+    bottom: 7px;
+    height: 2px;
+    border-radius: 2px;
+    background: currentColor;
+    transform-origin: left center;
+    animation: covi-write-loop 1100ms var(--ease-out) infinite;
+  }
+
+  /* ==========================================================================
+   2. IconButton
+   ========================================================================== */
+  .icon-btn {
+    display: inline-grid;
+    place-items: center;
+    width: var(--tap-min);
+    height: var(--tap-min);
+    border-radius: var(--radius-3);
+    border: var(--border-field) solid transparent;
+    background: transparent;
+    color: var(--action);
+    transition:
+      background-color var(--dur-fast) var(--ease-out),
+      transform var(--dur-instant) var(--ease-press),
+      box-shadow var(--dur-instant) var(--ease-press);
+  }
+  .icon-btn svg {
+    width: var(--icon-size);
+    height: var(--icon-size);
+    stroke: currentColor;
+    stroke-width: var(--icon-stroke);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .icon-btn:hover,
+  .icon-btn.is-hover {
+    background: var(--action-tint);
+  }
+  .icon-btn:active,
+  .icon-btn.is-pressed {
+    transform: translateY(1px);
+  }
+  .icon-btn:focus-visible,
+  .icon-btn.is-focus {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+  }
+  .icon-btn--outlined {
+    border-color: var(--line-field);
+    background: var(--sheet);
+  }
+  .icon-btn--danger {
+    color: var(--danger);
+  }
+  .icon-btn--danger:hover {
+    background: var(--danger-tint);
+  }
+  .icon-btn:disabled,
+  .icon-btn[aria-disabled='true'] {
+    color: var(--disabled-ink);
+    background: transparent;
+    opacity: 0.55;
+    transform: none;
+  }
+
+  .icon-btn--tactile {
+    width: 48px;
+    height: 48px;
+    border: var(--border-tactile) solid var(--ink);
+    background: var(--sheet);
+    color: var(--ink);
+    box-shadow: var(--shadow-press-sm);
+    margin: 0 var(--press-offset-sm) var(--press-offset-sm) 0;
+  }
+  .icon-btn--tactile:hover {
+    background: var(--sale-accent-tint);
+  }
+  .icon-btn--tactile:active,
+  .icon-btn--tactile.is-pressed {
+    transform: translate(var(--press-offset-sm), var(--press-offset-sm));
+    box-shadow: var(--shadow-press-none);
+  }
+
+  /* ==========================================================================
+   3. Field · Label · Hint · Error · Input · Select · SearchField
+   ========================================================================== */
+  .field {
+    display: grid;
+    gap: var(--space-1);
+    min-width: 0;
+  }
+  .field__label {
+    font-weight: var(--weight-bold);
+    font-size: var(--step--1);
+    color: var(--ink);
+    line-height: var(--leading-snug);
+  }
+  .field__label .field__optional {
+    font-weight: var(--weight-regular);
+    color: var(--ink-muted);
+  }
+  .field__hint {
+    font-size: var(--step--1);
+    color: var(--ink-muted);
+    line-height: var(--leading-snug);
+  }
+  .field__error {
+    display: flex;
+    gap: var(--space-2);
+    align-items: flex-start;
+    font-size: var(--step--1);
+    color: var(--danger);
+    font-weight: var(--weight-bold);
+    line-height: var(--leading-snug);
+  }
+  .field__error svg {
+    width: 18px;
+    height: 18px;
+    margin-top: 1px;
+    stroke: currentColor;
+    stroke-width: var(--icon-stroke);
+    stroke-linecap: round;
+  }
+
+  .input,
+  .select {
+    width: 100%;
+    height: var(--field-height);
+    padding: 0 var(--space-3);
+    border: var(--border-field) solid var(--line-field);
+    border-radius: var(--radius-3);
+    background-color: var(--sheet);
+    color: var(--ink);
+    font-family: var(--font-text);
+    font-size: max(16px, var(--step-0)); /* < 16 px = zoom forcé sur Android/iOS */
+    transition:
+      border-color var(--dur-fast) var(--ease-out),
+      background-color var(--dur-fast) var(--ease-out);
+  }
+  .input::placeholder {
+    color: var(--ink-muted);
+    opacity: 1;
+  }
+  .input:hover,
+  .select:hover,
+  .input.is-hover {
+    border-color: var(--ink-soft);
+  }
+  .input:focus-visible,
+  .select:focus-visible,
+  .input.is-focus {
+    outline: var(--focus-ring);
+    outline-offset: 1px;
+    border-color: var(--action);
+  }
+  .input[aria-invalid='true'],
+  .select[aria-invalid='true'] {
+    border-color: var(--danger);
+    background-color: #fffcfb;
+  }
+  .input:disabled,
+  .select:disabled,
+  .input[readonly] {
+    background-color: var(--disabled-bg);
+    color: var(--disabled-ink);
+    border-style: dashed;
+    cursor: not-allowed;
+  }
+  .input[readonly] {
+    cursor: default;
+  }
+
+  /* Montant saisi : chiffres de caisse, alignés à droite */
+  .input--amount {
+    font-family: var(--font-figures);
+    font-weight: var(--weight-bold);
+    font-size: 1.3125rem;
+    text-align: right;
+    font-variant-numeric: var(--numeric-tabular);
+  }
+  /* Champ + suffixe « FCFA » */
+  .input-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .input-group .input {
+    padding-inline-end: 4.25rem;
+  }
+  .input-group__suffix {
+    position: absolute;
+    inset-inline-end: var(--space-3);
+    font-weight: var(--weight-bold);
+    font-size: var(--step--1);
+    color: var(--ink-soft);
+    pointer-events: none;
+  }
+
+  /* Select natif, chevron dessiné en CSS (pas d'image) */
+  .select {
+    appearance: none;
+    padding-inline-end: 2.75rem;
+    background-image:
+      linear-gradient(45deg, transparent 50%, var(--ink) 50%),
+      linear-gradient(135deg, var(--ink) 50%, transparent 50%);
+    background-position:
+      calc(100% - 22px) 52%,
+      calc(100% - 15px) 52%;
+    background-size:
+      7px 7px,
+      7px 7px;
+    background-repeat: no-repeat;
+    cursor: pointer;
+  }
+
+  /* Recherche */
+  .search {
+    position: relative;
+    display: block;
+  }
+  .search__icon {
+    position: absolute;
+    inset-inline-start: 12px;
+    top: 50%;
+    translate: 0 -50%;
+    width: 22px;
+    height: 22px;
+    stroke: var(--ink-muted);
+    stroke-width: var(--icon-stroke);
+    stroke-linecap: round;
+    pointer-events: none;
+  }
+  .search .input {
+    padding-inline: 44px 48px;
+  }
+  .search__clear {
+    position: absolute;
+    inset-inline-end: 2px;
+    top: 50%;
+    translate: 0 -50%;
+  }
+  .search .input:placeholder-shown ~ .search__clear {
+    display: none;
+  }
+
+  /* ==========================================================================
+   4. Amount — montant en FCFA (Courier Prime, toujours tabulaire)
+   Écrire les espaces avec U+00A0 (insécable), pas U+202F : les polices
+   n'ont pas l'espace fine et la chasse fixe serait cassée.
+   ========================================================================== */
+  .amount {
+    font-family: var(--font-figures);
+    font-weight: var(--weight-bold);
+    font-size: var(--amount-md);
+    line-height: var(--leading-tight);
+    font-variant-numeric: var(--numeric-tabular);
+    word-spacing: var(--figures-gap);
+    white-space: nowrap;
+  }
+  .amount__unit {
+    font-size: 0.6em;
+    margin-inline-start: 0.3em;
+    letter-spacing: 0;
+  }
+  .amount--sm {
+    font-size: var(--amount-sm);
+  }
+  .amount--md {
+    font-size: var(--amount-md);
+  }
+  .amount--lg {
+    font-size: var(--amount-lg);
+    letter-spacing: -0.01em;
+  }
+  .amount--xl {
+    font-size: var(--amount-xl);
+    letter-spacing: var(--tracking-figures);
+  }
+  .amount--hero {
+    font-size: var(--amount-hero);
+    letter-spacing: var(--tracking-figures);
+    line-height: 1.05;
+  }
+  .amount--hero .amount__unit {
+    font-size: 0.38em;
+  }
+  .amount--regular {
+    font-weight: var(--weight-regular);
+  }
+  .amount--out {
+    color: var(--danger);
+  } /* sortie d'argent : « − 90 000 » (vrai signe moins dans le texte) */
+  .amount--in {
+    color: var(--success);
+  }
+  .amount--struck {
+    /* prix affiché, barré après négociation */
+    font-weight: var(--weight-regular);
+    color: var(--ink-soft);
+    text-decoration: line-through;
+    text-decoration-color: var(--danger);
+    text-decoration-thickness: 2px;
+  }
+
+  /* ==========================================================================
+   5. Ledger — ligne de cahier : libellé · pointillés · montant
+   ========================================================================== */
+  .ledger {
+    container-type: inline-size;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .ledger__row {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    padding-block: var(--space-2);
+    border-bottom: var(--border-hair) solid var(--line);
+  }
+  .ledger__label {
+    min-width: 0;
+  }
+  .ledger__meta {
+    display: block;
+    font-size: var(--step--1);
+    color: var(--ink-muted);
+  }
+  .ledger__dots {
+    flex: 1 1 1.5rem;
+    min-width: 1.5rem;
+    align-self: baseline;
+    height: 0.3em;
+    border-bottom: 2px dotted var(--line-dotted);
+  }
+  .ledger__value {
+    margin-inline-start: auto;
+    text-align: end;
+  }
+  .ledger__row--head .ledger__label {
+    font-weight: var(--weight-bold);
+  }
+  .ledger__row--sub .ledger__label {
+    padding-inline-start: var(--space-4);
+  }
+  .ledger__row--total {
+    margin-top: var(--space-1);
+    padding-block: var(--space-3) var(--space-2);
+    border-top: var(--border-total) solid var(--line-strong);
+    border-bottom: 4px double var(--line-strong);
+    font-weight: var(--weight-bold);
+  }
+  .ledger__row--total .amount {
+    font-size: var(--step-2);
+  }
+  /* Ligne cliquable (vente de l'historique, charge à modifier) */
+  .ledger__row--link {
+    position: relative;
+    min-height: var(--tap-min);
+    padding-inline: var(--space-1);
+    transition: background-color var(--dur-fast) var(--ease-out);
+  }
+  .ledger__row--link:hover {
+    background: var(--action-tint);
+  }
+  .ledger__row--link:active {
+    background: var(--action-tint-strong);
+  }
+  .ledger__row--link a {
+    color: inherit;
+    text-decoration: none;
+  }
+  .ledger__row--link a::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+  .ledger__row--link:has(a:focus-visible) {
+    outline: var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .ledger__row--link a:focus-visible {
+    outline: none;
+  }
+
+  @container (max-width: 18rem) {
+    .ledger__dots {
+      display: none;
+    }
+  }
+
+  /* ==========================================================================
+   6. Card « feuille » et ticket
+   Une feuille par zone, jamais une grille de cartes identiques.
+   ========================================================================== */
+  .sheet {
+    position: relative;
+    container-type: inline-size;
+    background: var(--sheet);
+    border-radius: var(--radius-sheet);
+    box-shadow: var(--shadow-sheet);
+    padding: var(--space-5);
+  }
+  .sheet--seyes {
+    background-color: var(--paper);
+  }
+  .sheet__title {
+    font-size: var(--step-1);
+    font-weight: var(--weight-bold);
+    margin-bottom: var(--space-3);
+  }
+
+  /* Étiquette de cahier (nom de la boutique) : double cadre bleu */
+  .label-card {
+    background: var(--sheet);
+    border: var(--border-field) solid var(--action);
+    border-radius: var(--radius-4);
+    padding: var(--space-3) var(--space-4) var(--space-4);
+    box-shadow:
+      0 0 0 4px var(--sheet),
+      0 0 0 5.5px #a9b9d8;
+    margin: 6px;
+  }
+
+  /* Ticket de caisse : Courier, dents en bas (CSS pur) */
+  .ticket {
+    position: relative;
+    max-width: 22rem;
+    background: var(--sheet);
+    padding: var(--space-4) var(--space-4) var(--space-3);
+    font-family: var(--font-figures);
+    font-size: 0.9375rem;
+    line-height: 1.4;
+    color: var(--ink);
+    word-spacing: var(--figures-gap);
+    box-shadow: var(--shadow-ticket);
+    margin-bottom: 8px;
+  }
+  .ticket::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: 100%;
+    height: 7px;
+    background: conic-gradient(from -45deg at 50% 100%, var(--sheet) 90deg, transparent 0) 0 0 /
+      12px 100% repeat-x;
+    filter: drop-shadow(0 1px 0 rgb(30 36 48 / 0.1));
+  }
+  .ticket--tilt {
+    rotate: 0.6deg;
+  }
+  .ticket__head {
+    text-align: center;
+    font-weight: var(--weight-bold);
+  }
+  .ticket__sub {
+    text-align: center;
+    color: var(--ink-muted);
+  }
+  .ticket__cut {
+    border: 0;
+    border-top: 1.5px dashed var(--line-dotted);
+    margin: var(--space-3) 0;
+  }
+  .ticket__line {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+  .ticket__line > :last-child {
+    white-space: nowrap;
+    font-weight: var(--weight-bold);
+  }
+  .ticket__note {
+    color: var(--ink-muted);
+    padding-inline-start: 3.25em;
+  }
+  .ticket__total {
+    font-size: 1.1875rem;
+    font-weight: var(--weight-bold);
+  }
+
+  /* ==========================================================================
+   7. Tabs (filtres d'écran) et Segmented (moyen de paiement)
+   ========================================================================== */
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-2);
+    border-bottom: var(--border-hair) solid var(--line);
+  }
+  .tabs__tab {
+    position: relative;
+    min-height: var(--tap-min);
+    padding: 0 var(--space-3);
+    border-radius: var(--radius-2) var(--radius-2) 0 0;
+    color: var(--ink-soft);
+    font-weight: var(--weight-regular);
+    transition:
+      background-color var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out);
+  }
+  .tabs__tab:hover,
+  .tabs__tab.is-hover {
+    background: var(--action-tint);
+    color: var(--action);
+  }
+  .tabs__tab:focus-visible,
+  .tabs__tab.is-focus {
+    outline: var(--focus-ring);
+    outline-offset: -2px;
+  }
+  .tabs__tab[aria-selected='true'] {
+    color: var(--action);
+    font-weight: var(--weight-bold);
+  }
+  /* Trait de stylo sous l'onglet choisi : un peu de travers, comme à la main */
+  .tabs__tab[aria-selected='true']::after {
+    content: '';
+    position: absolute;
+    inset-inline: var(--space-2);
+    bottom: 4px;
+    height: 3px;
+    background: currentColor;
+    border-radius: 40% 60% 50% 50% / 100%;
+    rotate: -1deg;
+    transform-origin: left;
+    animation: covi-underline var(--dur-base) var(--ease-out) both;
+  }
+
+  .segmented {
+    display: grid;
+    gap: var(--space-2);
+  }
+  .segmented__legend {
+    font-weight: var(--weight-bold);
+    font-size: var(--step-0);
+    margin-bottom: var(--space-2);
+  }
+  .segmented__options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+  }
+  .segmented__option {
+    position: relative;
+    display: block;
+    cursor: pointer;
+  }
+  .segmented__input {
+    position: absolute;
+    opacity: 0;
+    inset: 0;
+    margin: 0;
+    cursor: pointer;
+  }
+  .segmented__label {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--tap-sale);
+    padding: var(--space-2) var(--space-3);
+    border: var(--border-field) solid var(--line-field);
+    border-radius: var(--radius-3);
+    background: var(--sheet);
+    color: var(--ink);
+    line-height: var(--leading-snug);
+    transition:
+      border-color var(--dur-fast) var(--ease-out),
+      background-color var(--dur-fast) var(--ease-out),
+      transform var(--dur-instant) var(--ease-press),
+      box-shadow var(--dur-instant) var(--ease-press);
+  }
+  .segmented__label svg {
+    width: 24px;
+    height: 24px;
+    stroke: currentColor;
+    stroke-width: var(--icon-stroke);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .segmented__option:hover .segmented__label {
+    border-color: var(--action);
+  }
+  .segmented__input:focus-visible + .segmented__label,
+  .segmented__label.is-focus {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+  }
+  .segmented__input:checked + .segmented__label {
+    border-color: var(--action);
+    background: var(--action-tint);
+    color: var(--action);
+    font-weight: var(--weight-bold);
+  }
+  /* Trait de stylo qui entoure le choix */
+  .segmented__input:checked + .segmented__label::after {
+    content: '';
+    position: absolute;
+    inset: -6px -5px -7px -6px;
+    border: 2.4px solid var(--action);
+    border-radius: 52% 46% 50% 44% / 58% 52% 48% 44%;
+    rotate: -1.5deg;
+    pointer-events: none;
+    -webkit-mask: conic-gradient(from 200deg, #000 var(--covi-sweep), transparent 0);
+    mask: conic-gradient(from 200deg, #000 var(--covi-sweep), transparent 0);
+    animation: covi-pen-circle 320ms var(--ease-out) both;
+  }
+  .segmented__input:disabled + .segmented__label {
+    background: var(--disabled-bg);
+    color: var(--disabled-ink);
+    border-style: dashed;
+    cursor: not-allowed;
+  }
+
+  /* Variante vente : touches qui s'enfoncent, choix = enfoncé + jaune enseigne */
+  .is-sale .segmented__label,
+  .segmented--sale .segmented__label {
+    min-height: var(--tap-sale-lg);
+    border: var(--border-tactile) solid var(--ink);
+    font-weight: var(--weight-bold);
+    box-shadow: var(--shadow-press);
+    margin: 0 var(--press-offset) var(--press-offset) 0;
+  }
+  .is-sale .segmented__option:hover .segmented__label,
+  .segmented--sale .segmented__option:hover .segmented__label {
+    border-color: var(--ink);
+    background: var(--sale-accent-tint);
+  }
+  .is-sale .segmented__option:active .segmented__label,
+  .segmented--sale .segmented__option:active .segmented__label,
+  .is-sale .segmented__input:checked + .segmented__label,
+  .segmented--sale .segmented__input:checked + .segmented__label {
+    transform: translate(var(--press-offset), var(--press-offset));
+    box-shadow: var(--shadow-press-none);
+  }
+  .is-sale .segmented__input:checked + .segmented__label,
+  .segmented--sale .segmented__input:checked + .segmented__label {
+    background: var(--sale-accent);
+    border-color: var(--ink);
+    color: var(--ink);
+  }
+
+  /* ==========================================================================
+   8. Badge (pastille, minuscules) et Tampon (objet, majuscules)
+   ========================================================================== */
+  .badge {
+    --_c: var(--ink-soft);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: 1px var(--space-2);
+    border: var(--border-field) solid var(--_c);
+    border-radius: var(--radius-1) var(--radius-2) var(--radius-1) var(--radius-2);
+    color: var(--_c);
+    background: var(--sheet);
+    font-size: var(--step--1);
+    font-weight: var(--weight-bold);
+    line-height: 1.35;
+    white-space: nowrap;
+    vertical-align: baseline;
+  }
+  .badge svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .badge--action {
+    --_c: var(--action);
+  }
+  .badge--transit {
+    --_c: var(--ink-soft);
+    border-style: dashed;
+  }
+  .badge--success {
+    --_c: var(--success);
+    background: var(--success-tint);
+  }
+  .badge--danger {
+    --_c: var(--danger);
+    background: var(--danger-tint);
+  }
+  .badge--low {
+    --_c: var(--ink);
+    border-color: transparent;
+    background: var(--highlight);
+    border-radius: 0.2em 0.5em 0.3em 0.6em;
+  }
+  .badge--waiting {
+    --_c: var(--notice-ink);
+    border-color: var(--notice-line);
+    background: var(--notice-bg);
+    font-weight: var(--weight-regular);
+  }
+
+  .stamp {
+    --_c: var(--danger);
+    display: inline-block;
+    padding: 0 0.4em;
+    border: 4px double var(--_c);
+    border-radius: 8px;
+    color: var(--_c);
+    font-family: var(--font-figures);
+    font-weight: var(--weight-bold);
+    font-size: 1.75rem;
+    line-height: 1.15;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    rotate: -12deg;
+    opacity: 0.92;
+    mix-blend-mode: multiply;
+    pointer-events: none;
+  }
+  .stamp--sm {
+    font-size: 1rem;
+    border-width: 3px;
+    padding: 0 0.35em;
+    rotate: -6deg;
+  }
+  .stamp--lg {
+    font-size: 2.25rem;
+  }
+  .stamp--paid {
+    --_c: var(--danger);
+  }
+  .stamp--received {
+    --_c: var(--action);
+  }
+  .stamp--transit {
+    --_c: var(--ink-soft);
+    border-style: dashed;
+    border-width: 3px;
+  }
+  .stamp--done {
+    --_c: var(--success);
+  }
+  .stamp--drop {
+    animation: covi-stamp-drop var(--dur-slow) var(--ease-stamp) both;
+    animation-delay: var(--stamp-delay, 0ms);
+  }
+
+  /* ==========================================================================
+   9. Progress — règle graduée (ce que le ballon a déjà rapporté)
+   <div class="ruler" role="img" aria-label="…" style="--value: 74%">
+   ========================================================================== */
+  .ruler {
+    --_fill: var(--action);
+    position: relative;
+    max-width: 26rem;
+    padding-top: 1.5rem;
+    height: calc(1.5rem + 22px);
+  }
+  .ruler__track {
+    position: absolute;
+    inset-inline: 0;
+    top: 1.5rem;
+    height: 22px;
+    background:
+    /* grandes graduations 0, 50, 100 % */
+      linear-gradient(var(--ink), var(--ink)) 0 2px / 1.5px 16px no-repeat,
+      linear-gradient(var(--ink), var(--ink)) 50% 3px / 1.5px 14px no-repeat,
+      linear-gradient(var(--ink), var(--ink)) 100% 2px / 1.5px 16px no-repeat,
+      /* petites graduations tous les 10 % */
+        repeating-linear-gradient(to right, var(--ink-muted) 0 1px, transparent 1px 10%) 0 6px /
+        100% 8px no-repeat,
+      /* la règle */ linear-gradient(var(--ink), var(--ink)) 0 9.5px / 100% 1.5px no-repeat;
+  }
+  .ruler__fill {
+    position: absolute;
+    inset-inline-start: 0;
+    top: calc(1.5rem + 5px);
+    height: 10px;
+    width: min(var(--value, 0%), 100%);
+    background: var(--_fill);
+    border-radius: 2px;
+    transform-origin: left center;
+    animation: covi-fill var(--dur-slow) var(--ease-out) both;
+  }
+  .ruler__mark {
+    position: absolute;
+    top: 0;
+    inset-inline-start: min(var(--value, 0%), 100%);
+    translate: calc(min(var(--value, 0%), 100%) * -1) 0;
+    font-family: var(--font-figures);
+    font-weight: var(--weight-bold);
+    font-size: 0.9375rem;
+    line-height: 1.5rem;
+    word-spacing: var(--figures-gap);
+    color: var(--_fill);
+    white-space: nowrap;
+  }
+  .ruler--done {
+    --_fill: var(--success);
+  }
+
+  /* ==========================================================================
+   10. Notice (bandeau dans la page) et Toast (message qui glisse)
+   ========================================================================== */
+  .notice {
+    display: flex;
+    gap: var(--space-3);
+    align-items: flex-start;
+    padding: var(--space-3) var(--space-4);
+    border: var(--border-hair) solid var(--notice-line);
+    border-radius: var(--radius-2);
+    background: var(--notice-bg);
+    color: var(--notice-ink);
+    font-size: var(--step--1);
+    line-height: 1.45;
+  }
+  .notice__icon {
+    width: 24px;
+    height: 24px;
+    flex: none;
+    margin-top: 1px;
+    stroke: var(--notice-icon);
+    stroke-width: var(--icon-stroke);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .notice__body {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .notice__title {
+    font-weight: var(--weight-bold);
+    color: var(--ink);
+  }
+  .notice__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+  }
+  .notice__actions .btn {
+    min-height: 40px;
+    padding-inline: var(--space-3);
+    font-size: var(--step--1);
+  }
+  .notice--success {
+    background: var(--success-tint);
+    border-color: #b9d7c3;
+  }
+  .notice--success .notice__icon {
+    stroke: var(--success);
+  }
+  .notice--danger {
+    background: var(--danger-tint);
+    border-color: #ebc1bc;
+  }
+  .notice--danger .notice__icon,
+  .notice--danger .notice__title {
+    stroke: var(--danger);
+    color: var(--danger);
+  }
+
+  /* Indicateur compact d'en-tête : « Pas de réseau · 1 vente à envoyer » (touchable) */
+  .net-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--tap-min);
+    padding: var(--space-1) var(--space-3) var(--space-1) var(--space-2);
+    border: var(--border-hair) solid var(--notice-line);
+    border-radius: var(--radius-pill);
+    background: var(--notice-bg);
+    color: var(--notice-ink);
+    font-size: var(--step--1);
+    line-height: 1.25;
+    text-align: start;
+    transition: background-color var(--dur-fast) var(--ease-out);
+  }
+  .net-pill svg {
+    width: 20px;
+    height: 20px;
+    stroke: var(--notice-icon);
+    stroke-width: var(--icon-stroke);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .net-pill:hover {
+    background: var(--action-tint);
+  }
+  .net-pill:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+  }
+
+  .toast-region {
+    position: fixed;
+    inset-inline: var(--gutter);
+    bottom: calc(var(--bottomnav-height) + var(--space-3) + env(safe-area-inset-bottom, 0px));
+    z-index: var(--z-toast);
+    display: grid;
+    justify-items: center;
+    gap: var(--space-2);
+    pointer-events: none;
+  }
+  @media (min-width: 1024px) {
+    .toast-region {
+      bottom: var(--space-6);
+      inset-inline: auto var(--space-6);
+      justify-items: end;
+    }
+  }
+  .toast {
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    max-width: 30rem;
+    min-height: var(--tap-min);
+    padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+    background: var(--sheet);
+    color: var(--ink);
+    border: var(--border-field) solid var(--ink);
+    border-radius: var(--radius-2);
+    box-shadow: var(--shadow-lift);
+    font-size: var(--step--1);
+    animation: covi-toast-in var(--dur-base) var(--ease-out) both;
+  }
+  .toast svg {
+    width: 22px;
+    height: 22px;
+    stroke: var(--action);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .toast--calm svg {
+    stroke: var(--notice-icon);
+  }
+  .toast.is-leaving {
+    animation: covi-toast-out var(--dur-fast) var(--ease-in) both;
+  }
+
+  /* ==========================================================================
+   11. EmptyState — asymétrique, aligné sur la marge (pas centré)
+   ========================================================================== */
+  .empty {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--space-2) var(--space-4);
+    align-items: start;
+    max-width: 34rem;
+    padding-block: var(--space-6);
+  }
+  .empty__art {
+    width: 64px;
+    height: 72px;
+    stroke: var(--ink-muted);
+    stroke-width: 1.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    grid-row: span 3;
+  }
+  .empty__title {
+    font-size: var(--step-1);
+    font-weight: var(--weight-bold);
+    color: var(--ink);
+  }
+  .empty__text {
+    color: var(--ink-soft);
+  }
+  .empty__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-top: var(--space-2);
+  }
+  @container (max-width: 22rem) {
+    .empty {
+      grid-template-columns: 1fr;
+    }
+    .empty__art {
+      grid-row: auto;
+    }
+  }
+
+  /* ==========================================================================
+   12. Skeleton — lignes de cahier qui s'écrivent
+   ========================================================================== */
+  .skeleton {
+    display: grid;
+    gap: 0;
+  }
+  .skeleton__caption {
+    color: var(--ink-muted);
+    font-size: var(--step--1);
+    margin-bottom: var(--space-2);
+  }
+  .skeleton__line {
+    position: relative;
+    height: 2.25rem;
+    border-bottom: var(--border-hair) solid var(--line);
+  }
+  .skeleton__line::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: 0;
+    bottom: 9px;
+    width: var(--w, 70%);
+    height: 8px;
+    border-radius: 4px 6px 3px 5px;
+    background: rgb(90 97 112 / 0.18);
+    transform-origin: left center;
+    animation: covi-write-loop var(--dur-loop) var(--ease-out) infinite;
+    animation-delay: calc(var(--i, 0) * 140ms);
+  }
+  .skeleton__line--amount::after {
+    content: '';
+    position: absolute;
+    inset-inline-end: 0;
+    bottom: 9px;
+    width: 4.5rem;
+    height: 10px;
+    border-radius: 3px;
+    background: rgb(90 97 112 / 0.22);
+  }
+
+  /* ==========================================================================
+   13. Dialog (centré) et Sheet (feuille qui monte, téléphone)
+   Utiliser <dialog> natif : focus piégé et Échap gérés par le navigateur.
+   ========================================================================== */
+  .dialog {
+    width: min(28rem, calc(100vw - 2 * var(--gutter)));
+    max-height: calc(100dvh - 2 * var(--gutter));
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-4);
+    background: var(--sheet);
+    color: var(--ink);
+    box-shadow: var(--shadow-lift);
+    overflow: auto;
+  }
+  .dialog[open] {
+    animation: covi-rise var(--dur-base) var(--ease-out) both;
+  }
+  .dialog::backdrop {
+    background: var(--overlay);
+  }
+  .dialog__body {
+    padding: var(--space-6) var(--space-5) var(--space-5);
+    display: grid;
+    gap: var(--space-3);
+  }
+  .dialog__title {
+    font-size: var(--step-2);
+    font-weight: var(--weight-bold);
+    line-height: var(--leading-snug);
+    color: var(--ink);
+  }
+  .dialog__text {
+    color: var(--ink-soft);
+  }
+  .dialog__actions {
+    display: flex;
+    flex-wrap: wrap-reverse;
+    justify-content: flex-end;
+    gap: var(--space-3);
+    margin-top: var(--space-3);
+  }
+  .dialog__actions .btn {
+    flex: 1 1 8rem;
+  }
+
+  .dialog--sheet {
+    width: 100%;
+    max-width: 100%;
+    margin: auto 0 0;
+    border-radius: var(--radius-4) var(--radius-4) 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .dialog--sheet[open] {
+    animation: covi-sheet-up var(--dur-slow) var(--ease-sheet) both;
+  }
+  /* Perforation du carnet à souches, en haut de la feuille */
+  .dialog--sheet::before {
+    content: '';
+    display: block;
+    margin: 14px var(--space-5) 0;
+    border-top: 2px dashed var(--line-dotted);
+  }
+  @media (min-width: 640px) {
+    .dialog--sheet {
+      width: min(30rem, calc(100vw - 2 * var(--gutter)));
+      margin: auto;
+      border-radius: var(--radius-4);
+    }
+  }
+  /* Pour une page de démonstration : dialogue dessiné dans le flux */
+  .dialog--static {
+    position: relative;
+    display: block;
+    margin: 0;
+    inset: auto;
+    animation: none !important;
+  }
+
+  /* ==========================================================================
+   14. BottomNav (téléphone, < 1024 px)
+   « Vendre » est une touche : c'est la porte d'entrée de la vente.
+   ========================================================================== */
+  .bottom-nav {
+    display: flex;
+    height: calc(var(--bottomnav-height) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--paper);
+    border-top: var(--border-hair) solid var(--line);
+  }
+  .bottom-nav__item {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end; /* libellés alignés, la touche Vendre dépasse vers le haut */
+    gap: 3px;
+    padding-bottom: 11px;
+    min-height: var(--tap-min);
+    color: var(--ink-muted);
+    font-size: var(--step--2);
+    line-height: 1.2;
+    text-decoration: none;
+    transition:
+      color var(--dur-fast) var(--ease-out),
+      background-color var(--dur-fast) var(--ease-out);
+  }
+  .bottom-nav__item svg {
+    width: 24px;
+    height: 24px;
+    stroke: currentColor;
+    stroke-width: var(--icon-stroke);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .bottom-nav__item:hover {
+    color: var(--action);
+    text-decoration: none;
+  }
+  .bottom-nav__item:active {
+    background: var(--action-tint);
+  }
+  .bottom-nav__item:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: -4px;
+    border-radius: var(--radius-3);
+  }
+  .bottom-nav__item[aria-current='page'] {
+    color: var(--action);
+    font-weight: var(--weight-bold);
+  }
+  .bottom-nav__item[aria-current='page']:not(.bottom-nav__item--sale)::after {
+    content: '';
+    position: absolute;
+    bottom: 5px;
+    width: 30px;
+    height: 2.5px;
+    background: currentColor;
+    border-radius: 40% 60% 50% 50% / 100%;
+    rotate: -2deg;
+  }
+  .bottom-nav__key {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 34px;
+    border: var(--border-tactile) solid var(--ink);
+    border-radius: var(--radius-3);
+    background: var(--action);
+    color: var(--action-ink);
+    box-shadow: var(--shadow-press-sm);
+    transition:
+      transform var(--dur-instant) var(--ease-press),
+      box-shadow var(--dur-instant) var(--ease-press),
+      background-color var(--dur-fast) var(--ease-out);
+  }
+  .bottom-nav__item--sale {
+    color: var(--ink);
+    font-weight: var(--weight-bold);
+  }
+  .bottom-nav__item--sale:active .bottom-nav__key {
+    transform: translate(2px, 2px);
+    box-shadow: var(--shadow-press-none);
+  }
+  .bottom-nav__item--sale[aria-current='page'] .bottom-nav__key {
+    transform: translate(2px, 2px);
+    box-shadow: var(--shadow-press-none);
+    background: var(--sale-accent);
+    color: var(--ink);
+  }
+  .bottom-nav__item--sale[aria-current='page'] {
+    color: var(--ink);
+  }
+
+  /* ==========================================================================
+   15. SideNav « Sommaire » (ordinateur, ≥ 1024 px)
+   ========================================================================== */
+  .sommaire {
+    min-width: 0;
+  }
+  .sommaire__shop-kicker {
+    font-size: var(--step--1);
+    color: var(--ink-muted);
+  }
+  .sommaire__shop-name {
+    font-size: var(--step-2);
+    font-weight: var(--weight-bold);
+    color: var(--action);
+    line-height: var(--leading-snug);
+  }
+  .sommaire__shop-place {
+    font-size: var(--step--1);
+    color: var(--ink-soft);
+    margin-top: var(--space-1);
+  }
+  .sommaire__shop-owner {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+    padding-bottom: 2px;
+    border-bottom: 1.5px dotted var(--line-dotted);
+    font-size: var(--step--1);
+    color: var(--ink-soft);
+  }
+  .sommaire__shop-owner .hand {
+    font-size: 1.3125rem;
+    line-height: 1;
+  }
+  .sommaire__title {
+    margin: var(--space-6) 0 var(--space-2) var(--space-3);
+    font-size: var(--step-0);
+    font-weight: var(--weight-bold);
+    color: var(--ink-soft);
+  }
+  .sommaire__list {
+    display: grid;
+    gap: 2px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .sommaire__link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: var(--tap-min);
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-2);
+    color: var(--ink);
+    text-decoration: none;
+    transition:
+      background-color var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out);
+  }
+  .sommaire__link svg {
+    width: 22px;
+    height: 22px;
+    stroke: currentColor;
+    stroke-width: var(--icon-stroke);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.8;
+  }
+  .sommaire__link:hover,
+  .sommaire__link.is-hover {
+    background: var(--action-tint);
+    color: var(--action-hover);
+    text-decoration: none;
+  }
+  .sommaire__link:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: 0;
+  }
+  .sommaire__link[aria-current='page'] {
+    color: var(--action);
+    font-weight: var(--weight-bold);
+  }
+  .sommaire__link[aria-current='page'] span::after {
+    content: '';
+    display: block;
+    height: 2.5px;
+    margin-top: 1px;
+    background: currentColor;
+    border-radius: 40% 60% 50% 50% / 100%;
+    rotate: -1deg;
+  }
+  .sommaire__sale {
+    margin: var(--space-4) var(--space-3) var(--space-2) 0;
+  }
+  .sommaire__sale .btn {
+    width: calc(100% - var(--press-offset));
+    justify-content: flex-start;
+    white-space: normal;
+    padding-inline: var(--space-4);
+    font-size: var(--step-0);
+    text-align: start;
+  }
+  .sommaire__foot {
+    margin-top: var(--space-6);
+  }
+
+  /* ==========================================================================
+   16. Module de vente (piste C dans l'encre de B)
+   Racine : <section class="is-sale">…
+   ========================================================================== */
+
+  /* Tuile produit : une touche par article */
+  .sale-tile {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: 'name price' 'meta price';
+    align-items: center;
+    gap: 2px var(--space-3);
+    width: calc(100% - var(--press-offset));
+    min-height: 76px;
+    padding: var(--space-3) var(--space-4);
+    border: var(--border-tactile) solid var(--ink);
+    border-radius: var(--radius-3);
+    background: var(--sheet);
+    color: var(--ink);
+    text-align: start;
+    box-shadow: var(--shadow-press);
+    margin: 0 var(--press-offset) var(--press-offset) 0;
+    touch-action: manipulation;
+    transition:
+      transform var(--dur-instant) var(--ease-press),
+      box-shadow var(--dur-instant) var(--ease-press),
+      background-color var(--dur-fast) var(--ease-out);
+  }
+  .sale-tile:hover,
+  .sale-tile.is-hover {
+    background: var(--sale-accent-tint);
+  }
+  .sale-tile:active,
+  .sale-tile.is-pressed {
+    transform: translate(var(--press-offset), var(--press-offset));
+    box-shadow: var(--shadow-press-none);
+  }
+  .sale-tile:focus-visible,
+  .sale-tile.is-focus {
+    outline: var(--focus-ring);
+    outline-offset: 3px;
+  }
+  .sale-tile__name {
+    grid-area: name;
+    font-weight: var(--weight-bold);
+    font-size: var(--step-0);
+    line-height: var(--leading-snug);
+  }
+  .sale-tile__model {
+    font-weight: var(--weight-regular);
+    color: var(--ink-muted);
+  }
+  .sale-tile__meta {
+    grid-area: meta;
+    font-size: var(--step--1);
+    color: var(--ink-muted);
+  }
+  .sale-tile__price {
+    grid-area: price;
+    font-family: var(--font-figures);
+    font-weight: var(--weight-bold);
+    font-size: 1.375rem;
+    white-space: nowrap;
+    word-spacing: var(--figures-gap);
+  }
+  .sale-tile__count {
+    position: absolute;
+    top: -12px;
+    inset-inline-end: -10px;
+    min-width: 34px;
+    height: 34px;
+    padding: 0 6px;
+    display: grid;
+    place-items: center;
+    border: var(--border-tactile) solid var(--ink);
+    border-radius: var(--radius-pill);
+    background: var(--sale-accent);
+    color: var(--ink);
+    font-family: var(--font-figures);
+    font-weight: var(--weight-bold);
+    font-size: 1rem;
+    animation: covi-bump var(--dur-base) var(--ease-stamp);
+  }
+  .sale-tile--in {
+    border-color: var(--action);
+  }
+  .sale-tile:disabled,
+  .sale-tile[aria-disabled='true'] {
+    border-style: dashed;
+    border-color: var(--ink-muted);
+    box-shadow: none;
+    transform: none;
+    background: transparent;
+    color: var(--ink-soft);
+  }
+  .sale-tile:disabled .sale-tile__price {
+    font-weight: var(--weight-regular);
+    text-decoration: line-through;
+  }
+
+  /* Barre du total, collée en bas de la liste de vente */
+  .sale-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-3);
+    padding: var(--space-3) var(--gutter) var(--space-2);
+    background: var(--sale-accent);
+    border-top: var(--border-tactile) solid var(--ink);
+    animation: covi-sheet-up var(--dur-base) var(--ease-out) both;
+  }
+  .sale-bar__count {
+    font-size: var(--step--1);
+    font-weight: var(--weight-bold);
+  }
+  .sale-bar .amount {
+    font-size: 1.625rem;
+    display: block;
+  }
+  .sale-bar .btn {
+    margin-top: 2px;
+  }
+
+  /* Quantité − 1 + */
+  .stepper {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+  }
+  .stepper__value {
+    min-width: 2ch;
+    text-align: center;
+    font-family: var(--font-figures);
+    font-weight: var(--weight-bold);
+    font-size: 1.25rem;
+  }
+
+  /* ==========================================================================
+   17. NumPad — pavé de prix (négociation)
+   ========================================================================== */
+  .numpad {
+    display: grid;
+    gap: var(--space-3);
+    container-type: inline-size;
+  }
+  .numpad__display {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: end;
+    gap: var(--space-1) var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border: var(--border-tactile) solid var(--ink);
+    border-radius: var(--radius-3);
+    background: var(--sale-accent-tint);
+    min-height: 84px;
+  }
+  .numpad__label {
+    font-weight: var(--weight-bold);
+    font-size: var(--step--1);
+    align-self: start;
+    padding-top: 4px;
+  }
+  .numpad__value {
+    justify-self: end;
+    display: inline-flex;
+    align-items: baseline;
+    font-family: var(--font-figures);
+    font-weight: var(--weight-bold);
+    font-size: var(--amount-xl);
+    line-height: 1;
+    letter-spacing: var(--tracking-figures);
+    font-variant-numeric: var(--numeric-tabular);
+    word-spacing: var(--figures-gap);
+    white-space: nowrap;
+  }
+  .numpad__value .amount__unit {
+    font-size: 0.4em;
+    letter-spacing: 0;
+  }
+  .numpad__caret {
+    display: inline-block;
+    width: 3px;
+    height: 0.8em;
+    margin-inline-start: 3px;
+    background: var(--action);
+    align-self: center;
+    animation: covi-caret 1s steps(1) infinite;
+  }
+  .numpad__ref {
+    grid-column: 1 / -1;
+    justify-self: end;
+    font-size: var(--step--1);
+    color: var(--ink-soft);
+  }
+  .numpad__quick {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  .numpad__quick .btn {
+    flex: 1 1 auto;
+    min-width: 4.5rem;
+    padding-inline: var(--space-3);
+    font-family: var(--font-figures);
+    font-size: var(--step-0);
+    word-spacing: var(--figures-gap);
+  }
+  .numpad__quick .btn--text {
+    font-family: var(--font-text);
+    word-spacing: normal;
+  }
+  .numpad__keys {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-3) calc(var(--space-3) + var(--press-offset));
+    padding: 0 var(--press-offset) var(--press-offset) 0;
+  }
+  .numpad__key {
+    display: grid;
+    place-items: center;
+    min-height: var(--tap-sale-lg);
+    border: var(--border-tactile) solid var(--ink);
+    border-radius: var(--radius-3);
+    background: var(--sheet);
+    color: var(--ink);
+    box-shadow: var(--shadow-press);
+    font-family: var(--font-figures);
+    font-weight: var(--weight-bold);
+    font-size: 1.75rem;
+    line-height: 1;
+    touch-action: manipulation;
+    transition:
+      transform var(--dur-instant) var(--ease-press),
+      box-shadow var(--dur-instant) var(--ease-press),
+      background-color var(--dur-instant) var(--ease-out);
+  }
+  .numpad__key svg {
+    width: 28px;
+    height: 28px;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .numpad__key:hover,
+  .numpad__key.is-hover {
+    background: var(--sale-accent-tint);
+  }
+  .numpad__key:active,
+  .numpad__key.is-pressed {
+    transform: translate(var(--press-offset), var(--press-offset));
+    box-shadow: var(--shadow-press-none);
+    background: var(--sale-accent);
+  }
+  .numpad__key:focus-visible,
+  .numpad__key.is-focus {
+    outline: var(--focus-ring);
+    outline-offset: 3px;
+  }
+  .numpad__key--fn {
+    background: var(--paper);
+    font-size: 1.375rem;
+  }
+  .numpad__key:disabled {
+    border-style: dashed;
+    border-color: var(--ink-muted);
+    color: var(--ink-muted);
+    box-shadow: none;
+    transform: none;
+    background: transparent;
+  }
+  /* Touche frappée au clavier physique : JS pose .is-tapped ~150 ms */
+  .numpad__key.is-tapped {
+    animation: covi-press var(--dur-fast) var(--ease-press);
+  }
+  @container (min-width: 26rem) {
+    .numpad__key {
+      min-height: 72px;
+      font-size: 2rem;
+    }
+  }
+
+  /* ==========================================================================
+   18. Célébration de vente — « Vendu. »
+   Ticket qui sort + tampon PAYÉ qui tombe + montant surligné + mot à la main.
+   ========================================================================== */
+  .sale-done {
+    position: relative;
+    display: grid;
+    gap: var(--space-4);
+    justify-items: start;
+    padding: var(--space-6) var(--gutter) var(--space-5) calc(var(--margin-offset) + var(--space-3));
+    overflow: hidden;
+  }
+  .sale-done__title {
+    font-size: var(--step-4);
+    color: var(--action);
+    line-height: 1;
+    animation: covi-rise var(--dur-base) var(--ease-out) both;
+  }
+  .sale-done__amount {
+    display: inline-block;
+    padding: 0 0.15em;
+    background: linear-gradient(var(--sale-accent), var(--sale-accent)) 0 85% / 100% 55% no-repeat;
+    border-radius: 0.1em 0.3em 0.15em 0.35em;
+    animation: covi-highlight-sweep 420ms var(--ease-out) 120ms both;
+  }
+  .sale-done__how {
+    font-size: var(--step-1);
+    margin-top: calc(var(--space-2) * -1);
+  }
+  .sale-done__slot {
+    position: relative;
+    width: 100%;
+    max-width: 19rem;
+    padding-top: var(--space-2);
+    border-top: 3px solid var(--ink); /* la fente de l'imprimante */
+    justify-self: center;
+    margin-bottom: var(--space-8); /* place pour le tampon qui déborde */
+  }
+  .sale-done__ticket {
+    animation: covi-ticket-out 380ms var(--ease-out) 180ms both;
+    transform-origin: top center;
+  }
+  .sale-done__ticket .ticket {
+    margin-inline: auto;
+    animation: covi-thud 180ms var(--ease-out) 760ms both;
+  }
+  .sale-done__mark {
+    position: absolute;
+    inset-inline-end: -12px;
+    bottom: -50px;
+    width: 180px;
+    height: 104px;
+    pointer-events: none;
+  }
+  .sale-done__mark .stamp {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    translate: -50% -50%;
+    --stamp-delay: 600ms;
+  }
+  .sale-done__burst {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .sale-done__burst path {
+    stroke: var(--ink);
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    fill: none;
+    stroke-dasharray: 20;
+    stroke-dashoffset: 20;
+    animation: covi-burst 360ms var(--ease-out) 740ms both;
+  }
+  .sale-done__note {
+    justify-self: start;
+    font-size: 1.5rem;
+    rotate: -3deg;
+    animation: covi-write var(--dur-write) steps(16, end) 1000ms both;
+  }
+  .sale-done__day {
+    font-size: var(--step--1);
+    color: var(--ink-soft);
+  }
+  .sale-done__actions {
+    display: grid;
+    gap: var(--space-2);
+    width: 100%;
+  }
+
+  /* ==========================================================================
+   19. Icônes (règle commune)
+   ========================================================================== */
+  .icon {
+    width: var(--icon-size);
+    height: var(--icon-size);
+    stroke: currentColor;
+    stroke-width: var(--icon-stroke);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+  }
+  .icon--sm {
+    width: 18px;
+    height: 18px;
+  }
+  .icon--lg {
+    width: 32px;
+    height: 32px;
+  }
+} /* fin @layer components */
+
+/* ==========================================================================
+   KEYFRAMES — catalogue détaillé dans motion.md
+   ========================================================================== */
+/* Bouton qui s'enfonce (déclenché par JS : touche frappée au clavier) */
+@keyframes covi-press {
+  0% {
+    transform: none;
+    box-shadow: var(--shadow-press);
+  }
+  45% {
+    transform: translate(var(--press-offset), var(--press-offset));
+    box-shadow: var(--shadow-press-none);
+    background: var(--sale-accent);
+  }
+  100% {
+    transform: none;
+    box-shadow: var(--shadow-press);
+  }
+}
+/* Tampon qui tombe */
+@keyframes covi-stamp-drop {
+  0% {
+    opacity: 0;
+    scale: 2.3;
+    rotate: -3deg;
+  }
+  62% {
+    opacity: 1;
+    scale: 0.94;
+    rotate: -13deg;
+  }
+  100% {
+    opacity: 0.92;
+    scale: 1;
+    rotate: -12deg;
+  }
+}
+/* Trait de stylo qui entoure */
+@keyframes covi-pen-circle {
+  from {
+    --covi-sweep: 0%;
+  }
+  to {
+    --covi-sweep: 100%;
+  }
+}
+/* Trait de stylo sous un onglet */
+@keyframes covi-underline {
+  from {
+    scale: 0 1;
+  }
+  to {
+    scale: 1 1;
+  }
+}
+/* Ticket qui sort de l'imprimante */
+@keyframes covi-ticket-out {
+  from {
+    clip-path: inset(0 0 100% 0);
+    translate: 0 -24px;
+  }
+  to {
+    clip-path: inset(0 0 -20px 0);
+    translate: 0 0;
+  }
+}
+/* Petit choc du ticket quand le tampon frappe */
+@keyframes covi-thud {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  40% {
+    translate: 0 3px;
+  }
+}
+/* Ligne qui s'écrit (texte manuscrit) */
+@keyframes covi-write {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 -10% 0 0);
+  }
+}
+/* Ligne qui s'écrit, en boucle (squelette, bouton occupé) */
+@keyframes covi-write-loop {
+  0% {
+    scale: 0 1;
+    opacity: 1;
+  }
+  55% {
+    scale: 1 1;
+    opacity: 1;
+  }
+  85% {
+    scale: 1 1;
+    opacity: 0.35;
+  }
+  100% {
+    scale: 1 1;
+    opacity: 0;
+  }
+}
+/* Toast qui glisse */
+@keyframes covi-toast-in {
+  from {
+    opacity: 0;
+    translate: 0 calc(100% + 12px);
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes covi-toast-out {
+  from {
+    opacity: 1;
+    translate: 0 0;
+  }
+  to {
+    opacity: 0;
+    translate: 0 12px;
+  }
+}
+/* Feuille qui monte (sheet, barre du total) */
+@keyframes covi-sheet-up {
+  from {
+    translate: 0 100%;
+  }
+  to {
+    translate: 0 0;
+  }
+}
+/* Entrée d'écran / dialogue */
+@keyframes covi-rise {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+/* Surligneur qui passe sur le montant */
+@keyframes covi-highlight-sweep {
+  from {
+    background-size: 0% 55%;
+  }
+  to {
+    background-size: 100% 55%;
+  }
+}
+/* Compteur du panier qui saute */
+@keyframes covi-bump {
+  0% {
+    scale: 0.4;
+  }
+  60% {
+    scale: 1.15;
+  }
+  100% {
+    scale: 1;
+  }
+}
+/* Éclat : traits de stylo autour du tampon */
+@keyframes covi-burst {
+  from {
+    stroke-dashoffset: 20;
+    opacity: 1;
+  }
+  70% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+    opacity: 0.85;
+  }
+}
+/* Règle graduée qui se remplit */
+@keyframes covi-fill {
+  from {
+    scale: 0 1;
+  }
+  to {
+    scale: 1 1;
+  }
+}
+/* Curseur du pavé */
+@keyframes covi-caret {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}

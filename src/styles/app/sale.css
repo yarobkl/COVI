@@ -1,0 +1,304 @@
+/* Vendre — le comptoir (piste C dans l’encre de B, sous .is-sale). */
+@layer app {
+  .sale-head {
+    margin-bottom: var(--space-4);
+  }
+
+  .sale-layout {
+    display: grid;
+    gap: var(--space-8);
+    align-items: start;
+  }
+  .sale-layout__articles {
+    display: grid;
+    gap: var(--space-4);
+    min-width: 0;
+  }
+
+  .sale-tiles {
+    display: grid;
+    gap: var(--space-3);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Tuile avec vignette : photo ou initiale à gauche. */
+  .sale-tile--thumb {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'thumb name price'
+      'thumb meta price';
+    column-gap: var(--space-3);
+    padding-inline-start: var(--space-3);
+  }
+  .sale-tile__thumb {
+    grid-area: thumb;
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    overflow: hidden;
+    border: var(--border-field) solid var(--ink);
+    border-radius: var(--radius-2);
+    background: var(--paper);
+    color: var(--action);
+    font-family: var(--font-figures);
+    font-size: 1.375rem;
+    font-weight: var(--weight-bold);
+  }
+  .sale-tile__thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .sale-tile__meta mark {
+    font-size: inherit;
+  }
+  .sale-tile--in {
+    background: var(--sale-accent-tint);
+  }
+
+  .sale-none {
+    padding-block: var(--space-4);
+    color: var(--ink-soft);
+  }
+
+  /* La vente */
+  .sale-form {
+    display: grid;
+    gap: var(--space-4);
+  }
+  .sale-form__head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  .sale-form__title {
+    color: var(--action);
+    font-size: var(--step-3);
+    line-height: var(--leading-tight);
+  }
+  .sale-form__hint {
+    margin-top: var(--space-1);
+    color: var(--ink-soft);
+    font-size: var(--step--1);
+  }
+  .sale-form__body {
+    display: grid;
+    gap: var(--space-5);
+  }
+
+  .sale-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding-block: var(--space-3) 0;
+    border-top: var(--border-hair) solid var(--line);
+  }
+  .sale-line__what {
+    min-width: 0;
+  }
+  .sale-line__name {
+    font-size: var(--step-1);
+    font-weight: var(--weight-bold);
+    line-height: var(--leading-snug);
+  }
+  .sale-line__meta {
+    color: var(--ink-muted);
+    font-size: var(--step--1);
+  }
+
+  .sale-price {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+  .sale-price__ref {
+    display: grid;
+    gap: 2px;
+    color: var(--ink-soft);
+  }
+  .sale-price__discount {
+    color: var(--danger);
+    font-size: var(--step--1);
+  }
+
+  /* Le prix : une touche, comme sur la maquette (jaune pâle quand il a été changé). */
+  .price-key {
+    min-width: 9rem;
+    min-height: var(--tap-sale);
+    margin: 0 var(--press-offset) var(--press-offset) 0;
+    padding: 0 var(--space-4);
+    border: var(--border-tactile) solid var(--ink);
+    border-radius: var(--radius-3);
+    background: var(--sheet);
+    color: var(--ink);
+    box-shadow: var(--shadow-press);
+    font-family: var(--font-figures);
+    font-size: 1.5rem;
+    font-weight: var(--weight-bold);
+    word-spacing: var(--figures-gap);
+    white-space: nowrap;
+    touch-action: manipulation;
+    transition:
+      transform var(--dur-instant) var(--ease-press),
+      box-shadow var(--dur-instant) var(--ease-press),
+      background-color var(--dur-fast) var(--ease-out);
+  }
+  .price-key:hover {
+    background: var(--sale-accent-tint);
+  }
+  .price-key:active {
+    transform: translate(var(--press-offset), var(--press-offset));
+    box-shadow: var(--shadow-press-none);
+  }
+  .price-key:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: 3px;
+  }
+  .price-key--changed {
+    background: var(--sale-accent-tint);
+  }
+
+  .sale-pay .segmented__options {
+    gap: var(--space-3) calc(var(--space-3) + var(--press-offset));
+  }
+
+  /* Espèces : reçu et monnaie à rendre (affichage seulement). */
+  .sale-cash {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border: var(--border-field) dashed var(--line-field);
+    border-radius: var(--radius-3);
+    background: var(--paper);
+  }
+  .sale-cash__notes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  .sale-cash__notes .btn {
+    flex: 1 1 auto;
+    padding-inline: var(--space-3);
+  }
+  .sale-cash__notes .btn[aria-pressed='true'] {
+    --_bg: var(--sale-accent);
+    --_shadow: var(--shadow-press-none);
+    transform: translate(var(--press-offset-sm), var(--press-offset-sm));
+  }
+  .sale-cash__change {
+    font-size: var(--step-1);
+  }
+  .sale-cash__change--change,
+  .sale-cash__change--exact {
+    color: var(--success);
+    font-weight: var(--weight-bold);
+  }
+  .sale-cash__change--short {
+    color: var(--danger);
+    font-weight: var(--weight-bold);
+  }
+  .sale-cash__change--none {
+    color: var(--ink-muted);
+    font-size: var(--step--1);
+  }
+
+  .sale-form__foot {
+    padding-top: var(--space-2);
+  }
+  .sale-form__check {
+    display: grid;
+    gap: var(--space-3);
+  }
+  .sale-form__question {
+    font-size: var(--step-2);
+    font-weight: var(--weight-bold);
+    line-height: var(--leading-snug);
+  }
+
+  /* Téléphone : la vente monte dans une feuille ; « Valider » reste collé en bas. */
+  .sale-sheet .sale-form {
+    padding: var(--space-3) var(--gutter) 0;
+  }
+  .sale-sheet .sale-form__foot {
+    position: sticky;
+    bottom: 0;
+    z-index: var(--z-sticky);
+    margin-inline: calc(var(--gutter) * -1);
+    padding: var(--space-3) var(--gutter) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+    border-top: var(--border-tactile) solid var(--ink);
+    background: var(--sheet);
+  }
+  .sale-sheet {
+    max-height: 100dvh;
+  }
+
+  /* « Vendu. » */
+  .sale-done .ticket__head {
+    text-transform: uppercase;
+  }
+  .ticket__line--out {
+    color: var(--danger);
+  }
+  .ticket__note--flush {
+    padding-inline-start: 0;
+    margin-bottom: var(--space-2);
+  }
+  .sale-done__what {
+    color: var(--ink-soft);
+  }
+  .sale-done__change {
+    color: var(--success);
+    font-weight: var(--weight-bold);
+  }
+  .sale-done .notice {
+    width: 100%;
+  }
+  .sale-done__actions .btn--ghost {
+    justify-self: center;
+  }
+  .sale-page > .sale-done {
+    margin-inline-start: calc((var(--margin-offset) + var(--space-3)) * -1);
+  }
+
+  .sale-waiting {
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  @media (min-width: 1024px) {
+    .sale-layout {
+      grid-template-columns: minmax(0, 1fr) minmax(20rem, 24rem);
+    }
+    .sale-tiles {
+      grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+    }
+    .sale-layout__sale {
+      position: sticky;
+      top: var(--space-6);
+      max-height: calc(100dvh - 2 * var(--space-6));
+      overflow: auto;
+      padding: var(--space-5);
+      border: var(--border-tactile) solid var(--ink);
+      border-radius: var(--radius-3);
+      background: var(--sheet);
+    }
+    .sale-layout__sale .sale-done {
+      padding: 0;
+    }
+    .sale-layout__sale .sale-form__foot {
+      position: sticky;
+      bottom: calc(var(--space-5) * -1);
+      margin-inline: calc(var(--space-5) * -1);
+      padding: var(--space-3) var(--space-5) var(--space-5);
+      background: var(--sale-accent);
+      border-top: var(--border-tactile) solid var(--ink);
+    }
+  }
+}

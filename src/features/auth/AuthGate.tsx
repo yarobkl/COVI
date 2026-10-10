@@ -72,10 +72,10 @@ export function AuthGate({
   }, [session])
   if (loading)
     return (
-      <div className="authshell">
+      <div className="authshell" role="status">
         <div className="authcard">
           <h1>COVI</h1>
-          <p>Chargement de votre commerce…</p>
+          <p>Ouverture de la boutique…</p>
         </div>
       </div>
     )

@@ -67,11 +67,15 @@ La CI (`.github/workflows/windows.yml`) exécute ces cinq vérifications et le b
 ```text
 src/
   main.tsx            montage de l’application
-  app/                coque : Root (simulation ou application), App (navigations, en-tête), navigation.ts (liste des pages)
+  app/                coque : Root (simulation ou application), App (sommaire, barre du bas, menu),
+                      routes.ts + useHashRoute (page dans l’URL : #/vendre…), navigation.ts (libellés)
   features/<domaine>/ une page par domaine et ses sous-composants :
                       auth, dashboard, sale, stock, arrivals, expenses, history, statistics, settings, demo, sync
-  components/         petits composants partagés (logo, vignette produit, erreur de chargement)
-  hooks/              hooks partagés (useAsyncData : chargement, erreur, réessai)
+  components/
+    icons/            icônes SVG maison (trait 1,75 px)
+    ui/               composants du système de design (Button, Field, Amount, Ledger, NumPad…)
+                      et anciens petits composants des pages pas encore refaites
+  hooks/              hooks partagés (useAsyncData : chargement, erreur, réessai ; useMediaQuery)
   lib/                couche données et utilitaires sans interface :
     supabase.ts         client Supabase typé
     database.types.ts   types générés depuis le schéma Supabase
@@ -79,11 +83,17 @@ src/
     covi.ts             produits, ventes, photos
     operations.ts       arrivages, charges, tableau de bord, statistiques
     offline.ts          cache du stock et file des ventes hors connexion
-    format.ts           montants, moyens de paiement, accords (plural)
-    dates.ts            clés de jour et de mois en heure locale
-  styles.css          styles globaux (classes CSS utilisées par les composants)
+    format.ts           montants (fcfa, money : espaces insécables U+00A0), moyens de paiement, accords
+    dates.ts            clés de jour et de mois en heure locale, dates dites (« jeudi 8 octobre », « 14 h 32 »)
+  styles/             système de design « Le Cahier » (couches CSS) : index.css (point d’entrée,
+                      importé par app/Root.tsx), tokens.css, base.css, components.css,
+                      app/ (styles propres aux écrans refaits), legacy.css (anciennes classes,
+                      limitées à `.legacy`, pour les pages pas encore refaites)
+  styles.css          vide, gardé tant que main.tsx l’importe
 tests/offline.mjs     test Node de la file hors connexion (charge offline.ts, covi.ts et format.ts depuis les sources)
 ```
+
+Les montants s’affichent toujours avec `fcfa()` / `money()` (les polices n’ont pas l’espace fine U+202F de `Intl`).
 
 Les tests unitaires sont placés à côté du code (`*.test.ts(x)`). `tests/offline.mjs` réécrit les imports relatifs de `covi.ts` pour le charger hors navigateur : `covi.ts` ne doit importer que `./supabase`, `./offline` et `./format` (plus des `import type`), et `format.ts` doit rester sans import.
 
