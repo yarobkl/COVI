@@ -1,21 +1,58 @@
-import { ProductThumb } from '../../components/ProductThumb'
+import { Amount } from '../../components/ui'
 import type { Product } from '../../lib/types'
-import { money, plural } from '../../lib/format'
+import { stockNote } from '../sale/saleMath'
 
-export function StockRow({ product: x }: { product: Product }) {
+/** Photo of the article, or its initial written in cash-register figures. */
+export function ProductPicture({
+  product,
+  size = 'md',
+}: {
+  product: Pick<Product, 'name' | 'image_url'>
+  size?: 'sm' | 'md'
+}) {
   return (
-    <div className="row">
-      <ProductThumb imageUrl={x.image_url} fallback={x.name[0]} />
-      <div className="grow">
-        <b>
-          {x.name} {x.is_test && <em className="test-tag">TEST</em>}
-        </b>
-        <span>{[x.category, x.brand, x.size].filter(Boolean).join(' · ')}</span>
+    <span className={`product-pic product-pic--${size}`} aria-hidden="true">
+      {product.image_url ? (
+        <img src={product.image_url} alt="" loading="lazy" />
+      ) : (
+        product.name.trim().charAt(0).toLocaleUpperCase('fr-FR')
+      )}
+    </span>
+  )
+}
+
+/** « Robes · Wax Hollandais · M » (only what is known). */
+export const productDetails = (p: Pick<Product, 'category' | 'brand' | 'size'>) =>
+  [p.category, p.brand, p.size].filter(Boolean).join(' · ')
+
+/**
+ * One line of the stock notebook: photo or initial, name, type · brand · size, where it came
+ * from, the displayed price and what is left (« Plus que 1 » under the highlighter).
+ */
+export function StockRow({ product, arrivalCode }: { product: Product; arrivalCode?: string }) {
+  const stock = stockNote(product)
+  const details = productDetails(product)
+  return (
+    <li className="stock-row">
+      <ProductPicture product={product} />
+      <div className="stock-row__main">
+        <p className="stock-row__name">{product.name}</p>
+        {details && <p className="stock-row__meta">{details}</p>}
+        <p className="stock-row__meta">
+          {stock.low ? <mark>{stock.text}</mark> : stock.text}
+          {arrivalCode && (
+            <>
+              {' · '}
+              <span className="stock-row__code">{arrivalCode}</span>
+            </>
+          )}
+          {product.is_test && ' · exemple'}
+        </p>
       </div>
-      <b>{money(Number(x.initial_sale_price))}</b>
-      <span className="qty">
-        {x.is_unique_piece ? plural(x.quantity_on_hand, 'pièce') : x.quantity_on_hand + ' en stock'}
-      </span>
-    </div>
+      <p className="stock-row__price">
+        <span className="visually-hidden">Prix affiché : </span>
+        <Amount value={Number(product.initial_sale_price)} />
+      </p>
+    </li>
   )
 }
