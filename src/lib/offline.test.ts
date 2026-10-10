@@ -298,3 +298,19 @@ describe('queue in IndexedDB', () => {
     expect(localStorage.getItem('covi:pending-sales:v1')).toBeNull()
   })
 })
+
+describe('record_sale SQL permission failures', () => {
+  it('does not retry a permanent shop ownership refusal (42501)', async () => {
+    const offline = await load()
+    expect(offline.isRetryableSyncError({ code: '42501', message: 'Shop not found' })).toBe(false)
+    expect(offline.isRetryableSyncError({ code: '42501', message: 'permission denied for table sales' })).toBe(false)
+    expect(offline.isRetryableSyncError({ code: '42501', message: 'Forbidden' })).toBe(false)
+  })
+
+  it('retries expired authentication only after a renewed session is possible', async () => {
+    const offline = await load()
+    expect(offline.isRetryableSyncError({ code: '42501', message: 'Authentication required' })).toBe(true)
+    expect(offline.isRetryableSyncError({ message: 'JWT expired' })).toBe(true)
+    expect(offline.isRetryableSyncError({ message: 'Failed to fetch' })).toBe(true)
+  })
+})
