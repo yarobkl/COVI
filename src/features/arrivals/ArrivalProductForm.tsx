@@ -6,13 +6,15 @@ export function ArrivalProductForm({
   arrival,
   onSubmit,
   onCancel,
+  busy,
 }: {
   arrival: Arrival
   onSubmit: (e: FormEvent<HTMLFormElement>) => void
   onCancel: () => void
+  busy: boolean
 }) {
   return (
-    <form className="card formgrid" onSubmit={onSubmit}>
+    <form className="card formgrid" onSubmit={onSubmit} aria-busy={busy}>
       <div className="span2">
         <small>AJOUT À {arrival.code}</small>
         <h2>
@@ -51,8 +53,10 @@ export function ArrivalProductForm({
           <input name="quantity" type="number" min="1" defaultValue="1" required />
         </label>
       )}
-      <button className="primary">Ajouter au stock</button>
-      <button type="button" className="outline" onClick={onCancel}>
+      <button className="primary" type="submit" disabled={busy}>
+        {busy ? "Enregistrement…" : "Ajouter au stock"}
+      </button>
+      <button type="button" className="outline" onClick={onCancel} disabled={busy}>
         Annuler
       </button>
     </form>
