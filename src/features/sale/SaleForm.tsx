@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import {
   CardIcon,
   CashIcon,
@@ -23,6 +23,7 @@ import {
 } from '../../components/ui'
 import { fcfa, money, parseAmount } from '../../lib/format'
 import { resilientSale } from '../../lib/offline'
+import { haptic } from '../../lib/haptics'
 import type { Product } from '../../lib/types'
 import { saleErrorMessage } from './saleErrors'
 import { cashChange, cashSuggestions, discountOf, isFarBelow } from './saleMath'
@@ -80,6 +81,7 @@ export function SaleForm({
   const [payment, setPayment] = useState<string | null>(null)
   const [received, setReceived] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
+  const submitting = useRef(false)
   const [error, setError] = useState('')
   const titleId = useId()
 
@@ -97,7 +99,8 @@ export function SaleForm({
       : ''
 
   async function submit() {
-    if (!price || !payment) return
+    if (!price || !payment || submitting.current) return
+    submitting.current = true
     setBusy(true)
     setError('')
     try {
@@ -108,7 +111,7 @@ export function SaleForm({
         soldUnitPrice: price,
         paymentLabel: payment,
       })
-      navigator.vibrate?.(12)
+      haptic('success')
       onSold({
         product,
         quantity,
@@ -119,14 +122,17 @@ export function SaleForm({
         at: new Date(),
       })
     } catch (e) {
+      haptic('error')
       setError(saleErrorMessage(e, { remaining: Number(product.quantity_on_hand) }))
       setMode('form')
     } finally {
+      submitting.current = false
       setBusy(false)
     }
   }
 
   const validate = () => {
+    if (submitting.current) return
     if (price && isFarBelow(displayed, price)) setMode('check')
     else void submit()
   }
