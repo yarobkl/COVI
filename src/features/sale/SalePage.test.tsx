@@ -67,7 +67,7 @@ const sheet = () => within(screen.getByRole('dialog'))
 
 describe('SalePage — the cart (phone)', () => {
   it('fills the cart, changes a quantity and a price, validates once, lists both articles', async () => {
-    render(<SalePage shopId="shop-1" shopName="Chez Mado" />)
+    render(<SalePage userId="u1" shopId="shop-1" shopName="Chez Mado" />)
     await screen.findByText('Robe wax')
     expect(screen.queryByRole('button', { name: /Voir le panier/ })).toBeNull()
 
@@ -117,7 +117,7 @@ describe('SalePage — the cart (phone)', () => {
   })
 
   it('keeps a unique stock bound, and « Retirer » empties the line', async () => {
-    render(<SalePage shopId="shop-1" shopName="Chez Mado" />)
+    render(<SalePage userId="u1" shopId="shop-1" shopName="Chez Mado" />)
     await screen.findByText('Jean slim')
     fireEvent.click(tile('Jean slim'))
     fireEvent.click(tile('Jean slim'))
@@ -131,7 +131,7 @@ describe('SalePage — the cart (phone)', () => {
   })
 
   it('one article sells as before, through resilientSale', async () => {
-    render(<SalePage shopId="shop-1" shopName="Chez Mado" />)
+    render(<SalePage userId="u1" shopId="shop-1" shopName="Chez Mado" />)
     await screen.findByText('Robe wax')
     fireEvent.click(tile('Robe wax'))
     fireEvent.click(screen.getByRole('button', { name: /Voir le panier/ }))
@@ -152,7 +152,7 @@ describe('SalePage — the cart (phone)', () => {
 
   /** Two articles in the cart, sheet open, paid by card. */
   async function twoArticlesInSheet() {
-    render(<SalePage shopId="shop-1" shopName="Chez Mado" />)
+    render(<SalePage userId="u1" shopId="shop-1" shopName="Chez Mado" />)
     await screen.findByText('Robe wax')
     fireEvent.click(tile('Robe wax'))
     fireEvent.click(tile('Jean slim'))
@@ -286,7 +286,7 @@ describe('SalePage — the cart (phone)', () => {
       data: null,
       error: { message: 'Product unavailable', code: 'P0001', details: 'item 1: …' },
     })
-    render(<SalePage shopId="shop-1" shopName="Chez Mado" />)
+    render(<SalePage userId="u1" shopId="shop-1" shopName="Chez Mado" />)
     await screen.findByText('Robe wax')
     fireEvent.click(tile('Robe wax'))
     fireEvent.click(tile('Jean slim'))
@@ -313,7 +313,7 @@ describe('SalePage — computer', () => {
   })
 
   it('the cart sits beside the articles', async () => {
-    render(<SalePage shopId="shop-1" shopName="Chez Mado" />)
+    render(<SalePage userId="u1" shopId="shop-1" shopName="Chez Mado" />)
     await screen.findByText('Robe wax')
     const aside = within(screen.getByRole('complementary', { name: 'La vente' }))
     expect(aside.getByText('Le panier est vide. Touchez un article pour l’ajouter.')).toBeTruthy()
@@ -329,7 +329,7 @@ describe('SalePage — read only', () => {
   it('tiles and validation stay closed, the stock stays readable', async () => {
     render(
       <WriteLockContext.Provider value={{ reasonId: 'abonnement-suspendu', reason: 'Suspendu' }}>
-        <SalePage shopId="shop-1" shopName="Chez Mado" />
+        <SalePage userId="u1" shopId="shop-1" shopName="Chez Mado" />
       </WriteLockContext.Provider>,
     )
     await screen.findByText('Robe wax')

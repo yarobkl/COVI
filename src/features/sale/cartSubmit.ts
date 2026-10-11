@@ -71,6 +71,10 @@ const messageOf = (error: unknown) =>
       (typeof error === 'string' ? error : ''),
   )
 
+/** Said when no signed-in account is known: nothing is sent. */
+export const NO_SESSION_TEXT =
+  'Votre session a pris fin. Reconnectez-vous, puis validez la vente à nouveau.'
+
 /** Thrown before anything is sent (no session): nothing can exist on the server. */
 const NO_SESSION = 'Authentication required'
 
@@ -133,6 +137,11 @@ const PRODUCT_ERRORS =
 
 /** The refusal in the shop's words, naming the article in cause when the server says which. */
 function refusal(error: unknown, lines: Cart): CartSubmitResult {
+  // Token expired or refused (PGRST30x, « JWT expired »): the call did not run, nothing was
+  // recorded. Temporary: once the session is renewed, the same cart goes with the same key.
+  const code = (error as { code?: unknown } | null)?.code
+  if ((typeof code === 'string' && /^PGRST30\d$/.test(code)) || /\bjwt\b/i.test(messageOf(error)))
+    return { status: 'refused', message: NO_SESSION_TEXT }
   const { line, available } = detailsOf(error, lines)
   const message = saleErrorMessage(error, {
     remaining: available ?? (line ? Number(line.product.quantity_on_hand) : undefined),
@@ -151,16 +160,25 @@ function refusal(error: unknown, lines: Cart): CartSubmitResult {
  * not used for a single line, whose `resilientSale` path has its own id.
  */
 export async function submitCart({
+  userId,
   shopId,
   lines,
   paymentLabel,
   operationId,
 }: {
+  /**
+   * The signed-in account (AuthGate). Not sent: the server reads it from the session. Kept with a
+   * waiting cart (#16) so that only this account replays it, in `shopId` — the shop it was rung up
+   * in, even if another shop is open by then.
+   */
+  userId: string
   shopId: string
   lines: Cart
   paymentLabel: string
   operationId: string
 }): Promise<CartSubmitResult> {
+  // No account known: nothing is sent, nothing could be kept for a later replay.
+  if (!userId) return { status: 'refused', message: NO_SESSION_TEXT }
   if (lines.length === 1) {
     const [line] = lines
     try {
@@ -182,7 +200,7 @@ export async function submitCart({
 
   // TODO(#16): without network, hand the cart to the durable queue of ChatGPT's PR #16 instead
   // of waiting on screen: `createQueuedCart({ userId, shopId, items: toCartItems(lines),
-  // paymentLabel }, operationId)` (src/lib/cartQueue.ts), persisted in IndexedDB, then
+  // paymentLabel }, operationId)` (userId and shopId as received here) (src/lib/cartQueue.ts), persisted in IndexedDB, then
   // `return { status: 'sold', offline: true }`. Same for the `uncertain` case below, with the SAME
   // operationId and the same content: the call may have reached the server.
   if (!navigator.onLine) return { status: 'offline', message: CART_WAITING_TEXT }

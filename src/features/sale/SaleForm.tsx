@@ -78,6 +78,7 @@ export const EMPTY_CART_TEXT = 'Le panier est vide. Touchez un article pour l’
  * one article is the sale of one article, as before.
  */
 export function SaleForm({
+  userId,
   shopId,
   lines,
   onLinesChange,
@@ -92,6 +93,7 @@ export function SaleForm({
   onAbandon,
   onSold,
 }: {
+  userId: string
   shopId: string
   lines: Cart
   onLinesChange: (lines: Cart) => void
@@ -158,6 +160,7 @@ export function SaleForm({
     setBusy(true)
     setProblem(null)
     const result = await submitCart({
+      userId,
       shopId,
       lines: sent.lines,
       paymentLabel: sent.payment,

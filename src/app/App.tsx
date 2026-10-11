@@ -32,6 +32,8 @@ import { useHashRoute } from './useHashRoute'
 
 type PageContext = {
   shop: Shop
+  /** The signed-in account (AuthGate). */
+  userId: string
   updateShop: (shop: Shop) => void
   navigate: (route: Route) => void
   onSimulation: () => void
@@ -70,12 +72,15 @@ function ArrivalsScreen({ shopId, filter }: { shopId: string; filter?: ArrivalFi
   )
 }
 
-function renderPage(route: Route, { shop, updateShop, onSimulation, askSignOut }: PageContext) {
+function renderPage(
+  route: Route,
+  { shop, userId, updateShop, onSimulation, askSignOut }: PageContext,
+) {
   switch (route.page) {
     case 'accueil':
       return <DashboardPage shop={shop} onSimulation={onSimulation} />
     case 'vendre':
-      return <SalePage shopId={shop.id} shopName={shop.name} />
+      return <SalePage userId={userId} shopId={shop.id} shopName={shop.name} />
     case 'stock':
       return <StockPage shopId={shop.id} />
     case 'arrivages':
@@ -96,8 +101,6 @@ const readOnlyLock: WriteLock = {
   reasonId: READ_ONLY_ID,
   reason: 'Abonnement suspendu : contactez COVI pour le renouveler.',
 }
-
-const singleShop: ShopAccount = { shopCount: 1, readOnly: false }
 
 /** « Changer de boutique » · « Ajouter une boutique » (multi-shop subscription). */
 function ShopActions({
@@ -244,14 +247,14 @@ export function App({
   signOut,
   updateShop,
   onSimulation,
-  account = singleShop,
+  account,
 }: {
   shop: Shop
   signOut: () => Promise<void>
   updateShop: (shop: Shop) => void
   onSimulation: () => void
-  /** Other shops of the account and subscription state (AuthGate). */
-  account?: ShopAccount
+  /** The signed-in account, its other shops and subscription state (AuthGate). */
+  account: ShopAccount
 }) {
   const { route, navigate } = useHashRoute()
   const sync = useSyncState()
@@ -282,7 +285,14 @@ export function App({
     setMenuOpen(false)
     setSignOutOpen(true)
   }
-  const ctx: PageContext = { shop, updateShop, navigate, onSimulation, askSignOut }
+  const ctx: PageContext = {
+    shop,
+    userId: account.userId,
+    updateShop,
+    navigate,
+    onSimulation,
+    askSignOut,
+  }
 
   const readOnly = account.readOnly
   return (

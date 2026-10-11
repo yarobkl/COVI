@@ -7,6 +7,7 @@ import { addToCart, setPrice, setQuantity, type Cart } from './cart'
 import {
   CART_UNCERTAIN_TEXT,
   CART_WAITING_TEXT,
+  NO_SESSION_TEXT,
   operationFor,
   submitCart,
   type CartOperation,
@@ -73,6 +74,7 @@ afterEach(() => {
 async function press(previous: CartOperation | null, lines: Cart, payment = 'Mobile Money') {
   const op = operationFor(previous, lines, payment)
   const result = await submitCart({
+    userId: 'u1',
     shopId: 'shop-1',
     lines,
     paymentLabel: payment,
@@ -174,6 +176,29 @@ describe('submitCart: several articles', () => {
       error: null,
     } as never)
     expect((await press(null, twoLines())).result.status).toBe('refused')
+  })
+
+  it('an expired session (PGRST303, « JWT expired »): refusal, same key on the next press', async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: { message: 'JWT expired', code: 'PGRST303' } })
+    const lines = twoLines()
+    const first = await press(null, lines)
+    expect(first.result).toEqual({ status: 'refused', message: NO_SESSION_TEXT })
+    const second = await press(first.op, lines)
+    expect(second.op.id).toBe(first.op.id)
+    expect(second.result).toEqual({ status: 'sold', offline: false })
+  })
+
+  it('no signed-in account: nothing is sent', async () => {
+    const result = await submitCart({
+      userId: '',
+      shopId: 'shop-1',
+      lines: twoLines(),
+      paymentLabel: 'Espèces',
+      operationId: crypto.randomUUID(),
+    })
+    expect(result).toEqual({ status: 'refused', message: NO_SESSION_TEXT })
+    expect(rpc).not.toHaveBeenCalled()
+    expect(resilientSale).not.toHaveBeenCalled()
   })
 
   it('says the refusals in French and names the article in cause', async () => {

@@ -57,7 +57,16 @@ type Today = { count: number; total: number } | null
  * prices and the payment, validate — one sale for the whole cart. Computer: the cart sits beside
  * the articles; phone: a bar at the bottom (« Panier · 3 articles · 54 000 ») opens it in a sheet.
  */
-export function SalePage({ shopId, shopName }: { shopId: string; shopName: string }) {
+export function SalePage({
+  userId,
+  shopId,
+  shopName,
+}: {
+  /** The signed-in account: a cart is kept and replayed for it only, in its original shop. */
+  userId: string
+  shopId: string
+  shopName: string
+}) {
   const desktop = useMediaQuery(DESKTOP)
   const lock = useWriteLock()
   const [products, setProducts] = useState<Product[] | null>(null)
@@ -166,6 +175,7 @@ export function SalePage({ shopId, shopName }: { shopId: string; shopName: strin
     <SaleForm
       // A new sale starts afresh (payment, cash received, operation id).
       key={sales}
+      userId={userId}
       shopId={shopId}
       lines={cart}
       onLinesChange={setCart}
