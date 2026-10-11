@@ -13,7 +13,9 @@ import {
   Amount,
   AmountInput,
   Button,
+  ButtonLink,
   cx,
+  Dialog,
   Field,
   IconButton,
   Ledger,
@@ -24,7 +26,7 @@ import {
   Stepper,
   type SegmentedOption,
 } from '../../components/ui'
-import { fcfa, money, parseAmount, plural } from '../../lib/format'
+import { fcfa, money, paidWith, parseAmount, plural } from '../../lib/format'
 import type { Product } from '../../lib/types'
 import {
   cartCount,
@@ -40,7 +42,14 @@ import {
   type CartLine,
   type SoldSale,
 } from './cart'
-import { cartSignature, operationFor, submitCart, type CartOperation } from './cartSubmit'
+import {
+  CART_UNCERTAIN_TEXT,
+  cartSignature,
+  operationFor,
+  submitCart,
+  type CartOperation,
+  type FrozenCart,
+} from './cartSubmit'
 import { cashChange, cashSuggestions, isFarBelow } from './saleMath'
 
 const payments: readonly SegmentedOption<string>[] = [
@@ -55,7 +64,7 @@ type Mode = { kind: 'cart' } | { kind: 'price'; productId: string } | { kind: 'c
 
 /** Why the last « Valider » did not go through, for the cart it was pressed on. */
 type Problem = {
-  tone: 'waiting' | 'refused'
+  tone: 'offline' | 'refused'
   message: string
   productId?: string
   signature: string
@@ -78,6 +87,9 @@ export function SaleForm({
   onAddMore,
   operation,
   onOperation,
+  frozen,
+  onFreeze,
+  onAbandon,
   onSold,
 }: {
   shopId: string
@@ -97,6 +109,14 @@ export function SaleForm({
    */
   operation: CartOperation | null
   onOperation: (operation: CartOperation) => void
+  /**
+   * The cart sent without an answer (network cut during the call): the sale may be recorded, so
+   * nothing in it can change; it can only be retried as is, or abandoned. Kept by the page.
+   */
+  frozen: FrozenCart | null
+  onFreeze: (frozen: FrozenCart | null) => void
+  /** « Abandonner ce panier », once confirmed. */
+  onAbandon: () => void
   onSold: (sale: SoldSale) => void
 }) {
   const [mode, setMode] = useState<Mode>({ kind: 'cart' })
@@ -105,7 +125,9 @@ export function SaleForm({
   const [received, setReceived] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
   const [problem, setProblem] = useState<Problem | null>(null)
+  const [abandoning, setAbandoning] = useState(false)
   const titleId = useId()
+  const abandonTitle = useId()
 
   const total = cartTotal(lines)
   const count = cartCount(lines)
@@ -113,8 +135,11 @@ export function SaleForm({
   const change = cash ? cashChange(total, received) : { kind: 'none' as const }
   const farBelow = lines.filter((l) => isFarBelow(displayedPrice(l.product), l.price))
   // A message about another cart (changed since) is no longer true: it is not shown.
-  const shown =
-    problem && payment && problem.signature === cartSignature(lines, payment) ? problem : null
+  const shown = frozen
+    ? problem
+    : problem && payment && problem.signature === cartSignature(lines, payment)
+      ? problem
+      : null
   const priced = mode.kind === 'price' ? lineOf(lines, mode.productId) : undefined
 
   // The validate button says why it waits.
@@ -125,31 +150,58 @@ export function SaleForm({
       : ''
 
   async function submit() {
-    if (!payment || blockedLabel) return
-    const op = operationFor(operation, lines, payment)
-    onOperation(op)
+    // A frozen cart is sent again exactly as it was, with the same key.
+    const sent = frozen ?? (payment && !blockedLabel ? { lines, payment, operation: null } : null)
+    if (!sent) return
+    const op = frozen ? frozen.operation : operationFor(operation, lines, sent.payment)
+    if (!frozen) onOperation(op)
     setBusy(true)
     setProblem(null)
-    const result = await submitCart({ shopId, lines, paymentLabel: payment, operationId: op.id })
+    const result = await submitCart({
+      shopId,
+      lines: sent.lines,
+      paymentLabel: sent.payment,
+      operationId: op.id,
+    })
     setBusy(false)
     setMode({ kind: 'cart' })
-    if (result.status === 'sold') {
-      navigator.vibrate?.(12)
-      onSold({
-        lines: lines.map(({ product, quantity, price }) => ({ product, quantity, price })),
-        payment,
-        received: cash ? received : null,
-        offline: result.offline,
-        at: new Date(),
-      })
-      return
+    switch (result.status) {
+      case 'sold':
+        navigator.vibrate?.(12)
+        onSold({
+          lines: sent.lines.map(({ product, quantity, price }) => ({ product, quantity, price })),
+          payment: sent.payment,
+          received: sent.payment === 'Espèces' ? received : null,
+          offline: result.offline,
+          at: new Date(),
+        })
+        return
+      case 'uncertain':
+        onFreeze({ lines: sent.lines, payment: sent.payment, operation: op })
+        return
+      case 'offline':
+        // Nothing left: a frozen cart stays frozen, an open cart stays editable.
+        setProblem({
+          tone: 'offline',
+          message: frozen
+            ? 'Toujours pas de réseau. Réessayez dès qu’il revient : la vente ne sera pas comptée deux fois.'
+            : result.message,
+          signature: cartSignature(sent.lines, sent.payment),
+        })
+        return
+      case 'refused':
+        // A definitive refusal: nothing was recorded (all or nothing), the cart can change again.
+        if (frozen) {
+          onFreeze(null)
+          setPayment(sent.payment)
+        }
+        setProblem({
+          tone: 'refused',
+          message: result.message,
+          productId: result.productId,
+          signature: cartSignature(sent.lines, sent.payment),
+        })
     }
-    setProblem({
-      tone: result.status,
-      message: result.message,
-      productId: result.status === 'refused' ? result.productId : undefined,
-      signature: op.signature,
-    })
   }
 
   const validate = () => {
@@ -184,6 +236,93 @@ export function SaleForm({
       </div>
     </div>
   )
+
+  if (frozen)
+    return (
+      <section className="sale-form sale-form--frozen" aria-labelledby={titleId}>
+        <div className="sale-form__head">
+          {onBack && (
+            <IconButton variant="tactile" label="Revenir aux articles" onClick={onBack}>
+              <ChevronLeftIcon />
+            </IconButton>
+          )}
+          <div>
+            <h2 className="sale-form__title" id={titleId}>
+              Vente à confirmer
+            </h2>
+            <p className="sale-form__hint">Ce panier attend la réponse : il ne change plus.</p>
+          </div>
+        </div>
+        <div className="sale-form__body">
+          <Notice icon={CloudOffIcon} live={false}>
+            <p>{CART_UNCERTAIN_TEXT}</p>
+          </Notice>
+          <ul className="sale-lines" aria-label="Le panier">
+            {frozen.lines.map((line) => (
+              <li key={line.product.id} className="sale-line">
+                <div className="sale-line__top">
+                  <p className="sale-line__name">{line.product.name}</p>
+                  <p className="sale-line__fixed">
+                    {line.quantity > 1 && `${line.quantity} × `}
+                    <span className="figures">{fcfa(line.price)}</span>&nbsp;FCFA
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <Ledger>
+            <LedgerRow
+              variant="total"
+              label={totalLabel(frozen.lines, cartCount(frozen.lines))}
+              value={<Amount value={cartTotal(frozen.lines)} unit />}
+            />
+          </Ledger>
+          <p className="sale-form__paid">Payé {paidWith(frozen.payment)}</p>
+          {shown?.tone === 'offline' && (
+            <Notice icon={CloudOffIcon}>
+              <p>{shown.message}</p>
+            </Notice>
+          )}
+        </div>
+        <div className="sale-form__foot sale-form__foot--frozen">
+          <Button write variant="sale" size="xl" block busy={busy} onClick={() => void submit()}>
+            Réessayer · <span className="amount">{fcfa(cartTotal(frozen.lines))}</span>
+          </Button>
+          <Button variant="ghost" block onClick={() => setAbandoning(true)}>
+            Abandonner ce panier
+          </Button>
+        </div>
+        <Dialog open={abandoning} onClose={() => setAbandoning(false)} labelledBy={abandonTitle}>
+          <div className="dialog__body">
+            <h2 className="dialog__title" id={abandonTitle}>
+              Abandonner ce panier ?
+            </h2>
+            <p className="dialog__text">
+              La vente a peut-être déjà été enregistrée. Avant de revendre ces articles, vérifiez
+              dans Ventes.
+            </p>
+            <div className="dialog__actions">
+              <Button variant="secondary" onClick={() => setAbandoning(false)} autoFocus>
+                Garder le panier
+              </Button>
+              <Button
+                variant="danger"
+                solid
+                onClick={() => {
+                  setAbandoning(false)
+                  onAbandon()
+                }}
+              >
+                Abandonner
+              </Button>
+            </div>
+            <ButtonLink variant="ghost" href="#/ventes">
+              Voir les ventes
+            </ButtonLink>
+          </div>
+        </Dialog>
+      </section>
+    )
 
   if (priced)
     return (
@@ -336,7 +475,7 @@ export function SaleForm({
           </div>
         )}
 
-        {shown?.tone === 'waiting' && (
+        {shown?.tone === 'offline' && (
           <Notice icon={CloudOffIcon} title="Panier gardé à l’écran.">
             <p>{shown.message}</p>
           </Notice>

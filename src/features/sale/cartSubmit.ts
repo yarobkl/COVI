@@ -8,27 +8,43 @@
 // - A cart of SEVERAL lines goes through `record_cart_sale`, all or nothing, with one operation id
 //   per cart that the screen keeps for every retry of the same cart (`operationFor`).
 //   There is no durable cart queue yet (PR #16): without network the cart stays on screen, intact
-//   and never split, and the seller retries.
+//   and never split, and the seller retries. Two cases are told apart:
+//   - `offline`: no network BEFORE the call, nothing was sent; the cart stays editable.
+//   - `uncertain`: the call left but no answer came back (network cut, no SQLSTATE). The sale may
+//     be recorded: the screen freezes the cart and only retries it as is, with the same key (the
+//     server then answers with the existing sale instead of recording it twice).
 import { paymentCode } from '../../lib/format'
 import { resilientSale } from '../../lib/offline'
 import { supabase } from '../../lib/supabase'
 import { toCartItems, type Cart, type CartSaleItem } from './cart'
 import { saleErrorMessage } from './saleErrors'
 
-/** Said when a cart of several articles cannot leave (no network). */
+/** Said when a cart of several articles cannot leave (no network before sending). */
 export const CART_WAITING_TEXT =
   'Pas de réseau : ce panier attend. Il sera enregistré d’un coup dès que le réseau revient. Vous pouvez aussi vendre article par article.'
+
+/** Said when the network dropped while the cart was being sent. */
+export const CART_UNCERTAIN_TEXT =
+  'La connexion a coupé pendant l’envoi. On ne sait pas encore si la vente est passée. Réessayez : elle ne sera pas comptée deux fois.'
 
 export type CartSubmitResult =
   /** Recorded (`offline`: a single article kept on the device, sent when the network is back). */
   | { status: 'sold'; offline: boolean }
-  /** Not sent (no network): keep the cart and its operation id, try again later. */
-  | { status: 'waiting'; message: string }
+  /** Not sent (no network before the call): nothing exists on the server, the cart stays editable. */
+  | { status: 'offline'; message: string }
+  /**
+   * Sent, no answer (network cut during or after the call): the sale may be recorded. Retry ONLY
+   * the same cart, unchanged, with the same operation id.
+   */
+  | { status: 'uncertain'; message: string }
   /** Refused by the server: nothing was recorded. `productId`: the line in cause, when known. */
   | { status: 'refused'; message: string; productId?: string }
 
 /** The operation id of a cart, with the content it was generated for. */
 export type CartOperation = { id: string; signature: string }
+
+/** A cart sent without an answer: retried only as is, with the same operation id. */
+export type FrozenCart = { lines: Cart; payment: string; operation: CartOperation }
 
 /** What makes two carts « the same cart »: the lines sent and the payment. */
 export const cartSignature = (lines: Cart, paymentLabel: string) =>
@@ -55,9 +71,8 @@ const messageOf = (error: unknown) =>
       (typeof error === 'string' ? error : ''),
   )
 
-/** No answer from the server (network cut, fetch failed): the cart may be retried as is. */
+/** No answer from the server (network cut, fetch failed): the outcome of the call is unknown. */
 function isNetworkFailure(error: unknown) {
-  if (!navigator.onLine) return true
   if (/fetch|network|offline|load failed|timed? ?out/i.test(messageOf(error))) return true
   // A PostgREST error without SQLSTATE: no answer from the database (contract: retryable).
   return (error as { code?: unknown } | null)?.code === ''
@@ -157,14 +172,15 @@ export async function submitCart({
   // TODO(#16): without network, hand the cart to the durable queue of ChatGPT's PR #16 instead
   // of waiting on screen: `createQueuedCart({ userId, shopId, items: toCartItems(lines),
   // paymentLabel }, operationId)` (src/lib/cartQueue.ts), persisted in IndexedDB, then
-  // `return { status: 'sold', offline: true }`. Same on a network failure below. Keep the SAME
-  // operationId: the call may have reached the server before the network dropped.
-  if (!navigator.onLine) return { status: 'waiting', message: CART_WAITING_TEXT }
+  // `return { status: 'sold', offline: true }`. Same for the `uncertain` case below, with the SAME
+  // operationId and the same content: the call may have reached the server.
+  if (!navigator.onLine) return { status: 'offline', message: CART_WAITING_TEXT }
   try {
     await recordCartSale(shopId, toCartItems(lines), paymentLabel, operationId)
     return { status: 'sold', offline: false }
   } catch (e) {
-    if (isNetworkFailure(e)) return { status: 'waiting', message: CART_WAITING_TEXT }
+    if (isNetworkFailure(e)) return { status: 'uncertain', message: CART_UNCERTAIN_TEXT }
+    // An error with a SQLSTATE: all or nothing, nothing was recorded.
     return refusal(e, lines)
   }
 }

@@ -150,14 +150,23 @@ describe('SalePage — the cart (phone)', () => {
     expect(screen.getByText('Robe wax · il en reste 2')).toBeTruthy()
   })
 
-  it('without network, a cart of two articles waits on screen, intact, and is retried with the same key', async () => {
-    online = false
+  /** Two articles in the cart, sheet open, paid by card. */
+  async function twoArticlesInSheet() {
     render(<SalePage shopId="shop-1" shopName="Chez Mado" />)
     await screen.findByText('Robe wax')
     fireEvent.click(tile('Robe wax'))
     fireEvent.click(tile('Jean slim'))
     fireEvent.click(screen.getByRole('button', { name: /Voir le panier/ }))
     fireEvent.click(sheet().getByRole('radio', { name: 'Carte' }))
+  }
+  const opIds = () =>
+    rpc.mock.calls.map((c) => (c[1] as { p_client_operation_id: string }).p_client_operation_id)
+  const UNCERTAIN =
+    'La connexion a coupé pendant l’envoi. On ne sait pas encore si la vente est passée. Réessayez : elle ne sera pas comptée deux fois.'
+
+  it('no network before sending: nothing sent, the cart stays whole and editable', async () => {
+    online = false
+    await twoArticlesInSheet()
     fireEvent.click(sheet().getByRole('button', { name: /Valider la vente/ }))
     expect(
       await sheet().findByText(
@@ -167,25 +176,109 @@ describe('SalePage — the cart (phone)', () => {
     expect(rpc).not.toHaveBeenCalled()
     expect(resilientSale).not.toHaveBeenCalled()
     expect(sheet().getAllByRole('button', { name: /^Retirer/ })).toHaveLength(2)
+    fireEvent.click(sheet().getByRole('button', { name: 'Une pièce de plus : Robe wax' }))
+    expect(sheet().getByText('Total (3 articles)')).toBeTruthy()
+    fireEvent.click(sheet().getByRole('button', { name: 'Retirer Jean slim du panier' }))
+    expect(sheet().getAllByRole('button', { name: /^Retirer/ })).toHaveLength(1)
+  })
 
-    // The network drops during the call, then comes back: the same operation id both times.
-    online = true
+  it('network cut during the call: the cart freezes, « Réessayer » resends the very same call', async () => {
+    await twoArticlesInSheet()
     rpc.mockResolvedValueOnce({ data: null, error: { message: 'Failed to fetch', code: '' } })
     fireEvent.click(sheet().getByRole('button', { name: /Valider la vente/ }))
-    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(1))
-    await sheet().findByText(/ce panier attend/)
-    // The seller closes the sheet and comes back to the same cart: still the same key.
+    expect(await sheet().findByText(UNCERTAIN)).toBeTruthy()
+
+    // Nothing can change: no « Retirer », no quantity, no price key, no payment choice.
+    expect(sheet().queryAllByRole('button', { name: /^Retirer/ })).toHaveLength(0)
+    expect(sheet().queryByRole('button', { name: /Une pièce de plus/ })).toBeNull()
+    expect(sheet().queryByRole('button', { name: /vendu à/ })).toBeNull()
+    expect(sheet().queryByRole('radio')).toBeNull()
+    expect(sheet().queryByRole('button', { name: /Ajouter un autre article/ })).toBeNull()
+    expect(sheet().getByText('Payé par carte')).toBeTruthy()
+
+    // The sheet closes and opens again: still frozen. A tile adds nothing, it shows the cart.
     fireEvent.click(sheet().getByRole('button', { name: 'Revenir aux articles' }))
     expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByRole('button', { name: /Voir le panier/ }).textContent).toMatch(
+      /Vente à confirmer · 2 articles/,
+    )
+    fireEvent.click(tile('Robe wax'))
+    expect(sheet().getByText(UNCERTAIN)).toBeTruthy()
+    expect(sheet().getByText('Total (2 articles)')).toBeTruthy()
+
+    fireEvent.click(sheet().getByRole('button', { name: /^Réessayer/ }))
+    expect(await screen.findByText('Vendu.')).toBeTruthy()
+    expect(rpc).toHaveBeenCalledTimes(2)
+    expect(rpc.mock.calls[1]).toEqual(rpc.mock.calls[0])
+    expect(opIds()[1]).toBe(opIds()[0])
+    expect(screen.getByText('Jean slim')).toBeTruthy()
+    expect(screen.getByText('Robe wax')).toBeTruthy()
+
+    // The next sale is a new, open cart with a new key.
+    fireEvent.click(screen.getByRole('button', { name: 'Vente suivante' }))
+    await screen.findByText('Robe wax')
+    fireEvent.click(tile('Robe wax'))
+    fireEvent.click(tile('Jean slim'))
     fireEvent.click(screen.getByRole('button', { name: /Voir le panier/ }))
+    expect(sheet().getAllByRole('button', { name: /^Retirer/ })).toHaveLength(2)
     fireEvent.click(sheet().getByRole('radio', { name: 'Carte' }))
     fireEvent.click(sheet().getByRole('button', { name: /Valider la vente/ }))
-    expect(await screen.findByText('Vendu.')).toBeTruthy()
-    const ids = rpc.mock.calls.map(
-      (c) => (c[1] as { p_client_operation_id: string }).p_client_operation_id,
+    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(3))
+    expect(opIds()[2]).not.toBe(opIds()[0])
+  })
+
+  it('a frozen cart refused for good (SQLSTATE) becomes editable again', async () => {
+    await twoArticlesInSheet()
+    rpc.mockResolvedValueOnce({ data: null, error: { message: 'Failed to fetch', code: '' } })
+    fireEvent.click(sheet().getByRole('button', { name: /Valider la vente/ }))
+    await sheet().findByText(UNCERTAIN)
+    rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Insufficient stock', code: 'P0001', details: 'item 0: available 1' },
+    })
+    fireEvent.click(sheet().getByRole('button', { name: /^Réessayer/ }))
+    expect(
+      await sheet().findByText('Robe wax : il n’en reste que 1. Baissez la quantité.'),
+    ).toBeTruthy()
+    expect(sheet().queryByText(UNCERTAIN)).toBeNull()
+    expect(sheet().getAllByRole('button', { name: /^Retirer/ })).toHaveLength(2)
+    expect((sheet().getByRole('radio', { name: 'Carte' }) as HTMLInputElement).checked).toBe(true)
+  })
+
+  it('« Abandonner ce panier » asks first, warns, then empties the cart', async () => {
+    await twoArticlesInSheet()
+    rpc.mockResolvedValueOnce({ data: null, error: { message: 'Failed to fetch', code: '' } })
+    fireEvent.click(sheet().getByRole('button', { name: /Valider la vente/ }))
+    await sheet().findByText(UNCERTAIN)
+
+    fireEvent.click(sheet().getByRole('button', { name: 'Abandonner ce panier' }))
+    const confirm = within(screen.getByRole('dialog', { name: 'Abandonner ce panier ?' }))
+    expect(
+      confirm.getByText(
+        'La vente a peut-être déjà été enregistrée. Avant de revendre ces articles, vérifiez dans Ventes.',
+      ),
+    ).toBeTruthy()
+    expect(confirm.getByRole('link', { name: 'Voir les ventes' }).getAttribute('href')).toBe(
+      '#/ventes',
     )
-    expect(ids).toHaveLength(2)
-    expect(ids[1]).toBe(ids[0])
+    fireEvent.click(confirm.getByRole('button', { name: 'Garder le panier' }))
+    expect(screen.queryByRole('dialog', { name: 'Abandonner ce panier ?' })).toBeNull()
+    expect(sheet().getByText(UNCERTAIN)).toBeTruthy()
+
+    fireEvent.click(sheet().getByRole('button', { name: 'Abandonner ce panier' }))
+    fireEvent.click(
+      within(screen.getByRole('dialog', { name: 'Abandonner ce panier ?' })).getByRole('button', {
+        name: 'Abandonner',
+      }),
+    )
+    expect(screen.queryByText(UNCERTAIN)).toBeNull()
+    expect(screen.queryByRole('button', { name: /Voir le panier/ })).toBeNull()
+    expect(rpc).toHaveBeenCalledTimes(1)
+    // Tiles fill a new cart again.
+    fireEvent.click(tile('Robe wax'))
+    expect(screen.getByRole('button', { name: /Voir le panier/ }).textContent).toMatch(
+      /Panier · 1 article/,
+    )
   })
 
   it('a refusal keeps the cart and says which article', async () => {

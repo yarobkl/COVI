@@ -4,7 +4,13 @@ import { reportSubscriptionInactive } from '../../lib/subscription'
 import { supabase } from '../../lib/supabase'
 import type { Product } from '../../lib/types'
 import { addToCart, setPrice, setQuantity, type Cart } from './cart'
-import { CART_WAITING_TEXT, operationFor, submitCart, type CartOperation } from './cartSubmit'
+import {
+  CART_UNCERTAIN_TEXT,
+  CART_WAITING_TEXT,
+  operationFor,
+  submitCart,
+  type CartOperation,
+} from './cartSubmit'
 
 vi.mock('../../lib/supabase', () => ({
   supabase: { auth: { getSession: vi.fn() }, rpc: vi.fn() },
@@ -100,7 +106,8 @@ describe('submitCart: several articles', () => {
     })
     const lines = twoLines()
     const first = await press(null, lines)
-    expect(first.result).toEqual({ status: 'waiting', message: CART_WAITING_TEXT })
+    // Sent, no answer: the outcome is unknown (the cart will be frozen by the screen).
+    expect(first.result).toEqual({ status: 'uncertain', message: CART_UNCERTAIN_TEXT })
     const second = await press(first.op, lines)
     expect(second.result.status).toBe('sold')
     expect(second.op.id).toBe(first.op.id)
@@ -128,10 +135,20 @@ describe('submitCart: several articles', () => {
     online = false
     const lines = twoLines()
     const { result } = await press(null, lines)
-    expect(result).toEqual({ status: 'waiting', message: CART_WAITING_TEXT })
+    expect(result).toEqual({ status: 'offline', message: CART_WAITING_TEXT })
     expect(rpc).not.toHaveBeenCalled()
     expect(resilientSale).not.toHaveBeenCalled()
     expect(lines).toHaveLength(2)
+  })
+
+  it('an answer without SQLSTATE is uncertain; an answer with one is a definitive refusal', async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: { message: 'Bad gateway', code: '' } })
+    expect((await press(null, twoLines())).result.status).toBe('uncertain')
+    rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Insufficient stock', code: 'P0001' },
+    })
+    expect((await press(null, twoLines())).result.status).toBe('refused')
   })
 
   it('says the refusals in French and names the article in cause', async () => {

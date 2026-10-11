@@ -29,7 +29,7 @@ import {
   type Cart,
   type SoldSale,
 } from './cart'
-import type { CartOperation } from './cartSubmit'
+import type { CartOperation, FrozenCart } from './cartSubmit'
 import { EMPTY_CART_TEXT, SaleForm } from './SaleForm'
 import { SaleTile } from './SaleTile'
 import { matchesSearch } from './saleMath'
@@ -69,6 +69,9 @@ export function SalePage({ shopId, shopName }: { shopId: string; shopName: strin
   const [sheetOpen, setSheetOpen] = useState(false)
   // One operation id per cart, reused on every retry of the same cart; a new one after a sale.
   const [operation, setOperation] = useState<CartOperation | null>(null)
+  // Sent without an answer: frozen until the server answers or the seller abandons it. Kept as
+  // long as the page is mounted (the phone sheet can close and open again).
+  const [frozen, setFrozen] = useState<FrozenCart | null>(null)
   const [said, setSaid] = useState('')
   const [done, setDone] = useState<SoldSale | null>(null)
   const [sales, setSales] = useState(0)
@@ -121,11 +124,20 @@ export function SalePage({ shopId, shopName }: { shopId: string; shopName: strin
     [products, codes, query],
   )
   const codeOf = (p: Product) => (p.arrival_id ? codes.get(p.arrival_id) : undefined)
-  const count = cartCount(cart)
-  const total = cartTotal(cart)
+  const shownCart = frozen?.lines ?? cart
+  const count = cartCount(shownCart)
+  const total = cartTotal(shownCart)
 
   const add = (product: Product) => {
     if (lock) return
+    if (frozen) {
+      // The cart waits for its answer: nothing joins it. Show it instead.
+      setSaid(
+        'Ce panier attend la réponse du serveur : réessayez ou abandonnez-le avant d’ajouter.',
+      )
+      if (!desktop) setSheetOpen(true)
+      return
+    }
     const result = addToCart(cart, product)
     setCart(result.cart)
     setDone(null)
@@ -136,6 +148,7 @@ export function SalePage({ shopId, shopName }: { shopId: string; shopName: strin
     setDone(sale)
     setCart([])
     setOperation(null)
+    setFrozen(null)
     setSheetOpen(false)
     setSales((n) => n + 1)
     setQuery('')
@@ -162,6 +175,15 @@ export function SalePage({ shopId, shopName }: { shopId: string; shopName: strin
       onAddMore={addMore}
       operation={operation}
       onOperation={setOperation}
+      frozen={frozen}
+      onFreeze={setFrozen}
+      onAbandon={() => {
+        setFrozen(null)
+        setCart([])
+        setOperation(null)
+        setSheetOpen(false)
+        setSaid('Panier abandonné.')
+      }}
       onSold={sold}
     />
   )
@@ -249,7 +271,7 @@ export function SalePage({ shopId, shopName }: { shopId: string; shopName: strin
                   <SaleTile
                     product={p}
                     arrivalCode={codeOf(p)}
-                    inCart={lineOf(cart, p.id)?.quantity ?? 0}
+                    inCart={lineOf(shownCart, p.id)?.quantity ?? 0}
                     locked={lock ?? undefined}
                     onAdd={() => add(p)}
                   />
@@ -262,7 +284,7 @@ export function SalePage({ shopId, shopName }: { shopId: string; shopName: strin
         {desktop && (
           <aside className="sale-layout__sale" aria-label="La vente" ref={aside}>
             {doneScreen ??
-              (cart.length > 0 ? (
+              (shownCart.length > 0 ? (
                 form
               ) : (
                 <div className="sale-waiting">
@@ -282,7 +304,7 @@ export function SalePage({ shopId, shopName }: { shopId: string; shopName: strin
         {said}
       </p>
 
-      {!desktop && cart.length > 0 && (
+      {!desktop && shownCart.length > 0 && (
         <div className="sale-cartbar">
           <button
             type="button"
@@ -291,7 +313,9 @@ export function SalePage({ shopId, shopName }: { shopId: string; shopName: strin
             onClick={() => setSheetOpen(true)}
           >
             <span className="sale-cartbar__what">
-              <span className="sale-bar__count">Panier · {plural(count, 'article')}</span>
+              <span className="sale-bar__count">
+                {frozen ? 'Vente à confirmer' : 'Panier'} · {plural(count, 'article')}
+              </span>
               <span className="amount">
                 {fcfa(total)}
                 <span className="amount__unit">FCFA</span>
