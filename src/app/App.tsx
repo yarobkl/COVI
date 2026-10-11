@@ -241,7 +241,8 @@ export function App({
     main.current?.focus({ preventScroll: true })
   }, [route])
 
-  const current = (page: PageId) => (route.page === page ? 'page' : undefined)
+  const current = (page: PageId) =>
+    (route.page === page || (page === 'stock' && route.page === 'arrivages') ? 'page' : undefined)
   const askSignOut = () => {
     setMenuOpen(false)
     setSignOutOpen(true)
