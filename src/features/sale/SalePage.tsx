@@ -71,7 +71,8 @@ export function SalePage({ shopId, shopName }: { shopId: string; shopName: strin
   useEffect(() => {
     const reload = () => { void loadProducts(); void todaySales(shopId).then(setToday) }
     window.addEventListener('covi-sync', reload)
-    return () => window.removeEventListener('covi-sync', reload)
+    window.addEventListener('covi-refresh', reload)
+    return () => { window.removeEventListener('covi-sync', reload); window.removeEventListener('covi-refresh', reload) }
   }, [loadProducts, shopId])
 
   const visible = useMemo(
