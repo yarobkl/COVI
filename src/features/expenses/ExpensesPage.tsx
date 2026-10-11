@@ -35,6 +35,9 @@ export function ExpensesPage({ shopId }: { shopId: string }) {
   )
   useEffect(() => {
     void load()
+    const refresh = () => { void load() }
+    window.addEventListener('covi-refresh', refresh)
+    return () => window.removeEventListener('covi-refresh', refresh)
   }, [load])
   const visible = useMemo(
     () =>
