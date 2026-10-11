@@ -357,6 +357,11 @@ export function App({
               <p id={READ_ONLY_ID}>{READ_ONLY_TEXT}</p>
             </Notice>
           )}
+          {account.subscriptionUnverified && (
+            <p className="subscription-unverified" role="status">
+              État de l’abonnement non vérifié
+            </p>
+          )}
           <div key={routeKey(route)} className="page">
             {renderPage(route, ctx)}
           </div>

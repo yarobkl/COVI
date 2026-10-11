@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   accessFromState,
   addShopBlockedReason,
@@ -144,5 +144,70 @@ describe('covi_my_subscription_state() → interface', () => {
   })
   it('unknown state: nothing blocked, the server decides', () => {
     expect(addShopBlockedReason(OPEN_ACCESS, 5)).toBeNull()
+  })
+})
+
+describe('loadSubscriptionAccess: unverified only when the function exists but fails', () => {
+  afterEach(() => {
+    vi.doUnmock('./supabase')
+    vi.resetModules()
+  })
+  async function withRpc(rpc: () => Promise<unknown>, tables: 'ok' | 'throws' = 'ok') {
+    vi.resetModules()
+    const builder = {
+      select: () => builder,
+      eq: () => builder,
+      maybeSingle: () =>
+        tables === 'throws'
+          ? Promise.reject(new TypeError('Failed to fetch'))
+          : Promise.resolve({ data: null, error: null }),
+    }
+    vi.doMock('./supabase', () => ({ supabase: { rpc, from: () => builder } }))
+    const mod = await import('./subscription')
+    return mod.loadSubscriptionAccess('u1')
+  }
+
+  it('server error: unverified, nothing blocked', async () => {
+    const a = await withRpc(() =>
+      Promise.resolve({ data: null, error: { code: 'XX000', message: 'Internal error' } }),
+    )
+    expect(a).toEqual({ ...OPEN_ACCESS, unverified: true })
+    expect(addShopBlockedReason(a, 3)).toBeNull()
+  })
+  it('network failure: unverified', async () => {
+    const a = await withRpc(() => Promise.reject(new TypeError('Failed to fetch')))
+    expect(a.unverified).toBe(true)
+    expect(a.readOnly).toBe(false)
+  })
+  it('function missing (PGRST202): former fallback, not said unverified', async () => {
+    const a = await withRpc(() =>
+      Promise.resolve({ data: null, error: { code: 'PGRST202', message: 'Could not find' } }),
+    )
+    expect(a.unverified).toBeUndefined()
+    expect(a.shopLimit).toBe(1)
+  })
+  it('function missing and the tables unreachable: open, as before', async () => {
+    const a = await withRpc(
+      () => Promise.resolve({ data: null, error: { code: '42883', message: 'undefined' } }),
+      'throws',
+    )
+    expect(a).toEqual(OPEN_ACCESS)
+  })
+  it('answered: verified', async () => {
+    const a = await withRpc(() =>
+      Promise.resolve({
+        data: {
+          status: 'active',
+          writable: true,
+          shopLimit: 2,
+          shopCount: 1,
+          canAddShop: true,
+          periodEnd: null,
+          isLegacyV1: false,
+        },
+        error: null,
+      }),
+    )
+    expect(a.unverified).toBeUndefined()
   })
 })

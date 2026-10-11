@@ -29,6 +29,12 @@ export type SubscriptionAccess = {
   canAddShop: boolean | null
   /** Subscription status (« suspended »…); null for a V1 owner or when unknown. */
   status: string | null
+  /**
+   * `covi_my_subscription_state()` failed for another reason than its absence (network, server
+   * error): the state is not known. Nothing is blocked nor announced as active or suspended; the
+   * screens only say it was not verified, until a later check succeeds.
+   */
+  unverified?: boolean
 }
 
 export const OPEN_ACCESS: SubscriptionAccess = {
@@ -38,6 +44,9 @@ export const OPEN_ACCESS: SubscriptionAccess = {
   canAddShop: null,
   status: null,
 }
+
+/** The check failed (not the function missing): open, as OPEN_ACCESS, but said unverified. */
+export const UNVERIFIED_ACCESS: SubscriptionAccess = { ...OPEN_ACCESS, unverified: true }
 
 const time = (value: string | null) => (value ? Date.parse(value) : NaN)
 
@@ -137,17 +146,26 @@ async function loadFromTables(userId: string): Promise<SubscriptionAccess> {
  * the readable tables when the function does not exist yet (PGRST202 / 42883). Never blocks the
  * shop on doubt: without the SaaS migrations, without network, or on any read error, the shop
  * stays open and the database still refuses what it must refuse (see `isSubscriptionInactive`).
+ * When the function exists but its call fails, the answer is UNVERIFIED_ACCESS. The fallback on
+ * the tables keeps its former behaviour (OPEN_ACCESS on error) during the move to the function.
  */
 export async function loadSubscriptionAccess(userId: string): Promise<SubscriptionAccess> {
+  let answer: { data: unknown; error: { code?: unknown; message?: unknown } | null }
   try {
-    const { data, error } = await untyped.rpc('covi_my_subscription_state')
-    if (!error && data && typeof data === 'object')
-      return accessFromState(data as SubscriptionState)
-    if (error && isMissingFunction(error)) return await loadFromTables(userId)
-    return OPEN_ACCESS
+    answer = await untyped.rpc('covi_my_subscription_state')
   } catch {
-    return OPEN_ACCESS
+    return UNVERIFIED_ACCESS
   }
+  const { data, error } = answer
+  if (!error && data && typeof data === 'object') return accessFromState(data as SubscriptionState)
+  if (error && isMissingFunction(error)) {
+    try {
+      return await loadFromTables(userId)
+    } catch {
+      return OPEN_ACCESS
+    }
+  }
+  return UNVERIFIED_ACCESS
 }
 
 /**

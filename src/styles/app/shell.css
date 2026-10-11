@@ -192,6 +192,12 @@
   .read-only-banner {
     margin-bottom: var(--space-4);
   }
+  /* Abonnement pas encore vérifié (réseau, erreur serveur) : une ligne discrète, rien de fermé */
+  .subscription-unverified {
+    margin: 0 0 var(--space-3);
+    font-size: var(--step--1);
+    color: var(--ink-soft);
+  }
   .bottom-nav__item--sale[aria-disabled='true'] {
     color: var(--ink-soft);
     cursor: not-allowed;

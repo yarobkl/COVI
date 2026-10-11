@@ -241,6 +241,16 @@ describe('App shell: several shops and read only', () => {
     expect(add.getAttribute('aria-describedby')).toBe(note.id)
   })
 
+  it('subscription unverified: one discreet line, the sale still open', () => {
+    const { sommaire } = renderWith({ shopCount: 1, readOnly: false, subscriptionUnverified: true })
+    const line = screen.getByText('État de l’abonnement non vérifié')
+    expect(line.closest('.notice')).toBeNull()
+    expect(screen.queryByText(READ_ONLY)).toBeNull()
+    const sale = within(sommaire).getByText('Nouvelle vente').closest('a')!
+    expect(sale.getAttribute('aria-disabled')).toBeNull()
+    expect(sale.getAttribute('href')).not.toBeNull()
+  })
+
   it('no banner while the subscription is fine', () => {
     renderWith({ shopCount: 1, readOnly: false })
     expect(screen.queryByText(READ_ONLY)).toBeNull()

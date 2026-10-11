@@ -37,7 +37,15 @@ export type ShopAccount = {
   addShopBlocked?: string
   /** Subscription suspended or over: data can be read, nothing can be written. */
   readOnly: boolean
+  /**
+   * The subscription could not be checked (covi_my_subscription_state failed): only said, nothing
+   * blocked, never shown as active or suspended. Gone as soon as a check succeeds.
+   */
+  subscriptionUnverified?: boolean
 }
+
+/** While the subscription is unverified, it is asked again at this pace (and when back online). */
+const RECHECK_MS = 60_000
 
 /** A shop list request that never answers (weak network) is treated as a failure. */
 const SHOPS_TIMEOUT_MS = 12_000
@@ -201,6 +209,35 @@ export function AuthGate({
     }
   }, [userId, loadShops])
 
+  // Unverified (network, server error): asked again until a check answers. The read-only state
+  // confirmed by the server (P0001) is kept; nothing is written, the offline queue is not touched.
+  const unverified = access.unverified === true
+  useEffect(() => {
+    if (!userId || !unverified) return
+    let alive = true
+    let asking = false
+    const recheck = () => {
+      if (asking || document.visibilityState === 'hidden') return
+      asking = true
+      void loadSubscriptionAccess(userId)
+        .then((a) => {
+          if (alive) setAccess((current) => ({ ...a, readOnly: a.readOnly || current.readOnly }))
+        })
+        .finally(() => {
+          asking = false
+        })
+    }
+    const timer = window.setInterval(recheck, RECHECK_MS)
+    window.addEventListener('online', recheck)
+    document.addEventListener('visibilitychange', recheck)
+    return () => {
+      alive = false
+      window.clearInterval(timer)
+      window.removeEventListener('online', recheck)
+      document.removeEventListener('visibilitychange', recheck)
+    }
+  }, [userId, unverified])
+
   const signOut = async () => {
     await supabase.auth.signOut()
   }
@@ -292,6 +329,7 @@ export function AuthGate({
             addShop: startAdding,
             addShopBlocked: addBlocked ?? undefined,
             readOnly: access.readOnly,
+            subscriptionUnverified: unverified && !access.readOnly,
           },
         )}
       </>

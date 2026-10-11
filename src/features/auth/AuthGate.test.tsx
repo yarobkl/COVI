@@ -103,6 +103,7 @@ function renderGate() {
           <p>ouverte:{s.id}</p>
           <p>boutiques:{account.shopCount}</p>
           <p>lecture-seule:{String(account.readOnly)}</p>
+          {account.subscriptionUnverified && <p>abonnement-non-vérifié</p>}
           {account.addShopBlocked && <p>ajout-bloqué:{account.addShopBlocked}</p>}
           {account.switchShop && (
             <button type="button" onClick={account.switchShop}>
@@ -477,5 +478,39 @@ describe('AuthGate: covi_my_subscription_state()', () => {
         'ajout-bloqué:Votre abonnement est suspendu. Contactez COVI pour le renouveler.',
       ),
     ).toBeTruthy()
+  })
+
+  it('check failing (server error): said unverified, nothing blocked, gone once a check answers', async () => {
+    fake.shopsByUser.u1 = [A]
+    fake.state = 'error'
+    renderGate()
+    expect(await screen.findByText('abonnement-non-vérifié')).toBeTruthy()
+    expect(screen.getByText('lecture-seule:false')).toBeTruthy()
+    expect(screen.queryByText(/ajout-bloqué/)).toBeNull()
+    expect(screen.getByRole('button', { name: 'Ajouter une boutique' })).toBeTruthy()
+    fake.state = state({ status: 'suspended', writable: false, canAddShop: false })
+    act(() => {
+      window.dispatchEvent(new Event('online'))
+    })
+    expect(await screen.findByText('lecture-seule:true')).toBeTruthy()
+    expect(screen.queryByText('abonnement-non-vérifié')).toBeNull()
+  })
+
+  it('function missing (PGRST202): never said unverified', async () => {
+    fake.shopsByUser.u1 = [A]
+    fake.state = null
+    renderGate()
+    expect(await screen.findByText('ouverte:shop-a')).toBeTruthy()
+    await waitFor(() => expect(screen.queryByText('abonnement-non-vérifié')).toBeNull())
+  })
+
+  it('unverified, then a P0001 refusal: read only (confirmed), the mention gives way', async () => {
+    fake.shopsByUser.u1 = [A]
+    fake.state = 'error'
+    renderGate()
+    expect(await screen.findByText('abonnement-non-vérifié')).toBeTruthy()
+    act(() => reportSubscriptionInactive())
+    expect(await screen.findByText('lecture-seule:true')).toBeTruthy()
+    expect(screen.queryByText('abonnement-non-vérifié')).toBeNull()
   })
 })
