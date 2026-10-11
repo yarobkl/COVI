@@ -125,7 +125,7 @@ export function ArrivalsPage({ shopId, kind }: { shopId: string; kind?: Arrival[
         />
       )}
       {msg && <p className="successmsg">{msg}</p>}
-      <section className="card">
+      <section className={rows.length ? "arrivals-list" : "card"}>
         {rows.length === 0 ? (
           <p>
             Aucun arrivage enregistré. Créez une commande fournisseur ou un ballon pour commencer.
