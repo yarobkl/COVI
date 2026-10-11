@@ -25,13 +25,18 @@ export function ArrivalProfitRow({ arrival: x }: { arrival: ArrivalProfit }) {
           Ventes générées<b>{money(x.revenue)}</b>
         </span>
         <span>
-          Résultat actuel
+          Reste à récupérer
+          <b>{money(x.outstanding)}</b>
+        </span>
+        <span>
+          {x.recovery >= 100 ? 'Excédent après investissement' : 'Écart ventes − investissement'}
           <b>
             {x.profit >= 0 ? '+ ' : ''}
             {money(x.profit)}
           </b>
         </span>
       </div>
+      <p className="muted">Résultat cumulé avant charges générales : il ne représente pas le bénéfice net définitif.</p>
     </div>
   )
 }
