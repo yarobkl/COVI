@@ -74,7 +74,6 @@ src/
   components/
     icons/            icônes SVG maison (trait 1,75 px)
     ui/               composants du système de design (Button, Field, Amount, Ledger, NumPad…)
-                      et anciens petits composants des pages pas encore refaites
   hooks/              hooks partagés (useAsyncData : chargement, erreur, réessai ; useMediaQuery)
   lib/                couche données et utilitaires sans interface :
     supabase.ts         client Supabase typé
@@ -87,8 +86,7 @@ src/
     dates.ts            clés de jour et de mois en heure locale, dates dites (« jeudi 8 octobre », « 14 h 32 »)
   styles/             système de design « Le Cahier » (couches CSS) : index.css (point d’entrée,
                       importé par app/Root.tsx), tokens.css, base.css, components.css,
-                      app/ (styles propres aux écrans refaits), legacy.css (anciennes classes,
-                      limitées à `.legacy`, pour les pages pas encore refaites)
+                      app/ (styles propres à chaque écran)
   styles.css          vide, gardé tant que main.tsx l’importe
 tests/offline.mjs     test Node de la file hors connexion (charge offline.ts, covi.ts et format.ts depuis les sources)
 ```
