@@ -1,0 +1,307 @@
+/* Stock : les lignes du cahier, la recherche, les filtres et la feuille « Ajouter au stock ».
+   Importé par src/features/stock (couche app, déclarée dans index.css). */
+@layer app {
+  .stock {
+    display: grid;
+    gap: var(--space-5);
+    max-width: 56rem;
+  }
+  .stock-head {
+    margin-bottom: 0;
+  }
+  /* Les boutons d’un message gardent une cible de 44 px (Réessayer, Ajouter ses pièces). */
+  .stock .notice__actions .btn,
+  .arrivals .notice__actions .btn {
+    min-height: var(--tap-min);
+  }
+  .stock-head__count {
+    margin-top: var(--space-1);
+    font-size: var(--step-1);
+    color: var(--ink-soft);
+  }
+  .stock-head__count .figures {
+    color: var(--ink);
+    font-size: var(--amount-lg);
+    line-height: 1;
+  }
+
+  .stock-book {
+    display: grid;
+    gap: var(--space-4);
+    min-width: 0;
+  }
+
+  /* Filtres : vrais boutons radio dessinés comme des onglets du cahier. */
+  .stock-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-3) var(--space-4);
+  }
+  .stock-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .stock-chip {
+    position: relative;
+  }
+  .stock-chip__input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .stock-chip__label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--tap-min);
+    padding: 0 var(--space-3);
+    border: var(--border-field) solid var(--line-field);
+    border-radius: var(--radius-1) var(--radius-2) var(--radius-1) var(--radius-2);
+    background: var(--sheet);
+    color: var(--ink-soft);
+    white-space: nowrap;
+    transition:
+      background-color var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out);
+  }
+  .stock-chip__count {
+    font-family: var(--font-figures);
+    font-size: var(--step--1);
+    color: var(--ink-muted);
+  }
+  .stock-chip:hover .stock-chip__label {
+    background: var(--action-tint);
+    color: var(--action);
+  }
+  .stock-chip__input:checked + .stock-chip__label {
+    border-color: var(--action);
+    background: var(--action-tint);
+    color: var(--action);
+    font-weight: var(--weight-bold);
+  }
+  .stock-chip__input:checked + .stock-chip__label .stock-chip__count {
+    color: var(--action);
+  }
+  .stock-chip__input:focus-visible + .stock-chip__label {
+    outline: var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .stock-arrival {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+  }
+  .stock-arrival__label {
+    color: var(--ink-soft);
+    font-weight: var(--weight-bold);
+  }
+  .stock-arrival__select {
+    width: auto;
+    min-width: 11rem;
+    max-width: 100%;
+    height: var(--tap-min);
+  }
+
+  .stock-shown,
+  .stock-none {
+    color: var(--ink-muted);
+    font-size: var(--step--1);
+  }
+  .stock-none {
+    padding-block: var(--space-4);
+    font-size: var(--step-0);
+    color: var(--ink-soft);
+  }
+
+  /* Une ligne du cahier par article. */
+  .stock-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: var(--border-hair) solid var(--line);
+  }
+  /* Ordinateur : deux colonnes de lignes, comme un cahier ouvert. */
+  .stock-book {
+    container-type: inline-size;
+  }
+  @container (min-width: 46rem) {
+    .stock-book > .stock-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: var(--space-8);
+      border-top: 0;
+    }
+    .stock-book > .stock-list > .stock-row:nth-child(-n + 2) {
+      border-top: var(--border-hair) solid var(--line);
+    }
+  }
+  .stock-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 72px;
+    padding-block: var(--space-3);
+    border-bottom: var(--border-hair) solid var(--line);
+  }
+  .stock-row__main {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+  .stock-row__name {
+    font-weight: var(--weight-bold);
+    line-height: var(--leading-snug);
+    overflow-wrap: anywhere;
+  }
+  .stock-row__meta {
+    color: var(--ink-muted);
+    font-size: var(--step--1);
+    overflow-wrap: anywhere;
+  }
+  .stock-row__meta mark {
+    font-size: inherit;
+    color: var(--ink);
+  }
+  .stock-row__code {
+    font-family: var(--font-figures);
+    white-space: nowrap;
+  }
+  .stock-row__price {
+    align-self: start;
+    padding-top: 2px;
+    white-space: nowrap;
+  }
+
+  /* Photo ou initiale (Stock, détail d’un arrivage). */
+  .product-pic {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 48px;
+    height: 48px;
+    overflow: hidden;
+    border: var(--border-field) solid var(--line-field);
+    border-radius: var(--radius-2);
+    background: var(--paper);
+    color: var(--action);
+    font-family: var(--font-figures);
+    font-size: 1.375rem;
+    font-weight: var(--weight-bold);
+  }
+  .product-pic--sm {
+    width: 40px;
+    height: 40px;
+    font-size: 1.125rem;
+  }
+  .product-pic img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Feuille « Ajouter au stock » */
+  .product-sheet .product-form {
+    gap: var(--space-4);
+  }
+  .product-form__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+  .product-form__head .icon-btn {
+    margin: calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) 0 0;
+  }
+  .product-form__kicker {
+    color: var(--ink-muted);
+    font-family: var(--font-figures);
+    font-weight: var(--weight-bold);
+  }
+  .product-form__pair {
+    display: grid;
+    gap: var(--space-4);
+    align-items: end;
+  }
+  @container (min-width: 26rem) {
+    .product-form__pair {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  .product-form {
+    container-type: inline-size;
+  }
+  .product-form__qty {
+    max-width: 8rem;
+  }
+  .product-form .dialog__actions {
+    position: sticky;
+    bottom: 0;
+    margin: 0 calc(-1 * var(--space-5)) calc(-1 * var(--space-5));
+    padding: var(--space-3) var(--space-5) var(--space-5);
+    border-top: var(--border-hair) solid var(--line);
+    background: var(--sheet);
+  }
+  @media (min-width: 640px) {
+    .product-sheet.dialog--sheet {
+      width: min(36rem, calc(100vw - 2 * var(--gutter)));
+    }
+  }
+
+  .photo-field__row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+  }
+  .photo-field__frame {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 88px;
+    height: 88px;
+    overflow: hidden;
+    border: 2px dashed var(--line-dotted);
+    border-radius: var(--radius-2);
+    background: var(--paper);
+    color: var(--ink-muted);
+    font-size: var(--step--2);
+    text-align: center;
+    line-height: 1.2;
+  }
+  .photo-field__frame:has(img) {
+    border-style: solid;
+    border-color: var(--line-field);
+  }
+  .photo-field__frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .photo-field__actions {
+    display: grid;
+    justify-items: start;
+    gap: var(--space-1);
+    min-width: 0;
+  }
+  .photo-field__pick {
+    cursor: pointer;
+    white-space: normal;
+    text-align: start;
+  }
+  .photo-field__input:focus-visible + .photo-field__pick {
+    outline: var(--focus-ring);
+    outline-offset: 2px;
+  }
+}

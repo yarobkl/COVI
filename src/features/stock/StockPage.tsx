@@ -1,104 +1,229 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { PlusIcon, SearchIcon } from '../../components/icons'
-import { addProduct, listProducts } from '../../lib/covi'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { CloudOffIcon, PlusIcon } from '../../components/icons'
+import { Button, ButtonLink, EmptyState, Notice, SearchField, Skeleton } from '../../components/ui'
+import { listProducts } from '../../lib/covi'
+import { plural, pluralize } from '../../lib/format'
 import { stockCacheDate } from '../../lib/offline'
 import { listArrivals } from '../../lib/operations'
 import type { Arrival, Product } from '../../lib/types'
-import { StockProductForm } from './StockProductForm'
+import '../../styles/app/stock.css'
+import { ProductSheet } from './ProductSheet'
+import { StockFilters } from './StockFilters'
+import {
+  filterCounts,
+  filterStock,
+  keptStockLabel,
+  piecesInShop,
+  type StockFilter,
+} from './stockFilters'
 import { StockRow } from './StockRow'
 
-/** Active stock (test products included and flagged), with the offline copy when disconnected. */
+function useOnline() {
+  const [online, setOnline] = useState(() => navigator.onLine)
+  useEffect(() => {
+    const update = () => setOnline(navigator.onLine)
+    window.addEventListener('online', update)
+    window.addEventListener('offline', update)
+    return () => {
+      window.removeEventListener('online', update)
+      window.removeEventListener('offline', update)
+    }
+  }, [])
+  return online
+}
+
+const filterEmpty: Record<StockFilter, string> = {
+  all: 'Aucun article pour cet arrivage.',
+  low: 'Aucun modèle bientôt épuisé. Tout va bien de ce côté.',
+  unique: 'Aucune pièce unique en ce moment.',
+}
+
+/**
+ * Stock: how many pieces are in the shop, then the notebook lines (photo or initial, name, type ·
+ * brand · size, what is left, where it came from, displayed price), with an instant local search
+ * and simple filters. Adding an article opens a sheet. Without network, the copy kept on the
+ * device is shown, calmly dated.
+ */
 export function StockPage({ shopId }: { shopId: string }) {
-  const [online, setOnline] = useState(navigator.onLine)
-  const [p, setP] = useState<Product[]>([])
+  const online = useOnline()
+  const [products, setProducts] = useState<Product[] | null>(null)
+  const [failed, setFailed] = useState(false)
   const [arrivals, setArrivals] = useState<Arrival[]>([])
-  const [show, setShow] = useState(false)
-  const [msg, setMsg] = useState('')
+  const [attempt, setAttempt] = useState(0)
   const [query, setQuery] = useState('')
+  const [filter, setFilter] = useState<StockFilter>('all')
+  const [arrival, setArrival] = useState('')
+  const [adding, setAdding] = useState(false)
+  const [added, setAdded] = useState<string | null>(null)
+
   const load = useCallback(
     () =>
-      listProducts(shopId, false, true)
-        .then(setP)
-        .catch((e) => setMsg(e.message)),
+      listProducts(shopId, false, true).then(
+        (rows) => {
+          setProducts(rows)
+          setFailed(false)
+        },
+        () => setFailed(true),
+      ),
     [shopId],
   )
+
   useEffect(() => {
     void load()
-    if (navigator.onLine) void listArrivals(shopId).then(setArrivals)
-    const status = () => {
-      setOnline(navigator.onLine)
-      if (navigator.onLine) void load()
-    }
-    window.addEventListener('online', status)
-    window.addEventListener('offline', status)
+    // Arrival codes (BAL-003…) for the lines, the filter and the form: optional.
+    listArrivals(shopId).then(setArrivals, () => {})
+  }, [shopId, load, attempt])
+
+  // The network comes back, or sales kept on the device were sent: the stock moved.
+  useEffect(() => {
+    const reload = () => void load()
+    window.addEventListener('online', reload)
+    window.addEventListener('covi-sync', reload)
     return () => {
-      window.removeEventListener('online', status)
-      window.removeEventListener('offline', status)
+      window.removeEventListener('online', reload)
+      window.removeEventListener('covi-sync', reload)
     }
-  }, [shopId, load])
-  async function save(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    const f = new FormData(e.currentTarget),
-      unique = f.get('unique') === 'on'
-    try {
-      await addProduct(shopId, {
-        name: String(f.get('name')),
-        category: String(f.get('category') || ''),
-        brand: String(f.get('brand') || ''),
-        size: String(f.get('size') || ''),
-        initial_sale_price: Number(f.get('price')),
-        quantity_on_hand: unique ? 1 : Number(f.get('quantity') || 1),
-        is_unique_piece: unique,
-        arrival_id: String(f.get('arrival') || '') || null,
-        is_test: arrivals.find((a) => a.id === String(f.get('arrival') || ''))?.is_test ?? false,
-        image: (f.get('image') as File)?.size ? (f.get('image') as File) : null,
-      })
-      setShow(false)
-      setMsg('Produit ajouté au stock.')
-      load()
-    } catch (e) {
-      setMsg((e as Error).message)
-    }
-  }
-  const q = query.toLowerCase()
-  const visible = p.filter((v) =>
-    (v.name + ' ' + (v.brand ?? '') + ' ' + (v.category ?? '')).toLowerCase().includes(q),
+  }, [load])
+
+  const codes = useMemo(() => new Map(arrivals.map((a) => [a.id, a.code])), [arrivals])
+  const visible = useMemo(
+    () => filterStock(products ?? [], { query, filter, arrival, codes }),
+    [products, query, filter, arrival, codes],
   )
-  const cacheDate = stockCacheDate(shopId)
+  const counts = useMemo(() => filterCounts(products ?? []), [products])
+  // Only the arrivals some article comes from are offered in the filter.
+  const usedArrivals = useMemo(
+    () => arrivals.filter((a) => (products ?? []).some((p) => p.arrival_id === a.id)),
+    [arrivals, products],
+  )
+  const received = useMemo(() => arrivals.filter((a) => a.status === 'received'), [arrivals])
+  const pieces = piecesInShop(products ?? [])
+
+  const add = () => {
+    setAdded(null)
+    setAdding(true)
+  }
+
   return (
-    <>
-      <div className="hello">
+    <div className="stock">
+      <header className="page-head stock-head">
         <div>
-          <h1>Mon stock</h1>
-          <span>
-            {online
-              ? 'Stock réel et éléments TEST signalés.'
-              : 'Stock hors connexion · dernière copie ' +
-                (cacheDate ? new Date(cacheDate).toLocaleString('fr-FR') : 'locale')}
-          </span>
+          <h1>Stock</h1>
+          {products && products.length > 0 && (
+            <p className="stock-head__count">
+              <strong className="figures">{pieces}</strong> {pluralize(pieces, 'pièce')} en boutique
+            </p>
+          )}
         </div>
-        <button onClick={() => setShow(!show)}>
-          <PlusIcon />
-          Ajouter un produit
-        </button>
-      </div>
-      {show && <StockProductForm arrivals={arrivals} onSubmit={save} />}
-      {msg && <p className="successmsg">{msg}</p>}
-      <section className="card">
-        <div className="search">
-          <SearchIcon />
-          <input
-            placeholder="Rechercher…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
-        {visible.length === 0 ? (
-          <p>Aucun produit disponible. Ajoutez votre premier produit.</p>
-        ) : (
-          visible.map((x) => <StockRow key={x.id} product={x} />)
+        {products?.length !== 0 && (
+          <Button write variant="primary" icon={<PlusIcon />} onClick={add}>
+            Ajouter au stock
+          </Button>
         )}
-      </section>
-    </>
+      </header>
+
+      {!online && products !== null && (
+        <Notice icon={CloudOffIcon} title={keptStockLabel(stockCacheDate(shopId))}>
+          <p>Pas de réseau. Pour ajouter un article, attendez qu’il revienne.</p>
+        </Notice>
+      )}
+
+      {added && (
+        <Notice tone="success" className="stock-added">
+          <p>{added} est en stock.</p>
+        </Notice>
+      )}
+
+      {products === null && !failed && <Skeleton caption="On sort le stock…" />}
+
+      {products === null && failed && (
+        <Notice
+          icon={CloudOffIcon}
+          title="Le stock ne s’affiche pas : pas de réseau."
+          actions={
+            <Button variant="secondary" onClick={() => setAttempt((n) => n + 1)}>
+              Réessayer
+            </Button>
+          }
+        >
+          <p>Réessayez dans un instant.</p>
+        </Notice>
+      )}
+
+      {products !== null && products.length === 0 && (
+        <EmptyState
+          title="Pas encore de produits."
+          actions={
+            <>
+              <Button write variant="primary" onClick={add}>
+                Ajouter au stock
+              </Button>
+              <ButtonLink write variant="secondary" href="#/arrivages">
+                Nouvel arrivage
+              </ButtonLink>
+            </>
+          }
+        >
+          <p>Ajoutez votre premier article ou enregistrez un arrivage.</p>
+        </EmptyState>
+      )}
+
+      {products !== null && products.length > 0 && (
+        <section className="stock-book" aria-label="Articles en stock">
+          <SearchField
+            className="stock-search"
+            label="Chercher un article"
+            placeholder="Nom, type, marque, BAL-003…"
+            value={query}
+            onChange={setQuery}
+          />
+          <StockFilters
+            filter={filter}
+            onFilter={setFilter}
+            counts={counts}
+            arrival={arrival}
+            onArrival={setArrival}
+            arrivals={usedArrivals}
+            hasLoose={(products ?? []).some((p) => !p.arrival_id)}
+          />
+          {visible.length > 0 ? (
+            <>
+              <p className="stock-shown" aria-live="polite">
+                {visible.length === products.length
+                  ? plural(visible.length, 'article')
+                  : `${plural(visible.length, 'article')} sur ${products.length}`}
+              </p>
+              <ul className="stock-list">
+                {visible.map((p) => (
+                  <StockRow
+                    key={p.id}
+                    product={p}
+                    arrivalCode={p.arrival_id ? codes.get(p.arrival_id) : undefined}
+                  />
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p className="stock-none" role="status">
+              {query.trim()
+                ? `Rien ne correspond à « ${query.trim()} ». Vérifiez l’orthographe.`
+                : filterEmpty[filter]}
+            </p>
+          )}
+        </section>
+      )}
+
+      <ProductSheet
+        open={adding}
+        onClose={() => setAdding(false)}
+        shopId={shopId}
+        arrivals={received}
+        onSaved={(product) => {
+          setAdding(false)
+          setAdded(product.name)
+          void load()
+        }}
+      />
+    </div>
   )
 }

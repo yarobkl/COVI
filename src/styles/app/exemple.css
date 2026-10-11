@@ -1,0 +1,102 @@
+/* Boutique d’exemple : la même coque que l’application, marquée « Exemple ». */
+@layer app {
+  .demo-shell .topbar .badge {
+    margin-inline-start: auto;
+  }
+
+  /* Le sommaire et le menu de l’exemple sont des boutons (pas d’adresse #/…). */
+  .demo-shell .sommaire__link,
+  .menu-sheet button.sommaire__link {
+    width: 100%;
+    border: 0;
+    background: none;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+  }
+  .demo-shell .sommaire__foot {
+    margin-top: var(--space-4);
+  }
+
+  .demo-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-4);
+    margin-bottom: var(--space-8);
+    padding: var(--space-3) var(--space-4);
+    border: var(--border-field) dashed var(--notice-line);
+    border-radius: var(--radius-3);
+    background: var(--notice-bg);
+    color: var(--notice-ink);
+  }
+  .demo-banner__stamp {
+    flex: none;
+    padding: 0 0.4em;
+    border: 3px double var(--action);
+    border-radius: 6px;
+    color: var(--action);
+    font-family: var(--font-figures);
+    font-weight: var(--weight-bold);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    rotate: -4deg;
+  }
+  .demo-banner__text {
+    flex: 1 1 16rem;
+    min-width: 0;
+    font-size: var(--step--1);
+  }
+  .demo-banner__exit {
+    flex: none;
+  }
+  /* Sur ordinateur, la sortie est dans le sommaire. */
+  @media (min-width: 1024px) {
+    .demo-banner__exit {
+      display: none;
+    }
+  }
+
+  .demo-page {
+    display: grid;
+    gap: var(--space-8);
+    min-width: 0;
+  }
+  .demo-page > .page-head {
+    margin-bottom: 0;
+  }
+
+  .demo-months {
+    display: grid;
+    gap: var(--space-5);
+  }
+  .demo-months__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: var(--space-6) var(--space-8);
+  }
+  .demo-month {
+    display: grid;
+    gap: var(--space-2);
+    align-content: start;
+  }
+  .demo-month__title {
+    font-size: var(--step-1);
+  }
+  .demo-month__sub {
+    display: block;
+    color: var(--ink-soft);
+    font-size: var(--step-0);
+    font-weight: var(--weight-regular);
+  }
+  .demo-month__stock {
+    font-size: var(--step--1);
+  }
+  .demo-total {
+    max-width: 34rem;
+    margin-top: var(--space-4);
+  }
+  .demo-stock {
+    max-width: 40rem;
+  }
+}

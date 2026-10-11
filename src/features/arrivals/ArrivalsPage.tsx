@@ -1,149 +1,294 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { PlusIcon } from '../../components/icons'
-import { addProduct } from '../../lib/covi'
+import { useCallback, useId, useMemo, useState } from 'react'
+import { CloudOffIcon, PlusIcon } from '../../components/icons'
+import { Button, Dialog, EmptyState, Notice, Skeleton } from '../../components/ui'
+import { useAsyncData } from '../../hooks/useAsyncData'
 import { localDay } from '../../lib/dates'
-import {
-  arrivalProfitability,
-  createArrival,
-  listArrivals,
-  updateArrival,
-  type ArrivalProfit,
-} from '../../lib/operations'
-import type { Arrival } from '../../lib/types'
-import { ArrivalCard } from './ArrivalCard'
-import { ArrivalForm } from './ArrivalForm'
-import { ArrivalProductForm } from './ArrivalProductForm'
-import { arrivalFromForm, arrivalProductFromForm } from './arrivalForms'
-import { nextStatus } from './arrivalStatus'
+import { arrivalProfitability, listArrivals, updateArrival } from '../../lib/operations'
+import type { Arrival, ArrivalKind, Product } from '../../lib/types'
+import '../../styles/app/arrivals.css'
+import { ProductSheet } from '../stock/ProductSheet'
+import { arrivalSaveError } from './arrivalForms'
+import { ArrivalDetail } from './ArrivalDetail'
+import { ArrivalFormSheet } from './ArrivalFormSheet'
+import { groupArrivals, nextStepOf, type NextStep } from './arrivalMath'
+import { ArrivalRow } from './ArrivalRow'
 
-const titles = {
-  supplier_order: 'Mes commandes',
-  balloon: 'Mes ballons',
+const heads = {
+  all: {
+    title: 'Arrivages',
+    sub: 'Ce que vous avez acheté, et ce que ça a déjà rapporté.',
+    add: 'Nouvel arrivage',
+    empty: 'Pas encore d’arrivage.',
+    emptyText:
+      'Notez votre dernier ballon ou votre prochaine commande : vous verrez ce que chacun vous rapporte.',
+  },
+  supplier_order: {
+    title: 'Commandes',
+    sub: 'De la commande à la réception.',
+    add: 'Nouvelle commande',
+    empty: 'Pas encore de commande.',
+    emptyText: 'Notez votre prochaine commande : vous la suivrez jusqu’à la boutique.',
+  },
+  balloon: {
+    title: 'Ballons',
+    sub: 'Chaque ballon : payé, vendu, ce qui reste.',
+    add: 'Nouveau ballon',
+    empty: 'Pas encore de ballon.',
+    emptyText: 'Notez votre dernier ballon : vous verrez quand il est remboursé.',
+  },
 } as const
 
-const errorMessage = (e: unknown) => (e as Error).message
-
-/** Arrivals (all, supplier orders only or balloons only) with their lifecycle and products. */
-export function ArrivalsPage({ shopId, kind }: { shopId: string; kind?: Arrival['kind'] }) {
-  const [rows, setRows] = useState<Arrival[]>([])
-  const [profit, setProfit] = useState<ArrivalProfit[]>([])
-  const [show, setShow] = useState(false)
-  const [arrivalKind, setArrivalKind] = useState<Arrival['kind']>(kind ?? 'supplier_order')
-  const [addTo, setAddTo] = useState<Arrival | null>(null)
-  const [expanded, setExpanded] = useState<string | null>(null)
-  const [msg, setMsg] = useState('')
+/** Confirmation of a step (« Marquer en route », « Confirmer la réception »). */
+function StepDialog({
+  arrival,
+  step,
+  onClose,
+  onDone,
+  shopId,
+}: {
+  arrival: Arrival | null
+  step: NextStep | null
+  onClose: () => void
+  onDone: (arrival: Arrival, step: NextStep) => void
+  shopId: string
+}) {
+  const titleId = useId()
   const [busy, setBusy] = useState(false)
-  const load = useCallback(() => {
-    void listArrivals(shopId)
-      .then((x) => setRows(kind ? x.filter((a) => a.kind === kind) : x))
-      .catch((e) => setMsg(errorMessage(e)))
-    void arrivalProfitability(shopId)
-      .then((x) => setProfit(kind ? x.filter((a) => a.kind === kind) : x))
-      .catch((e) => setMsg(errorMessage(e)))
-  }, [shopId, kind])
-  useEffect(() => {
-    load()
-  }, [load])
-  async function save(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    const input = arrivalFromForm(new FormData(e.currentTarget), kind ?? arrivalKind)
+  const [failure, setFailure] = useState('')
+  const confirm = async () => {
+    if (!arrival || !step) return
     setBusy(true)
-    setMsg('')
+    setFailure('')
     try {
-      await createArrival(shopId, input)
-      setShow(false)
-      setMsg('Arrivage enregistré en brouillon.')
-      load()
-    } catch (e) {
-      setMsg(errorMessage(e))
-    } finally {
-      setBusy(false)
-    }
-  }
-  async function advance(a: Arrival) {
-    const status = nextStatus[a.status]
-    if (!status) return
-    setBusy(true)
-    setMsg('')
-    try {
-      await updateArrival(shopId, a.id, {
-        status,
-        ...(status === 'received' ? { received_date: localDay(new Date()) } : {}),
+      const saved = await updateArrival(shopId, arrival.id, {
+        status: step.status,
+        ...(step.status === 'received' ? { received_date: localDay(new Date()) } : {}),
       })
-      setMsg(
-        status === 'received'
-          ? 'Arrivage reçu. Vous pouvez enregistrer les produits.'
-          : 'Statut mis à jour.',
-      )
-      load()
+      onDone(saved, step)
     } catch (e) {
-      setMsg(errorMessage(e))
+      setFailure(arrivalSaveError(e))
     } finally {
       setBusy(false)
-    }
-  }
-  async function saveProduct(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    if (!addTo) return
-    const input = arrivalProductFromForm(new FormData(e.currentTarget), addTo)
-    try {
-      await addProduct(shopId, input)
-      setMsg('Produit ajouté à ' + addTo.code + '.')
-      setAddTo(null)
-      load()
-    } catch (e) {
-      setMsg(errorMessage(e))
     }
   }
   return (
-    <div>
-      <div className="hello">
-        <div>
-          <h1>{kind ? titles[kind] : 'Mes arrivages'}</h1>
-          <span>Suivi des arrivages réels et de la simulation marquée TEST.</span>
+    <Dialog
+      open={Boolean(arrival && step)}
+      onClose={() => {
+        setFailure('')
+        onClose()
+      }}
+      labelledBy={titleId}
+    >
+      {step && (
+        <div className="dialog__body">
+          <h2 className="dialog__title" id={titleId}>
+            {step.question}
+          </h2>
+          <p className="dialog__text">{step.text}</p>
+          {failure && (
+            <Notice tone="danger">
+              <p>{failure}</p>
+            </Notice>
+          )}
+          <div className="dialog__actions">
+            <Button variant="secondary" onClick={onClose} autoFocus>
+              Pas encore
+            </Button>
+            <Button write variant="primary" busy={busy} onClick={() => void confirm()}>
+              {step.confirm}
+            </Button>
+          </div>
         </div>
-        <button onClick={() => setShow(!show)}>
-          <PlusIcon />
-          Nouvel arrivage
-        </button>
-      </div>
-      {show && (
-        <ArrivalForm
-          kind={kind}
-          arrivalKind={arrivalKind}
-          onArrivalKindChange={setArrivalKind}
-          busy={busy}
-          onSubmit={save}
-        />
       )}
-      {msg && <p className="successmsg">{msg}</p>}
-      <section className="card">
-        {rows.length === 0 ? (
-          <p>
-            Aucun arrivage enregistré. Créez une commande fournisseur ou un ballon pour commencer.
-          </p>
-        ) : (
-          rows.map((a) => (
-            <ArrivalCard
-              key={a.id}
-              arrival={a}
-              profit={profit.find((x) => x.id === a.id)}
-              busy={busy}
-              expanded={expanded === a.id}
-              onAdvance={() => void advance(a)}
-              onAddProduct={() => setAddTo(a)}
-              onToggleDetail={() => setExpanded(expanded === a.id ? null : a.id)}
-            />
-          ))
+    </Dialog>
+  )
+}
+
+/**
+ * Arrivages (all, or only Commandes / Ballons): each arrival with its stamp, what it cost, what is
+ * sold and left, and the ruler of what came back. An arrival opens in a sheet with its pieces;
+ * new orders and bales are written in their own form.
+ */
+export function ArrivalsPage({ shopId, kind }: { shopId: string; kind?: ArrivalKind }) {
+  const load = useCallback(
+    () => Promise.all([listArrivals(shopId), arrivalProfitability(shopId)]),
+    [shopId],
+  )
+  const { data, error, retry } = useAsyncData(load)
+  const [creating, setCreating] = useState(false)
+  const [openId, setOpenId] = useState<string | null>(null)
+  const [stepFor, setStepFor] = useState<string | null>(null)
+  const [addTo, setAddTo] = useState<string | null>(null)
+  const [message, setMessage] = useState<{ text: string; addTo?: string } | null>(null)
+  const [added, setAdded] = useState<string | null>(null)
+
+  const all = useMemo(() => data?.[0] ?? [], [data])
+  const profits = useMemo(() => data?.[1] ?? [], [data])
+  const shown = useMemo(() => (kind ? all.filter((a) => a.kind === kind) : all), [all, kind])
+  const groups = useMemo(() => groupArrivals(shown, profits), [shown, profits])
+  const head = heads[kind ?? 'all']
+  const find = (id: string | null) => all.find((a) => a.id === id) ?? null
+  const opened = find(openId)
+  const stepping = find(stepFor)
+  const adding = find(addTo)
+
+  const create = () => {
+    setMessage(null)
+    setCreating(true)
+  }
+
+  const rows = (lines: typeof groups.waiting) => (
+    <ul className="arrival-list">
+      {lines.map(({ arrival, profit }) => (
+        <ArrivalRow
+          key={arrival.id}
+          arrival={arrival}
+          profit={profit}
+          onOpen={() => {
+            setAdded(null)
+            setOpenId(arrival.id)
+          }}
+          onStep={() => setStepFor(arrival.id)}
+        />
+      ))}
+    </ul>
+  )
+
+  return (
+    <div className="arrivals">
+      <header className="page-head arrivals-head">
+        <div>
+          <h1>{head.title}</h1>
+          <p className="page-head__sub">{head.sub}</p>
+        </div>
+        {!(data && shown.length === 0) && (
+          <Button write variant="primary" icon={<PlusIcon />} onClick={create}>
+            {head.add}
+          </Button>
         )}
-      </section>
-      {addTo && (
-        <ArrivalProductForm
-          arrival={addTo}
-          onSubmit={saveProduct}
-          onCancel={() => setAddTo(null)}
-        />
+      </header>
+
+      {message && (
+        <Notice
+          tone="success"
+          actions={
+            message.addTo ? (
+              <Button write variant="secondary" onClick={() => setAddTo(message.addTo ?? null)}>
+                {find(message.addTo)?.kind === 'balloon' ? 'Ajouter ses pièces' : 'Mettre en stock'}
+              </Button>
+            ) : undefined
+          }
+        >
+          <p>{message.text}</p>
+        </Notice>
       )}
+
+      {error && (
+        <Notice
+          icon={CloudOffIcon}
+          title="Les arrivages ne s’affichent pas : pas de réseau."
+          actions={
+            <Button variant="secondary" onClick={retry}>
+              Réessayer
+            </Button>
+          }
+        >
+          <p>Réessayez dans un instant.</p>
+        </Notice>
+      )}
+
+      {!data && !error && <Skeleton caption="On ouvre le carnet des arrivages…" />}
+
+      {data && shown.length === 0 && (
+        <EmptyState
+          title={head.empty}
+          actions={
+            <Button write variant="primary" onClick={create}>
+              {head.add}
+            </Button>
+          }
+        >
+          <p>{head.emptyText}</p>
+        </EmptyState>
+      )}
+
+      {groups.waiting.length > 0 && (
+        <section className="arrivals-part" aria-labelledby="arrivals-waiting">
+          <h2 className="section-title" id="arrivals-waiting">
+            À recevoir
+          </h2>
+          {rows(groups.waiting)}
+        </section>
+      )}
+      {groups.received.length > 0 && (
+        <section className="arrivals-part" aria-labelledby="arrivals-received">
+          <h2 className="section-title" id="arrivals-received">
+            {kind === 'balloon' ? 'Ouverts' : 'Reçus'}
+          </h2>
+          {rows(groups.received)}
+        </section>
+      )}
+
+      <ArrivalFormSheet
+        open={creating}
+        onClose={() => setCreating(false)}
+        shopId={shopId}
+        kind={kind}
+        codes={all.map((a) => a.code)}
+        onSaved={(arrival) => {
+          setCreating(false)
+          const ready = arrival.status === 'received'
+          setMessage({
+            text:
+              arrival.kind === 'balloon'
+                ? ready
+                  ? `${arrival.code} noté. Ajoutez ses pièces à mesure que vous déballez.`
+                  : `${arrival.code} noté. Indiquez quand il arrive.`
+                : `${arrival.code} noté. Indiquez « C’est commandé » une fois payé.`,
+            addTo: ready ? arrival.id : undefined,
+          })
+          retry()
+        }}
+      />
+
+      <ArrivalDetail
+        arrival={opened}
+        profit={profits.find((p) => p.id === openId)}
+        added={added}
+        onClose={() => setOpenId(null)}
+        onStep={() => setStepFor(openId)}
+        onAdd={() => setAddTo(openId)}
+      />
+
+      <StepDialog
+        shopId={shopId}
+        arrival={stepping}
+        step={stepping ? nextStepOf(stepping) : null}
+        onClose={() => setStepFor(null)}
+        onDone={(arrival, step) => {
+          setStepFor(null)
+          setMessage({
+            text: step.done,
+            addTo: step.status === 'received' ? arrival.id : undefined,
+          })
+          retry()
+        }}
+      />
+
+      <ProductSheet
+        open={Boolean(adding)}
+        onClose={() => setAddTo(null)}
+        shopId={shopId}
+        arrival={adding}
+        onSaved={(product: Product) => {
+          const text = `${product.name} est en stock${adding ? ` (${adding.code})` : ''}.`
+          setAddTo(null)
+          if (openId) setAdded(text)
+          else setMessage({ text })
+          retry()
+        }}
+      />
     </div>
   )
 }
