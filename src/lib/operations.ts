@@ -226,8 +226,9 @@ export async function arrivalProfitability(shopId: string) {
   return ((a.data ?? []) as Arrival[]).map((x) => {
     const products = (p.data ?? []).filter((v) => v.arrival_id === x.id),
       items = (s.data ?? [])
+        .filter((v) => v.is_test === x.is_test)
         .flatMap((v) => v.sale_items ?? [])
-        .filter((v) => v.products?.arrival_id === x.id)
+        .filter((v) => v.products?.arrival_id === x.id && v.products?.is_test === x.is_test)
     const revenue = items.reduce((n, v) => n + Number(v.sold_unit_price) * Number(v.quantity), 0),
       computedCost =
         Number(x.merchandise_cost || 0) +
@@ -250,6 +251,8 @@ export async function arrivalProfitability(shopId: string) {
       recovery: cost > 0 ? Math.round((revenue / cost) * 100) : 0,
       sold,
       remaining,
+      outstanding: Math.max(0, cost - revenue),
+      recovered: Math.min(revenue, cost),
       productCount: products.length,
       products,
     }
