@@ -22,12 +22,12 @@ export function StatisticsPage({ shopId }: { shopId: string }) {
       <div className="hello">
         <div>
           <h1>Statistiques</h1>
-          <span>Vos performances réelles et les arrivages de simulation identifiés TEST.</span>
+          <span>Vos performances réelles, sans les données de simulation.</span>
         </div>
       </div>
       <div className="grid">
         <section className="card">
-          <small>VENTES · 3 DERNIERS MOIS COMPLETS · TEST INCLUS ET SIGNALÉ</small>
+          <small>VENTES · 3 DERNIERS MOIS (MOIS EN COURS INCLUS) · HORS TEST</small>
           <div className="bars">
             {d.days.map((x) => (
               <div className="barcol" key={x.date}>
