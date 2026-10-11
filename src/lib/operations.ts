@@ -262,14 +262,15 @@ export async function liveStatistics(shopId: string) {
       .from('sales')
       .select('total_amount,sold_at,sale_items(quantity,sold_unit_price,products(category))')
       .eq('shop_id', shopId)
+      .eq('is_test', false)
       .order('sold_at', { ascending: true }),
-    supabase.from('products').select('category,quantity_on_hand').eq('shop_id', shopId),
+    supabase.from('products').select('category,quantity_on_hand').eq('shop_id', shopId).eq('is_test', false),
     arrivalProfitability(shopId),
   ])
   for (const r of [sales, products]) if (r.error) throw r.error
   const now = new Date(),
     months = Array.from({ length: 3 }, (_, i) => {
-      const d = new Date(now.getFullYear(), now.getMonth() - 3 + i, 1)
+      const d = new Date(now.getFullYear(), now.getMonth() - 2 + i, 1)
       return {
         date: localMonth(d),
         label: d.toLocaleDateString('fr-FR', { month: 'short' }),
@@ -289,5 +290,5 @@ export async function liveStatistics(shopId: string) {
       cats.set(k, (cats.get(k) || 0) + Number(i.quantity))
     }
   }
-  return { days: months, categories: [...cats].sort((a, b) => b[1] - a[1]).slice(0, 5), profit }
+  return { days: months, categories: [...cats].sort((a, b) => b[1] - a[1]).slice(0, 5), profit: profit.filter((a) => !a.is_test) }
 }
