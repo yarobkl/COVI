@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { PlusIcon, SearchIcon } from '../../components/icons'
 import { addProduct, listProducts } from '../../lib/covi'
 import { stockCacheDate } from '../../lib/offline'
@@ -15,6 +15,8 @@ export function StockPage({ shopId }: { shopId: string }) {
   const [show, setShow] = useState(false)
   const [msg, setMsg] = useState('')
   const [query, setQuery] = useState('')
+  const [saving, setSaving] = useState(false)
+  const savingRef = useRef(false)
   const load = useCallback(
     () =>
       listProducts(shopId, false, true)
@@ -38,6 +40,9 @@ export function StockPage({ shopId }: { shopId: string }) {
   }, [shopId, load])
   async function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    if (savingRef.current) return
+    savingRef.current = true
+    setSaving(true)
     const f = new FormData(e.currentTarget),
       unique = f.get('unique') === 'on'
     try {
@@ -55,9 +60,13 @@ export function StockPage({ shopId }: { shopId: string }) {
       })
       setShow(false)
       setMsg('Produit ajouté au stock.')
-      load()
+      void load()
+      window.dispatchEvent(new Event('covi-data-changed'))
     } catch (e) {
       setMsg((e as Error).message)
+    } finally {
+      savingRef.current = false
+      setSaving(false)
     }
   }
   const q = query.toLowerCase()
@@ -82,7 +91,7 @@ export function StockPage({ shopId }: { shopId: string }) {
           Ajouter un produit
         </button>
       </div>
-      {show && <StockProductForm arrivals={arrivals} onSubmit={save} />}
+      {show && <div aria-busy={saving}><StockProductForm arrivals={arrivals} onSubmit={save} /></div>}
       {msg && <p className="successmsg">{msg}</p>}
       <section className="card">
         <div className="search">
