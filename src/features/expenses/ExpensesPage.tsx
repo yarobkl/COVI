@@ -66,6 +66,7 @@ export function ExpensesPage({ shopId }: { shopId: string }) {
       setEditing(null)
       setMsg(editing ? 'Charge modifiée.' : 'Charge enregistrée.')
       await load()
+      window.dispatchEvent(new Event('covi-data-changed'))
     } catch {
       setMsg('Impossible d’enregistrer cette charge. Vérifiez les informations et votre connexion.')
     } finally {
