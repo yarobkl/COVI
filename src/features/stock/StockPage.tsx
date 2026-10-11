@@ -31,9 +31,13 @@ export function StockPage({ shopId }: { shopId: string }) {
       setOnline(navigator.onLine)
       if (navigator.onLine) void load()
     }
+    window.addEventListener('covi-refresh', status)
+    window.addEventListener('covi-data-changed', status)
     window.addEventListener('online', status)
     window.addEventListener('offline', status)
     return () => {
+      window.removeEventListener('covi-refresh', status)
+      window.removeEventListener('covi-data-changed', status)
       window.removeEventListener('online', status)
       window.removeEventListener('offline', status)
     }
