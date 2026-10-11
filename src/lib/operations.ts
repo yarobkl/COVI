@@ -226,8 +226,9 @@ export async function arrivalProfitability(shopId: string) {
   return ((a.data ?? []) as Arrival[]).map((x) => {
     const products = (p.data ?? []).filter((v) => v.arrival_id === x.id),
       items = (s.data ?? [])
+        .filter((v) => v.is_test === x.is_test)
         .flatMap((v) => v.sale_items ?? [])
-        .filter((v) => v.products?.arrival_id === x.id)
+        .filter((v) => v.products?.arrival_id === x.id && v.products?.is_test === x.is_test)
     const revenue = items.reduce((n, v) => n + Number(v.sold_unit_price) * Number(v.quantity), 0),
       computedCost =
         Number(x.merchandise_cost || 0) +
@@ -250,6 +251,8 @@ export async function arrivalProfitability(shopId: string) {
       recovery: cost > 0 ? Math.round((revenue / cost) * 100) : 0,
       sold,
       remaining,
+      outstanding: Math.max(0, cost - revenue),
+      recovered: Math.min(revenue, cost),
       productCount: products.length,
       products,
     }
@@ -262,14 +265,15 @@ export async function liveStatistics(shopId: string) {
       .from('sales')
       .select('total_amount,sold_at,sale_items(quantity,sold_unit_price,products(category))')
       .eq('shop_id', shopId)
+      .eq('is_test', false)
       .order('sold_at', { ascending: true }),
-    supabase.from('products').select('category,quantity_on_hand').eq('shop_id', shopId),
+    supabase.from('products').select('category,quantity_on_hand').eq('shop_id', shopId).eq('is_test', false),
     arrivalProfitability(shopId),
   ])
   for (const r of [sales, products]) if (r.error) throw r.error
   const now = new Date(),
     months = Array.from({ length: 3 }, (_, i) => {
-      const d = new Date(now.getFullYear(), now.getMonth() - 3 + i, 1)
+      const d = new Date(now.getFullYear(), now.getMonth() - 2 + i, 1)
       return {
         date: localMonth(d),
         label: d.toLocaleDateString('fr-FR', { month: 'short' }),
@@ -289,5 +293,5 @@ export async function liveStatistics(shopId: string) {
       cats.set(k, (cats.get(k) || 0) + Number(i.quantity))
     }
   }
-  return { days: months, categories: [...cats].sort((a, b) => b[1] - a[1]).slice(0, 5), profit }
+  return { days: months, categories: [...cats].sort((a, b) => b[1] - a[1]).slice(0, 5), profit: profit.filter((a) => !a.is_test) }
 }

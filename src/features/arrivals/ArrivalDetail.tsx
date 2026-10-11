@@ -32,9 +32,10 @@ export function ArrivalDetail({
           Récupération<b>{detail?.recovery ?? 0}%</b>
         </span>
         <span>
-          Résultat actuel<b>{money(detail?.profit ?? -Number(a.global_cost))}</b>
+          Reste à récupérer<b>{money(detail?.outstanding ?? Number(a.global_cost))}</b>
         </span>
       </div>
+      <p className="arrival-item__meta">La récupération du coût n’est pas un bénéfice net après toutes les charges.</p>
       {detail?.products?.length ? (
         <div className="arrival-product-list">
           {detail.products.map((product) => (
