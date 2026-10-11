@@ -71,11 +71,22 @@ const messageOf = (error: unknown) =>
       (typeof error === 'string' ? error : ''),
   )
 
-/** No answer from the server (network cut, fetch failed): the outcome of the call is unknown. */
-function isNetworkFailure(error: unknown) {
-  if (/fetch|network|offline|load failed|timed? ?out/i.test(messageOf(error))) return true
-  // A PostgREST error without SQLSTATE: no answer from the database (contract: retryable).
-  return (error as { code?: unknown } | null)?.code === ''
+/** Thrown before anything is sent (no session): nothing can exist on the server. */
+const NO_SESSION = 'Authentication required'
+
+/**
+ * The outcome of the call is unknown unless the database itself answered. A definitive refusal
+ * (nothing recorded, all or nothing) carries a Postgres SQLSTATE (`P0001`, `23505`, `42501`…) or a
+ * PostgREST request error (`PGRST1xx`/`PGRST2xx`: the call never ran). Everything else may hide a
+ * recorded sale: network cut (`code: ''`), a gateway page 502/503/504 without code, a timeout,
+ * PostgREST unable to reach the database (`PGRST0xx`). The cart is then retried as is.
+ */
+function isUncertain(error: unknown) {
+  if (messageOf(error) === NO_SESSION) return false
+  const code = (error as { code?: unknown } | null)?.code
+  if (typeof code !== 'string' || code === '') return true
+  if (/^PGRST\d/.test(code)) return /^PGRST0/.test(code)
+  return !/^[0-9A-Z]{5}$/.test(code)
 }
 
 /** Same call as `recordCartSale` of src/lib/cartSale.ts (PR #16). */
@@ -86,7 +97,7 @@ async function recordCartSale(
   operationId: string,
 ) {
   const { data: session } = await supabase.auth.getSession()
-  if (!session.session) throw new Error('Authentication required')
+  if (!session.session) throw new Error(NO_SESSION)
   // `record_cart_sale` is not in the generated types of this branch yet.
   const rpc = supabase.rpc as unknown as (
     fn: string,
@@ -179,8 +190,8 @@ export async function submitCart({
     await recordCartSale(shopId, toCartItems(lines), paymentLabel, operationId)
     return { status: 'sold', offline: false }
   } catch (e) {
-    if (isNetworkFailure(e)) return { status: 'uncertain', message: CART_UNCERTAIN_TEXT }
-    // An error with a SQLSTATE: all or nothing, nothing was recorded.
+    if (isUncertain(e)) return { status: 'uncertain', message: CART_UNCERTAIN_TEXT }
+    // Answered by the database (SQLSTATE) or refused by PostgREST: nothing was recorded.
     return refusal(e, lines)
   }
 }

@@ -151,6 +151,31 @@ describe('submitCart: several articles', () => {
     expect((await press(null, twoLines())).result.status).toBe('refused')
   })
 
+  it('a gateway page (502/503/504, no code) or PostgREST without database: uncertain', async () => {
+    for (const error of [
+      { message: '<html>502 Bad Gateway</html>' },
+      { message: 'upstream request timeout', code: undefined },
+      { message: 'Could not connect with the database', code: 'PGRST001' },
+      { name: 'AbortError', message: 'The operation was aborted' },
+    ]) {
+      rpc.mockResolvedValueOnce({ data: null, error })
+      expect((await press(null, twoLines())).result.status).toBe('uncertain')
+    }
+  })
+
+  it('a PostgREST request error or a missing session: nothing was sent, a refusal', async () => {
+    rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Could not find the function', code: 'PGRST202' },
+    })
+    expect((await press(null, twoLines())).result.status).toBe('refused')
+    vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
+      data: { session: null },
+      error: null,
+    } as never)
+    expect((await press(null, twoLines())).result.status).toBe('refused')
+  })
+
   it('says the refusals in French and names the article in cause', async () => {
     rpc.mockResolvedValueOnce({
       data: null,
