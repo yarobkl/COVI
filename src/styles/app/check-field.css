@@ -1,0 +1,41 @@
+/* Case à cocher du cahier (src/components/ui/CheckField.tsx), importée par le composant. */
+@layer app {
+  .check-field {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr);
+    column-gap: var(--space-3);
+    align-items: center;
+  }
+  .check-field__input {
+    grid-row: 1;
+    grid-column: 1;
+    width: 24px;
+    height: 24px;
+    margin: 0;
+    accent-color: var(--action);
+    cursor: pointer;
+  }
+  .check-field__input:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .check-field__label {
+    grid-row: 1;
+    grid-column: 2;
+    display: flex;
+    align-items: center;
+    min-height: var(--tap-min);
+    font-weight: var(--weight-bold);
+    cursor: pointer;
+  }
+  .check-field__input:disabled,
+  .check-field__input:disabled + .check-field__label {
+    cursor: default;
+    color: var(--disabled-ink);
+  }
+  .check-field__hint {
+    grid-column: 2;
+    color: var(--ink-muted);
+    font-size: var(--step--1);
+  }
+}

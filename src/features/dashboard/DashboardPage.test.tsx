@@ -1,10 +1,22 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { fcfa } from '../../lib/format'
+import {
+  fetchEstimatedProfit,
+  fetchShopDashboard,
+  type EstimatedProfit,
+  type ShopDashboard,
+} from '../../lib/insights'
 import { arrivalProfitability, dashboard, type Dashboard } from '../../lib/operations'
 import type { Shop } from '../../lib/types'
 import { DashboardPage } from './DashboardPage'
 
 vi.mock('../../lib/operations', () => ({ dashboard: vi.fn(), arrivalProfitability: vi.fn() }))
+vi.mock('../../lib/insights', async (actual) => ({
+  ...(await actual<typeof import('../../lib/insights')>()),
+  fetchShopDashboard: vi.fn(),
+  fetchEstimatedProfit: vi.fn(),
+}))
 
 const nbsp = String.fromCharCode(0xa0)
 const shop: Shop = {
@@ -60,8 +72,56 @@ const summary: Dashboard = {
   ],
 }
 
+/** shop_dashboard as the database (or its fallback) would give it for `d`. */
+const figuresOf = (d: Dashboard): ShopDashboard => ({
+  source: 'database',
+  timeZone: 'Africa/Brazzaville',
+  today: '2026-10-10',
+  monthStart: '2026-10-01',
+  todaySales: d.today.total,
+  todayCount: d.today.count,
+  todayByPaymentMethod: d.today.byMethod,
+  monthSales: d.month.total,
+  saleCount: d.month.count,
+  previousMonthStart: '2026-09-01',
+  previousMonthSales: d.previousMonth.total,
+  charges: d.month.charges,
+  expensesByCategory: d.month.expenses,
+  restAfterCharges: d.month.restAfterCharges,
+  arrivalCost: 0,
+  stock: d.stock,
+  profitBeforeCharges: 0,
+  profit: 0,
+  arrivalsInProgress: d.arrivalsInProgress.length,
+  ordersInProgress: 0,
+  balloonsInProgress: 0,
+  inProgressByStatus: { draft: 0, ordered: 0, in_transit: 0 },
+})
+
+const estimate: EstimatedProfit = {
+  timeZone: 'Africa/Brazzaville',
+  from: '2026-10-01',
+  to: '2026-11-01',
+  revenue: 612000,
+  costOfGoodsSold: 251000,
+  grossProfit: 361000,
+  charges: 140000,
+  netProfit: 221000,
+  revenueWithoutCost: 0,
+  unsoldStockCost: 0,
+  unallocatedArrivalCost: 0,
+}
+
+/** What a notebook line shows on its right. */
+const lineValue = (label: string) =>
+  screen.getByText(label).closest('li')?.querySelector('.ledger__value')?.textContent
+
 beforeEach(() => {
   vi.mocked(arrivalProfitability).mockResolvedValue([])
+  vi.mocked(fetchShopDashboard).mockImplementation(async (_id, _opts, base) =>
+    figuresOf(await base!()),
+  )
+  vi.mocked(fetchEstimatedProfit).mockResolvedValue(null)
 })
 afterEach(cleanup)
 
@@ -120,5 +180,52 @@ describe('DashboardPage', () => {
     expect(await screen.findByText('Chez Mama Grâce est prête.')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Voir d’abord une boutique d’exemple' }))
     expect(onSimulation).toHaveBeenCalled()
+  })
+
+  describe('the month', () => {
+    it('gives the estimated profit when the database computes it', async () => {
+      vi.mocked(dashboard).mockResolvedValue(summary)
+      vi.mocked(fetchEstimatedProfit).mockResolvedValue(estimate)
+      render(<DashboardPage shop={shop} onSimulation={vi.fn()} />)
+      expect(await screen.findByText('Bénéfice estimé')).toBeTruthy()
+      expect(lineValue('Coût des articles vendus')).toBe(fcfa(-251000))
+      expect(lineValue('Loyer')).toBe(fcfa(-90000))
+      expect(lineValue('Bénéfice estimé')).toBe(fcfa(221000))
+      expect(screen.getByText(/pour un ballon : son prix ÷ les pièces enregistrées/)).toBeTruthy()
+      expect(screen.queryByText('Reste après charges')).toBeNull()
+      expect(screen.queryByText(/provisoire/)).toBeNull()
+      // This month only, in the shop's time zone, examples left out.
+      const [shopId, period] = vi.mocked(fetchEstimatedProfit).mock.calls[0]
+      expect(shopId).toBe('shop-1')
+      expect(period?.from).toMatch(/^\d{4}-\d{2}-01$/)
+      expect(period?.to).toMatch(/^\d{4}-\d{2}-01$/)
+    })
+
+    it.each([
+      ['the database functions are not there yet', () => Promise.resolve(null)],
+      ['the estimate fails', () => Promise.reject(new Error('Failed to fetch'))],
+    ])('keeps a provisional « Reste après charges » when %s', async (_, answer) => {
+      vi.mocked(dashboard).mockResolvedValue(summary)
+      vi.mocked(fetchEstimatedProfit).mockImplementation(answer)
+      render(<DashboardPage shop={shop} onSimulation={vi.fn()} />)
+      expect(await screen.findByText('Reste après charges')).toBeTruthy()
+      expect(lineValue('Reste après charges')).toBe(fcfa(472000))
+      expect(screen.getByText('Repère provisoire.')).toBeTruthy()
+      expect(
+        screen.getByText(/Sans compter ce que les articles vous ont coûté à l’achat/),
+      ).toBeTruthy()
+      // Never called a profit.
+      expect(document.body.textContent).not.toMatch(/bénéfice|profit/i)
+      expect(screen.getByText('Aujourd’hui, la caisse a reçu')).toBeTruthy()
+    })
+
+    it('shows the calm error when the month cannot be counted', async () => {
+      vi.mocked(dashboard).mockResolvedValue(summary)
+      vi.mocked(fetchShopDashboard).mockRejectedValue(new Error('Failed to fetch'))
+      render(<DashboardPage shop={shop} onSimulation={vi.fn()} />)
+      expect(
+        await screen.findByText('Les chiffres ne s’affichent pas : pas de réseau.'),
+      ).toBeTruthy()
+    })
   })
 })

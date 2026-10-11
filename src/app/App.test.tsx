@@ -180,3 +180,98 @@ describe('App shell', () => {
     expect(onSimulation).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('App shell: several shops and read only', () => {
+  const READ_ONLY =
+    'Abonnement suspendu : vous pouvez consulter vos données, mais plus vendre ni modifier. Contactez COVI pour le renouveler.'
+
+  function renderWith(account: Parameters<typeof App>[0]['account']) {
+    render(
+      <App
+        shop={shop}
+        signOut={vi.fn().mockResolvedValue(undefined)}
+        updateShop={vi.fn()}
+        onSimulation={vi.fn()}
+        account={account}
+      />,
+    )
+    return {
+      sommaire: screen.getByRole('navigation', { name: 'Sommaire' }),
+      bottom: screen.getByRole('navigation', { name: 'Navigation principale' }),
+    }
+  }
+
+  it('one shop: no « Changer de boutique »; adding a shop is offered', () => {
+    const addShop = vi.fn()
+    const { sommaire } = renderWith({ shopCount: 1, addShop, readOnly: false })
+    expect(within(sommaire).queryByRole('button', { name: 'Changer de boutique' })).toBeNull()
+    fireEvent.click(within(sommaire).getByRole('button', { name: 'Ajouter une boutique' }))
+    expect(addShop).toHaveBeenCalledTimes(1)
+  })
+
+  it('several shops: « Changer de boutique » in the Sommaire and in the « Ma boutique » menu', () => {
+    const switchShop = vi.fn()
+    const { sommaire } = renderWith({
+      shopCount: 2,
+      switchShop,
+      addShop: vi.fn(),
+      readOnly: false,
+    })
+    fireEvent.click(within(sommaire).getByRole('button', { name: 'Changer de boutique' }))
+    expect(switchShop).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Ma boutique' }))
+    const menu = screen.getByRole('dialog')
+    fireEvent.click(within(menu).getByRole('button', { name: 'Changer de boutique' }))
+    expect(switchShop).toHaveBeenCalledTimes(2)
+  })
+
+  it('adding a shop impossible: the button is disabled and says why', () => {
+    const { sommaire } = renderWith({
+      shopCount: 1,
+      addShopBlocked: 'Votre abonnement est suspendu. Contactez COVI pour le renouveler.',
+      readOnly: true,
+    })
+    const add = within(sommaire).getByRole('button', {
+      name: 'Ajouter une boutique',
+    }) as HTMLButtonElement
+    expect(add.disabled).toBe(true)
+    const note = within(sommaire).getByText(
+      'Votre abonnement est suspendu. Contactez COVI pour le renouveler.',
+    )
+    expect(add.getAttribute('aria-describedby')).toBe(note.id)
+  })
+
+  it('subscription unverified: one discreet line, the sale still open', () => {
+    const { sommaire } = renderWith({ shopCount: 1, readOnly: false, subscriptionUnverified: true })
+    const line = screen.getByText('État de l’abonnement non vérifié')
+    expect(line.closest('.notice')).toBeNull()
+    expect(screen.queryByText(READ_ONLY)).toBeNull()
+    const sale = within(sommaire).getByText('Nouvelle vente').closest('a')!
+    expect(sale.getAttribute('aria-disabled')).toBeNull()
+    expect(sale.getAttribute('href')).not.toBeNull()
+  })
+
+  it('no banner while the subscription is fine', () => {
+    renderWith({ shopCount: 1, readOnly: false })
+    expect(screen.queryByText(READ_ONLY)).toBeNull()
+  })
+
+  it('read only: permanent calm banner, the sale entries disabled, the pages still readable', async () => {
+    const { sommaire, bottom } = renderWith({ shopCount: 1, readOnly: true })
+    const banner = screen.getByText(READ_ONLY)
+    expect(banner.id).toBe('abonnement-suspendu')
+    expect(banner.closest('.notice')?.className).not.toContain('notice--danger')
+    // « Nouvelle vente » (Sommaire) and « Vendre » (bottom bar) are no longer links.
+    const sale = within(sommaire).getByText('Nouvelle vente').closest('a')!
+    expect(sale.getAttribute('aria-disabled')).toBe('true')
+    expect(sale.getAttribute('href')).toBeNull()
+    expect(sale.getAttribute('aria-describedby')).toBe('abonnement-suspendu')
+    const sell = within(bottom).getByText('Vendre').closest('a')!
+    expect(sell.getAttribute('aria-disabled')).toBe('true')
+    expect(sell.getAttribute('href')).toBeNull()
+    // Reading pages stay open, and the banner stays on each of them.
+    await go('#/ventes')
+    expect(screen.getByText('page:history')).toBeTruthy()
+    expect(screen.getByText(READ_ONLY)).toBeTruthy()
+  })
+})

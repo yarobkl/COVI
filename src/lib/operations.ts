@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { localDay, localMonth } from './dates'
+import { localDay } from './dates'
 import type { TablesInsert, TablesUpdate } from './database.types'
 import type { Arrival, ArrivalKind } from './types'
 
@@ -256,38 +256,27 @@ export async function arrivalProfitability(shopId: string) {
   })
 }
 export type ArrivalProfit = Awaited<ReturnType<typeof arrivalProfitability>>[number]
-export async function liveStatistics(shopId: string) {
-  const [sales, products, profit] = await Promise.all([
+/**
+ * Bilan: the sales since the first day of the third month before this one (with their example
+ * flag and the category of each piece), the charges over the same months, and what each arrival
+ * brought back. The page adds them up month by month (src/features/statistics/bilanMath.ts).
+ */
+export async function liveStatistics(shopId: string, now: Date = new Date()) {
+  const from = new Date(now.getFullYear(), now.getMonth() - 3, 1)
+  const [sales, expenses] = await Promise.all([
     supabase
       .from('sales')
-      .select('total_amount,sold_at,sale_items(quantity,sold_unit_price,products(category))')
+      .select('total_amount,sold_at,is_test,sale_items(quantity,products(category))')
       .eq('shop_id', shopId)
+      .gte('sold_at', from.toISOString())
       .order('sold_at', { ascending: true }),
-    supabase.from('products').select('category,quantity_on_hand').eq('shop_id', shopId),
-    arrivalProfitability(shopId),
+    supabase
+      .from('shop_expenses')
+      .select('amount,expense_date,is_test')
+      .eq('shop_id', shopId)
+      .gte('expense_date', localDay(from)),
   ])
-  for (const r of [sales, products]) if (r.error) throw r.error
-  const now = new Date(),
-    months = Array.from({ length: 3 }, (_, i) => {
-      const d = new Date(now.getFullYear(), now.getMonth() - 3 + i, 1)
-      return {
-        date: localMonth(d),
-        label: d.toLocaleDateString('fr-FR', { month: 'short' }),
-        amount: 0,
-      }
-    })
-  for (const s of sales.data ?? []) {
-    const key = localMonth(new Date(s.sold_at)),
-      month = months.find((x) => x.date === key)
-    if (month) month.amount += Number(s.total_amount)
-  }
-  const cats = new Map<string, number>()
-  for (const s of sales.data ?? []) {
-    if (!months.some((x) => x.date === localMonth(new Date(s.sold_at)))) continue
-    for (const i of s.sale_items ?? []) {
-      const k = i.products?.category || 'Autre'
-      cats.set(k, (cats.get(k) || 0) + Number(i.quantity))
-    }
-  }
-  return { days: months, categories: [...cats].sort((a, b) => b[1] - a[1]).slice(0, 5), profit }
+  for (const r of [sales, expenses]) if (r.error) throw r.error
+  return { from, sales: sales.data ?? [], expenses: expenses.data ?? [] }
 }
+export type Statistics = Awaited<ReturnType<typeof liveStatistics>>

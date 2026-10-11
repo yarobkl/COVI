@@ -1,5 +1,6 @@
 import type { ComponentPropsWithRef, MouseEvent, ReactNode } from 'react'
 import { cx } from './cx'
+import { useWriteLock } from './writeLock'
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'sale' | 'tactile'
 export type ButtonSize = 'md' | 'lg' | 'xl'
@@ -14,6 +15,8 @@ type Look = {
   solid?: boolean
   /** Icon shown before the label (decorative). */
   icon?: ReactNode
+  /** Writes in the shop (sell, add…): disabled with its reason while the shop is read only. */
+  write?: boolean
 }
 
 const lookClass = ({ variant = 'secondary', size = 'md', block, solid }: Look, extra?: string) =>
@@ -49,11 +52,19 @@ export function Button({
   children,
   type = 'button',
   onClick,
+  write,
   ...rest
 }: ButtonProps) {
+  const lock = useWriteLock()
+  const locked = write && lock
   return (
     <button
       {...rest}
+      {...(locked && {
+        disabled: true,
+        title: lock.reason,
+        'aria-describedby': lock.reasonId,
+      })}
       type={type}
       className={lookClass({ variant, size, block, solid }, className)}
       aria-busy={busy || undefined}
@@ -82,8 +93,28 @@ export function ButtonLink({
   icon,
   className,
   children,
+  write,
   ...rest
 }: ButtonLinkProps) {
+  const lock = useWriteLock()
+  if (write && lock) {
+    // Read only: same place and look, disabled, never a way into a write screen.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- the link is dropped
+    const { href, onClick, ...kept } = rest
+    return (
+      <a
+        {...kept}
+        role="link"
+        aria-disabled="true"
+        aria-describedby={lock.reasonId}
+        title={lock.reason}
+        className={lookClass({ variant, size, block, solid }, className)}
+      >
+        {icon}
+        {children}
+      </a>
+    )
+  }
   return (
     <a {...rest} className={lookClass({ variant, size, block, solid }, className)}>
       {icon}

@@ -8,6 +8,7 @@ import {
   Notice,
   SearchField,
   Skeleton,
+  useWriteLock,
 } from '../../components/ui'
 import { CloudOffIcon } from '../../components/icons'
 import { DESKTOP, useMediaQuery } from '../../hooks/useMediaQuery'
@@ -29,6 +30,7 @@ type Today = { count: number; total: number } | null
  */
 export function SalePage({ shopId, shopName }: { shopId: string; shopName: string }) {
   const desktop = useMediaQuery(DESKTOP)
+  const lock = useWriteLock()
   const [products, setProducts] = useState<Product[] | null>(null)
   const [loadFailed, setLoadFailed] = useState(false)
   const [codes, setCodes] = useState<Map<string, string>>(new Map())
@@ -158,7 +160,7 @@ export function SalePage({ shopId, shopName }: { shopId: string; shopName: strin
               <EmptyState
                 title="Rien à vendre pour l’instant."
                 actions={
-                  <ButtonLink variant="primary" href="#/stock">
+                  <ButtonLink write variant="primary" href="#/stock">
                     Ajouter au stock
                   </ButtonLink>
                 }
@@ -188,6 +190,7 @@ export function SalePage({ shopId, shopName }: { shopId: string; shopName: strin
                     product={p}
                     arrivalCode={codeOf(p)}
                     selected={p.id === selectedId}
+                    locked={lock ?? undefined}
                     onSelect={() => {
                       setDone(null)
                       setSelectedId(p.id)
@@ -204,7 +207,11 @@ export function SalePage({ shopId, shopName }: { shopId: string; shopName: strin
             {doneScreen ?? form ?? (
               <div className="sale-waiting">
                 <h2 className="section-title">La vente</h2>
-                <p className="muted">Touchez un article pour l’ajouter.</p>
+                <p className="muted">
+                  {lock
+                    ? 'Abonnement suspendu : la caisse est fermée. Le stock reste consultable.'
+                    : 'Touchez un article pour l’ajouter.'}
+                </p>
               </div>
             )}
           </aside>

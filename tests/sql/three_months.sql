@@ -46,7 +46,11 @@ begin
     sale:=public.record_sale(shop,piece,1,r.price,(array['cash','mobile_money','card','bank_transfer','other'])[1+(j%5)],operation);
     duplicate:=public.record_sale(shop,piece,1,r.price,'cash',operation);
     if duplicate<>sale then raise exception 'FAIL idempotence'; end if;
+    -- Antidatage des ventes : préparation de données de test, faite avec le rôle propriétaire
+    -- car les utilisateurs n'ont plus le droit de modifier une vente (migration 20261010090000).
+    execute 'reset role';
     update public.sales set sold_at=make_date(2026,r.month,28)::timestamptz where id=sale;
+    execute 'set local role authenticated';
    end loop;
   end loop;
   select sum(total_amount),count(*) into total,n from public.sales where shop_id=shop;

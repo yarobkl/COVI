@@ -1,3 +1,5 @@
+import { businessErrorMessage } from '../../lib/businessErrors'
+
 /** Translates a Supabase auth/RPC error into a French message for the shop owner. */
 export function authError(error: unknown) {
   const m = String((error as { message?: unknown } | null)?.message || '').toLowerCase()
@@ -10,6 +12,8 @@ export function authError(error: unknown) {
   // Only a password that is too short; other password errors get the general message.
   if (m.includes('password') && (m.includes('at least') || m.includes('short') || /\b6\b/.test(m)))
     return 'Mot de passe trop court : 6 caractères minimum.'
+  const business = businessErrorMessage(error)
+  if (business) return business
   if (m.includes('shop name is required')) return 'Indiquez le nom de la boutique.'
   if (m.includes('network') || m.includes('fetch'))
     return 'Pas de réseau. Réessayez quand la connexion revient.'

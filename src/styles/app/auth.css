@@ -164,4 +164,49 @@
       padding-top: var(--space-16);
     }
   }
+
+  /* « Choisir une boutique » : une étiquette de cahier par boutique */
+  .shop-picker {
+    display: grid;
+    gap: var(--space-3);
+    list-style: none;
+    padding: 0;
+    margin: 0 0 var(--space-4);
+  }
+  .shop-picker__label {
+    display: grid;
+    gap: 2px;
+    width: calc(100% - 12px);
+    text-align: start;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    position: relative;
+  }
+  .shop-picker__label:hover {
+    background: var(--action-tint);
+  }
+  .shop-picker__label:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: 6px;
+  }
+  .shop-picker__label[aria-current='true'] {
+    border-style: double;
+  }
+  .shop-picker__here {
+    position: absolute;
+    inset-block-start: var(--space-2);
+    inset-inline-end: var(--space-3);
+    color: var(--action);
+    font-size: 1.25rem;
+  }
+  .shop-picker__foot {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    align-items: center;
+  }
+  .auth__cancel {
+    justify-self: start;
+  }
 }
