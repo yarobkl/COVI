@@ -47,3 +47,7 @@ export function createQueuedCart(
 
 /** A queue entry can only be replayed by the account that originally created it. */
 export const cartBelongsToUser = (cart: QueuedCart, userId: string) => cart.userId === userId
+
+/** Prevent a queued cart from being accidentally routed to the currently selected shop. */
+export const cartBelongsToShop = (cart: QueuedCart, shopId: string) => cart.shopId === shopId
+
