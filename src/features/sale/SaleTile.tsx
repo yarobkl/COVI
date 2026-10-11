@@ -3,18 +3,22 @@ import { fcfa, money } from '../../lib/format'
 import type { Product } from '../../lib/types'
 import { stockNote } from './saleMath'
 
-/** One article at the counter: a big key (photo or initial, name, what is left, price). */
+/**
+ * One article at the counter: a big key (photo or initial, name, what is left, price). Touching it
+ * puts the article in the cart; the count in the cart pops on its corner.
+ */
 export function SaleTile({
   product,
   arrivalCode,
-  selected,
-  onSelect,
+  inCart,
+  onAdd,
   locked,
 }: {
   product: Product
   arrivalCode?: string
-  selected: boolean
-  onSelect: () => void
+  /** How many of this article are in the cart (0: none). */
+  inCart: number
+  onAdd: () => void
   /** Read only (subscription suspended): the article stays visible but cannot be sold. */
   locked?: { reasonId: string }
 }) {
@@ -23,14 +27,19 @@ export function SaleTile({
   return (
     <button
       type="button"
-      className={cx('sale-tile', 'sale-tile--thumb', selected && 'sale-tile--in')}
+      className={cx('sale-tile', 'sale-tile--thumb', inCart > 0 && 'sale-tile--in')}
       disabled={stock.out || Boolean(locked)}
       aria-describedby={locked?.reasonId}
       data-locked={locked ? 'true' : undefined}
-      aria-pressed={selected}
-      aria-label={`Vendre ${product.name}, ${money(price)}, ${stock.text.toLowerCase()}`}
-      onClick={onSelect}
+      aria-label={`Ajouter ${product.name} au panier, ${money(price)}, ${stock.text.toLowerCase()}${inCart > 0 ? `, déjà ${inCart} dans le panier` : ''}`}
+      onClick={onAdd}
     >
+      {inCart > 0 && (
+        // Keyed by the count: the badge pops again at each touch.
+        <span key={inCart} className="sale-tile__count" aria-hidden="true">
+          {inCart}
+        </span>
+      )}
       <span className="sale-tile__thumb" aria-hidden="true">
         {product.image_url ? (
           <img src={product.image_url} alt="" loading="lazy" />

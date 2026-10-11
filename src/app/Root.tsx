@@ -56,7 +56,7 @@ function MerchantRoot() {
         // A new key per shop: changing shop unmounts every page and its state (products, stock,
         // sales, figures) and loads the other shop from scratch. Nothing is carried over.
         <App
-          key={shop.id}
+          key={`${account.userId}:${shop.id}`}
           shop={shop}
           account={account}
           signOut={signOut}

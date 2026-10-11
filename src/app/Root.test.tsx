@@ -40,7 +40,7 @@ vi.mock('../features/auth/AuthGate', () => ({
           shop,
           async () => {},
           () => {},
-          { shopCount: 2, readOnly: false },
+          { userId: 'u1', shopCount: 2, readOnly: false },
         )}
       </>
     )

@@ -8,7 +8,16 @@ import { App } from './App'
 vi.mock('../features/dashboard/DashboardPage', () => ({
   DashboardPage: ({ shop }: { shop: { id: string } }) => <p>page:dashboard:{shop.id}</p>,
 }))
-vi.mock('../features/sale/SalePage', () => ({ SalePage: () => <p>page:sale</p> }))
+vi.mock('../features/sale/SalePage', () => ({
+  SalePage: ({ userId, shopId }: { userId: string; shopId: string }) => (
+    <p>
+      page:sale
+      <span>
+        compte:{userId} boutique:{shopId}
+      </span>
+    </p>
+  ),
+}))
 vi.mock('../features/stock/StockPage', () => ({ StockPage: () => <p>page:stock</p> }))
 vi.mock('../features/arrivals/ArrivalsPage', () => ({
   // Keeps a counter, to check that each filter has its own state.
@@ -59,6 +68,7 @@ function renderApp(overrides: Partial<Shop> = {}) {
       signOut={signOut}
       updateShop={vi.fn()}
       onSimulation={onSimulation}
+      account={{ userId: 'u1', shopCount: 1, readOnly: false }}
     />,
   )
   const sommaire = screen.getByRole('navigation', { name: 'Sommaire' })
@@ -116,6 +126,8 @@ describe('App shell', () => {
     )
     await go('#/vendre')
     expect(screen.getByText('page:sale')).toBeTruthy()
+    // The account validated by AuthGate reaches the sale screen with the open shop.
+    expect(screen.getByText(`compte:u1 boutique:${shop.id}`)).toBeTruthy()
     expect(within(bottom).getByRole('link', { name: 'Vendre' }).getAttribute('aria-current')).toBe(
       'page',
     )
@@ -203,7 +215,7 @@ describe('App shell: several shops and read only', () => {
 
   it('one shop: no « Changer de boutique »; adding a shop is offered', () => {
     const addShop = vi.fn()
-    const { sommaire } = renderWith({ shopCount: 1, addShop, readOnly: false })
+    const { sommaire } = renderWith({ userId: 'u1', shopCount: 1, addShop, readOnly: false })
     expect(within(sommaire).queryByRole('button', { name: 'Changer de boutique' })).toBeNull()
     fireEvent.click(within(sommaire).getByRole('button', { name: 'Ajouter une boutique' }))
     expect(addShop).toHaveBeenCalledTimes(1)
@@ -212,6 +224,7 @@ describe('App shell: several shops and read only', () => {
   it('several shops: « Changer de boutique » in the Sommaire and in the « Ma boutique » menu', () => {
     const switchShop = vi.fn()
     const { sommaire } = renderWith({
+      userId: 'u1',
       shopCount: 2,
       switchShop,
       addShop: vi.fn(),
@@ -227,6 +240,7 @@ describe('App shell: several shops and read only', () => {
 
   it('adding a shop impossible: the button is disabled and says why', () => {
     const { sommaire } = renderWith({
+      userId: 'u1',
       shopCount: 1,
       addShopBlocked: 'Votre abonnement est suspendu. Contactez COVI pour le renouveler.',
       readOnly: true,
@@ -242,7 +256,12 @@ describe('App shell: several shops and read only', () => {
   })
 
   it('subscription unverified: one discreet line, the sale still open', () => {
-    const { sommaire } = renderWith({ shopCount: 1, readOnly: false, subscriptionUnverified: true })
+    const { sommaire } = renderWith({
+      userId: 'u1',
+      shopCount: 1,
+      readOnly: false,
+      subscriptionUnverified: true,
+    })
     const line = screen.getByText('État de l’abonnement non vérifié')
     expect(line.closest('.notice')).toBeNull()
     expect(screen.queryByText(READ_ONLY)).toBeNull()
@@ -252,12 +271,12 @@ describe('App shell: several shops and read only', () => {
   })
 
   it('no banner while the subscription is fine', () => {
-    renderWith({ shopCount: 1, readOnly: false })
+    renderWith({ userId: 'u1', shopCount: 1, readOnly: false })
     expect(screen.queryByText(READ_ONLY)).toBeNull()
   })
 
   it('read only: permanent calm banner, the sale entries disabled, the pages still readable', async () => {
-    const { sommaire, bottom } = renderWith({ shopCount: 1, readOnly: true })
+    const { sommaire, bottom } = renderWith({ userId: 'u1', shopCount: 1, readOnly: true })
     const banner = screen.getByText(READ_ONLY)
     expect(banner.id).toBe('abonnement-suspendu')
     expect(banner.closest('.notice')?.className).not.toContain('notice--danger')

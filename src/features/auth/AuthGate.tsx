@@ -27,6 +27,11 @@ import { ShopPicker } from './ShopPicker'
 
 /** What the shell needs to know about the account beyond the open shop. */
 export type ShopAccount = {
+  /**
+   * The signed-in account (session validated here). Pages that keep work for later (a cart waiting
+   * for the network) store it with the shop, so only this account ever replays it.
+   */
+  userId: string
   /** Shops of the account (1 when the list could not be loaded: only the open one is known). */
   shopCount: number
   /** Back to « Choisir une boutique » (only with several shops). */
@@ -324,6 +329,7 @@ export function AuthGate({
             open(shop)
           },
           {
+            userId,
             shopCount: list?.length ?? 1,
             switchShop: list && list.length > 1 ? () => setActive(null) : undefined,
             addShop: startAdding,
