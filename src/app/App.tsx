@@ -207,6 +207,13 @@ export function App({
   const menuTitle = useId()
   const main = useRef<HTMLElement>(null)
   const firstRoute = useRef(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const refresh = () => {
+    if (refreshing) return
+    setRefreshing(true)
+    window.dispatchEvent(new Event('covi-refresh'))
+    window.setTimeout(() => setRefreshing(false), 650)
+  }
 
   // Each page change: top of the page, focus on the page for screen readers.
   useEffect(() => {
@@ -235,6 +242,9 @@ export function App({
       <header className="topbar">
         <p className="topbar__shop">{shop.name}</p>
         <NetStatus state={sync} shopId={shop.id} />
+        <button type="button" className="mobile-refresh" onClick={refresh} disabled={refreshing} aria-label="Actualiser les données" title="Actualiser les données">
+          <span className={refreshing ? 'mobile-refresh__icon is-spinning' : 'mobile-refresh__icon'} aria-hidden="true">↻</span>
+        </button>
         <button
           type="button"
           className="avatar"
