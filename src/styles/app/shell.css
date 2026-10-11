@@ -187,9 +187,4 @@
     margin-top: var(--space-1);
     color: var(--ink-soft);
   }
-
-  /* Les pages pas encore refaites tiennent dans la feuille. */
-  .legacy {
-    min-width: 0;
-  }
 }
