@@ -19,3 +19,7 @@
 .arrival-item__detail { margin-top:12px; }
 @media (min-width:680px) { .arrival-item__actions { grid-template-columns: minmax(0,1fr) auto; align-items:center; } .arrival-item__button--quiet { padding-inline:20px; } }
 @media (prefers-reduced-motion:reduce) { .arrival-item__button { transition:none; } }
+
+.arrivals-list { display: grid; gap: 14px; margin-top: 18px; }
+.arrivals-list .arrival-item { padding: 18px; border: 1px solid #e7e1d8; border-radius: 18px; background: #fff; box-shadow: 0 3px 14px rgba(30,31,35,.045); }
+.arrivals-list .arrival-item:last-child { border-bottom: 1px solid #e7e1d8; }
