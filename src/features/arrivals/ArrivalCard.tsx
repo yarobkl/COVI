@@ -3,8 +3,9 @@ import type { ArrivalProfit } from '../../lib/operations'
 import type { Arrival } from '../../lib/types'
 import { ArrivalDetail } from './ArrivalDetail'
 import { nextStatusLabel, statusLabel } from './arrivalStatus'
+import './arrivalActions.css'
 
-/** One arrival: status, lifecycle action, key figures and optional detail. */
+/** One arrival, one obvious next action. Detail and finance remain accessible on demand. */
 export function ArrivalCard({
   arrival: a,
   profit: p,
@@ -22,68 +23,56 @@ export function ArrivalCard({
   onAddProduct: () => void
   onToggleDetail: () => void
 }) {
+  const received = a.status === 'received'
+  const kind = a.kind === 'balloon' ? 'Ballon' : 'Commande fournisseur'
+  const action = received ? 'Ajouter des articles au stock' : nextStatusLabel[a.status]
   return (
-    <div className="ordercard">
-      <div>
-        <span className={'pill ' + (a.status === 'received' ? 'green' : 'amber')}>
-          {a.kind === 'balloon' ? 'BALLON' : 'FOURNISSEUR'} · {statusLabel(a.status)}
+    <article className="arrival-item">
+      <div className="arrival-item__top">
+        <span className={'pill ' + (received ? 'green' : 'amber')}>
+          {kind} · {statusLabel(a.status)}
         </span>
-        <h3>
-          {a.code} {a.is_test && <em className="test-tag">TEST</em>}
-          {a.supplier_name ? ' · ' + a.supplier_name : ''}
-        </h3>
-        <p>
-          {a.origin_country || 'Origine non renseignée'} ·{' '}
-          {a.order_date ? 'Commandé le ' + a.order_date : 'Date de commande à confirmer'}
-          {a.received_date ? ' · Reçu le ' + a.received_date : ''}
-        </p>
-        {a.status !== 'received' && (
-          <button className="outline" disabled={busy} onClick={onAdvance}>
-            {nextStatusLabel[a.status]}
-          </button>
-        )}
+        {a.is_test && <em className="test-tag">TEST</em>}
       </div>
-      <div className="orderstats">
+      <h3 className="arrival-item__title">{a.code}{a.supplier_name ? ' · ' + a.supplier_name : ''}</h3>
+      <p className="arrival-item__meta">
+        {a.origin_country || 'Origine non renseignée'}
+        {a.order_date ? ' · Commandée le ' + a.order_date : ''}
+        {a.received_date ? ' · Reçue le ' + a.received_date : ''}
+      </p>
+      <div className="arrival-item__amount">
+        <span>{received ? 'Coût de l’arrivage' : 'Montant prévu'}</span>
+        <strong>{money(Number(a.global_cost))}</strong>
+      </div>
+      <div className="arrival-item__actions">
         <button
-          className="outline"
-          disabled={a.status !== 'received'}
-          title={
-            a.status !== 'received'
-              ? 'Marquez l’arrivage comme reçu avant d’ajouter les produits'
-              : ''
-          }
-          onClick={onAddProduct}
+          type="button"
+          className="arrival-item__button"
+          disabled={busy || (!received && !nextStatusLabel[a.status])}
+          onClick={received ? onAddProduct : onAdvance}
+          aria-label={action || 'Action indisponible'}
         >
-          Ajouter produit
+          {busy ? 'Un instant…' : action || 'Action indisponible'}
         </button>
-        <button className="outline" onClick={onToggleDetail}>
-          {expanded ? 'Fermer le détail' : 'Voir le détail'}
+        <button
+          type="button"
+          className="arrival-item__button arrival-item__button--quiet"
+          aria-expanded={expanded}
+          onClick={onToggleDetail}
+        >
+          {expanded ? 'Masquer les détails ↑' : 'Voir les détails →'}
         </button>
-        <span>
-          Coût total<b>{money(Number(a.global_cost))}</b>
-        </span>
-        {p ? (
-          <>
-            <span>
-              Vendus / restants
-              <b>
-                {p.sold} / {p.remaining}
-              </b>
-            </span>
-            <span>
-              Récupéré<b>{p.recovery}%</b>
-            </span>
-            <span>
-              Résultat actuel
-              <b>
-                {p.profit >= 0 ? '+ ' : ''}
-                {money(p.profit)}
-              </b>
-            </span>
-          </>
-        ) : null}
       </div>
-      {expanded && <ArrivalDetail arrival={a} detail={p} />}
-    </div>
+      {expanded && (
+        <div className="arrival-item__detail">
+          {received && p && (
+            <p className="arrival-item__meta">
+              {p.sold} vendu(s) · {p.remaining} restant(s) · {p.recovery}% du coût récupéré
+            </p>
+          )}
+          <ArrivalDetail arrival={a} detail={p} />
+        </div>
+      )}
+    </article>
   )
 }
