@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { PlusIcon } from '../../components/icons'
 import { addProduct } from '../../lib/covi'
 import { localDay } from '../../lib/dates'
@@ -33,6 +33,8 @@ export function ArrivalsPage({ shopId, kind }: { shopId: string; kind?: Arrival[
   const [expanded, setExpanded] = useState<string | null>(null)
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
+  const [productBusy, setProductBusy] = useState(false)
+  const productSubmitting = useRef(false)
   const load = useCallback(() => {
     void listArrivals(shopId)
       .then((x) => setRows(kind ? x.filter((a) => a.kind === kind) : x))
@@ -84,7 +86,10 @@ export function ArrivalsPage({ shopId, kind }: { shopId: string; kind?: Arrival[
   }
   async function saveProduct(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (!addTo) return
+    if (!addTo || productSubmitting.current) return
+    productSubmitting.current = true
+    setProductBusy(true)
+    setMsg('')
     const input = arrivalProductFromForm(new FormData(e.currentTarget), addTo)
     try {
       await addProduct(shopId, input)
@@ -93,6 +98,9 @@ export function ArrivalsPage({ shopId, kind }: { shopId: string; kind?: Arrival[
       load()
     } catch (e) {
       setMsg(errorMessage(e))
+    } finally {
+      productSubmitting.current = false
+      setProductBusy(false)
     }
   }
   return (
@@ -141,7 +149,8 @@ export function ArrivalsPage({ shopId, kind }: { shopId: string; kind?: Arrival[
         <ArrivalProductForm
           arrival={addTo}
           onSubmit={saveProduct}
-          onCancel={() => setAddTo(null)}
+          busy={productBusy}
+          onCancel={() => { if (!productSubmitting.current) setAddTo(null) }}
         />
       )}
     </div>
