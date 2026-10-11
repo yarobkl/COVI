@@ -34,6 +34,15 @@ const arrivalFilters: readonly { filter?: ArrivalFilter; label: string }[] = [
   { filter: 'ballons', label: 'Ballons' },
 ]
 
+function StockArrivalsTabs({ route }: { route: Route }) {
+  return (
+    <nav className="tabs page-tabs stock-arrivals-tabs" aria-label="Stock et arrivages">
+      <a className="tabs__tab" href={routeHash({ page: 'stock' })} aria-current={route.page === 'stock' ? 'page' : undefined}>Mon stock</a>
+      <a className="tabs__tab" href={routeHash({ page: 'arrivages' })} aria-current={route.page === 'arrivages' ? 'page' : undefined}>Arrivages</a>
+    </nav>
+  )
+}
+
 function ArrivalsScreen({ shopId, filter }: { shopId: string; filter?: ArrivalFilter }) {
   return (
     <>
@@ -69,12 +78,18 @@ function renderPage(route: Route, { shop, updateShop, onSimulation }: PageContex
       return <SalePage shopId={shop.id} shopName={shop.name} />
     case 'stock':
       return (
-        <LegacyPage>
-          <StockPage shopId={shop.id} />
-        </LegacyPage>
+        <>
+          <StockArrivalsTabs route={route} />
+          <LegacyPage>
+            <StockPage shopId={shop.id} />
+          </LegacyPage>
+        </>
       )
     case 'arrivages':
-      return <ArrivalsScreen shopId={shop.id} filter={route.filter} />
+      return <>
+        <StockArrivalsTabs route={route} />
+        <ArrivalsScreen shopId={shop.id} filter={route.filter} />
+      </>
     case 'ventes':
       return (
         <LegacyPage>
