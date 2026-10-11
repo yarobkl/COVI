@@ -45,6 +45,9 @@ export function ArrivalsPage({ shopId, kind }: { shopId: string; kind?: Arrival[
   }, [shopId, kind])
   useEffect(() => {
     load()
+    window.addEventListener('covi-refresh', load)
+    window.addEventListener('covi-data-changed', load)
+    return () => { window.removeEventListener('covi-refresh', load); window.removeEventListener('covi-data-changed', load) }
   }, [load])
   async function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
