@@ -31,9 +31,7 @@ describe('category sale history reconciliation', () => {
   })
 
   it('distinguishes TEST from actual receipts', () => {
-    const result = parseCategorySaleHistory([
-      { ...saved, receipt_number: 'CV-TEST-2026-000012' },
-    ])
+    const result = parseCategorySaleHistory([{ ...saved, receipt_number: 'CV-TEST-2026-000012' }])
     expect(result[0].isTest).toBe(true)
   })
 
