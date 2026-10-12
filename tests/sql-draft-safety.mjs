@@ -10,6 +10,7 @@ const expected = [
   'draft_create_approve_manual_checkout_order.sql',
   'draft_confirm_manual_checkout_payment.sql',
   'draft_post_arrival_category_stock.sql',
+  'draft_public_order_channels.sql',
 ]
 
 assert.ok(existsSync(draftsDir), 'SQL draft directory must exist')
@@ -59,5 +60,16 @@ assert.match(paymentSql, /insert into public\.stock_movements/,
   'Stock movement must be journaled')
 assert.match(paymentSql, /v_actor/, 'The true authenticated caller must be recorded')
 
-console.log('PASS: Five SQL drafts isolated; explicit auth, locks, duplicate guards and receipts present.')
+const publicSql = readFileSync(join(draftsDir, 'draft_public_order_channels.sql'), 'utf8')
+assert.match(publicSql, /public_token uuid not null default gen_random_uuid\(\)/,
+  'Shop links must have random unguessable tokens')
+assert.match(publicSql, /and l.enabled = true/,
+  'The public catalog must reject disabled shop links')
+assert.match(publicSql, /get_checkout_pending_orders\(uuid\)[\s\S]*?to authenticated/,
+  'Customer contact details may be returned only to authenticated owners')
+assert.match(publicSql, /submissions < 60/,
+  'Public intake must enforce a per-shop minute cap')
+assert.match(publicSql, /submissions < 1000/,
+  'Public intake must enforce a daily cap')
+console.log('PASS: Six SQL drafts isolated; public intake limits and owner/payment checks present.')
 console.log('NOTE: Static tests do NOT establish SQL execution, RLS safety or concurrency correctness.')
