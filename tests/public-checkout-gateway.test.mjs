@@ -102,6 +102,29 @@ describe('isolated QR/social gateway', () => {
     expect(JSON.stringify(catalog)).not.toContain(env.COVI_SUPABASE_SECRET_KEY)
   })
 
+  it('uses legacy service-role bearer headers only for JWT keys', async () => {
+    const legacy = 'eyJ' + 'legacy-test-service-role-token-example'
+    const { transport, calls } = fakeBackend()
+    const request = new Request(
+      'https://example.supabase.co/functions/v1/public-checkout?token=' + token,
+      { headers: origin },
+    )
+    const response = await createPublicCheckoutGateway(
+      { ...env, COVI_SUPABASE_SECRET_KEY: legacy },
+      transport,
+    )(request)
+    expect(response.status).toBe(200)
+    const backendCalls = calls.filter((c) => c.address.includes('/rest/v1/rpc/'))
+    expect(backendCalls.length).toBeGreaterThan(0)
+    expect(backendCalls.every((c) => c.init.headers.Authorization === 'Bearer ' + legacy)).toBe(
+      true,
+    )
+    const other = fakeBackend()
+    const opaqueResponse = await createPublicCheckoutGateway(env, other.transport)(request)
+    expect(opaqueResponse.status).toBe(200)
+    expect(other.calls.every((c) => !c.init.headers?.Authorization)).toBe(true)
+  })
+
   it('checks a single-use anti-robot challenge before saving an order', async () => {
     const { transport, calls } = fakeBackend()
     const result = await createPublicCheckoutGateway(env, transport)(guestPost())
