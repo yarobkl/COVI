@@ -62,7 +62,10 @@ function guestPost(input = order, extraHeaders = {}) {
 describe('isolated QR/social gateway', () => {
   it('fails closed when disabled or missing secrets, and never accesses Supabase', async () => {
     const { transport } = fakeBackend()
-    const disabled = createPublicCheckoutGateway({ ...env, COVI_GATEWAY_ENABLED: 'false' }, transport)
+    const disabled = createPublicCheckoutGateway(
+      { ...env, COVI_GATEWAY_ENABLED: 'false' },
+      transport,
+    )
     expect((await disabled(guestPost())).status).toBe(503)
     const missing = createPublicCheckoutGateway({ ...env, COVI_TURNSTILE_SECRET: '' }, transport)
     expect((await missing(guestPost())).status).toBe(503)
@@ -129,8 +132,13 @@ describe('isolated QR/social gateway', () => {
   it('rejects price manipulation, bad quantities and delivery without phone', async () => {
     const { transport } = fakeBackend()
     const gateway = createPublicCheckoutGateway(env, transport)
-    expect((await gateway(guestPost({ ...order, lines: [{ ...order.lines[0], quantity: 21 }] }))).status).toBe(400)
-    expect((await gateway(guestPost({ ...order, lines: [{ ...order.lines[0], unitPriceXaf: -1 }] }))).status).toBe(400)
+    expect(
+      (await gateway(guestPost({ ...order, lines: [{ ...order.lines[0], quantity: 21 }] }))).status,
+    ).toBe(400)
+    expect(
+      (await gateway(guestPost({ ...order, lines: [{ ...order.lines[0], unitPriceXaf: -1 }] })))
+        .status,
+    ).toBe(400)
     expect((await gateway(guestPost({ ...order, fulfillment: 'delivery' }))).status).toBe(400)
     expect(transport).not.toHaveBeenCalled()
   })
@@ -148,6 +156,8 @@ describe('isolated QR/social gateway', () => {
     const res = await gateway(guestPost(forged))
     expect(res.status).toBe(200)
     const calls = transport.mock.calls
-    expect(calls.some(([url]) => String(url).includes('confirm_manual_checkout_payment'))).toBe(false)
+    expect(calls.some(([url]) => String(url).includes('confirm_manual_checkout_payment'))).toBe(
+      false,
+    )
   })
 })
