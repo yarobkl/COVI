@@ -57,12 +57,27 @@ create table if not exists public.stock_movements (
   constraint stock_movements_unique_operation unique (shop_id, category_id, operation_id)
 );
 
+-- A durable canonical payload makes retries safe even when the same UUID is reused
+-- with different category quantities.
+create table if not exists public.arrival_stock_postings (
+  arrival_id uuid primary key,
+  shop_id uuid not null,
+  operation_id uuid not null,
+  canonical_lines jsonb not null check (jsonb_typeof(canonical_lines) = 'array'),
+  category_count integer not null check (category_count > 0),
+  created_at timestamptz not null default now(),
+  constraint arrival_stock_postings_arrival_shop_fk foreign key (arrival_id, shop_id)
+    references public.arrivals(id, shop_id),
+  constraint arrival_stock_postings_unique_operation unique (shop_id, operation_id)
+);
+
 create index if not exists stock_movements_shop_category_date_idx
   on public.stock_movements(shop_id, category_id, created_at desc);
 
 alter table public.stock_categories enable row level security;
 alter table public.arrival_category_items enable row level security;
 alter table public.stock_movements enable row level security;
+alter table public.arrival_stock_postings enable row level security;
 
 -- Read-only for shop owners. Writes will require vetted SECURITY DEFINER RPCs
 -- with explicit auth.uid() ownership checks and row locking.
@@ -76,11 +91,16 @@ create policy "owner can read stock movements"
   on public.stock_movements for select to authenticated
   using (exists (select 1 from public.shops s where s.id = shop_id and s.owner_id = (select auth.uid())));
 
+create policy "owner can read arrival stock postings"
+  on public.arrival_stock_postings for select to authenticated
+  using (exists (select 1 from public.shops s where s.id = shop_id and s.owner_id = (select auth.uid())));
+
 -- Explicitly prevent direct writes from client roles. Future audited RPCs may
 -- use a dedicated owner with controlled privileges; table owners retain DDL rights.
 revoke insert, update, delete on public.stock_categories from anon, authenticated;
 revoke insert, update, delete on public.arrival_category_items from anon, authenticated;
 revoke insert, update, delete on public.stock_movements from anon, authenticated;
+revoke insert, update, delete on public.arrival_stock_postings from anon, authenticated;
 
 -- No anonymous policies and no direct INSERT/UPDATE/DELETE policies.
 -- Before applying: inspect pre-existing policy names and default privileges;
