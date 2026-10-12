@@ -1,0 +1,267 @@
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import {
+  Amount, AmountInput, Button, Field, Ledger, LedgerRow, Notice, Sheet, Stepper,
+} from '../../components/ui'
+import { fcfa, parseAmount } from '../../lib/format'
+import { prepareManualOrderLines, type ManualOrderLineInput } from '../../lib/manualOrder'
+import {
+  getPublicCatalog,
+  preparePublicRequest,
+  submitPublicOrder,
+  type OrderChannel,
+  type PublicCatalog,
+  type RecordedPublicRequest,
+} from '../../lib/publicOrders'
+
+type Props = { token: string; channel: OrderChannel }
+type BasketLine = ManualOrderLineInput
+
+/** Guest experience. A public order is always a REQUEST, never an automatic sale.
+ * No sign-in required; token only permits submitting with strict server limits.
+ * Not reachable unless the checkout build-time feature flag is enabled.
+ */
+export function PublicOrderRequestPage({ token, channel }: Props) {
+  const [catalog, setCatalog] = useState<PublicCatalog | null>(null)
+  const [loadError, setLoadError] = useState('')
+  const [retry, setRetry] = useState(0)
+  const [lines, setLines] = useState<BasketLine[]>([])
+  const [categoryId, setCategoryId] = useState('')
+  const [quantity, setQuantity] = useState(1)
+  const [priceInput, setPriceInput] = useState('')
+  const [fulfillment, setFulfillment] = useState<'pickup' | 'delivery'>('pickup')
+  const [phone, setPhone] = useState('')
+  const [note, setNote] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [saved, setSaved] = useState<RecordedPublicRequest | null>(null)
+  const inFlight = useRef(false)
+  const attempt = useRef<{ fingerprint: string; operationId: string } | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    getPublicCatalog(token).then(
+      value => { if (!cancelled) { setCatalog(value); setLoadError('') } },
+      reason => { if (!cancelled) {
+        setLoadError(reason instanceof Error ? reason.message : 'Lien de commande indisponible.')
+      } },
+    )
+    return () => { cancelled = true }
+  }, [token, retry])
+
+  const selected = catalog?.categories.find(c => c.id === categoryId)
+  const price = parseAmount(priceInput)
+  const total = lines.reduce((sum, line) => sum + line.quantity * line.negotiatedUnitPriceXaf, 0)
+  const count = lines.reduce((sum, line) => sum + line.quantity, 0)
+
+  function addLine() {
+    if (inFlight.current) return
+    setError('')
+    if (!selected || price === null || price < 1 || price > 999_999_999) {
+      setError('Choisissez une catégorie et un prix négocié valide.')
+      return
+    }
+    const others = lines.filter(line => line.categoryId === selected.id)
+      .reduce((sum, line) => sum + line.quantity, 0)
+    if (others + quantity > 20) {
+      setError('La demande est limitée à 20 pièces par catégorie.')
+      return
+    }
+    try {
+      const prepared = prepareManualOrderLines([
+        ...lines, { categoryId: selected.id, quantity, negotiatedUnitPriceXaf: price },
+      ])
+      if (prepared.lines.length > 20 || prepared.amountXaf > 2_000_000_000)
+        throw new Error('La commande est trop importante.')
+      setLines(prepared.lines.map(line => ({
+        categoryId: line.categoryId,
+        quantity: line.quantity,
+        negotiatedUnitPriceXaf: line.unitPriceXaf,
+      })))
+      setQuantity(1)
+      setPriceInput('')
+      setCategoryId('')
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Article non ajouté.')
+    }
+  }
+
+  async function send(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (inFlight.current) return
+    inFlight.current = true
+    setBusy(true)
+    setError('')
+    try {
+      // Include all editable request details in the retry identity.
+      const fingerprint = JSON.stringify([token,channel,lines,phone.trim(),note.trim(),fulfillment])
+      if (!attempt.current || attempt.current.fingerprint !== fingerprint) {
+        attempt.current = { fingerprint, operationId: crypto.randomUUID() }
+      }
+      const input = {
+        token, channel, operationId: attempt.current.operationId,
+        lines, phone, note, fulfillment,
+      }
+      const prepared = preparePublicRequest(input)
+      const result = await submitPublicOrder(input)
+      const expected = prepared.p_lines.reduce(
+        (sum, line) => sum + line.quantity * line.unitPriceXaf, 0,
+      )
+      if (result.amountXaf !== expected)
+        throw new Error('Le montant renvoyé par la boutique ne correspond pas à votre demande.')
+      setSaved(result)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Demande non envoyée. Réessayez.')
+    } finally {
+      inFlight.current = false
+      setBusy(false)
+    }
+  }
+
+  if (loadError) return (
+    <div className="checkout-guest seyes margin-rule">
+      <Notice tone="danger" title="Cette page de commande est indisponible.">
+        <p>{loadError}</p>
+        <Button variant="secondary" onClick={() => {
+          setLoadError('')
+          setRetry(x => x + 1)
+        }}>Réessayer</Button>
+      </Notice>
+    </div>
+  )
+
+  if (!catalog) return (
+    <div className="checkout-guest seyes margin-rule" role="status">
+      <p className="hand">On ouvre le cahier de la boutique…</p>
+    </div>
+  )
+
+  if (saved) return (
+    <main className="checkout-guest seyes margin-rule">
+      <Sheet className="checkout-guest__sheet">
+        <p className="hand">C'est noté !</p>
+        <h1>Demande envoyée</h1>
+        <p>Votre demande est arrivée dans le cahier de {catalog.shopName}.</p>
+        <Ledger>
+          <LedgerRow variant="total" label="Montant proposé" value={<Amount value={saved.amountXaf} unit />} />
+        </Ledger>
+        <p>Présentez ce numéro au vendeur :</p>
+        <strong className="checkout-guest__reference figures">{saved.orderId.slice(0, 8).toUpperCase()}</strong>
+        <p className="checkout-guest__caution">
+          La boutique doit encore vérifier les articles et le prix. Votre paiement
+          n'est pas confirmé et aucun vêtement n'a été retiré du stock.
+        </p>
+      </Sheet>
+    </main>
+  )
+
+  return (
+    <main className="checkout-guest seyes margin-rule">
+      <Sheet className="checkout-guest__sheet">
+        <header className="checkout-guest__head">
+          <p className="hand">La feuille de commande</p>
+          <h1>{catalog.shopName}</h1>
+          <p>Choisissez vos vêtements par catégorie et notez le prix discuté avec le vendeur.</p>
+          <p className="checkout-guest__caution">
+            Ceci est une demande, pas un paiement. La boutique confirmera la disponibilité.
+          </p>
+        </header>
+        <form onSubmit={e => { void send(e) }} className="checkout-guest__form">
+          <fieldset disabled={busy} className="checkout-guest__entry">
+            <legend className="section-title">Ajouter un vêtement</legend>
+            <Field label="Catégorie">
+              {props => (
+                <select {...props} className="select" value={categoryId}
+                  onChange={e => { setCategoryId(e.target.value); setQuantity(1) }}>
+                  <option value="">Choisir une catégorie</option>
+                  {catalog.categories.map(item =>
+                    <option key={item.id} value={item.id}>{item.label}</option>
+                  )}
+                </select>
+              )}
+            </Field>
+            <Field label="Prix discuté par pièce" hint="FCFA · le vendeur devra le confirmer">
+              {props => (
+                <AmountInput {...props} value={priceInput}
+                  placeholder="Ex. : 3 500"
+                  onChange={e => setPriceInput(
+                    parseAmount(e.target.value) === null
+                      ? '' : fcfa(parseAmount(e.target.value) ?? 0),
+                  )} />
+              )}
+            </Field>
+            {selected && (
+              <div className="checkout-guest__quantity">
+                <span>Quantité souhaitée</span>
+                <Stepper itemName={selected.label} value={quantity}
+                  max={20} onChange={setQuantity} />
+                <small>Disponibilité à confirmer</small>
+              </div>
+            )}
+            <Button variant="tactile" block
+              disabled={!selected || price === null || price < 1 || price > 999_999_999}
+              onClick={addLine}>Ajouter à la demande</Button>
+          </fieldset>
+          <section className="checkout-guest__lines" aria-label="Articles demandés">
+            <h2 className="section-title">Ma demande</h2>
+            {lines.length ? lines.map((line, index) => {
+              const label = catalog.categories.find(c => c.id === line.categoryId)?.label ?? 'Catégorie'
+              return (
+                <div key={line.categoryId + ':' + line.negotiatedUnitPriceXaf}
+                  className="checkout-guest__item">
+                  <div>
+                    <strong>{label}</strong>
+                    <p>{line.quantity} × {fcfa(line.negotiatedUnitPriceXaf)} FCFA</p>
+                  </div>
+                  <Button variant="ghost"
+                    disabled={busy}
+                    onClick={() => setLines(old => old.filter((_, i) => i !== index))}>
+                    Retirer
+                  </Button>
+                </div>
+              )
+            }) : <p>Votre feuille est vide.</p>}
+            <Ledger>
+              <LedgerRow variant="total" label={'Total proposé · ' + count + ' pièce(s)'}
+                value={<Amount value={total} size="lg" unit />} />
+            </Ledger>
+          </section>
+          <fieldset className="checkout-guest__entry" disabled={busy}>
+            <legend className="section-title">Récupérer les vêtements</legend>
+            <div className="checkout-guest__choices">
+              <label><input type="radio" checked={fulfillment === 'pickup'}
+                onChange={() => setFulfillment('pickup')} /> Retrait en boutique</label>
+              <label><input type="radio" checked={fulfillment === 'delivery'}
+                onChange={() => setFulfillment('delivery')} /> Livraison</label>
+            </div>
+            <Field label="Votre téléphone" optional={fulfillment === 'pickup'}
+              hint="Indispensable pour une livraison ; facultatif en boutique">
+              {props => (
+                <input {...props} className="input" value={phone}
+                  type="tel" autoComplete="tel" maxLength={32}
+                  required={fulfillment === 'delivery'} placeholder="+242..."
+                  onChange={e => setPhone(e.target.value)} />
+              )}
+            </Field>
+            <Field label="Précisions pour le vendeur" optional
+              hint="Ex. : article montré pendant un live, couleur ou capture à retrouver">
+              {props => (
+                <textarea {...props} className="input" rows={3} maxLength={500}
+                  value={note} onChange={e => setNote(e.target.value)} />
+              )}
+            </Field>
+          </fieldset>
+          {error && <p className="field__error" role="alert">{error}</p>}
+          <p className="checkout-guest__caution">
+            Ne payez pas depuis cette page. Le vendeur confirmera votre demande,
+            puis constatera la réception du paiement séparément.
+          </p>
+          <Button type="submit" block variant="sale" size="lg" busy={busy}
+            busyLabel="Envoi de la demande…" disabled={busy || !lines.length ||
+              (fulfillment === 'delivery' && !phone.trim())}>
+            Envoyer la demande · {fcfa(total)} FCFA
+          </Button>
+        </form>
+      </Sheet>
+    </main>
+  )
+}
