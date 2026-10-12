@@ -447,7 +447,6 @@
     overflow-wrap: anywhere;
   }
 
-
   /* QR imprimable local : contraste noir/blanc, espace blanc de lecture,
      aucune capture ni requête vers un générateur distant. */
   .checkout-share__qr {
