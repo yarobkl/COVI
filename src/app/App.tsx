@@ -7,7 +7,7 @@ import { DashboardPage } from '../features/dashboard/DashboardPage'
 import { ExpensesPage } from '../features/expenses/ExpensesPage'
 import { HistoryPage } from '../features/history/HistoryPage'
 import { SalePage } from '../features/sale/SalePage'
-import { ManualCheckoutFlow } from '../features/checkout/ManualCheckoutFlow'
+import { NotebookCheckoutHub } from '../features/checkout/NotebookCheckoutHub'
 import { categoryCheckoutEnabled } from '../lib/checkoutFeatureFlag'
 import { SettingsPage } from '../features/settings/SettingsPage'
 import { StatisticsPage } from '../features/statistics/StatisticsPage'
@@ -71,7 +71,7 @@ function renderPage(route: Route, { shop, updateShop, onSimulation }: PageContex
       return <SalePage shopId={shop.id} shopName={shop.name} />
     case 'caisse':
       return categoryCheckoutEnabled
-        ? <ManualCheckoutFlow shopId={shop.id} shopName={shop.name} />
+        ? <NotebookCheckoutHub shopId={shop.id} shopName={shop.name} />
         : <SalePage shopId={shop.id} shopName={shop.name} />
     case 'stock':
       return (
