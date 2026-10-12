@@ -11,7 +11,7 @@ export type AuthMode = 'login' | 'signup'
 /** Messages of this screen that are good news, not errors. */
 const isGoodNews = (message: string) => message.startsWith('Compte créé')
 
-/** E-mail / Google sign-in and sign-up. Its state lives in AuthGate so it survives sign-out. */
+/** E-mail / Google / Facebook sign-in and sign-up. Its state lives in AuthGate so it survives sign-out. */
 export function LoginForm({
   mode,
   onModeChange,
@@ -53,29 +53,32 @@ export function LoginForm({
     }
   }
 
-  async function googleAuth() {
+  async function socialAuth(provider: 'google' | 'facebook') {
+    if (busy) return
     onMessage('')
-    const desktop = isTauriApp()
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: desktop ? desktopAuthRedirect() : window.location.origin,
-        skipBrowserRedirect: desktop,
-      },
-    })
-    if (error) {
-      onMessage(authError(error))
-      return
-    }
-    if (desktop && data.url) {
-      try {
-        await openOAuthInSystemBrowser(data.url)
-      } catch (e) {
-        onMessage(
-          (e as Error).message ||
-            'Le navigateur ne s’est pas ouvert. Réessayez, ou connectez-vous avec votre e-mail.',
-        )
+    setBusy(true)
+    try {
+      const desktop = isTauriApp()
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: desktop ? desktopAuthRedirect() : window.location.origin,
+          skipBrowserRedirect: desktop,
+          ...(provider === 'facebook' ? { scopes: 'email' } : {}),
+        },
+      })
+      if (error) {
+        onMessage(authError(error))
+        return
       }
+      if (desktop && data.url) await openOAuthInSystemBrowser(data.url)
+    } catch (e) {
+      onMessage(
+        (e as Error).message ||
+          'Connexion impossible. Vérifiez votre réseau et réessayez.',
+      )
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -142,8 +145,12 @@ export function LoginForm({
         <p className="auth__or" aria-hidden="true">
           ou
         </p>
-        <Button variant="secondary" size="lg" block onClick={() => void googleAuth()}>
+        <Button variant="secondary" size="lg" block onClick={() => void socialAuth('google')} disabled={busy}>
           Continuer avec Google
+        </Button>
+        <Button variant="secondary" size="lg" block disabled={busy} onClick={() => void socialAuth('facebook')}>
+          <span aria-hidden="true" style={{ fontWeight: 800, color: '#1877F2', fontSize: '1.3em', marginRight: 8 }}>f</span>
+          Continuer avec Facebook
         </Button>
       </form>
       <p className="auth__switch">
