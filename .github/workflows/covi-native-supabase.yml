@@ -71,6 +71,7 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 --no-password -f /tmp/covi-native-seed.sql
           psql -X -v ON_ERROR_STOP=1 --no-password -c "select pg_notify('pgrst','reload schema')"
           node tests/supabase/native-verify.mjs
+          node tests/supabase/native-gateway-http.mjs
       - name: Destroy local Supabase containers
         if: always()
         run: supabase stop --no-backup || true
