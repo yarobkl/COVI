@@ -3,6 +3,14 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { getPublicCatalog, submitPublicOrder } from '../../lib/publicOrders'
 import { PublicOrderRequestPage } from './PublicOrderRequestPage'
 
+vi.mock('./TurnstileChallenge', () => ({
+  TurnstileChallenge: ({ onTokenChange }: { onTokenChange: (token: string) => void }) => (
+    <button type="button" onClick={() => onTokenChange('test-challenge-token-123456')}>
+      Vérifier que je ne suis pas un robot
+    </button>
+  ),
+}))
+
 vi.mock('../../lib/publicOrders', async (original) => ({
   ...(await original<typeof import('../../lib/publicOrders')>()),
   getPublicCatalog: vi.fn(),
@@ -34,6 +42,7 @@ async function fill() {
   fireEvent.change(screen.getByLabelText('Catégorie'), { target: { value: categoryId } })
   fireEvent.change(screen.getByLabelText('Prix discuté par pièce'), { target: { value: '3500' } })
   fireEvent.click(screen.getByRole('button', { name: 'Ajouter à la demande' }))
+  fireEvent.click(screen.getByRole('button', { name: /Vérifier que je ne suis pas un robot/ }))
 }
 
 describe('anonymous QR/social notebook request screen', () => {
@@ -77,6 +86,7 @@ describe('anonymous QR/social notebook request screen', () => {
     await fill()
     fireEvent.click(screen.getByRole('button', { name: /Envoyer la demande/ }))
     await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Réseau'))
+    fireEvent.click(screen.getByRole('button', { name: /Vérifier que je ne suis pas un robot/ }))
     fireEvent.click(screen.getByRole('button', { name: /Envoyer la demande/ }))
     await screen.findByRole('heading', { name: 'Demande envoyée' })
     expect(submitPublicOrder).toHaveBeenCalledTimes(2)
