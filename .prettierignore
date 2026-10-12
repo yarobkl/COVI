@@ -9,3 +9,6 @@ supabase/
 # Revisit with a separate, explicitly reviewed authentication-only change.
 src/features/auth/CreateShopForm.tsx
 src/features/auth/LoginForm.tsx
+
+# Unmodified MIT-licensed library; do not reformat third-party source.
+src/vendor/
