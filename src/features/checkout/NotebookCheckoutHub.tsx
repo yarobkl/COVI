@@ -43,7 +43,7 @@ export function NotebookCheckoutHub({
       </nav>
       {tab === 'manual' && <ManualCheckoutFlow shopId={shopId} shopName={shopName} />}
       {tab === 'orders' && <PublicOrderInbox shopId={shopId} shopName={shopName} />}
-      {tab === 'links' && <PublicOrderLinksPanel shopId={shopId} />}
+      {tab === 'links' && <PublicOrderLinksPanel shopId={shopId} shopName={shopName} />}
     </section>
   )
 }
