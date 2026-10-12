@@ -18,8 +18,8 @@ export function CategorySoldRow({
           {line.label} {receipt.isTest && <em className="test-tag">TEST</em>}
         </b>
         <span>
-          {new Date(receipt.confirmedAt).toLocaleString('fr-FR')} ·{' '}
-          {paymentLabel(receipt.method)} · Qté {line.quantity} · Reçu {receipt.receiptNumber}
+          {new Date(receipt.confirmedAt).toLocaleString('fr-FR')} · {paymentLabel(receipt.method)} ·
+          Qté {line.quantity} · Reçu {receipt.receiptNumber}
           {' · '}Encaissé par : {receipt.cashierFirstName}
         </span>
       </div>
