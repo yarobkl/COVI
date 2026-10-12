@@ -24,7 +24,13 @@ const order = {
   challenge: 'valid-turnstile-token-for-test',
 }
 
-function fakeBackend({ quota = true, captcha = true, hostname = 'covi.example', action = 'covi_checkout', orderStatus = 'submitted' } = {}) {
+function fakeBackend({
+  quota = true,
+  captcha = true,
+  hostname = 'covi.example',
+  action = 'covi_checkout',
+  orderStatus = 'submitted',
+} = {}) {
   const calls = []
   const transport = vi.fn(async (url, init) => {
     const address = String(url)
@@ -129,7 +135,11 @@ describe('isolated QR/social gateway', () => {
       expect(result.status).toBe(403)
       expect(calls.some((c) => c.address.includes('submit_checkout_public_order'))).toBe(false)
       expect(
-        calls.some((c) => c.address.includes('gateway_quota') && JSON.parse(c.init.body).p_kind === 'order_link_minute'),
+        calls.some(
+          (c) =>
+            c.address.includes('gateway_quota') &&
+            JSON.parse(c.init.body).p_kind === 'order_link_minute',
+        ),
       ).toBe(false)
     }
   })
