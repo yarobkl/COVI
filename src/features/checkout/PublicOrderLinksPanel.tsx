@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { LocalQRCode } from './LocalQRCode'
 import { Button, Notice, Sheet } from '../../components/ui'
 import {
   configurePublicOrderLink,
@@ -11,7 +12,7 @@ import {
 /** The permanent URL is owned by the merchant. It allows requests, NOT sales.
  * No third-party QR image service is called or given the bearer token.
  */
-export function PublicOrderLinksPanel({ shopId }: { shopId: string }) {
+export function PublicOrderLinksPanel({ shopId, shopName }: { shopId: string; shopName: string }) {
   const [link, setLink] = useState<PublicOrderLink | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -119,10 +120,7 @@ export function PublicOrderLinksPanel({ shopId }: { shopId: string }) {
               </label>
               <Button variant="tactile" block disabled={busy}
                 onClick={() => { void copy('qr') }}>Copier le lien pour QR code</Button>
-              <p className="field__hint">
-                Le visuel QR imprimable sera généré localement après validation de
-                son module, sans envoyer votre lien à un service tiers.
-              </p>
+              <LocalQRCode value={qrUrl} shopName={shopName} />
               <Button variant="ghost" disabled={busy}
                 onClick={() => { void rotate() }}>
                 Remplacer les liens actuels
