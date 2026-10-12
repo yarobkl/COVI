@@ -13,22 +13,58 @@ export type OrderStatus =
 
 export type ManualPaymentMethod = 'cash' | 'mobile_money' | 'other'
 
-export type ManualPaymentConfirmation = {
+/** Cashier-entered details. The first name is an attestation, NOT authentication.
+ * The RPC must separately derive the authorized user ID from auth.uid().
+ */
+export type ManualCashierAttestation = {
   method: ManualPaymentMethod
-  receivedByUserId: string
-  confirmedAt: string
+  cashierFirstName: string
   externalReference?: string
 }
 
-export function validateManualPaymentConfirmation(value: ManualPaymentConfirmation): ManualPaymentConfirmation {
-  if (!['cash', 'mobile_money', 'other'].includes(value.method))
+/** A server-recorded confirmation additionally contains verified audit metadata. */
+export type ManualPaymentConfirmation = ManualCashierAttestation & {
+  receivedByUserId: string
+  confirmedAt: string
+}
+
+export function prepareManualCashierAttestation(
+  input: ManualCashierAttestation,
+): ManualCashierAttestation {
+  if (!['cash', 'mobile_money', 'other'].includes(input.method))
     throw new Error('Moyen de paiement inconnu.')
-  if (!value.receivedByUserId.trim()) throw new Error('Le vendeur doit être identifié.')
-  if (!value.confirmedAt.trim() || !Number.isFinite(Date.parse(value.confirmedAt)))
-    throw new Error('Date de confirmation invalide.')
-  if (value.externalReference && value.externalReference.length > 120)
+
+  if (typeof input.cashierFirstName !== 'string')
+    throw new Error('Le prénom de la personne qui encaisse est obligatoire.')
+
+  const cashierFirstName = input.cashierFirstName.normalize('NFC').trim().replace(/\\s+/gu, ' ')
+  if (cashierFirstName.length < 1 || cashierFirstName.length > 60 ||
+      !/^[\\p{L}\\p{M}]+(?:[ '\u2019-][\\p{L}\\p{M}]+)*$/u.test(cashierFirstName))
+    throw new Error('Saisissez un prénom valide (60 caractères maximum).')
+
+  if (input.externalReference !== undefined && typeof input.externalReference !== 'string')
+    throw new Error('Référence de paiement invalide.')
+  const externalReference = input.externalReference?.trim()
+  if (externalReference && externalReference.length > 120)
     throw new Error('Référence de paiement trop longue.')
-  return value
+
+  return {
+    method: input.method,
+    cashierFirstName,
+    ...(externalReference ? { externalReference } : {}),
+  }
+}
+
+export function validateManualPaymentConfirmation(
+  value: ManualPaymentConfirmation,
+): ManualPaymentConfirmation {
+  const attestation = prepareManualCashierAttestation(value)
+  if (typeof value.receivedByUserId !== 'string' || !value.receivedByUserId.trim())
+    throw new Error('Le compte du vendeur doit être identifié.')
+  if (typeof value.confirmedAt !== 'string' ||
+      !value.confirmedAt.trim() || !Number.isFinite(Date.parse(value.confirmedAt)))
+    throw new Error('Date de confirmation invalide.')
+  return { ...attestation, receivedByUserId: value.receivedByUserId, confirmedAt: value.confirmedAt }
 }
 
 export type OrderEvent =
