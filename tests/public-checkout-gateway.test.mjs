@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it, vi } from 'vitest'
 import { createPublicCheckoutGateway } from '../supabase/functions/public-checkout/gateway.mjs'
 
@@ -85,10 +86,11 @@ describe('isolated QR/social gateway', () => {
     )
     const result = await createPublicCheckoutGateway(env, transport)(request)
     expect(result.status).toBe(200)
-    expect((await result.json()).categories).toEqual([{ id: categoryId, label: 'Robes' }])
+    const catalog = await result.json()
+    expect(catalog.categories).toEqual([{ id: categoryId, label: 'Robes' }])
     expect(result.headers.get('cache-control')).toBe('no-store')
     expect(calls.filter((call) => call.address.includes('gateway_quota'))).toHaveLength(2)
-    expect(JSON.stringify(await result.clone().text())).not.toContain(env.COVI_SUPABASE_SECRET_KEY)
+    expect(JSON.stringify(catalog)).not.toContain(env.COVI_SUPABASE_SECRET_KEY)
   })
 
   it('checks a single-use anti-robot challenge before saving an order', async () => {
