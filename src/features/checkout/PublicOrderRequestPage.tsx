@@ -394,7 +394,9 @@ export function PublicOrderRequestPage({ token, channel }: Props) {
             size="lg"
             busy={busy}
             busyLabel="Envoi de la demande…"
-            disabled={busy || !challenge || !lines.length || (fulfillment === 'delivery' && !phone.trim())}
+            disabled={
+              busy || !challenge || !lines.length || (fulfillment === 'delivery' && !phone.trim())
+            }
           >
             Envoyer la demande · {fcfa(total)} FCFA
           </Button>
