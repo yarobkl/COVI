@@ -21,14 +21,14 @@
   Seul `true` active les nouveaux écrans dans une compilation de développement.
 - L'ancien écran `#/vendre`, les connexions Google/Facebook et la production
   ne sont pas modifiés par cette activation tant que la branche n'est pas fusionnée.
-- Après installation d'une passerelle serveur sécurisée, le lien public permettra **uniquement de déposer une demande** : jamais de
+- La nouvelle passerelle serveur (sur branche, non déployée) permet **uniquement de déposer une demande** : jamais de
   confirmer la réception des fonds ni de modifier les stocks.
 - La base ne publie que les noms et identifiants de catégories disponibles,
   sans quantités exactes, prix d'achat ou coordonnées des clients.
 - Les fonctions d'approbation et d'encaissement exigent l'identité du
   **propriétaire authentifié** et vérifient l'appartenance à la boutique.
-- Derrière la future passerelle, les demandes restent limitées en SQL à **60 nouvelles demandes par minute** et
-  **1 000 par jour** par boutique. Un appel répété avec le même identifiant
+- La nouvelle passerelle prévoit un anti-robot Turnstile, une limitation par source et par lien,
+  ainsi que les limites SQL de **60 nouvelles demandes par minute** et **1 000 par jour** par boutique. Un appel répété avec le même identifiant
   ne crée pas une seconde demande.
 - Un propriétaire peut désactiver son lien ou le renouveler. Le renouvellement
   invalide **tous les anciens liens et QR codes imprimés**.
@@ -39,12 +39,15 @@
 
 1. Auditer les RPC `SECURITY DEFINER`, les RLS et les rôles avec une
    instance Supabase complète, au-delà de la fixture PostgreSQL des tests.
-2. **Blocage volontaire des accès directs** : le brouillon SQL retire `EXECUTE` aux
-   rôles `anon` et `authenticated` pour les RPC de catalogue public et d'envoi de
-   demandes ; seule la `service_role` serveur peut les appeler. Concevoir la
-   passerelle serveur avec quotas par source et limitation du catalogue, sans
-   exposer la clé serveur au navigateur, puis brancher le client dessus. **À ce
-   stade, activer le feature flag ne rend PAS les commandes publiques utilisables.**
+2. **Passerelle intégrée en branche, mais non déployée** : les RPC catalogue et dépôt
+   refusent toujours l'accès direct `anon` et `authenticated`. Le nouveau
+   serveur Edge `supabase/functions/public-checkout/` utilise exclusivement une
+   clé secrète serveur, des quotas atomiques et Turnstile obligatoire.
+   Le formulaire client appelle maintenant ce serveur.
+   **À ce stade, activer le feature flag seul ne rend PAS les commandes
+   publiques utilisables** : l'instance Supabase de test, ses secrets,
+   les clés Turnstile et le déploiement de la fonction doivent être validés.
+   Procédure : [runbook passerelle](./public-gateway-staging-runbook.md).
 3. Construire les droits des comptes employés/caissiers. Dans la version
    testée, seul le propriétaire connecté peut approuver et encaisser.
 4. Permettre au vendeur de rectifier/rejeter un prix proposé avant
