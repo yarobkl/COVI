@@ -38,3 +38,20 @@ Cette note fixe la direction artistique existante. **Aucune refonte de marque, a
 5. Ne pas mettre en production tant que les migrations et les permissions ne sont pas approuvées.
 
 **État : composants et styles de la nouvelle caisse sur une branche GitHub dédiée, non intégrés à la caisse actuellement en production.**
+
+## 4. Panier par catégories préparé sur la branche
+
+- `ManualCheckoutBasket.tsx` : une feuille avec catégorie, quantités tactiles, prix négocié par pièce, lignes du panier et total sur `LedgerRow`.
+- Aucun SKU, marque, taille, couleur ou prix d'achat par produit requis ; les lignes appartiennent directement aux catégories du stock central.
+- Une catégorie peut figurer plusieurs fois à des prix de vente négociés différents ; l'ajout répété au même prix consolide sa quantité.
+- `Stepper` borne les quantités à la disponibilité chargée ; cette validation locale n'est **pas** une réservation de stock. La base recontrôle à l'approbation et au paiement.
+- `checkoutCategoryStock.ts` lit uniquement la nouvelle table `stock_categories`, sous la boutique et l'environnement TEST/réel demandés, sans fallback vers `products`.
+- `ManualCheckoutFlow.tsx` enchaîne la création de commande, l'approbation propriétaire et le formulaire de paiement reçu, avec UUID de création stable après coupure réseau.
+- Si le serveur renvoie un montant incohérent, le parcours s'arrête avant la confirmation d'encaissement.
+- En cas d'erreur de chargement, on recharge les catégories **sans recharger toute l'application**, pour préserver la fluidité.
+
+### Résultats automatisés (GitHub Actions)
+
+Exécution `COVI isolated branch checks` n° `38267502580` : **124 tests unitaires réussis**, typage TypeScript et ESLint validés ; suite PostgreSQL jetable et scénarios de concurrence réussis.
+
+**Limite majeure :** les composants sont présents uniquement sur la branche `feature/covi-stock-central-omnichannel`. Ils ne sont pas montés dans `App.tsx` ni sur les routes de production. La saisie des commandes publiques QR/social et les comptes vendeurs indépendants du propriétaire demandent encore leur propre sécurité.
