@@ -79,7 +79,18 @@ begin
       select 1 from pg_catalog.pg_proc p
       where p.oid = pg_catalog.to_regprocedure(v_call)
         and p.prosecdef
-        and p.proconfig @> array['search_path=']
+        and exists (
+          select 1
+          from pg_catalog.unnest(coalesce(p.proconfig, array[]::text[])) as cfg(setting)
+          where pg_catalog.split_part(cfg.setting, '=', 1) = 'search_path'
+            -- PostgreSQL stores SET search_path = '' as search_path="".
+            -- Both empty-string representations must be accepted, but never
+            -- a nonempty schema or untrusted path.
+            and pg_catalog.btrim(
+              pg_catalog.substr(cfg.setting, pg_catalog.length('search_path=') + 1),
+              pg_catalog.chr(34)
+            ) = ''
+        )
     ) then
       raise exception 'Unsafe SECURITY DEFINER/search_path setup: %', v_call;
     end if;
