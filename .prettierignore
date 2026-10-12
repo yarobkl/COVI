@@ -3,3 +3,9 @@ node_modules/
 package-lock.json
 src-tauri/
 supabase/
+
+# Temporary exception: preserve legacy OAuth/shop-registration forms verbatim.
+# They were already unformatted on main and are unrelated to the cashier PR.
+# Revisit with a separate, explicitly reviewed authentication-only change.
+src/features/auth/CreateShopForm.tsx
+src/features/auth/LoginForm.tsx
