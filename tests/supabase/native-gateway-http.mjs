@@ -36,7 +36,12 @@ async function localTransport(url, init) {
   }
   const target = new URL(String(url))
   assert.equal(target.origin, backend)
-  return fetch(localUrl + target.pathname, init)
+  const response = await fetch(localUrl + target.pathname, init)
+  if (!response.ok) {
+    // Status and endpoint only. Never log response bodies, API keys or client PII.
+    console.error('Native PostgREST HTTP error:', target.pathname, response.status)
+  }
+  return response
 }
 const gateway = createPublicCheckoutGateway(env, localTransport)
 const catalog = await gateway(new Request(
