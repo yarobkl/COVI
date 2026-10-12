@@ -1,30 +1,20 @@
--- Ephemeral local Supabase Auth + PostgREST only. NOT A PRODUCTION MIGRATION.
--- Supabase CLI has already provisioned auth.users, auth.uid() and the API roles.
--- Production COVI's existing tables are intentionally NOT copied.
-begin;
-create table public.shops (
-  id uuid primary key default gen_random_uuid(),
-  owner_id uuid not null references auth.users(id),
-  name text not null
-);
-create table public.arrivals (
-  id uuid primary key default gen_random_uuid(),
-  shop_id uuid not null references public.shops(id),
-  status text not null default 'received',
-  is_test boolean not null default false
-);
-create table public.sales (
-  id uuid primary key default gen_random_uuid(),
-  shop_id uuid not null references public.shops(id),
-  payment_method text not null,
-  total_amount numeric not null default 0,
-  sold_at timestamptz not null default now(),
-  client_operation_id uuid,
-  is_test boolean not null default false
-);
-alter table public.shops enable row level security;
-create policy "owners only see native fixture shops"
-  on public.shops for select to authenticated
-  using (owner_id = (select auth.uid()));
-grant select on public.shops to authenticated;
-commit;
+-- Disposable native Supabase CI fixture: use real COVI core migrations.
+-- Supabase CLI already applied supabase/migrations/* to localhost.
+-- Never recreate existing COVI production tables or alter production.
+do $native$
+begin
+  if to_regclass('public.shops') is null
+    or to_regclass('public.arrivals') is null
+    or to_regclass('public.sales') is null
+    or to_regclass('auth.users') is null then
+    raise exception 'Expected real local Supabase migrations/Auth to be present';
+  end if;
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'public' and tablename = 'shops'
+  ) then
+    raise exception 'The real shops owner RLS policy is missing';
+  end if;
+end;
+$native$;
+select 'PASS: Actual COVI schema and Supabase Auth are in disposable local DB' as result;
