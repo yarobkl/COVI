@@ -2,7 +2,7 @@
 // Android back button and the browser history move between pages.
 
 export type PageId =
-  'accueil' | 'vendre' | 'stock' | 'arrivages' | 'ventes' | 'charges' | 'bilan' | 'boutique'
+  'accueil' | 'vendre' | 'caisse' | 'stock' | 'arrivages' | 'ventes' | 'charges' | 'bilan' | 'boutique'
 
 /** Arrivages can be filtered to supplier orders or bales (« Commandes », « Ballons »). */
 export type ArrivalFilter = 'commandes' | 'ballons'
@@ -12,6 +12,7 @@ export type Route = { page: PageId; filter?: ArrivalFilter }
 export const pageIds: readonly PageId[] = [
   'accueil',
   'vendre',
+  'caisse',
   'stock',
   'arrivages',
   'ventes',
