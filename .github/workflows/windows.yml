@@ -31,6 +31,23 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npm list --depth=0
+      - name: Temporary exact category history formatting output
+        run: |
+          echo '__COVI_FMT_BEGIN_0__'
+          npx prettier src/features/history/CategorySoldRow.tsx
+          echo '__COVI_FMT_END_0__'
+          echo '__COVI_FMT_BEGIN_1__'
+          npx prettier src/features/history/HistoryPage.tsx
+          echo '__COVI_FMT_END_1__'
+          echo '__COVI_FMT_BEGIN_2__'
+          npx prettier src/lib/categorySaleHistory.test.ts
+          echo '__COVI_FMT_END_2__'
+          echo '__COVI_FMT_BEGIN_3__'
+          npx prettier src/lib/categorySaleHistory.ts
+          echo '__COVI_FMT_END_3__'
+          echo '__COVI_FMT_BEGIN_4__'
+          npx prettier src/lib/operations.ts
+          echo '__COVI_FMT_END_4__'
       - run: npm run format:check
       - run: npm run lint
       - run: npm run typecheck
