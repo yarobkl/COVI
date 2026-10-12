@@ -35,9 +35,7 @@ type RpcResult = { data: unknown; error: { message: string } | null }
 type FutureOrderRpc = {
   rpc: (
     name:
-      | 'create_manual_checkout_order'
-      | 'approve_manual_checkout_order'
-      | 'reject_checkout_order',
+      'create_manual_checkout_order' | 'approve_manual_checkout_order' | 'reject_checkout_order',
     args: Record<string, unknown>,
   ) => PromiseLike<RpcResult>
 }
