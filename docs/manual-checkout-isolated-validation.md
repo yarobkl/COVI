@@ -47,3 +47,4 @@ Ne jamais exécuter ces scénarios sur la base Supabase de production.
 
 ## Limites du moment
 Le schéma et les fonctions SQL sont des brouillons enregistrés sur la branche. Aucune base Supabase isolée n'existe encore. Le statut Vercel ne constitue pas une validation des tests SQL.
+Les tests de pré-vol statiques peuvent être lancés par `node tests/sql-draft-safety.mjs`. Ils ne se substituent pas aux tests d'intégration PostgreSQL.
