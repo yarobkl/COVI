@@ -57,12 +57,18 @@ begin
     end if;
   end loop;
 
+  -- The public link is NOT sufficient to send orders directly via PostgREST.
+  -- Only a server gateway using service_role may call these two entrypoints.
   foreach v_call in array array[
     'public.get_checkout_public_catalog(uuid)',
     'public.submit_checkout_public_order(uuid,text,uuid,jsonb,text,text,text)'
   ] loop
-    if not pg_catalog.has_function_privilege('anon', v_call, 'EXECUTE') then
-      raise exception 'Guest checkout contract unavailable: %', v_call;
+    if pg_catalog.has_function_privilege('anon', v_call, 'EXECUTE')
+      or pg_catalog.has_function_privilege('authenticated', v_call, 'EXECUTE') then
+      raise exception 'Browser can bypass server gateway: %', v_call;
+    end if;
+    if not pg_catalog.has_function_privilege('service_role', v_call, 'EXECUTE') then
+      raise exception 'Gateway role has no EXECUTE privilege: %', v_call;
     end if;
   end loop;
 
