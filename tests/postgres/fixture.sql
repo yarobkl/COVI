@@ -3,6 +3,7 @@
 create schema if not exists auth;
 create role authenticated nologin;
 create role anon nologin;
+create role service_role nologin;
 
 create table auth.users (id uuid primary key);
 create function auth.uid() returns uuid
@@ -40,5 +41,5 @@ insert into public.shops(id, owner_id, name) values
   ('11111111-1111-4111-8111-111111111111', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'Boutique A'),
   ('22222222-2222-4222-8222-222222222222', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'Boutique B');
 
-grant usage on schema public, auth to authenticated, anon;
-grant execute on function auth.uid() to authenticated, anon;
+grant usage on schema public, auth to authenticated, anon, service_role;
+grant execute on function auth.uid() to authenticated, anon, service_role;
