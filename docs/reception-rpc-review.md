@@ -2,7 +2,7 @@
 
 Date : 12 octobre 2026. **Aucun test SQL exécuté ; aucun déploiement.**
 
-Fichier : `supabase/migrations/draft_post_arrival_category_stock.sql`.
+Fichier : `supabase/sql-drafts/draft_post_arrival_category_stock.sql`.
 
 ## Comportement visé
 - Réception d'un arrivage existant `received`, appartenant à une boutique de l'utilisateur authentifié.
@@ -23,3 +23,5 @@ Fichier : `supabase/migrations/draft_post_arrival_category_stock.sql`.
 - La table `arrival_stock_postings` et la comparaison JSONB canonique ont été ajoutées au brouillon. Exécuter les tests en base jetable avant toute activation.
 - Tester les cas en base isolée.
 - Préparer ensuite une transaction de caisse séparée, sans changer `record_sale` ni l'authentification existantes.
+
+**Emplacement actualisé :** le brouillon SQL a été déplacé hors de `supabase/migrations/` pour éviter toute exécution accidentelle.
