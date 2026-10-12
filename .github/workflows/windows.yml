@@ -31,14 +31,6 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npm list --depth=0
-      - name: Temporary exact Prettier output (remove after fix)
-        run: |
-          echo '__COVI_FMT_BEGIN_MANUAL__'
-          npx prettier src/lib/manualOrder.ts
-          echo '__COVI_FMT_END_MANUAL__'
-          echo '__COVI_FMT_BEGIN_INBOX__'
-          npx prettier src/features/checkout/PublicOrderInbox.test.tsx
-          echo '__COVI_FMT_END_INBOX__'
       - run: npm run format:check
       - run: npm run lint
       - run: npm run typecheck
