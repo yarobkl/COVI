@@ -76,3 +76,11 @@ Ces contrôles ne constituent **pas** un audit d’une instance Supabase Auth/Po
   **La production et les ventes historiques n'ont pas été modifiées.**
 - Le nouveau schéma reste purement préparatoire ; la protection ne fonctionne
   réellement qu'après migration approuvée et tests Supabase Auth/PostgREST.
+
+- **B6 — refus tracé en préparation :** `draft_reject_checkout_order.sql` ajoute
+  une RPC de refus propriétaire uniquement, avec identité et date de refus ;
+  le bouton de refus est présent dans la boîte de commandes de la branche.
+  Les tests isolés refusent l'encaissement d'une demande annulée et vérifient
+  l'absence de sortie de stock. **La modification de devis/prix négocié,
+  l'acceptation explicite des corrections par le client et l'expiration
+  automatique restent à réaliser.**
