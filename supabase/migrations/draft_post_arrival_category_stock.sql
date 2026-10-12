@@ -17,10 +17,10 @@ as $$
 declare
   v_owner uuid;
   v_arrival record;
-  v_count integer;
   v_row record;
   v_category_id uuid;
-  v_existing integer;
+  v_posting record;
+  v_canonical jsonb;
   v_total integer := 0;
 begin
   v_owner := (select auth.uid());
@@ -41,24 +41,6 @@ begin
   if not found then raise exception 'Arrival not found'; end if;
   if v_arrival.status <> 'received' then raise exception 'Arrival is not received'; end if;
 
-  select count(*)::integer into v_existing
-    from public.arrival_category_items ai
-    where ai.arrival_id = p_arrival_id and ai.shop_id = p_shop_id;
-  if v_existing > 0 then
-    -- Idempotent only for the same operation ID; mismatched retry is a conflict.
-    if exists (
-      select 1 from public.stock_movements m
-      where m.shop_id = p_shop_id and m.arrival_id = p_arrival_id
-        and m.operation_id <> p_operation_id
-    ) then raise exception 'Arrival already posted with another operation'; end if;
-    if exists (
-      select 1 from public.stock_movements m
-      where m.shop_id = p_shop_id and m.arrival_id = p_arrival_id
-        and m.operation_id = p_operation_id
-    ) then return 0; end if;
-    raise exception 'Arrival has inconsistent existing posting';
-  end if;
-
   if jsonb_typeof(p_lines) is distinct from 'array'
      or jsonb_array_length(p_lines) not between 1 and 100 then
     raise exception 'Invalid reception lines';
@@ -73,6 +55,46 @@ begin
        or length(x->>'categoryKey') > 80
        or (x->>'categoryKey') !~ '^[a-z0-9]+(-[a-z0-9]+)*$'
   ) then raise exception 'Invalid category or quantity'; end if;
+
+  -- Normalize ordering and duplicates BEFORE comparing retries.
+  select jsonb_agg(jsonb_build_object('categoryKey', t.category_key,
+                                    'quantity', t.qty) order by t.category_key)
+    into v_canonical
+    from (
+      select x->>'categoryKey' as category_key,
+             sum((x->>'quantity')::bigint) as qty
+      from jsonb_array_elements(p_lines) x
+      group by x->>'categoryKey'
+    ) t;
+  if exists (select 1 from jsonb_array_elements(v_canonical) x
+             where (x->>'quantity')::bigint > 2147483647
+                or (x->>'quantity')::bigint <= 0) then
+    raise exception 'Invalid aggregate quantity';
+  end if;
+
+  select p.operation_id, p.canonical_lines, p.category_count
+    into v_posting
+    from public.arrival_stock_postings p
+    where p.arrival_id = p_arrival_id and p.shop_id = p_shop_id;
+  if found then
+    if v_posting.operation_id = p_operation_id
+       and v_posting.canonical_lines = v_canonical then
+      return v_posting.category_count;
+    end if;
+    raise exception 'Arrival already posted with conflicting parameters';
+  end if;
+  -- Legacy or partially migrated records must not be posted twice.
+  if exists (select 1 from public.arrival_category_items ai
+             where ai.arrival_id = p_arrival_id and ai.shop_id = p_shop_id)
+     or exists (select 1 from public.stock_movements m
+                where m.arrival_id = p_arrival_id and m.shop_id = p_shop_id) then
+    raise exception 'Existing arrival stock records without posting receipt';
+  end if;
+
+  insert into public.arrival_stock_postings
+    (arrival_id, shop_id, operation_id, canonical_lines, category_count)
+  values (p_arrival_id, p_shop_id, p_operation_id,
+          v_canonical, jsonb_array_length(v_canonical));
 
   for v_row in
     select x->>'categoryKey' as category_key,
@@ -128,7 +150,7 @@ commit;
 -- Pre-release review:
 -- 1. SECURITY DEFINER owner should be a narrowly privileged role, not a general admin.
 -- 2. Confirm owner bypass behavior and all grants on the three new tables.
--- 3. Test retries with altered payloads; current implementation checks operation ID,
---    but does NOT compare payload hashes and therefore must be strengthened before release.
+-- 3. Test same-ID retries with changed quantities and changed order: the
+--    canonical JSONB payload must reject changes and accept reordered lines.
 -- 4. Test malformed numeric JSON and integer overflows in a disposable database.
 -- 5. Validate RLS and concurrent arrivals from different shops.
