@@ -36,6 +36,30 @@ revoke insert, update, delete on public.checkout_public_links from anon, authent
 revoke select, insert, update, delete on public.checkout_public_rate_windows
   from anon, authenticated;
 
+-- Read link status without creating or changing it.
+create or replace function public.get_checkout_public_link(p_shop_id uuid)
+returns jsonb language plpgsql security definer set search_path = ''
+as $function$
+declare
+  v_actor uuid := (select auth.uid());
+  v_link public.checkout_public_links%rowtype;
+begin
+  if v_actor is null then
+    raise exception 'Authentification requise' using errcode = '28000';
+  end if;
+  if p_shop_id is null or not exists (
+    select 1 from public.shops s
+    where s.id = p_shop_id and s.owner_id = v_actor
+  ) then
+    raise exception 'Accès à cette boutique refusé' using errcode = '42501';
+  end if;
+  select * into v_link from public.checkout_public_links
+  where shop_id = p_shop_id;
+  if not found then return null; end if;
+  return jsonb_build_object('publicToken',v_link.public_token,'enabled',v_link.enabled);
+end;
+$function$;
+
 -- A link is a random bearer capability for *submitting requests only*.
 -- Owning the link does not authorize approval, stock edits or payments.
 create or replace function public.configure_checkout_public_link(
@@ -298,6 +322,12 @@ end;
 $function$;
 
 -- No open access to link configuration or token rotation.
+revoke all on function public.get_checkout_public_link(uuid)
+  from public, anon;
+grant execute on function public.get_checkout_public_link(uuid)
+  to authenticated;
+
+
 revoke all on function public.configure_checkout_public_link(uuid,boolean)
   from public, anon;
 grant execute on function public.configure_checkout_public_link(uuid,boolean)
