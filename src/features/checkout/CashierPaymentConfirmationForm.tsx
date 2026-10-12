@@ -1,5 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react'
-import { Amount, Button, Field, Input, Segmented } from '../../components/ui'
+import { Amount, Button, Field, Input, Ledger, LedgerRow, Segmented } from '../../components/ui'
 import {
   prepareManualCashierAttestation,
   type ManualCashierAttestation,
@@ -55,11 +55,24 @@ export function CashierPaymentConfirmationForm({
   }
 
   return (
-    <form className="card" onSubmit={(event) => { void submit(event) }}>
-      <h2>Encaissement</h2>
-      <p>Montant à vérifier : <Amount value={amountXaf} unit /></p>
-      <p>Vérifiez la réception effective de l'argent avant de confirmer.</p>
+    <form className="checkout-confirmation sheet" onSubmit={(event) => { void submit(event) }}>
+      <header className="checkout-confirmation__head">
+        <p className="hand checkout-confirmation__hand">On note le paiement.</p>
+        <h2>Encaissement</h2>
+        <p className="checkout-confirmation__intro">
+          Confirmez uniquement après avoir constaté que l'argent est bien reçu.
+        </p>
+      </header>
 
+      <Ledger className="checkout-confirmation__ledger" label="Montant de la commande">
+        <LedgerRow
+          variant="total"
+          label="À encaisser"
+          value={<Amount value={amountXaf} size="lg" unit />}
+        />
+      </Ledger>
+
+      <div className="checkout-confirmation__fields">
       <Segmented
         legend="Paiement reçu par"
         options={paymentOptions}
@@ -102,9 +115,16 @@ export function CashierPaymentConfirmationForm({
         )}
       </Field>
 
-      {error && <p className="field__error" role="alert">{error}</p>}
+      </div>
+
+      {error && <p className="field__error checkout-confirmation__error" role="alert">{error}</p>}
+      <p className="checkout-confirmation__assurance">
+        COVI n'encaisse pas l'argent : vous confirmez sa réception dans votre boutique.
+      </p>
       {(!method || !cashierFirstName.trim()) && (
-        <p className="field__hint">Choisissez le paiement et saisissez votre prénom pour valider.</p>
+        <p className="field__hint" role="status">
+          Choisissez le moyen de paiement et saisissez votre prénom pour continuer.
+        </p>
       )}
       <Button
         type="submit"
@@ -112,7 +132,7 @@ export function CashierPaymentConfirmationForm({
         size="lg"
         block
         busy={busy}
-        busyLabel="Vérification de la confirmation…"
+        busyLabel="Enregistrement de la vente…"
         disabled={busy || !method || !cashierFirstName.trim()}
       >
         Confirmer le paiement reçu
