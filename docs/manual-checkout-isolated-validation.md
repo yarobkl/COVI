@@ -1,6 +1,6 @@
 # COVI — validation isolée du parcours de caisse V1
 
-**Ce fichier est un plan de test. Aucun des scénarios SQL n'a encore été exécuté.**
+**Ce fichier contient un plan de test ET les résultats d'exécutions sur PostgreSQL 17 jetable.**
 Ne jamais exécuter ces scénarios sur la base Supabase de production.
 
 ## Invariants
@@ -46,5 +46,22 @@ Ne jamais exécuter ces scénarios sur la base Supabase de production.
 7. Ne jamais fusionner, migrer ou déployer en production sans validation explicite.
 
 ## Limites du moment
-Le schéma et les fonctions SQL sont des brouillons enregistrés sur la branche. Aucune base Supabase isolée n'existe encore. Le statut Vercel ne constitue pas une validation des tests SQL.
+Les SQL restent des brouillons hors migrations exécutables, jamais appliqués à Supabase COVI.
+
+## Résultats effectivement vérifiés — GitHub Actions, 12 octobre 2026
+
+- PostgreSQL 17 temporaire, créé et détruit par le job `Disposable PostgreSQL checkout tests`.
+- Parcours réel SQL testé : création → approbation → confirmation nominative → facture → déduction de stock.
+- Deux connexions PostgreSQL concurrentes se disputant le dernier vêtement : une seule vente, l'autre refusée.
+- Deux connexions confirmant la même commande, avec le même identifiant d'opération : une seule vente, une seule facture, une seule sortie de stock.
+- Accès interboutiques et identité absente refusés.
+- Tentative de paiement après épuisement du stock : transaction annulée intégralement, aucun reçu ni mouvement résiduel et pas d'avance du compteur de factures.
+- Stock de démonstration distinct du stock réel, facture marquée `CV-TEST-`.
+- Contrôles frontend : 112 tests unitaires réussis, TypeScript et lint réussis.
+
+**Preuves :** GitHub Actions `COVI isolated branch checks`, exécution `38262011042`; pull request brouillon `#22`.
+
+**Portée de ces résultats :** la base jetable comporte une fixture PostgreSQL reproduisant les tables COVI nécessaires et un substitut local de `auth.uid()` et des rôles JWT. Ce n'est **pas** un test complet des composants Supabase Auth, PostgREST, Storage ou des politiques réelles d'une base Supabase hébergée. La concurrence a été vérifiée sur de vraies connexions PostgreSQL indépendantes. Les droits des employés, les commandes publiques QR/social et les écrans réels restent à développer/tester.
+
+**Les tests en production et les migrations en production restent interdits sans autorisation explicite.**
 Les tests de pré-vol statiques peuvent être lancés par `node tests/sql-draft-safety.mjs`. Ils ne se substituent pas aux tests d'intégration PostgreSQL.
