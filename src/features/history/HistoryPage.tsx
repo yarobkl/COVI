@@ -1,52 +1,77 @@
-import { useCallback, useMemo } from 'react'
-import { LoadError } from '../../components/LoadError'
+import { useCallback, useMemo, useState } from 'react'
+import { CloudOffIcon, InfoIcon, PlusIcon } from '../../components/icons'
+import { Button, ButtonLink, Notice, Skeleton } from '../../components/ui'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { listSales } from '../../lib/covi'
-import type { SoldItem } from '../../lib/types'
-import { SoldRow } from './SoldRow'
+import '../../styles/app/ventes.css'
+import { DeviceSales } from './DeviceSales'
+import { journalLines, SALES_LIMIT } from './journal'
+import { NoSaleYet, SalesJournal } from './SalesJournal'
 
-/** Every sold line, most recent sale first. */
+/**
+ * Ventes: what the device still holds (refused or waiting sales), then the notebook of sales,
+ * grouped by day, most recent first.
+ */
 export function HistoryPage({ shopId }: { shopId: string }) {
   const load = useCallback(() => listSales(shopId), [shopId])
-  const { data: rows, error, retry } = useAsyncData(load)
-  const items = useMemo<SoldItem[] | null>(
-    () =>
-      rows &&
-      rows.flatMap((s) =>
-        (s.sale_items ?? []).map((i) => ({
-          ...i,
-          sold_at: s.sold_at,
-          payment_method: s.payment_method,
-          id: s.id,
-          is_test: s.is_test,
-        })),
-      ),
-    [rows],
-  )
+  const { data: sales, error, retry } = useAsyncData(load)
+  const lines = useMemo(() => (sales ? journalLines(sales) : null), [sales])
+  // « Aujourd’hui » is fixed when the page opens, so the filters do not move under the finger.
+  const [now] = useState(() => new Date())
+
   return (
-    <>
-      <div className="hello">
+    <div className="sales-page">
+      <header className="page-head">
         <div>
-          <h1>Produits vendus</h1>
-          <span>Historique des ventes · les lignes TEST sont fictives.</span>
+          <h1>Ventes</h1>
+          <p className="page-head__sub">Les plus récentes en haut.</p>
         </div>
-      </div>
+        <ButtonLink variant="sale" href="#/vendre" icon={<PlusIcon />}>
+          Nouvelle vente
+        </ButtonLink>
+      </header>
+
+      <DeviceSales shopId={shopId} />
+
       {error ? (
-        <LoadError
-          message="Impossible de charger l’historique des ventes. Vérifiez votre connexion puis réessayez."
-          onRetry={retry}
-        />
+        <Notice
+          icon={CloudOffIcon}
+          title="Les ventes ne s’affichent pas : pas de réseau."
+          actions={
+            <Button variant="secondary" onClick={retry}>
+              Réessayer
+            </Button>
+          }
+        >
+          <p>Réessayez dans un instant. Les ventes faites sans réseau restent gardées.</p>
+        </Notice>
+      ) : !lines || !sales ? (
+        <Skeleton caption="On ouvre le cahier des ventes…" />
       ) : (
-        <section className="card">
-          {items === null ? (
-            <p>Chargement des ventes…</p>
-          ) : items.length === 0 ? (
-            <p>Aucune vente enregistrée.</p>
-          ) : (
-            items.map((x, i) => <SoldRow key={x.id + i} item={x} />)
-          )}
-        </section>
+        <SalesJournal
+          lines={lines}
+          now={now}
+          empty={
+            <NoSaleYet
+              actions={
+                <ButtonLink variant="sale" href="#/vendre">
+                  Nouvelle vente
+                </ButtonLink>
+              }
+            />
+          }
+          footer={
+            sales.length >= SALES_LIMIT && (
+              <Notice className="journal__limit" icon={InfoIcon} live={false}>
+                <p>
+                  Seules les {SALES_LIMIT} ventes les plus récentes s’affichent ici. Les plus
+                  anciennes restent gardées sur votre compte.
+                </p>
+              </Notice>
+            )
+          }
+        />
       )}
-    </>
+    </div>
   )
 }

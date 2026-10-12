@@ -1,28 +1,28 @@
 import { describe, expect, it } from 'vitest'
-import type { Arrival } from '../../lib/types'
-import { arrivalFromForm, arrivalProductFromForm } from './arrivalForms'
+import {
+  arrivalSaveError,
+  balloonFromValues,
+  isCodeTaken,
+  orderFromValues,
+  orderTotal,
+  type OrderValues,
+} from './arrivalForms'
 
-const form = (fields: Record<string, string>) => {
-  const f = new FormData()
-  for (const [k, v] of Object.entries(fields)) f.set(k, v)
-  return f
+const order: OrderValues = {
+  country: 'Chine',
+  supplier: 'Textiles Wang',
+  orderDate: '2026-10-01',
+  goods: '300 000',
+  transport: '50000',
+  customs: '20 000',
 }
 
-describe('arrivalFromForm', () => {
-  it('sums the costs of a supplier order into a draft', () => {
-    const input = arrivalFromForm(
-      form({
-        country: 'Chine',
-        supplier: 'Textiles Wang',
-        orderDate: '2026-10-01',
-        goods: '300000',
-        transport: '50000',
-        customs: '20000',
-        global: '999',
-      }),
-      'supplier_order',
-    )
-    expect(input).toMatchObject({
+describe('orderFromValues', () => {
+  it('sums goods, transport and customs into an order still to place', () => {
+    const { input, errors } = orderFromValues(order, 'CMD-005', '2026-10-08')
+    expect(errors).toBeNull()
+    expect(input).toEqual({
+      code: 'CMD-005',
       kind: 'supplier_order',
       origin_country: 'Chine',
       supplier_name: 'Textiles Wang',
@@ -34,49 +34,72 @@ describe('arrivalFromForm', () => {
       received_date: null,
       status: 'draft',
     })
-    expect(input.code).toMatch(/^CMD-[0-9A-F]{6}$/)
+    expect(orderTotal(order)).toBe(370000)
   })
 
-  it('keeps the global cost of a balloon without supplier or order date', () => {
-    const input = arrivalFromForm(form({ country: 'France', global: '150000' }), 'balloon')
-    expect(input).toMatchObject({
-      kind: 'balloon',
-      supplier_name: null,
-      order_date: null,
-      merchandise_cost: 0,
-      global_cost: 150000,
-    })
-    expect(input.code).toMatch(/^BAL-/)
+  it('says what is missing, and refuses an order date not yet reached', () => {
+    const { errors } = orderFromValues(
+      {
+        country: ' ',
+        supplier: '',
+        orderDate: '2026-10-20',
+        goods: '',
+        transport: '',
+        customs: '',
+      },
+      'CMD-005',
+      '2026-10-08',
+    )
+    expect(Object.keys(errors ?? {})).toEqual(['country', 'supplier', 'goods', 'orderDate'])
+    expect(errors?.goods).toBe('Indiquez le prix de la marchandise, en FCFA.')
   })
 })
 
-describe('arrivalProductFromForm', () => {
-  const arrival = { id: 'a1', kind: 'supplier_order', is_test: true } as Arrival
-
-  it('adds a supplier reference with its quantity and test flag', () => {
-    expect(
-      arrivalProductFromForm(
-        form({ name: 'Robe wax', category: 'Robes', price: '18000', quantity: '4' }),
-        arrival,
-      ),
-    ).toMatchObject({
-      arrival_id: 'a1',
-      is_test: true,
-      name: 'Robe wax',
-      category: 'Robes',
-      initial_sale_price: 18000,
-      quantity_on_hand: 4,
-      is_unique_piece: false,
-      image: null,
+describe('balloonFromValues', () => {
+  it('a bale bought on the spot is saved received today, with no order date', () => {
+    const { input } = balloonFromValues(
+      { place: 'Brazzaville', price: '250 000', received: true },
+      'BAL-004',
+      '2026-10-08',
+    )
+    // The database accepts it: status in arrivals_status_check, and the dates check passes when
+    // order_date is null.
+    expect(input).toMatchObject({
+      code: 'BAL-004',
+      kind: 'balloon',
+      origin_country: 'Brazzaville',
+      supplier_name: null,
+      global_cost: 250000,
+      merchandise_cost: 0,
+      order_date: null,
+      received_date: '2026-10-08',
+      status: 'received',
     })
   })
 
-  it('records a balloon piece as a unique piece', () => {
-    const balloon = { ...arrival, kind: 'balloon', is_test: false } as Arrival
-    expect(arrivalProductFromForm(form({ name: 'Pièce', quantity: '3' }), balloon)).toMatchObject({
-      quantity_on_hand: 1,
-      is_unique_piece: true,
-      is_test: false,
-    })
+  it('a bale not received yet is paid and waits; the price is required', () => {
+    expect(
+      balloonFromValues({ place: '', price: '90000', received: false }, 'BAL-004', '2026-10-08')
+        .input,
+    ).toMatchObject({ origin_country: null, status: 'ordered', received_date: null })
+    expect(
+      balloonFromValues({ place: '', price: '', received: true }, 'BAL-004', '2026-10-08').errors,
+    ).toEqual({ price: 'Indiquez le prix payé pour le ballon.' })
+  })
+})
+
+describe('arrival errors', () => {
+  it('recognises a code already taken', () => {
+    expect(isCodeTaken({ code: '23505', message: 'duplicate key' })).toBe(true)
+    expect(isCodeTaken(new Error('boom'))).toBe(false)
+  })
+
+  it('never shows the database message', () => {
+    expect(
+      arrivalSaveError({ message: 'new row violates check constraint "arrivals_dates_check"' }),
+    ).toMatch(/avant la commande/)
+    expect(arrivalSaveError(new Error('permission denied for table arrivals'))).toBe(
+      'Ça n’a pas marché. Vérifiez le réseau puis réessayez.',
+    )
   })
 })
