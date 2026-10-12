@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { CashierPaymentConfirmationForm } from './CashierPaymentConfirmationForm'
 import { ConfirmedCheckoutTicket } from './ConfirmedCheckoutTicket'
 import {
@@ -12,27 +12,30 @@ import type { ManualCashierAttestation } from '../../lib/orderLifecycle'
  * NOT mounted in Root, routes or the existing SalePage.
  * It becomes usable only after the SQL migrations and access tests are approved.
  */
-export function CashierCheckoutPanel({
-  shopId,
-  shopName,
-  orderId,
-  amountXaf,
-}: {
+type Props = {
   shopId: string
   shopName: string
   orderId: string
   amountXaf: number
-}) {
+}
+
+export function CashierCheckoutPanel(props: Props) {
+  // React remounts the inner form when the order changes. A receipt or an
+  // operation identifier from one order must never leak into another order.
+  return <CashierCheckoutPanelInstance key={props.shopId + ':' + props.orderId} {...props} />
+}
+
+function CashierCheckoutPanelInstance({
+  shopId,
+  shopName,
+  orderId,
+  amountXaf,
+}: Props) {
   const [receipt, setReceipt] = useState<RecordedCheckoutReceipt | null>(null)
 
   // A lost network response may be retried with the SAME operation ID only
   // when the complete user attestation remains unchanged.
   const attempt = useRef<{ fingerprint: string; operationId: string } | null>(null)
-
-  useEffect(() => {
-    setReceipt(null)
-    attempt.current = null
-  }, [shopId, orderId])
 
   async function onConfirm(attestation: ManualCashierAttestation) {
     const fingerprint = JSON.stringify([shopId, orderId, attestation])
