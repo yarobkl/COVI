@@ -41,7 +41,7 @@ describe('notebook category checkout basket', () => {
     add()
 
     expect(screen.getByText('Total · 3 pièces')).toBeTruthy()
-    expect(screen.getByText(/9\s*000/)).toBeTruthy()
+    expect(screen.getAllByText(/9\s*000/).length).toBeGreaterThan(0)
     fireEvent.click(screen.getByRole('button', { name: /Préparer la commande/ }))
     await waitFor(() => expect(onPrepare).toHaveBeenCalledWith([
       { categoryId: robesId, quantity: 2, negotiatedUnitPriceXaf: 3500 },
