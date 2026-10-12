@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { Stamp } from '../../components/ui'
 import { CashierPaymentConfirmationForm } from './CashierPaymentConfirmationForm'
 import { ConfirmedCheckoutTicket } from './ConfirmedCheckoutTicket'
 import {
@@ -55,8 +56,15 @@ function CashierCheckoutPanelInstance({
 
   if (receipt) {
     return (
-      <section className="sheet">
-        <h2>Vendu.</h2>
+      <section className="sheet checkout-receipt" aria-label="Reçu de vente enregistré">
+        <header className="checkout-receipt__head">
+          <h2>Vendu.</h2>
+          <Stamp kind="paid" size="sm">Payé</Stamp>
+        </header>
+        <p className="hand checkout-receipt__hand">C'est noté dans le cahier.</p>
+        <p className="checkout-receipt__status" role="status">
+          Paiement déclaré reçu par le vendeur. La vente et son reçu ont été enregistrés.
+        </p>
         <ConfirmedCheckoutTicket
           receipt={{
             shopName,
