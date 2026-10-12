@@ -127,15 +127,17 @@ begin
     raise exception 'Le panier enregistré ne correspond pas au total de la commande';
   end if;
 
-  -- Check all categories in deterministic order. This avoids deadlocks between
-  -- simultaneous orders containing the same categories in different order.
+  -- Lock categories in normalized category_key order, matching the reception RPC.
+  -- This minimizes deadlocks between simultaneous arrivals and sales.
   -- Nothing is committed if ANY category fails stock validation.
   for v_category in
     select l.category_id, sum(l.quantity)::bigint as qty
     from public.checkout_order_lines l
+    join public.stock_categories c
+      on c.id = l.category_id and c.shop_id = l.shop_id
     where l.shop_id = p_shop_id and l.order_id = p_order_id
-    group by l.category_id
-    order by l.category_id
+    group by l.category_id, c.category_key
+    order by c.category_key, l.category_id
   loop
     if v_category.qty < 1 or v_category.qty > 2147483647 then
       raise exception 'Quantité de catégorie invalide';
@@ -193,9 +195,11 @@ begin
   for v_category in
     select l.category_id, sum(l.quantity)::bigint as qty
     from public.checkout_order_lines l
+    join public.stock_categories c
+      on c.id = l.category_id and c.shop_id = l.shop_id
     where l.shop_id = p_shop_id and l.order_id = p_order_id
-    group by l.category_id
-    order by l.category_id
+    group by l.category_id, c.category_key
+    order by c.category_key, l.category_id
   loop
     update public.stock_categories c
        set quantity_on_hand = c.quantity_on_hand - v_category.qty::integer,
