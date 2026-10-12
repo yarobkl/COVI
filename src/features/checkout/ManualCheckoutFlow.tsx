@@ -42,6 +42,7 @@ function ManualCheckoutFlowInstance({
   const [categories, setCategories] = useState<CheckoutStockCategory[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
+  const [retryCount, setRetryCount] = useState(0)
   const [approved, setApproved] = useState<RecordedManualOrder | null>(null)
 
   // Hold the operation UUID across transient network errors for the SAME cart.
@@ -63,7 +64,7 @@ function ManualCheckoutFlowInstance({
         if (!cancelled) setLoading(false)
       })
     return () => { cancelled = true }
-  }, [shopId, isTest])
+  }, [shopId, isTest, retryCount])
 
   async function prepare(lines: readonly ManualOrderLineInput[]) {
     const prepared = prepareManualOrderLines(lines)
@@ -123,7 +124,14 @@ function ManualCheckoutFlowInstance({
     return (
       <Notice tone="danger" title="Le stock n'est pas disponible.">
         <p>{loadError}</p>
-        <Button variant="secondary" onClick={() => window.location.reload()}>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            setLoadError('')
+            setLoading(true)
+            setRetryCount((count) => count + 1)
+          }}
+        >
           Réessayer
         </Button>
       </Notice>
