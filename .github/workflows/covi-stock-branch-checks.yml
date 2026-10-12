@@ -19,6 +19,8 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - name: Guard against accidental SQL migrations
+        run: node tests/sql-draft-safety.mjs
       - name: Install exact dependencies
         run: npm ci
       - name: Typecheck
