@@ -148,7 +148,15 @@ async function backendRpc(env, fetchImpl, name, payload) {
   const url = new URL('/rest/v1/rpc/' + name, env.SUPABASE_URL)
   const response = await fetchImpl(url, {
     method: 'POST',
-    headers: { apikey: env.COVI_SUPABASE_SECRET_KEY, 'Content-Type': 'application/json' },
+    headers: {
+      apikey: env.COVI_SUPABASE_SECRET_KEY,
+      // Legacy service_role JWT needs Authorization for some Kong/PostgREST gateways.
+      // Opaque sb_secret keys are supplied only as apikey (never as JWT).
+      ...(env.COVI_SUPABASE_SECRET_KEY.startsWith('eyJ')
+        ? { Authorization: 'Bearer ' + env.COVI_SUPABASE_SECRET_KEY }
+        : {}),
+      'Content-Type': 'application/json',
+    },
     body: JSON.stringify(payload),
   })
   if (!response.ok) throw new Error('backend')
