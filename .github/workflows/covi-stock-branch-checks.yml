@@ -64,3 +64,41 @@ jobs:
           PGPASSWORD: postgres
         run: bash tests/run-postgres-checkout.sh
 
+
+  format-export-for-review:
+    name: Produce reviewed Prettier-only patch (no auth changes)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Format checkout branch in disposable runner
+        run: npm run format
+      - name: Emit formatted files for safe manual application to PR
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import { execFileSync } from 'node:child_process'
+          import { readFileSync } from 'node:fs'
+          const paths = execFileSync('git',['diff','--name-only','--diff-filter=M'],{
+            encoding:'utf8'
+          }).split('\n').filter(Boolean)
+          console.log('COVI_FORMAT_COUNT ' + paths.length)
+          for(const path of paths) {
+            // Never format the existing OAuth/signup forms as part of checkout.
+            if(path.startsWith('src/features/auth/')) throw new Error('Unexpected auth file ' + path)
+            const payload=JSON.stringify({path,content:readFileSync(path,'utf8')})
+            console.log('COVI_FORMAT_BEGIN ' + path)
+            for(let i=0;i<payload.length;i+=1600){
+              console.log('COVI_FORMAT_PART ' + payload.slice(i,i+1600))
+            }
+            console.log('COVI_FORMAT_END ' + path)
+          }
+          NODE
