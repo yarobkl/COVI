@@ -29,11 +29,13 @@ run supabase/sql-drafts/draft_category_stock_schema.sql
 run supabase/sql-drafts/draft_checkout_manual_payment_schema.sql
 run supabase/sql-drafts/draft_post_arrival_category_stock.sql
 run supabase/sql-drafts/draft_create_approve_manual_checkout_order.sql
+run supabase/sql-drafts/draft_reject_checkout_order.sql
 run supabase/sql-drafts/draft_confirm_manual_checkout_payment.sql
 run supabase/sql-drafts/draft_protect_confirmed_category_sales.sql
 run supabase/sql-drafts/draft_public_order_channels.sql
 echo "Running real PostgreSQL manual checkout smoke scenarios..."
 run tests/postgres/manual-checkout-smoke.sql
+run tests/postgres/order-rejection.sql
 echo "PASS: SQL smoke tests completed in disposable covi_ci database."
 
 echo "Preparing two approved orders for the final garment and one duplicate-payment order..."
