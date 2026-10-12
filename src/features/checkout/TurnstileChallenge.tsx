@@ -23,7 +23,9 @@ const siteKey = import.meta.env.VITE_COVI_TURNSTILE_SITE_KEY
 export function TurnstileChallenge({ onTokenChange }: Props) {
   const container = useRef<HTMLDivElement>(null)
   const callback = useRef(onTokenChange)
-  callback.current = onTokenChange
+  useEffect(() => {
+    callback.current = onTokenChange
+  }, [onTokenChange])
 
   useEffect(() => {
     if (!siteKey) return
@@ -56,7 +58,6 @@ export function TurnstileChallenge({ onTokenChange }: Props) {
       cancelled = true
       script?.removeEventListener('load', renderWidget)
       if (widgetId) win.turnstile?.remove(widgetId)
-      callback.current('')
     }
   }, [])
 
