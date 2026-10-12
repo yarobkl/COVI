@@ -398,22 +398,26 @@ revoke all on function public.rotate_checkout_public_link(uuid)
 grant execute on function public.rotate_checkout_public_link(uuid)
   to authenticated;
 
--- Public can only read broad non-sensitive category names and submit requests.
-revoke all on function public.get_checkout_public_catalog(uuid) from public;
+-- FAIL CLOSED. Public QR/social APIs must be called only by a server-side
+-- gateway with per-source rate limiting, payload limits and origin controls.
+-- The app's browser cannot carry the service_role secret. Until that gateway
+-- is deployed and independently tested, the public path must remain disabled.
+revoke all on function public.get_checkout_public_catalog(uuid)
+  from public, anon, authenticated;
 grant execute on function public.get_checkout_public_catalog(uuid)
-  to anon, authenticated;
+  to service_role;
 
 revoke all on function public.submit_checkout_public_order(
   uuid,text,uuid,jsonb,text,text,text
-) from public;
+) from public, anon, authenticated;
 grant execute on function public.submit_checkout_public_order(
   uuid,text,uuid,jsonb,text,text,text
-) to anon, authenticated;
+) to service_role;
 commit;
 
 -- BLOCKING gates for any deployment:
 -- A valid token must never be used as owner authentication.
--- Integrate edge WAF/IP throttling and monitor abuse in addition to SQL quotas.
+-- Blocking: implement and test a server gateway with source limits; direct calls are denied.
 -- Rotate links on abuse; owners must inspect/approve customer-quoted prices.
 -- Do not expose customer contact data or exact inventory publicly.
 -- Clean up obsolete rate windows periodically after approval.
