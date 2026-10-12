@@ -37,9 +37,9 @@ export function prepareManualCashierAttestation(
   if (typeof input.cashierFirstName !== 'string')
     throw new Error('Le prénom de la personne qui encaisse est obligatoire.')
 
-  const cashierFirstName = input.cashierFirstName.normalize('NFC').trim().replace(/\\s+/gu, ' ')
+  const cashierFirstName = input.cashierFirstName.normalize('NFC').trim().replace(/\s+/gu, ' ')
   if (cashierFirstName.length < 1 || cashierFirstName.length > 60 ||
-      !/^[\\p{L}\\p{M}]+(?:[ '\u2019-][\\p{L}\\p{M}]+)*$/u.test(cashierFirstName))
+      !/^[\p{L}\p{M}]+(?:[ '\u2019-][\p{L}\p{M}]+)*$/u.test(cashierFirstName))
     throw new Error('Saisissez un prénom valide (60 caractères maximum).')
 
   if (input.externalReference !== undefined && typeof input.externalReference !== 'string')
