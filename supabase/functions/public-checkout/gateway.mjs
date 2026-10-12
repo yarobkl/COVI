@@ -227,7 +227,6 @@ export function createPublicCheckoutGateway(env, fetchImpl = fetch) {
         : [
             ['order_source_minute', sourceDigest],
             ['order_source_day', sourceDigest],
-            ['order_link_minute', linkDigest],
           ]
       for (const [kind, digest] of limits) {
         const accepted = await backendRpc(env, fetchImpl, 'consume_checkout_gateway_quota', {
@@ -252,6 +251,14 @@ export function createPublicCheckoutGateway(env, fetchImpl = fetch) {
 
       if (!(await verifyTurnstile(env, fetchImpl, body.challenge)))
         return json(403, { error: 'Vérification anti-robot non validée.' }, allowedOrigin)
+
+      // A bot must not exhaust the whole shop's order quota using bad captcha.
+      const linkAccepted = await backendRpc(env, fetchImpl, 'consume_checkout_gateway_quota', {
+        p_digest: linkDigest,
+        p_kind: 'order_link_minute',
+      })
+      if (linkAccepted !== true)
+        return json(429, { error: 'Trop de demandes. Réessayez plus tard.' }, allowedOrigin)
 
       const result = await backendRpc(env, fetchImpl, 'submit_checkout_public_order', {
         p_token: token,
