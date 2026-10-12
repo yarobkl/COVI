@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { supabase } from './supabase'
 import {
   configurePublicOrderLink,
@@ -20,6 +20,7 @@ const orderId = 'bbbbbbbb-0000-4000-8000-000000000001'
 const operationId = '77770000-0000-4000-8000-000000000001'
 
 beforeEach(() => vi.mocked(supabase.rpc).mockReset())
+afterEach(() => vi.unstubAllGlobals())
 
 describe('public checkout links and restricted requests', () => {
   it('keeps owner link disabled by default and updates it only through owner RPC', async () => {
@@ -51,16 +52,23 @@ describe('public checkout links and restricted requests', () => {
     expect(() => publicOrderUrl('http://covi.example', token, 'qr')).toThrow('sécurisé')
   })
 
-  it('exposes category labels only, not costs or stock counts', async () => {
-    vi.mocked(supabase.rpc).mockResolvedValueOnce({
-      data: { shopName: 'Boutique A', categories: [{ id: categoryId, label: 'Robes' }] },
-      error: null,
-    } as never)
+  it('gets only category labels through the guest gateway, never browser privileged RPCs', async () => {
+    const guestFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        shopName: 'Boutique A',
+        categories: [{ id: categoryId, label: 'Robes' }],
+      }),
+    })
+    vi.stubGlobal('fetch', guestFetch)
     expect(await getPublicCatalog(token)).toEqual({
       shopName: 'Boutique A',
       categories: [{ id: categoryId, label: 'Robes' }],
     })
-    expect(supabase.rpc).toHaveBeenCalledWith('get_checkout_public_catalog', { p_token: token })
+    const [url, options] = guestFetch.mock.calls[0]
+    expect(String(url)).toContain('/functions/v1/public-checkout?token=' + token)
+    expect(options.credentials).toBe('omit')
+    expect(supabase.rpc).not.toHaveBeenCalled()
   })
 
   it('requires positive negotiated prices and contact for delivery, with 20-piece limit', () => {
@@ -89,11 +97,12 @@ describe('public checkout links and restricted requests', () => {
     ).toThrow()
   })
 
-  it('submits a request, never a payment, using server-side RPC', async () => {
-    vi.mocked(supabase.rpc).mockResolvedValueOnce({
-      data: { orderId, status: 'submitted', amountXaf: 7000 },
-      error: null,
-    } as never)
+  it('sends a guest proposal with anti-robot token only to the server gateway', async () => {
+    const guestFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ orderId, status: 'submitted', amountXaf: 7000 }),
+    })
+    vi.stubGlobal('fetch', guestFetch)
     expect(
       await submitPublicOrder({
         token,
@@ -101,16 +110,22 @@ describe('public checkout links and restricted requests', () => {
         operationId,
         lines: [{ categoryId, quantity: 2, negotiatedUnitPriceXaf: 3500 }],
         fulfillment: 'pickup',
+        challenge: 'valid-human-challenge-token',
       }),
     ).toEqual({ orderId, status: 'submitted', amountXaf: 7000 })
-    expect(supabase.rpc).toHaveBeenCalledWith(
-      'submit_checkout_public_order',
-      expect.objectContaining({
-        p_channel: 'qr',
-        p_token: token,
-        p_operation_id: operationId,
-      }),
-    )
+    const [url, options] = guestFetch.mock.calls[0]
+    expect(String(url)).toContain('/functions/v1/public-checkout')
+    expect(JSON.parse(options.body)).toEqual({
+      token,
+      channel: 'qr',
+      operationId,
+      lines: [{ categoryId, quantity: 2, unitPriceXaf: 3500 }],
+      phone: null,
+      note: null,
+      fulfillment: 'pickup',
+      challenge: 'valid-human-challenge-token',
+    })
+    expect(supabase.rpc).not.toHaveBeenCalled()
   })
 
   it('refuses customer details leaked through invalid private inbox replies', () => {
