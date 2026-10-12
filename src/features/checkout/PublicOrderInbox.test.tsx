@@ -74,7 +74,10 @@ describe('shop owner QR/social requests inbox', () => {
   })
 
   it('allows the merchant to refuse a proposal without opening the cashier', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true))
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true),
+    )
     vi.mocked(rejectCheckoutOrder).mockResolvedValue({
       orderId,
       status: 'cancelled',
@@ -84,23 +87,22 @@ describe('shop owner QR/social requests inbox', () => {
     await screen.findByText('Robe du live', { exact: false })
     fireEvent.click(screen.getByRole('button', { name: 'Refuser cette demande' }))
 
-    await waitFor(() =>
-      expect(rejectCheckoutOrder).toHaveBeenCalledWith({ shopId, orderId }),
-    )
+    await waitFor(() => expect(rejectCheckoutOrder).toHaveBeenCalledWith({ shopId, orderId }))
     expect(screen.getByText(/Demande refusée/)).toBeTruthy()
     expect(screen.queryByText(/Encaissement bbbbbbbb/)).toBeNull()
     expect(screen.queryByText('Robe du live', { exact: false })).toBeNull()
   })
 
   it('keeps an order visible if refusal fails', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true))
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true),
+    )
     vi.mocked(rejectCheckoutOrder).mockRejectedValue(new Error('Accès refusé'))
     render(<PublicOrderInbox shopId={shopId} shopName="Boutique A" />)
     await screen.findByText('Robe du live', { exact: false })
     fireEvent.click(screen.getByRole('button', { name: 'Refuser cette demande' }))
-    await waitFor(() =>
-      expect(screen.getByRole('alert').textContent).toContain('Accès refusé'),
-    )
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Accès refusé'))
     expect(screen.getByText('Robe du live', { exact: false })).toBeTruthy()
   })
 })
