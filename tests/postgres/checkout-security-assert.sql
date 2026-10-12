@@ -125,6 +125,13 @@ end;
 $negative$;
 commit;
 
+-- Save the target order id before entering shop B's RLS context.
+-- Shop B cannot SELECT A's orders, as intended.
+select set_config('covi.test.target_order', (
+  select id::text from public.checkout_orders
+   where creation_operation_id='55550000-0000-4000-8000-000000000001'
+), false);
+
 -- A different authenticated shop owner may not approve or confirm shop A's order.
 begin;
 set local role authenticated;
@@ -135,8 +142,7 @@ declare
   v_order uuid;
   v_rejected boolean;
 begin
-  select id into v_order from public.checkout_orders
-   where creation_operation_id='55550000-0000-4000-8000-000000000001';
+  v_order := current_setting('covi.test.target_order')::uuid;
   v_rejected := false;
   begin
     perform public.approve_manual_checkout_order(v_shop, v_order);
