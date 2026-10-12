@@ -1,0 +1,130 @@
+/* COVI — nouvelle caisse, dans la DA existante « Le Cahier ».
+   Aucun changement aux tokens, à la navigation ou au module de vente actuel.
+   Cette feuille reste isolée jusqu'à la mise en service des RPC de caisse. */
+@layer app {
+  .checkout-confirmation,
+  .checkout-receipt {
+    display: grid;
+    align-content: start;
+    gap: var(--space-5);
+    width: 100%;
+    max-width: 42rem;
+    margin-inline: auto;
+    color: var(--ink);
+  }
+
+  .checkout-confirmation__head {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .checkout-confirmation__hand {
+    width: fit-content;
+    font-size: var(--step-1);
+    rotate: -1.5deg;
+  }
+
+  .checkout-confirmation__intro {
+    max-width: var(--reading-max);
+    color: var(--ink-soft);
+  }
+
+  /* Total du panier : trait double et pointillés du vrai cahier de caisse. */
+  .checkout-confirmation__ledger .ledger__row {
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .checkout-confirmation__ledger .ledger__value {
+    min-width: 0;
+  }
+
+  .checkout-confirmation__ledger .amount {
+    font-size: clamp(1.35rem, 1rem + 2vw, var(--amount-lg));
+  }
+
+  .checkout-confirmation__fields {
+    display: grid;
+    gap: var(--space-5);
+  }
+
+  .checkout-confirmation__fields .segmented__options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .checkout-confirmation__fields .segmented__label {
+    min-height: var(--tap-sale);
+    transition:
+      border-color var(--dur-fast) var(--ease-out),
+      background-color var(--dur-fast) var(--ease-out),
+      transform var(--dur-instant) var(--ease-press),
+      box-shadow var(--dur-instant) var(--ease-press);
+  }
+
+  .checkout-confirmation__fields .segmented__input:checked + .segmented__label {
+    box-shadow: inset 0 -2px 0 var(--action);
+  }
+
+  .checkout-confirmation__assurance {
+    padding-inline-start: var(--space-3);
+    border-inline-start: 2px solid var(--margin-line);
+    color: var(--ink-soft);
+    font-size: var(--step--1);
+    line-height: var(--leading-base);
+  }
+
+  .checkout-confirmation__error {
+    animation: covi-rise var(--dur-fast) var(--ease-out) both;
+  }
+
+  .checkout-confirmation > .btn--sale {
+    justify-self: stretch;
+  }
+
+  /* Le ticket garde ses dents, sa police Courier et son encre : pas de carte SaaS. */
+  .checkout-receipt {
+    justify-items: start;
+  }
+
+  .checkout-receipt__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .checkout-receipt__hand {
+    font-size: var(--step-1);
+    rotate: -1deg;
+  }
+
+  .checkout-receipt .ticket {
+    width: 100%;
+    max-width: 28rem;
+    animation: covi-rise var(--dur-slow) var(--ease-sheet) both;
+  }
+
+  .checkout-receipt__status {
+    color: var(--ink-soft);
+    font-size: var(--step--1);
+  }
+
+  @media (min-width: 480px) {
+    .checkout-confirmation__fields .segmented__options {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 360px) {
+    .checkout-confirmation,
+    .checkout-receipt {
+      padding: var(--space-4);
+    }
+    .checkout-confirmation__ledger .amount {
+      font-size: var(--amount-md);
+    }
+  }
+
+  /* Les animations sont déjà neutralisées globalement par base.css sous
+     prefers-reduced-motion. Ne jamais forcer d'animation ici. */
+}
