@@ -8,7 +8,7 @@ type FuturePublicRpc = {
   rpc: (
     name: 'get_checkout_public_link' | 'configure_checkout_public_link' |
       'rotate_checkout_public_link' | 'get_checkout_public_catalog' |
-      'submit_checkout_public_order',
+      'submit_checkout_public_order' | 'get_checkout_pending_orders',
     args: Record<string, unknown>
   ) => PromiseLike<RpcResponse>
 }
@@ -194,4 +194,72 @@ export function parseRecordedPublicRequest(value: unknown): RecordedPublicReques
 export async function submitPublicOrder(input: PublicRequest): Promise<RecordedPublicRequest> {
   const args = preparePublicRequest(input)
   return parseRecordedPublicRequest(await invoke('submit_checkout_public_order', args))
+}
+
+export type PendingPublicOrder = {
+  orderId: string
+  channel: OrderChannel
+  status: 'submitted' | 'approved'
+  amountXaf: number
+  customerPhone: string | null
+  customerNote: string | null
+  fulfillment: 'pickup' | 'delivery'
+  createdAt: string
+  lines: Array<{ label: string; quantity: number; lineTotalXaf: number }>
+}
+
+export function parsePendingPublicOrders(value: unknown): PendingPublicOrder[] {
+  if (!Array.isArray(value) || value.length > 30)
+    throw new Error('Liste des commandes reçues invalide.')
+  return value.map(item => {
+    const row = record(item)
+    if (typeof row.orderId !== 'string' || !UUID.test(row.orderId) ||
+        (row.channel !== 'qr' && row.channel !== 'social') ||
+        (row.status !== 'submitted' && row.status !== 'approved') ||
+        !Number.isSafeInteger(row.amountXaf) ||
+        (row.amountXaf as number) < 0 ||
+        (row.amountXaf as number) > MAX_PUBLIC_AMOUNT ||
+        (row.fulfillment !== 'pickup' && row.fulfillment !== 'delivery') ||
+        typeof row.createdAt !== 'string' || !Number.isFinite(Date.parse(row.createdAt)) ||
+        (row.customerPhone !== null && typeof row.customerPhone !== 'string') ||
+        (row.customerNote !== null && typeof row.customerNote !== 'string') ||
+        !Array.isArray(row.lines) || row.lines.length < 1)
+      throw new Error('Une commande reçue est invalide.')
+
+    const lines: PendingPublicOrder['lines'] = []
+    let total = 0
+    for (const item of row.lines) {
+      const line = record(item)
+      if (typeof line.label !== 'string' || !line.label.trim() ||
+          !Number.isSafeInteger(line.quantity) || (line.quantity as number) <= 0 ||
+          !Number.isSafeInteger(line.lineTotalXaf) || (line.lineTotalXaf as number) < 0)
+        throw new Error('Lignes de commande invalides.')
+      total += line.lineTotalXaf as number
+      if (!Number.isSafeInteger(total)) throw new Error('Total de demande invalide.')
+      lines.push({
+        label: line.label.trim(),
+        quantity: line.quantity as number,
+        lineTotalXaf: line.lineTotalXaf as number,
+      })
+    }
+    if (total !== row.amountXaf) throw new Error('Montant de demande incohérent.')
+    return {
+      orderId: row.orderId,
+      channel: row.channel as OrderChannel,
+      status: row.status as PendingPublicOrder['status'],
+      amountXaf: row.amountXaf as number,
+      customerPhone: row.customerPhone as string | null,
+      customerNote: row.customerNote as string | null,
+      fulfillment: row.fulfillment as PendingPublicOrder['fulfillment'],
+      createdAt: row.createdAt,
+      lines,
+    }
+  })
+}
+
+export async function getPendingPublicOrders(shopId: string): Promise<PendingPublicOrder[]> {
+  if (!UUID.test(shopId)) throw new Error('Boutique invalide.')
+  return parsePendingPublicOrders(await invoke('get_checkout_pending_orders', {
+    p_shop_id: shopId,
+  }))
 }
