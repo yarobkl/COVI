@@ -48,6 +48,7 @@ export function ManualCheckoutBasket({ categories, onPrepare }: Props) {
   const hasStock = categories.some((category) => category.available > 0)
 
   function addLine() {
+    if (submitting.current) return
     setError('')
     if (!selected || remaining === 0) {
       setError('Choisissez une catégorie disponible.')
@@ -83,6 +84,7 @@ export function ManualCheckoutBasket({ categories, onPrepare }: Props) {
   }
 
   function changeQuantity(index: number, newQuantity: number) {
+    if (submitting.current) return
     setError('')
     setLines((previous) => previous.map((line, i) =>
       i === index ? { ...line, quantity: newQuantity } : line,
@@ -90,6 +92,7 @@ export function ManualCheckoutBasket({ categories, onPrepare }: Props) {
   }
 
   function removeLine(index: number) {
+    if (submitting.current) return
     setError('')
     setLines((previous) => previous.filter((_, i) => i !== index))
   }
@@ -210,7 +213,7 @@ export function ManualCheckoutBasket({ categories, onPrepare }: Props) {
                       <strong>{category.label}</strong>
                       <span className="figures">{fcfa(line.negotiatedUnitPriceXaf)} FCFA / pièce</span>
                     </div>
-                    <div className="checkout-basket__item-actions">
+                    <fieldset className="checkout-basket__item-actions" disabled={busy}>
                       <Stepper
                         value={line.quantity}
                         max={max}
@@ -227,7 +230,7 @@ export function ManualCheckoutBasket({ categories, onPrepare }: Props) {
                         Retirer
                       </button>
                       <Amount value={line.quantity * line.negotiatedUnitPriceXaf} unit />
-                    </div>
+                    </fieldset>
                   </div>
                 )
               })}
