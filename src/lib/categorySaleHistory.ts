@@ -84,8 +84,14 @@ export function parseCategorySaleHistory(data: unknown): CategorySaleHistory[] {
 type HistoryRpc = {
   from: (table: 'manual_payment_confirmations') => {
     select: (columns: string) => {
-      eq: (column: string, value: string) => {
-        order: (column: string, options: { ascending: boolean }) => {
+      eq: (
+        column: string,
+        value: string,
+      ) => {
+        order: (
+          column: string,
+          options: { ascending: boolean },
+        ) => {
           limit: (amount: number) => PromiseLike<{
             data: unknown
             error: { message: string } | null
