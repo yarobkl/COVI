@@ -1,4 +1,5 @@
 /** Pure order lifecycle for the future COVI omnichannel queue.
+ * Payments are received outside COVI and manually verified by the cashier.
  * No database updates, stock decrement or payment capture happen here.
  */
 export type OrderChannel = 'qr' | 'social' | 'manual'
@@ -9,6 +10,26 @@ export type OrderStatus =
   | 'paid'
   | 'cancelled'
   | 'expired'
+
+export type ManualPaymentMethod = 'cash' | 'mobile_money' | 'other'
+
+export type ManualPaymentConfirmation = {
+  method: ManualPaymentMethod
+  receivedByUserId: string
+  confirmedAt: string
+  externalReference?: string
+}
+
+export function validateManualPaymentConfirmation(value: ManualPaymentConfirmation): ManualPaymentConfirmation {
+  if (!['cash', 'mobile_money', 'other'].includes(value.method))
+    throw new Error('Moyen de paiement inconnu.')
+  if (!value.receivedByUserId.trim()) throw new Error('Le vendeur doit être identifié.')
+  if (!value.confirmedAt.trim() || !Number.isFinite(Date.parse(value.confirmedAt)))
+    throw new Error('Date de confirmation invalide.')
+  if (value.externalReference && value.externalReference.length > 120)
+    throw new Error('Référence de paiement trop longue.')
+  return value
+}
 
 export type OrderEvent =
   | 'approve'
@@ -51,6 +72,7 @@ export function validateOrderChannel(channel: string): OrderChannel {
   throw new Error('Canal de commande inconnu.')
 }
 
-/** Only a server-side atomic payment RPC may actually perform stock deduction.
+/** Only a server-side atomic cashier-confirmation RPC may actually perform stock deduction.
+ * COVI never claims to verify mobile-money settlement or capture payment via an API.
  * This helper is a business rule, NOT an idempotency or concurrency guarantee.
  */
