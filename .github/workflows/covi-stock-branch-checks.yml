@@ -58,12 +58,11 @@ jobs:
       - name: Run migrations and owner-only checkout tests in disposable DB
         env:
           PGHOST: 127.0.0.1
-          PGPORT: "5432"
+          PGPORT: '5432'
           PGUSER: postgres
           PGDATABASE: covi_ci
           PGPASSWORD: postgres
         run: bash tests/run-postgres-checkout.sh
-
 
   format-export-for-review:
     name: Produce reviewed Prettier-only patch (no auth changes)

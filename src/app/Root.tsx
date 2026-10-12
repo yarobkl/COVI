@@ -29,10 +29,13 @@ export function Root() {
   // time in production until the PostgreSQL RPCs and abuse controls are live.
   const guest = categoryCheckoutEnabled ? parseGuestOrderHash(guestHash) : null
   if (guest) {
-    return <PublicOrderRequestPage
-      key={guest.token + ':' + guest.channel}
-      token={guest.token} channel={guest.channel}
-    />
+    return (
+      <PublicOrderRequestPage
+        key={guest.token + ':' + guest.channel}
+        token={guest.token}
+        channel={guest.channel}
+      />
+    )
   }
 
   if (simulation)

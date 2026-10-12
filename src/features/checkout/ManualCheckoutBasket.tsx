@@ -1,5 +1,14 @@
 import { useRef, useState, type FormEvent } from 'react'
-import { Amount, AmountInput, Button, Field, Ledger, LedgerRow, Sheet, Stepper } from '../../components/ui'
+import {
+  Amount,
+  AmountInput,
+  Button,
+  Field,
+  Ledger,
+  LedgerRow,
+  Sheet,
+  Stepper,
+} from '../../components/ui'
 import { fcfa, parseAmount } from '../../lib/format'
 import { prepareManualOrderLines, type ManualOrderLineInput } from '../../lib/manualOrder'
 import type { CheckoutStockCategory } from '../../lib/checkoutCategoryStock'
@@ -17,9 +26,10 @@ function remainingFor(
   if (!category) return 0
   return Math.max(
     0,
-    category.available - lines
-      .filter((line) => line.categoryId === category.id)
-      .reduce((sum, line) => sum + line.quantity, 0),
+    category.available -
+      lines
+        .filter((line) => line.categoryId === category.id)
+        .reduce((sum, line) => sum + line.quantity, 0),
   )
 }
 
@@ -41,9 +51,7 @@ export function ManualCheckoutBasket({ categories, onPrepare }: Props) {
   const remaining = remainingFor(selected, lines)
   const amount = parseAmount(priceInput)
   const price = priceInput.trim() && amount !== null ? amount : null
-  const total = lines.reduce(
-    (sum, line) => sum + line.quantity * line.negotiatedUnitPriceXaf, 0,
-  )
+  const total = lines.reduce((sum, line) => sum + line.quantity * line.negotiatedUnitPriceXaf, 0)
   const basketSize = lines.reduce((sum, line) => sum + line.quantity, 0)
   const hasStock = categories.some((category) => category.available > 0)
 
@@ -70,11 +78,13 @@ export function ManualCheckoutBasket({ categories, onPrepare }: Props) {
         ...lines,
         { categoryId: selected.id, quantity, negotiatedUnitPriceXaf: price },
       ])
-      setLines(proposed.lines.map((line) => ({
-        categoryId: line.categoryId,
-        quantity: line.quantity,
-        negotiatedUnitPriceXaf: line.unitPriceXaf,
-      })))
+      setLines(
+        proposed.lines.map((line) => ({
+          categoryId: line.categoryId,
+          quantity: line.quantity,
+          negotiatedUnitPriceXaf: line.unitPriceXaf,
+        })),
+      )
       setCategoryId('')
       setQuantity(1)
       setPriceInput('')
@@ -86,9 +96,9 @@ export function ManualCheckoutBasket({ categories, onPrepare }: Props) {
   function changeQuantity(index: number, newQuantity: number) {
     if (submitting.current) return
     setError('')
-    setLines((previous) => previous.map((line, i) =>
-      i === index ? { ...line, quantity: newQuantity } : line,
-    ))
+    setLines((previous) =>
+      previous.map((line, i) => (i === index ? { ...line, quantity: newQuantity } : line)),
+    )
   }
 
   function removeLine(index: number) {
@@ -106,11 +116,13 @@ export function ManualCheckoutBasket({ categories, onPrepare }: Props) {
     try {
       const prepared = prepareManualOrderLines(lines)
       // The authoritative database rechecks inventory at APPROVAL and PAYMENT.
-      await onPrepare(prepared.lines.map((line) => ({
-        categoryId: line.categoryId,
-        quantity: line.quantity,
-        negotiatedUnitPriceXaf: line.unitPriceXaf,
-      })))
+      await onPrepare(
+        prepared.lines.map((line) => ({
+          categoryId: line.categoryId,
+          quantity: line.quantity,
+          negotiatedUnitPriceXaf: line.unitPriceXaf,
+        })),
+      )
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Commande non préparée.')
     } finally {
@@ -128,7 +140,12 @@ export function ManualCheckoutBasket({ categories, onPrepare }: Props) {
           Notez les vêtements par catégorie. Le prix est celui négocié avec le client.
         </p>
       </header>
-      <form onSubmit={(event) => { void submit(event) }} className="checkout-basket__form">
+      <form
+        onSubmit={(event) => {
+          void submit(event)
+        }}
+        className="checkout-basket__form"
+      >
         <fieldset className="checkout-basket__entry" disabled={busy}>
           <legend className="section-title">Ajouter une ligne</legend>
           <div className="checkout-basket__entry-fields">
@@ -163,11 +180,13 @@ export function ManualCheckoutBasket({ categories, onPrepare }: Props) {
                   {...props}
                   placeholder="Ex. : 3 500"
                   value={priceInput}
-                  onChange={(event) => setPriceInput(
-                    parseAmount(event.target.value) === null
-                      ? ''
-                      : fcfa(parseAmount(event.target.value) ?? 0),
-                  )}
+                  onChange={(event) =>
+                    setPriceInput(
+                      parseAmount(event.target.value) === null
+                        ? ''
+                        : fcfa(parseAmount(event.target.value) ?? 0),
+                    )
+                  }
                 />
               )}
             </Field>
@@ -193,7 +212,9 @@ export function ManualCheckoutBasket({ categories, onPrepare }: Props) {
             Ajouter au panier
           </Button>
           {!hasStock && (
-            <p className="field__hint">Aucune catégorie disponible : réceptionnez du stock avant de vendre.</p>
+            <p className="field__hint">
+              Aucune catégorie disponible : réceptionnez du stock avant de vendre.
+            </p>
           )}
         </fieldset>
 
@@ -204,14 +225,22 @@ export function ManualCheckoutBasket({ categories, onPrepare }: Props) {
               {lines.map((line, index) => {
                 const category = categories.find((item) => item.id === line.categoryId)
                 if (!category) return null
-                const otherQuantity = lines.reduce((sum, item, i) =>
-                  sum + (i !== index && item.categoryId === line.categoryId ? item.quantity : 0), 0)
+                const otherQuantity = lines.reduce(
+                  (sum, item, i) =>
+                    sum + (i !== index && item.categoryId === line.categoryId ? item.quantity : 0),
+                  0,
+                )
                 const max = Math.max(line.quantity, category.available - otherQuantity)
                 return (
-                  <div className="checkout-basket__item" key={line.categoryId + ':' + line.negotiatedUnitPriceXaf}>
+                  <div
+                    className="checkout-basket__item"
+                    key={line.categoryId + ':' + line.negotiatedUnitPriceXaf}
+                  >
                     <div className="checkout-basket__item-head">
                       <strong>{category.label}</strong>
-                      <span className="figures">{fcfa(line.negotiatedUnitPriceXaf)} FCFA / pièce</span>
+                      <span className="figures">
+                        {fcfa(line.negotiatedUnitPriceXaf)} FCFA / pièce
+                      </span>
                     </div>
                     <fieldset className="checkout-basket__item-actions" disabled={busy}>
                       <Stepper
@@ -236,19 +265,30 @@ export function ManualCheckoutBasket({ categories, onPrepare }: Props) {
               })}
             </div>
           ) : (
-            <p className="checkout-basket__empty">Le panier est vide. Ajoutez une première ligne.</p>
+            <p className="checkout-basket__empty">
+              Le panier est vide. Ajoutez une première ligne.
+            </p>
           )}
           <Ledger label="Total du panier">
             <LedgerRow
               variant="total"
-              label={basketSize > 1 ? 'Total · ' + basketSize + ' pièces' : 'Total · ' + basketSize + ' pièce'}
+              label={
+                basketSize > 1
+                  ? 'Total · ' + basketSize + ' pièces'
+                  : 'Total · ' + basketSize + ' pièce'
+              }
               value={<Amount value={total} size="lg" unit />}
             />
           </Ledger>
         </section>
-        {error && <p className="field__error" role="alert">{error}</p>}
+        {error && (
+          <p className="field__error" role="alert">
+            {error}
+          </p>
+        )}
         <p className="checkout-confirmation__assurance">
-          Préparer la commande ne retire rien du stock. La sortie se fait après la confirmation du paiement reçu.
+          Préparer la commande ne retire rien du stock. La sortie se fait après la confirmation du
+          paiement reçu.
         </p>
         <Button
           type="submit"

@@ -43,23 +43,37 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export function parseRecordedCheckoutReceipt(data: unknown): RecordedCheckoutReceipt {
-  if (!isRecord(data) ||
-      typeof data.saleId !== 'string' || !data.saleId ||
-      typeof data.receiptNumber !== 'string' || !data.receiptNumber ||
-      typeof data.confirmedAt !== 'string' || !Number.isFinite(Date.parse(data.confirmedAt)) ||
-      typeof data.cashierFirstName !== 'string' || !data.cashierFirstName ||
-      !['cash', 'mobile_money', 'other'].includes(String(data.method)) ||
-      !Number.isSafeInteger(data.amountXaf) || (data.amountXaf as number) < 0 ||
-      !Array.isArray(data.lines) || data.lines.length < 1) {
+  if (
+    !isRecord(data) ||
+    typeof data.saleId !== 'string' ||
+    !data.saleId ||
+    typeof data.receiptNumber !== 'string' ||
+    !data.receiptNumber ||
+    typeof data.confirmedAt !== 'string' ||
+    !Number.isFinite(Date.parse(data.confirmedAt)) ||
+    typeof data.cashierFirstName !== 'string' ||
+    !data.cashierFirstName ||
+    !['cash', 'mobile_money', 'other'].includes(String(data.method)) ||
+    !Number.isSafeInteger(data.amountXaf) ||
+    (data.amountXaf as number) < 0 ||
+    !Array.isArray(data.lines) ||
+    data.lines.length < 1
+  ) {
     throw new Error('Réponse de confirmation du serveur invalide.')
   }
 
   const lines: RecordedCheckoutReceipt['lines'] = []
   let sum = 0
   for (const line of data.lines) {
-    if (!isRecord(line) || typeof line.label !== 'string' || !line.label ||
-        !Number.isSafeInteger(line.quantity) || (line.quantity as number) < 1 ||
-        !Number.isSafeInteger(line.lineTotalXaf) || (line.lineTotalXaf as number) < 0) {
+    if (
+      !isRecord(line) ||
+      typeof line.label !== 'string' ||
+      !line.label ||
+      !Number.isSafeInteger(line.quantity) ||
+      (line.quantity as number) < 1 ||
+      !Number.isSafeInteger(line.lineTotalXaf) ||
+      (line.lineTotalXaf as number) < 0
+    ) {
       throw new Error('Lignes du reçu retournées par le serveur invalides.')
     }
     const quantity = line.quantity as number

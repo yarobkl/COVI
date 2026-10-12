@@ -26,19 +26,10 @@ type Props = {
  * and manual-confirmation RPCs. It never touches the legacy product cashier.
  */
 export function ManualCheckoutFlow(props: Props) {
-  return (
-    <ManualCheckoutFlowInstance
-      key={props.shopId + ':' + Boolean(props.isTest)}
-      {...props}
-    />
-  )
+  return <ManualCheckoutFlowInstance key={props.shopId + ':' + Boolean(props.isTest)} {...props} />
 }
 
-function ManualCheckoutFlowInstance({
-  shopId,
-  shopName,
-  isTest = false,
-}: Props) {
+function ManualCheckoutFlowInstance({ shopId, shopName, isTest = false }: Props) {
   const [categories, setCategories] = useState<CheckoutStockCategory[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -56,14 +47,15 @@ function ManualCheckoutFlowInstance({
         if (!cancelled) setCategories(items)
       })
       .catch((reason: unknown) => {
-        if (!cancelled) setLoadError(
-          reason instanceof Error ? reason.message : 'Stock indisponible.',
-        )
+        if (!cancelled)
+          setLoadError(reason instanceof Error ? reason.message : 'Stock indisponible.')
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
       })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [shopId, isTest, retryCount])
 
   async function prepare(lines: readonly ManualOrderLineInput[]) {
@@ -80,8 +72,10 @@ function ManualCheckoutFlowInstance({
       isTest,
       fulfillment: 'pickup',
     })
-    if (created.amountXaf !== prepared.amountXaf ||
-        !['submitted', 'approved'].includes(created.status)) {
+    if (
+      created.amountXaf !== prepared.amountXaf ||
+      !['submitted', 'approved'].includes(created.status)
+    ) {
       throw new Error('La commande renvoyée ne correspond pas au panier.')
     }
 
@@ -90,8 +84,7 @@ function ManualCheckoutFlowInstance({
       shopId,
       orderId: created.orderId,
     })
-    if (record.orderId !== created.orderId ||
-        record.amountXaf !== prepared.amountXaf) {
+    if (record.orderId !== created.orderId || record.amountXaf !== prepared.amountXaf) {
       throw new Error('Le montant approuvé ne correspond pas au panier.')
     }
     setApproved(record)

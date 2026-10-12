@@ -1,12 +1,14 @@
 # COVI — Caisse V1 sans API de paiement
 
 ## Principe non négociable
+
 COVI ne collecte ni ne vérifie automatiquement les paiements Mobile Money.
 Le vendeur ou caissier reçoit la preuve du paiement hors COVI (notification
 de l'opérateur, SMS, application du fournisseur, espèces remises), la contrôle,
 puis appuie sur **Confirmer le paiement reçu**.
 
 ## Parcours
+
 1. QR code public, lien de vente social ou saisie manuelle → même file de commandes.
 2. Le commerçant contrôle catégories, quantités, prix négociés et disponibilité.
 3. Éventuelle réservation temporaire, sans diminution définitive du stock.
@@ -22,6 +24,7 @@ puis appuie sur **Confirmer le paiement reçu**.
    le stock une seconde fois.
 
 ## Règles de confiance
+
 - Afficher **Paiement confirmé par le vendeur** ; ne jamais afficher
   « Paiement vérifié par l'opérateur ».
 - **Le prénom saisi n'authentifie personne** : il est déclaré par l'utilisateur
@@ -41,6 +44,7 @@ puis appuie sur **Confirmer le paiement reçu**.
 - Les commandes de démonstration ne doivent jamais affecter le stock réel.
 
 ## État d'implémentation
+
 - Types et transitions côté TypeScript : écrits, tests ajoutés, exécution non confirmée.
 - Schémas SQL : brouillons sur branche, non appliqués. La création et l'approbation manuelles sont désormais écrites dans draft_create_approve_manual_checkout_order.sql.
 - Autorisation réelle des vendeurs/employés : à définir et vérifier.
@@ -52,6 +56,7 @@ puis appuie sur **Confirmer le paiement reçu**.
 - Production et authentification Google/Facebook : inchangées.
 
 ## Conditions de mise en service (bloquantes)
+
 1. Exécuter les migrations de brouillon sur une base Supabase isolée. Une branche payante éventuelle requiert une validation du coût, et aucune n'a été créée.
 2. Confirmer le comportement de la RPC à la concurrence : deux validations sur la même commande et deux ventes de la dernière pièce.
 3. Tester les autorisations : client anonyme et propriétaire d'une autre boutique refusés, propriétaire légitime autorisé. Un prénom seul n'ouvre jamais un droit.

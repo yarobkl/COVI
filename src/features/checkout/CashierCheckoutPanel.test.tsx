@@ -36,9 +36,14 @@ afterEach(() => {
 describe('manual checkout RPC integration (not mounted on live routes)', () => {
   it('renders a receipt only after a successful server confirmation', async () => {
     vi.mocked(confirmManualCheckoutPayment).mockResolvedValue(recorded)
-    render(<CashierCheckoutPanel
-      shopId="shop-1" shopName="Boutique COVI" orderId="order-1" amountXaf={12000}
-    />)
+    render(
+      <CashierCheckoutPanel
+        shopId="shop-1"
+        shopName="Boutique COVI"
+        orderId="order-1"
+        amountXaf={12000}
+      />,
+    )
     fill()
 
     expect(screen.queryByText('Encaissé par : Marie Lou')).toBeNull()
@@ -59,9 +64,14 @@ describe('manual checkout RPC integration (not mounted on live routes)', () => {
       .mockRejectedValueOnce(new Error('Réseau indisponible'))
       .mockResolvedValueOnce(recorded)
 
-    render(<CashierCheckoutPanel
-      shopId="shop-1" shopName="Boutique COVI" orderId="order-1" amountXaf={12000}
-    />)
+    render(
+      <CashierCheckoutPanel
+        shopId="shop-1"
+        shopName="Boutique COVI"
+        orderId="order-1"
+        amountXaf={12000}
+      />,
+    )
     fill()
     fireEvent.click(screen.getByRole('button', { name: 'Confirmer le paiement reçu' }))
     await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Réseau'))
@@ -69,7 +79,8 @@ describe('manual checkout RPC integration (not mounted on live routes)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Confirmer le paiement reçu' }))
     await waitFor(() => expect(screen.getByText('Encaissé par : Marie Lou')).toBeTruthy())
     expect(confirmManualCheckoutPayment).toHaveBeenCalledTimes(2)
-    expect(vi.mocked(confirmManualCheckoutPayment).mock.calls[0][0].operationId)
-      .toBe(vi.mocked(confirmManualCheckoutPayment).mock.calls[1][0].operationId)
+    expect(vi.mocked(confirmManualCheckoutPayment).mock.calls[0][0].operationId).toBe(
+      vi.mocked(confirmManualCheckoutPayment).mock.calls[1][0].operationId,
+    )
   })
 })

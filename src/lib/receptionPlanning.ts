@@ -21,8 +21,7 @@ export function prepareReceptionLines(lines: readonly ReceptionLine[]): Prepared
   for (const line of lines) {
     if (typeof line.category !== 'string' || !line.category.trim())
       throw new Error('La catégorie est obligatoire.')
-    if (line.category.trim().length > 80)
-      throw new Error('Le nom de catégorie est trop long.')
+    if (line.category.trim().length > 80) throw new Error('Le nom de catégorie est trop long.')
     if (!Number.isSafeInteger(line.quantity) || line.quantity <= 0)
       throw new Error('La quantité reçue doit être un entier positif.')
     const key = categoryKey(line.category)

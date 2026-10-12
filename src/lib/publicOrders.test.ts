@@ -29,20 +29,24 @@ describe('public checkout links and restricted requests', () => {
       .mockResolvedValueOnce({ data: { publicToken: token, enabled: true }, error: null } as never)
     await expect(getPublicOrderLink(shopId)).resolves.toBeNull()
     await expect(configurePublicOrderLink(shopId, true)).resolves.toEqual({
-      publicToken: token, enabled: true,
+      publicToken: token,
+      enabled: true,
     })
     expect(supabase.rpc).toHaveBeenCalledWith('configure_checkout_public_link', {
-      p_shop_id: shopId, p_enabled: true,
+      p_shop_id: shopId,
+      p_enabled: true,
     })
     await expect(rotatePublicOrderLink(shopId)).resolves.toEqual({
-      publicToken: token, enabled: true,
+      publicToken: token,
+      enabled: true,
     })
   })
 
   it('creates stable QR and social URLs without depending on a third-party QR service', () => {
     const base = 'https://covi.example/path?private=1#/caisse'
-    expect(publicOrderUrl(base, token, 'qr'))
-      .toBe('https://covi.example/path#/commander/' + token + '?via=qr')
+    expect(publicOrderUrl(base, token, 'qr')).toBe(
+      'https://covi.example/path#/commander/' + token + '?via=qr',
+    )
     expect(publicOrderUrl(base, token, 'social')).toContain('?via=social')
     expect(() => publicOrderUrl('http://covi.example', token, 'qr')).toThrow('sécurisé')
   })
@@ -53,14 +57,17 @@ describe('public checkout links and restricted requests', () => {
       error: null,
     } as never)
     expect(await getPublicCatalog(token)).toEqual({
-      shopName: 'Boutique A', categories: [{ id: categoryId, label: 'Robes' }],
+      shopName: 'Boutique A',
+      categories: [{ id: categoryId, label: 'Robes' }],
     })
     expect(supabase.rpc).toHaveBeenCalledWith('get_checkout_public_catalog', { p_token: token })
   })
 
   it('requires positive negotiated prices and contact for delivery, with 20-piece limit', () => {
     const valid = {
-      token, channel: 'social' as const, operationId,
+      token,
+      channel: 'social' as const,
+      operationId,
       lines: [{ categoryId, quantity: 2, negotiatedUnitPriceXaf: 3500 }],
       fulfillment: 'pickup' as const,
     }
@@ -68,38 +75,60 @@ describe('public checkout links and restricted requests', () => {
       { categoryId, quantity: 2, unitPriceXaf: 3500 },
     ])
     expect(() => preparePublicRequest({ ...valid, fulfillment: 'delivery' })).toThrow()
-    expect(() => preparePublicRequest({
-      ...valid, lines: [{ categoryId, quantity: 1, negotiatedUnitPriceXaf: 0 }],
-    })).toThrow()
-    expect(() => preparePublicRequest({
-      ...valid, lines: [{ categoryId, quantity: 21, negotiatedUnitPriceXaf: 3500 }],
-    })).toThrow()
+    expect(() =>
+      preparePublicRequest({
+        ...valid,
+        lines: [{ categoryId, quantity: 1, negotiatedUnitPriceXaf: 0 }],
+      }),
+    ).toThrow()
+    expect(() =>
+      preparePublicRequest({
+        ...valid,
+        lines: [{ categoryId, quantity: 21, negotiatedUnitPriceXaf: 3500 }],
+      }),
+    ).toThrow()
   })
 
   it('submits a request, never a payment, using server-side RPC', async () => {
     vi.mocked(supabase.rpc).mockResolvedValueOnce({
-      data: { orderId, status: 'submitted', amountXaf: 7000 }, error: null,
+      data: { orderId, status: 'submitted', amountXaf: 7000 },
+      error: null,
     } as never)
-    expect(await submitPublicOrder({
-      token, channel: 'qr', operationId,
-      lines: [{ categoryId, quantity: 2, negotiatedUnitPriceXaf: 3500 }],
-      fulfillment: 'pickup',
-    })).toEqual({ orderId, status: 'submitted', amountXaf: 7000 })
-    expect(supabase.rpc).toHaveBeenCalledWith('submit_checkout_public_order',
+    expect(
+      await submitPublicOrder({
+        token,
+        channel: 'qr',
+        operationId,
+        lines: [{ categoryId, quantity: 2, negotiatedUnitPriceXaf: 3500 }],
+        fulfillment: 'pickup',
+      }),
+    ).toEqual({ orderId, status: 'submitted', amountXaf: 7000 })
+    expect(supabase.rpc).toHaveBeenCalledWith(
+      'submit_checkout_public_order',
       expect.objectContaining({
         p_channel: 'qr',
         p_token: token,
         p_operation_id: operationId,
-      }))
+      }),
+    )
   })
 
   it('refuses customer details leaked through invalid private inbox replies', () => {
-    expect(() => parsePendingPublicOrders([{
-      orderId, channel: 'social', status: 'submitted', amountXaf: 3500,
-      createdAt: '2026-10-12T17:00:00Z', customerPhone: null,
-      customerNote: null, fulfillment: 'delivery',
-      lines: [{ label: 'Robes', quantity: 1, lineTotalXaf: 2000 }],
-    }])).toThrow('incohérent')
+    expect(() =>
+      parsePendingPublicOrders([
+        {
+          orderId,
+          channel: 'social',
+          status: 'submitted',
+          amountXaf: 3500,
+          createdAt: '2026-10-12T17:00:00Z',
+          customerPhone: null,
+          customerNote: null,
+          fulfillment: 'delivery',
+          lines: [{ label: 'Robes', quantity: 1, lineTotalXaf: 2000 }],
+        },
+      ]),
+    ).toThrow('incohérent')
   })
 
   it('queries customer contact data only from an owner-restricted function', async () => {

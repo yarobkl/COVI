@@ -6,10 +6,14 @@ const MAX_PUBLIC_AMOUNT = 2_000_000_000
 type RpcResponse = { data: unknown; error: { message: string } | null }
 type FuturePublicRpc = {
   rpc: (
-    name: 'get_checkout_public_link' | 'configure_checkout_public_link' |
-      'rotate_checkout_public_link' | 'get_checkout_public_catalog' |
-      'submit_checkout_public_order' | 'get_checkout_pending_orders',
-    args: Record<string, unknown>
+    name:
+      | 'get_checkout_public_link'
+      | 'configure_checkout_public_link'
+      | 'rotate_checkout_public_link'
+      | 'get_checkout_public_catalog'
+      | 'submit_checkout_public_order'
+      | 'get_checkout_pending_orders',
+    args: Record<string, unknown>,
   ) => PromiseLike<RpcResponse>
 }
 
@@ -56,8 +60,11 @@ async function invoke(
 export function parsePublicOrderLink(value: unknown): PublicOrderLink | null {
   if (value === null) return null
   const data = record(value)
-  if (typeof data.publicToken !== 'string' || !UUID.test(data.publicToken) ||
-      typeof data.enabled !== 'boolean')
+  if (
+    typeof data.publicToken !== 'string' ||
+    !UUID.test(data.publicToken) ||
+    typeof data.enabled !== 'boolean'
+  )
     throw new Error('Lien public invalide.')
   return { publicToken: data.publicToken, enabled: data.enabled }
 }
@@ -73,19 +80,23 @@ export async function configurePublicOrderLink(
 ): Promise<PublicOrderLink> {
   if (!UUID.test(shopId) || typeof enabled !== 'boolean')
     throw new Error('Paramètres de lien invalides.')
-  const result = parsePublicOrderLink(await invoke('configure_checkout_public_link', {
-    p_shop_id: shopId,
-    p_enabled: enabled,
-  }))
+  const result = parsePublicOrderLink(
+    await invoke('configure_checkout_public_link', {
+      p_shop_id: shopId,
+      p_enabled: enabled,
+    }),
+  )
   if (!result || result.enabled !== enabled) throw new Error('Activation du lien non confirmée.')
   return result
 }
 
 export async function rotatePublicOrderLink(shopId: string): Promise<PublicOrderLink> {
   if (!UUID.test(shopId)) throw new Error('Boutique invalide.')
-  const result = parsePublicOrderLink(await invoke('rotate_checkout_public_link', {
-    p_shop_id: shopId,
-  }))
+  const result = parsePublicOrderLink(
+    await invoke('rotate_checkout_public_link', {
+      p_shop_id: shopId,
+    }),
+  )
   if (!result) throw new Error('Nouveau lien non confirmé.')
   return result
 }
@@ -95,7 +106,7 @@ export function publicOrderUrl(
   publicToken: string,
   channel: OrderChannel,
 ): string {
-  if (!UUID.test(publicToken) || !['qr','social'].includes(channel))
+  if (!UUID.test(publicToken) || !['qr', 'social'].includes(channel))
     throw new Error('Lien de commande invalide.')
   const url = new URL(currentUrl)
   if (url.protocol !== 'https:' && url.hostname !== 'localhost')
@@ -108,14 +119,19 @@ export function publicOrderUrl(
 
 export function parsePublicCatalog(value: unknown): PublicCatalog {
   const data = record(value)
-  if (typeof data.shopName !== 'string' || !data.shopName.trim() ||
-      !Array.isArray(data.categories)) throw new Error('Catalogue public invalide.')
+  if (typeof data.shopName !== 'string' || !data.shopName.trim() || !Array.isArray(data.categories))
+    throw new Error('Catalogue public invalide.')
   const ids = new Set<string>()
   const categories: PublicCategory[] = []
   for (const item of data.categories) {
     const c = record(item)
-    if (typeof c.id !== 'string' || !UUID.test(c.id) ||
-        typeof c.label !== 'string' || !c.label.trim() || ids.has(c.id))
+    if (
+      typeof c.id !== 'string' ||
+      !UUID.test(c.id) ||
+      typeof c.label !== 'string' ||
+      !c.label.trim() ||
+      ids.has(c.id)
+    )
       throw new Error('Catégorie publique invalide.')
     ids.add(c.id)
     categories.push({ id: c.id, label: c.label.trim() })
@@ -125,30 +141,38 @@ export function parsePublicCatalog(value: unknown): PublicCatalog {
 
 export async function getPublicCatalog(token: string): Promise<PublicCatalog> {
   if (!UUID.test(token)) throw new Error('Lien public invalide.')
-  return parsePublicCatalog(await invoke('get_checkout_public_catalog', {
-    p_token: token,
-  }))
+  return parsePublicCatalog(
+    await invoke('get_checkout_public_catalog', {
+      p_token: token,
+    }),
+  )
 }
 
 function invalidControl(value: string) {
-  return [...value].some(c => {
+  return [...value].some((c) => {
     const code = c.codePointAt(0)
     return code !== undefined && (code < 32 || code === 127)
   })
 }
 
 export function preparePublicRequest(input: PublicRequest) {
-  if (!UUID.test(input.token) || !UUID.test(input.operationId) ||
-      !['qr','social'].includes(input.channel) ||
-      !['pickup','delivery'].includes(input.fulfillment))
+  if (
+    !UUID.test(input.token) ||
+    !UUID.test(input.operationId) ||
+    !['qr', 'social'].includes(input.channel) ||
+    !['pickup', 'delivery'].includes(input.fulfillment)
+  )
     throw new Error('Paramètres de commande invalides.')
   if (input.lines.length < 1 || input.lines.length > 20)
     throw new Error('La demande contient entre 1 et 20 lignes.')
 
   const prepared = prepareManualOrderLines(input.lines)
-  if (prepared.lines.some(l => l.quantity > 20 || l.unitPriceXaf < 1 ||
-      l.unitPriceXaf > 999_999_999) ||
-      prepared.amountXaf > MAX_PUBLIC_AMOUNT) {
+  if (
+    prepared.lines.some(
+      (l) => l.quantity > 20 || l.unitPriceXaf < 1 || l.unitPriceXaf > 999_999_999,
+    ) ||
+    prepared.amountXaf > MAX_PUBLIC_AMOUNT
+  ) {
     throw new Error('Quantité ou prix public hors limite.')
   }
 
@@ -161,9 +185,11 @@ export function preparePublicRequest(input: PublicRequest) {
 
   const phone = input.phone?.trim() || null
   const note = input.note?.trim() || null
-  if ((phone && (phone.length > 32 || invalidControl(phone))) ||
-      (note && (note.length > 500 || invalidControl(note))) ||
-      (input.fulfillment === 'delivery' && !phone))
+  if (
+    (phone && (phone.length > 32 || invalidControl(phone))) ||
+    (note && (note.length > 500 || invalidControl(note))) ||
+    (input.fulfillment === 'delivery' && !phone)
+  )
     throw new Error('Téléphone requis pour la livraison, ou coordonnées invalides.')
 
   return {
@@ -179,10 +205,16 @@ export function preparePublicRequest(input: PublicRequest) {
 
 export function parseRecordedPublicRequest(value: unknown): RecordedPublicRequest {
   const row = record(value)
-  if (typeof row.orderId !== 'string' || !UUID.test(row.orderId) ||
-      !['submitted','approved','paid','cancelled','expired','reserved'].includes(String(row.status)) ||
-      !Number.isSafeInteger(row.amountXaf) ||
-      (row.amountXaf as number) < 0 || (row.amountXaf as number) > MAX_PUBLIC_AMOUNT)
+  if (
+    typeof row.orderId !== 'string' ||
+    !UUID.test(row.orderId) ||
+    !['submitted', 'approved', 'paid', 'cancelled', 'expired', 'reserved'].includes(
+      String(row.status),
+    ) ||
+    !Number.isSafeInteger(row.amountXaf) ||
+    (row.amountXaf as number) < 0 ||
+    (row.amountXaf as number) > MAX_PUBLIC_AMOUNT
+  )
     throw new Error('Réponse de commande invalide.')
   return {
     orderId: row.orderId,
@@ -211,28 +243,38 @@ export type PendingPublicOrder = {
 export function parsePendingPublicOrders(value: unknown): PendingPublicOrder[] {
   if (!Array.isArray(value) || value.length > 30)
     throw new Error('Liste des commandes reçues invalide.')
-  return value.map(item => {
+  return value.map((item) => {
     const row = record(item)
-    if (typeof row.orderId !== 'string' || !UUID.test(row.orderId) ||
-        (row.channel !== 'qr' && row.channel !== 'social') ||
-        (row.status !== 'submitted' && row.status !== 'approved') ||
-        !Number.isSafeInteger(row.amountXaf) ||
-        (row.amountXaf as number) < 0 ||
-        (row.amountXaf as number) > MAX_PUBLIC_AMOUNT ||
-        (row.fulfillment !== 'pickup' && row.fulfillment !== 'delivery') ||
-        typeof row.createdAt !== 'string' || !Number.isFinite(Date.parse(row.createdAt)) ||
-        (row.customerPhone !== null && typeof row.customerPhone !== 'string') ||
-        (row.customerNote !== null && typeof row.customerNote !== 'string') ||
-        !Array.isArray(row.lines) || row.lines.length < 1)
+    if (
+      typeof row.orderId !== 'string' ||
+      !UUID.test(row.orderId) ||
+      (row.channel !== 'qr' && row.channel !== 'social') ||
+      (row.status !== 'submitted' && row.status !== 'approved') ||
+      !Number.isSafeInteger(row.amountXaf) ||
+      (row.amountXaf as number) < 0 ||
+      (row.amountXaf as number) > MAX_PUBLIC_AMOUNT ||
+      (row.fulfillment !== 'pickup' && row.fulfillment !== 'delivery') ||
+      typeof row.createdAt !== 'string' ||
+      !Number.isFinite(Date.parse(row.createdAt)) ||
+      (row.customerPhone !== null && typeof row.customerPhone !== 'string') ||
+      (row.customerNote !== null && typeof row.customerNote !== 'string') ||
+      !Array.isArray(row.lines) ||
+      row.lines.length < 1
+    )
       throw new Error('Une commande reçue est invalide.')
 
     const lines: PendingPublicOrder['lines'] = []
     let total = 0
     for (const item of row.lines) {
       const line = record(item)
-      if (typeof line.label !== 'string' || !line.label.trim() ||
-          !Number.isSafeInteger(line.quantity) || (line.quantity as number) <= 0 ||
-          !Number.isSafeInteger(line.lineTotalXaf) || (line.lineTotalXaf as number) < 0)
+      if (
+        typeof line.label !== 'string' ||
+        !line.label.trim() ||
+        !Number.isSafeInteger(line.quantity) ||
+        (line.quantity as number) <= 0 ||
+        !Number.isSafeInteger(line.lineTotalXaf) ||
+        (line.lineTotalXaf as number) < 0
+      )
         throw new Error('Lignes de commande invalides.')
       total += line.lineTotalXaf as number
       if (!Number.isSafeInteger(total)) throw new Error('Total de demande invalide.')
@@ -259,7 +301,9 @@ export function parsePendingPublicOrders(value: unknown): PendingPublicOrder[] {
 
 export async function getPendingPublicOrders(shopId: string): Promise<PendingPublicOrder[]> {
   if (!UUID.test(shopId)) throw new Error('Boutique invalide.')
-  return parsePendingPublicOrders(await invoke('get_checkout_pending_orders', {
-    p_shop_id: shopId,
-  }))
+  return parsePendingPublicOrders(
+    await invoke('get_checkout_pending_orders', {
+      p_shop_id: shopId,
+    }),
+  )
 }

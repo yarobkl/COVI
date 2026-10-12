@@ -13,11 +13,13 @@ describe('central stock categories', () => {
   it('groups case, accents and whitespace consistently', () => {
     expect(categoryKey('  T-Shirts  ')).toBe('t-shirts')
     expect(categoryKey('Vêtements enfants')).toBe('vetements-enfants')
-    expect(aggregateCategoryStock([
-      { category: 'Robes', quantity: 4 },
-      { category: ' robes ', quantity: 3 },
-      { category: 'ROBES', quantity: 2 },
-    ])).toEqual([{ category: 'robes', quantity: 9 }])
+    expect(
+      aggregateCategoryStock([
+        { category: 'Robes', quantity: 4 },
+        { category: ' robes ', quantity: 3 },
+        { category: 'ROBES', quantity: 2 },
+      ]),
+    ).toEqual([{ category: 'robes', quantity: 9 }])
   })
 
   it('does not change its input', () => {
@@ -29,10 +31,12 @@ describe('central stock categories', () => {
     for (const quantity of [-1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
       expect(() => aggregateCategoryStock([{ category: 'Robes', quantity }])).toThrow()
     }
-    expect(() => aggregateCategoryStock([
-      { category: 'Sacs', quantity: Number.MAX_SAFE_INTEGER },
-      { category: 'Sacs', quantity: 1 },
-    ])).toThrow()
+    expect(() =>
+      aggregateCategoryStock([
+        { category: 'Sacs', quantity: Number.MAX_SAFE_INTEGER },
+        { category: 'Sacs', quantity: 1 },
+      ]),
+    ).toThrow()
   })
 
   it('returns an empty inventory for an empty reception', () => {

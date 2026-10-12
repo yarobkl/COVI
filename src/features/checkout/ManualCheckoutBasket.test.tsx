@@ -43,10 +43,12 @@ describe('notebook category checkout basket', () => {
     expect(screen.getByText('Total · 3 pièces')).toBeTruthy()
     expect(screen.getAllByText(/9\s*000/).length).toBeGreaterThan(0)
     fireEvent.click(screen.getByRole('button', { name: /Préparer la commande/ }))
-    await waitFor(() => expect(onPrepare).toHaveBeenCalledWith([
-      { categoryId: robesId, quantity: 2, negotiatedUnitPriceXaf: 3500 },
-      { categoryId: chemisesId, quantity: 1, negotiatedUnitPriceXaf: 2000 },
-    ]))
+    await waitFor(() =>
+      expect(onPrepare).toHaveBeenCalledWith([
+        { categoryId: robesId, quantity: 2, negotiatedUnitPriceXaf: 3500 },
+        { categoryId: chemisesId, quantity: 1, negotiatedUnitPriceXaf: 2000 },
+      ]),
+    )
   })
 
   it('allows distinct prices for the same category, and caps quantities at remaining stock', async () => {
@@ -60,17 +62,20 @@ describe('notebook category checkout basket', () => {
     expect(screen.getByRole('option', { name: /Robes/ }).getAttribute('disabled')).not.toBeNull()
 
     fireEvent.click(screen.getByRole('button', { name: /Préparer la commande/ }))
-    await waitFor(() => expect(onPrepare).toHaveBeenCalledWith([
-      { categoryId: robesId, quantity: 2, negotiatedUnitPriceXaf: 3500 },
-      { categoryId: robesId, quantity: 1, negotiatedUnitPriceXaf: 4000 },
-    ]))
+    await waitFor(() =>
+      expect(onPrepare).toHaveBeenCalledWith([
+        { categoryId: robesId, quantity: 2, negotiatedUnitPriceXaf: 3500 },
+        { categoryId: robesId, quantity: 1, negotiatedUnitPriceXaf: 4000 },
+      ]),
+    )
   })
 
   it('does not prepare an empty order and can remove an item', () => {
     const onPrepare = vi.fn(async () => {})
     render(<ManualCheckoutBasket categories={categories} onPrepare={onPrepare} />)
-    expect((screen.getByRole('button', { name: /Préparer la commande/ }) as HTMLButtonElement).disabled)
-      .toBe(true)
+    expect(
+      (screen.getByRole('button', { name: /Préparer la commande/ }) as HTMLButtonElement).disabled,
+    ).toBe(true)
     choose(robesId, '3000')
     add()
     fireEvent.click(screen.getByRole('button', { name: 'Retirer Robes du panier' }))
@@ -80,7 +85,9 @@ describe('notebook category checkout basket', () => {
 
   it('prevents duplicate submissions while waiting for server approval', async () => {
     let resolve!: () => void
-    const save = new Promise<void>((r) => { resolve = r })
+    const save = new Promise<void>((r) => {
+      resolve = r
+    })
     const onPrepare = vi.fn(() => save)
     render(<ManualCheckoutBasket categories={categories} onPrepare={onPrepare} />)
     choose(robesId, '3500')

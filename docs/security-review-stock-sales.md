@@ -3,6 +3,7 @@
 **Statut : revue en lecture seule. Aucun changement appliqué à Supabase.**
 
 ## Constat vérifié
+
 - `public.record_sale` est une fonction `SECURITY INVOKER` (prosecdef=false), propriétaire `postgres`.
 - La fonction est exécutable par `PUBLIC`, `anon`, `authenticated` et `service_role` selon ses ACL.
 - Elle vérifie quantité positive, prix non négatif, moyen de paiement autorisé, identifiant d'opération obligatoire, existence d'une vente antérieure de même opération, disponibilité du produit, quantité en stock ; elle verrouille le produit `FOR UPDATE` et crée vente/ligne puis décrémente le produit.
@@ -10,6 +11,7 @@
 - Toutes les six tables publiques ont des politiques `ALL` pour `authenticated` limitées au propriétaire de boutique. Aucune politique anonyme listée pour ces tables.
 
 ## Risques à tester et actions recommandées
+
 1. Vérifier avec un utilisateur anonyme que `record_sale` échoue et ne crée aucune vente.
 2. Vérifier avec un compte authentifié de la boutique A qu'il ne peut pas vendre un produit de la boutique B, même en falsifiant les paramètres.
 3. Tester les replays de `client_operation_id` avec paramètres différents : la fonction renvoie la vente existante sans revérifier le contenu. Définir la politique d'idempotence et de détection de conflit pour la nouvelle caisse.
@@ -20,7 +22,9 @@
 8. Ne pas créer de politiques publiques pour les tables de stock ; pour les commandes QR/lien, utiliser des fonctions minimales, anti-abus et des jetons opaques.
 
 ## Données de simulation
+
 Une requête agrégée sur `products` a retourné : 6 produits actifs `is_test=true`, stock cumulé 9 ; 48 produits vendus `is_test=true`, stock 0. Aucun produit non-test retourné. Ne pas convertir ces neuf unités en stock commercial réel.
 
 ## Décision de livraison
+
 **Aucune migration SQL ni modification de droits sur la production** à ce stade. La prochaine étape est un test de sécurité en environnement isolé et la correction des lacunes du brouillon SQL avant validation.

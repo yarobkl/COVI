@@ -16,13 +16,19 @@ vi.mock('./CashierCheckoutPanel', () => ({
 
 const shopId = '11111111-1111-4111-8111-111111111111'
 const orderId = 'bbbbbbbb-0000-4000-8000-000000000001'
-const rows = [{
-  orderId, channel: 'social' as const, status: 'submitted' as const,
-  amountXaf: 7000, customerPhone: '+242 060000000',
-  customerNote: 'Robe du live', fulfillment: 'pickup' as const,
-  createdAt: '2026-10-12T12:00:00Z',
-  lines: [{ label: 'Robes', quantity: 2, lineTotalXaf: 7000 }],
-}]
+const rows = [
+  {
+    orderId,
+    channel: 'social' as const,
+    status: 'submitted' as const,
+    amountXaf: 7000,
+    customerPhone: '+242 060000000',
+    customerNote: 'Robe du live',
+    fulfillment: 'pickup' as const,
+    createdAt: '2026-10-12T12:00:00Z',
+    lines: [{ label: 'Robes', quantity: 2, lineTotalXaf: 7000 }],
+  },
+]
 
 beforeEach(() => {
   vi.mocked(getPendingPublicOrders).mockReset()
@@ -34,7 +40,9 @@ afterEach(cleanup)
 describe('shop owner QR/social requests inbox', () => {
   it('waits for authenticated approval before opening manual cashier', async () => {
     vi.mocked(approveManualCheckoutOrder).mockResolvedValue({
-      orderId, status: 'approved', amountXaf: 7000,
+      orderId,
+      status: 'approved',
+      amountXaf: 7000,
     })
     render(<PublicOrderInbox shopId={shopId} shopName="Boutique A" />)
     await screen.findByText('Robe du live', { exact: false })
@@ -47,12 +55,16 @@ describe('shop owner QR/social requests inbox', () => {
 
   it('never opens payment after a failed approval or wrong total', async () => {
     vi.mocked(approveManualCheckoutOrder).mockResolvedValue({
-      orderId, status: 'approved', amountXaf: 1,
+      orderId,
+      status: 'approved',
+      amountXaf: 1,
     })
     render(<PublicOrderInbox shopId={shopId} shopName="Boutique A" />)
     await screen.findByText('Robe du live', { exact: false })
     fireEvent.click(screen.getByRole('button', { name: /Approuver et passer/ }))
-    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('ne correspond pas'))
+    await waitFor(() =>
+      expect(screen.getByRole('alert').textContent).toContain('ne correspond pas'),
+    )
     expect(screen.queryByText('Encaissement ' + orderId)).toBeNull()
   })
 })

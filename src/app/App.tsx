@@ -70,9 +70,11 @@ function renderPage(route: Route, { shop, updateShop, onSimulation }: PageContex
     case 'vendre':
       return <SalePage shopId={shop.id} shopName={shop.name} />
     case 'caisse':
-      return categoryCheckoutEnabled
-        ? <NotebookCheckoutHub shopId={shop.id} shopName={shop.name} />
-        : <SalePage shopId={shop.id} shopName={shop.name} />
+      return categoryCheckoutEnabled ? (
+        <NotebookCheckoutHub shopId={shop.id} shopName={shop.name} />
+      ) : (
+        <SalePage shopId={shop.id} shopName={shop.name} />
+      )
     case 'stock':
       return (
         <LegacyPage>

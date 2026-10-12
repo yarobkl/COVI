@@ -14,7 +14,9 @@ vi.mock('../../lib/manualOrder', async (importOriginal) => ({
 }))
 vi.mock('./CashierCheckoutPanel', () => ({
   CashierCheckoutPanel: ({ orderId, amountXaf }: { orderId: string; amountXaf: number }) => (
-    <p>Écran d'encaissement {orderId} · {amountXaf} FCFA</p>
+    <p>
+      Écran d'encaissement {orderId} · {amountXaf} FCFA
+    </p>
   ),
 }))
 
@@ -50,10 +52,14 @@ async function fillBasket() {
 describe('future COVI manual checkout flow (not mounted on production routes)', () => {
   it('creates, approves and only THEN shows the cashier confirmation', async () => {
     vi.mocked(createManualCheckoutOrder).mockResolvedValue({
-      orderId, status: 'submitted', amountXaf: 3500,
+      orderId,
+      status: 'submitted',
+      amountXaf: 3500,
     })
     vi.mocked(approveManualCheckoutOrder).mockResolvedValue({
-      orderId, status: 'approved', amountXaf: 3500,
+      orderId,
+      status: 'approved',
+      amountXaf: 3500,
     })
 
     render(<ManualCheckoutFlow shopId={shopId} shopName="Boutique A" />)
@@ -75,7 +81,9 @@ describe('future COVI manual checkout flow (not mounted on production routes)', 
 
   it('preserves creation operation ID on retry after approval network failure', async () => {
     vi.mocked(createManualCheckoutOrder).mockResolvedValue({
-      orderId, status: 'submitted', amountXaf: 3500,
+      orderId,
+      status: 'submitted',
+      amountXaf: 3500,
     })
     vi.mocked(approveManualCheckoutOrder)
       .mockRejectedValueOnce(new Error('Connexion perdue'))
@@ -96,7 +104,9 @@ describe('future COVI manual checkout flow (not mounted on production routes)', 
 
   it('does not proceed to cashier if server totals do not match', async () => {
     vi.mocked(createManualCheckoutOrder).mockResolvedValue({
-      orderId, status: 'submitted', amountXaf: 9999,
+      orderId,
+      status: 'submitted',
+      amountXaf: 9999,
     })
     render(<ManualCheckoutFlow shopId={shopId} shopName="Boutique A" />)
     await fillBasket()

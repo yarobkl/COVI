@@ -20,7 +20,8 @@ beforeEach(() => {
     randomUUID: () => '77770000-0000-4000-8000-000000000001',
   })
   vi.mocked(getPublicCatalog).mockResolvedValue({
-    shopName: 'Chez Mama', categories: [{ id: categoryId, label: 'Robes' }],
+    shopName: 'Chez Mama',
+    categories: [{ id: categoryId, label: 'Robes' }],
   })
 })
 afterEach(() => {
@@ -38,7 +39,9 @@ async function fill() {
 describe('anonymous QR/social notebook request screen', () => {
   it('does not display a payment receipt or deduct stock when request is submitted', async () => {
     vi.mocked(submitPublicOrder).mockResolvedValue({
-      orderId, status: 'submitted', amountXaf: 3500,
+      orderId,
+      status: 'submitted',
+      amountXaf: 3500,
     })
     render(<PublicOrderRequestPage token={token} channel="qr" />)
     await fill()
@@ -47,10 +50,13 @@ describe('anonymous QR/social notebook request screen', () => {
     await screen.findByRole('heading', { name: 'Demande envoyée' })
     expect(screen.getByText('BBBBBBBB')).toBeTruthy()
     expect(screen.getByText(/Votre paiement n'est pas confirmé/)).toBeTruthy()
-    expect(submitPublicOrder).toHaveBeenCalledWith(expect.objectContaining({
-      token, channel: 'qr',
-      operationId: '77770000-0000-4000-8000-000000000001',
-    }))
+    expect(submitPublicOrder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        token,
+        channel: 'qr',
+        operationId: '77770000-0000-4000-8000-000000000001',
+      }),
+    )
   })
 
   it('requires a contact phone when delivery is selected', async () => {

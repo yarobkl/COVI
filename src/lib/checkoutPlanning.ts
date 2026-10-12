@@ -37,16 +37,23 @@ export function prepareCheckout(lines: readonly CheckoutLine[]): PreparedCheckou
       throw new Error('Catégorie invalide.')
     if (!Number.isSafeInteger(line.quantity) || line.quantity < 1 || line.quantity > 2147483647)
       throw new Error('Quantité de vente invalide.')
-    if (!Number.isSafeInteger(line.negotiatedUnitPrice) ||
-        line.negotiatedUnitPrice < 0 || line.negotiatedUnitPrice > MAX_XAF_AMOUNT)
+    if (
+      !Number.isSafeInteger(line.negotiatedUnitPrice) ||
+      line.negotiatedUnitPrice < 0 ||
+      line.negotiatedUnitPrice > MAX_XAF_AMOUNT
+    )
       throw new Error('Prix négocié invalide.')
     const lineTotal = line.quantity * line.negotiatedUnitPrice
     if (!Number.isSafeInteger(lineTotal) || lineTotal > MAX_XAF_AMOUNT)
       throw new Error('Montant de ligne trop élevé.')
     totalAmount += lineTotal
     totalQuantity += line.quantity
-    if (!Number.isSafeInteger(totalAmount) || totalAmount > MAX_XAF_AMOUNT ||
-        !Number.isSafeInteger(totalQuantity) || totalQuantity > 2147483647)
+    if (
+      !Number.isSafeInteger(totalAmount) ||
+      totalAmount > MAX_XAF_AMOUNT ||
+      !Number.isSafeInteger(totalQuantity) ||
+      totalQuantity > 2147483647
+    )
       throw new Error('Total de vente trop élevé.')
     prepared.push({
       categoryKey: categoryKey(line.category),

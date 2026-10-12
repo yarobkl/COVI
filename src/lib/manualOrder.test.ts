@@ -40,7 +40,9 @@ describe('manual checkout creation', () => {
     const prepared = prepareManualOrderLines(request.lines)
     expect(prepared.lines).toHaveLength(2)
     expect(prepared.lines.find((line) => line.categoryId === categoryId)).toEqual({
-      categoryId, quantity: 5, unitPriceXaf: 3500,
+      categoryId,
+      quantity: 5,
+      unitPriceXaf: 3500,
     })
     expect(prepared.amountXaf).toBe(22500)
     expect(request.lines[0].quantity).toBe(2)
@@ -57,26 +59,32 @@ describe('manual checkout creation', () => {
 
   it('normalizes the phone without requiring it for in-person pickup', () => {
     expect(prepareManualOrderRequest(request).p_customer_phone).toBe('+242 06 123 45 67')
-    expect(prepareManualOrderRequest({ ...request, customerPhone: undefined }).p_customer_phone).toBeNull()
+    expect(
+      prepareManualOrderRequest({ ...request, customerPhone: undefined }).p_customer_phone,
+    ).toBeNull()
   })
 
   it('rejects malformed categories, amounts and combined quantity overflow', () => {
     expect(() => prepareManualOrderLines([])).toThrow()
-    expect(() => prepareManualOrderLines([
-      { categoryId: 'bad', quantity: 1, negotiatedUnitPriceXaf: 100 },
-    ])).toThrow()
+    expect(() =>
+      prepareManualOrderLines([{ categoryId: 'bad', quantity: 1, negotiatedUnitPriceXaf: 100 }]),
+    ).toThrow()
     for (const price of [-1, 12.5, Infinity, NaN]) {
-      expect(() => prepareManualOrderLines([
-        { categoryId, quantity: 1, negotiatedUnitPriceXaf: price },
-      ])).toThrow()
+      expect(() =>
+        prepareManualOrderLines([{ categoryId, quantity: 1, negotiatedUnitPriceXaf: price }]),
+      ).toThrow()
     }
-    expect(() => prepareManualOrderLines([
-      { categoryId, quantity: 2147483647, negotiatedUnitPriceXaf: 0 },
-      { categoryId, quantity: 1, negotiatedUnitPriceXaf: 0 },
-    ])).toThrow()
-    expect(() => prepareManualOrderLines([
-      { categoryId, quantity: 10, negotiatedUnitPriceXaf: 9_000_000_000_000 },
-    ])).toThrow()
+    expect(() =>
+      prepareManualOrderLines([
+        { categoryId, quantity: 2147483647, negotiatedUnitPriceXaf: 0 },
+        { categoryId, quantity: 1, negotiatedUnitPriceXaf: 0 },
+      ]),
+    ).toThrow()
+    expect(() =>
+      prepareManualOrderLines([
+        { categoryId, quantity: 10, negotiatedUnitPriceXaf: 9_000_000_000_000 },
+      ]),
+    ).toThrow()
   })
 
   it('uses RPC instead of writing orders or stock directly', async () => {
@@ -103,16 +111,23 @@ describe('manual checkout creation', () => {
       error: null,
     } as never)
     await expect(approveManualCheckoutOrder({ shopId, orderId })).resolves.toEqual({
-      orderId, status: 'approved', amountXaf: 22500,
+      orderId,
+      status: 'approved',
+      amountXaf: 22500,
     })
     expect(supabase.rpc).toHaveBeenCalledWith('approve_manual_checkout_order', {
-      p_shop_id: shopId, p_order_id: orderId,
+      p_shop_id: shopId,
+      p_order_id: orderId,
     })
   })
 
   it('rejects server responses that are incomplete or unapproved', () => {
     expect(() => parseRecordedManualOrder(null)).toThrow()
-    expect(() => parseRecordedManualOrder({ orderId: 'bad', status: 'approved', amountXaf: 20 })).toThrow()
-    expect(() => parseRecordedManualOrder({ orderId, status: 'auto_paid', amountXaf: 20 })).toThrow()
+    expect(() =>
+      parseRecordedManualOrder({ orderId: 'bad', status: 'approved', amountXaf: 20 }),
+    ).toThrow()
+    expect(() =>
+      parseRecordedManualOrder({ orderId, status: 'auto_paid', amountXaf: 20 }),
+    ).toThrow()
   })
 })

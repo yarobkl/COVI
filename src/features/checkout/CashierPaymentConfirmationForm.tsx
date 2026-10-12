@@ -55,7 +55,12 @@ export function CashierPaymentConfirmationForm({
   }
 
   return (
-    <form className="checkout-confirmation sheet" onSubmit={(event) => { void submit(event) }}>
+    <form
+      className="checkout-confirmation sheet"
+      onSubmit={(event) => {
+        void submit(event)
+      }}
+    >
       <header className="checkout-confirmation__head">
         <p className="hand checkout-confirmation__hand">On note le paiement.</p>
         <h2>Encaissement</h2>
@@ -73,51 +78,54 @@ export function CashierPaymentConfirmationForm({
       </Ledger>
 
       <div className="checkout-confirmation__fields">
-      <Segmented
-        legend="Paiement reçu par"
-        options={paymentOptions}
-        value={method}
-        onChange={setMethod}
-        sale
-      />
+        <Segmented
+          legend="Paiement reçu par"
+          options={paymentOptions}
+          value={method}
+          onChange={setMethod}
+          sale
+        />
 
-      <Field
-        label="Prénom de la personne qui encaisse"
-        hint="Il sera inscrit sur le reçu. Le compte connecté reste identifié dans l'historique."
-      >
-        {(props) => (
-          <Input
-            {...props}
-            type="text"
-            name="cashierFirstName"
-            autoComplete="given-name"
-            maxLength={60}
-            required
-            value={cashierFirstName}
-            onChange={(event) => setCashierFirstName(event.target.value)}
-            placeholder="Ex. : Marie Lou"
-          />
-        )}
-      </Field>
+        <Field
+          label="Prénom de la personne qui encaisse"
+          hint="Il sera inscrit sur le reçu. Le compte connecté reste identifié dans l'historique."
+        >
+          {(props) => (
+            <Input
+              {...props}
+              type="text"
+              name="cashierFirstName"
+              autoComplete="given-name"
+              maxLength={60}
+              required
+              value={cashierFirstName}
+              onChange={(event) => setCashierFirstName(event.target.value)}
+              placeholder="Ex. : Marie Lou"
+            />
+          )}
+        </Field>
 
-      <Field label="Référence Mobile Money / reçu" optional>
-        {(props) => (
-          <Input
-            {...props}
-            type="text"
-            name="externalReference"
-            maxLength={120}
-            autoComplete="off"
-            value={externalReference}
-            onChange={(event) => setExternalReference(event.target.value)}
-            placeholder="SMS ou référence, si disponible"
-          />
-        )}
-      </Field>
-
+        <Field label="Référence Mobile Money / reçu" optional>
+          {(props) => (
+            <Input
+              {...props}
+              type="text"
+              name="externalReference"
+              maxLength={120}
+              autoComplete="off"
+              value={externalReference}
+              onChange={(event) => setExternalReference(event.target.value)}
+              placeholder="SMS ou référence, si disponible"
+            />
+          )}
+        </Field>
       </div>
 
-      {error && <p className="field__error checkout-confirmation__error" role="alert">{error}</p>}
+      {error && (
+        <p className="field__error checkout-confirmation__error" role="alert">
+          {error}
+        </p>
+      )}
       <p className="checkout-confirmation__assurance">
         COVI n'encaisse pas l'argent : vous confirmez sa réception dans votre boutique.
       </p>

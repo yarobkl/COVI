@@ -1,9 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { supabase } from './supabase'
-import {
-  listCheckoutStockCategories,
-  parseCheckoutStockCategories,
-} from './checkoutCategoryStock'
+import { listCheckoutStockCategories, parseCheckoutStockCategories } from './checkoutCategoryStock'
 
 vi.mock('./supabase', () => ({
   supabase: { from: vi.fn() },

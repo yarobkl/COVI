@@ -9,7 +9,9 @@ describe('cashier confirmation form', () => {
     const onConfirm = vi.fn(async () => {})
     render(<CashierPaymentConfirmationForm amountXaf={12000} onConfirm={onConfirm} />)
 
-    const submit = screen.getByRole('button', { name: 'Confirmer le paiement reçu' }) as HTMLButtonElement
+    const submit = screen.getByRole('button', {
+      name: 'Confirmer le paiement reçu',
+    }) as HTMLButtonElement
     expect(submit.disabled).toBe(true)
 
     fireEvent.click(screen.getByLabelText('Mobile Money'))
@@ -19,10 +21,12 @@ describe('cashier confirmation form', () => {
     expect(submit.disabled).toBe(false)
     fireEvent.click(submit)
 
-    await waitFor(() => expect(onConfirm).toHaveBeenCalledWith({
-      method: 'mobile_money',
-      cashierFirstName: 'Marie Lou',
-    }))
+    await waitFor(() =>
+      expect(onConfirm).toHaveBeenCalledWith({
+        method: 'mobile_money',
+        cashierFirstName: 'Marie Lou',
+      }),
+    )
   })
 
   it('blocks malformed cashier names even when the button is active', async () => {
@@ -39,7 +43,9 @@ describe('cashier confirmation form', () => {
 
   it('keeps the notebook total visible and prevents double clicks while the server records the sale', async () => {
     let finish: (() => void) | undefined
-    const saving = new Promise<void>((resolve) => { finish = resolve })
+    const saving = new Promise<void>((resolve) => {
+      finish = resolve
+    })
     const onConfirm = vi.fn(() => saving)
 
     const { container } = render(

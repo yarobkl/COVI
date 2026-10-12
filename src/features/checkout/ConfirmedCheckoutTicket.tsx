@@ -35,8 +35,14 @@ export function ConfirmedCheckoutTicket({ receipt }: { receipt: ConfirmedCheckou
         />
       ))}
       <hr className="ticket__cut" />
-      <TicketLine className="ticket__total" left="TOTAL" right={fcfa(receipt.amountXaf) + ' FCFA'} />
-      <p className="ticket__note">Paiement confirmé par le vendeur · {methodNames[receipt.method]}</p>
+      <TicketLine
+        className="ticket__total"
+        left="TOTAL"
+        right={fcfa(receipt.amountXaf) + ' FCFA'}
+      />
+      <p className="ticket__note">
+        Paiement confirmé par le vendeur · {methodNames[receipt.method]}
+      </p>
       <p className="ticket__note">Encaissé par : {receipt.cashierFirstName}</p>
     </Ticket>
   )

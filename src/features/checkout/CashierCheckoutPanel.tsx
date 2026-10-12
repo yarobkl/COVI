@@ -26,12 +26,7 @@ export function CashierCheckoutPanel(props: Props) {
   return <CashierCheckoutPanelInstance key={props.shopId + ':' + props.orderId} {...props} />
 }
 
-function CashierCheckoutPanelInstance({
-  shopId,
-  shopName,
-  orderId,
-  amountXaf,
-}: Props) {
+function CashierCheckoutPanelInstance({ shopId, shopName, orderId, amountXaf }: Props) {
   const [receipt, setReceipt] = useState<RecordedCheckoutReceipt | null>(null)
 
   // A lost network response may be retried with the SAME operation ID only
@@ -59,7 +54,9 @@ function CashierCheckoutPanelInstance({
       <section className="sheet checkout-receipt" aria-label="Reçu de vente enregistré">
         <header className="checkout-receipt__head">
           <h2>Vendu.</h2>
-          <Stamp kind="paid" size="sm">Payé</Stamp>
+          <Stamp kind="paid" size="sm">
+            Payé
+          </Stamp>
         </header>
         <p className="hand checkout-receipt__hand">C'est noté dans le cahier.</p>
         <p className="checkout-receipt__status" role="status">

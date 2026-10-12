@@ -3,11 +3,13 @@
 Statut : **plan de tests, pas résultats de tests**. Ne pas exécuter contre la base de production.
 
 ## Préparation
+
 - Créer deux boutiques A/B avec comptes distincts, catégories identiques, un ballon de 12 robes pour A et un de 4 robes pour B.
 - Utiliser une base jetable et des comptes fictifs. Ne jamais utiliser de vrais numéros de téléphone ou photos clients.
 - Vérifier les migrations sur une base vierge puis sur une copie anonymisée des anciennes tables ; comparer les totaux avant/après.
 
 ## Invariants de stock
+
 1. Réception de 12 robes : A=12, B=4 ; un seul mouvement d'entrée pour A.
 2. Rejouer le même identifiant d'opération : aucun ajout supplémentaire ; détecter les paramètres contradictoires.
 3. Vendre 5 robes : A=7, un seul débit de 5 et une seule vente.
@@ -20,6 +22,7 @@ Statut : **plan de tests, pas résultats de tests**. Ne pas exécuter contre la 
 10. Aucune écriture cross-shop par substitution de `shop_id`, `arrival_id`, `sale_id` ou `category_id`.
 
 ## Sécurité
+
 - Appel anonyme aux RPC privées : refus.
 - Compte A tentant de lire/écrire stock B : refus.
 - Tentative directe de modifier les nouvelles tables depuis le client : refus.
@@ -28,6 +31,7 @@ Statut : **plan de tests, pas résultats de tests**. Ne pas exécuter contre la 
 - Vérifier le comportement des anciennes ventes hors connexion et l'idempotence de `record_sale` ; ne pas modifier l'authentification.
 
 ## Critères de passage
+
 - Tests unitaires TypeScript, tests SQL en base jetable, tests de concurrence et tests E2E passent.
 - Le bilan ne présente pas une marge exacte sans méthode de valorisation du stock restant.
 - Les données de test existantes ne sont pas transférées dans le stock réel.

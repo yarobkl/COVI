@@ -33,11 +33,16 @@ export function parseCheckoutStockCategories(
       throw new Error('Ligne de stock invalide.')
     }
     const row = item as Record<string, unknown>
-    if (typeof row.id !== 'string' || !UUID.test(row.id) ||
-        row.shop_id !== shopId || row.is_test !== isTest ||
-        typeof row.display_name !== 'string' || !row.display_name.trim() ||
-        !Number.isSafeInteger(row.quantity_on_hand) ||
-        !Number.isSafeInteger(row.quantity_reserved)) {
+    if (
+      typeof row.id !== 'string' ||
+      !UUID.test(row.id) ||
+      row.shop_id !== shopId ||
+      row.is_test !== isTest ||
+      typeof row.display_name !== 'string' ||
+      !row.display_name.trim() ||
+      !Number.isSafeInteger(row.quantity_on_hand) ||
+      !Number.isSafeInteger(row.quantity_reserved)
+    ) {
       throw new Error('Ligne de stock invalide.')
     }
     const quantity = row.quantity_on_hand as number
@@ -69,7 +74,8 @@ export async function listCheckoutStockCategories(
   if (!UUID.test(shopId) || typeof isTest !== 'boolean')
     throw new Error('Boutique ou type de stock invalide.')
   const client = supabase as unknown as FutureStockClient
-  const { data, error } = await client.from('stock_categories')
+  const { data, error } = await client
+    .from('stock_categories')
     .select('id,shop_id,display_name,quantity_on_hand,quantity_reserved,is_test')
     .eq('shop_id', shopId)
     .eq('is_test', isTest)

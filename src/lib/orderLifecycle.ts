@@ -3,13 +3,7 @@
  * No database updates, stock decrement or payment capture happen here.
  */
 export type OrderChannel = 'qr' | 'social' | 'manual'
-export type OrderStatus =
-  | 'submitted'
-  | 'approved'
-  | 'reserved'
-  | 'paid'
-  | 'cancelled'
-  | 'expired'
+export type OrderStatus = 'submitted' | 'approved' | 'reserved' | 'paid' | 'cancelled' | 'expired'
 
 export type ManualPaymentMethod = 'cash' | 'mobile_money' | 'other'
 
@@ -38,8 +32,11 @@ export function prepareManualCashierAttestation(
     throw new Error('Le prénom de la personne qui encaisse est obligatoire.')
 
   const cashierFirstName = input.cashierFirstName.normalize('NFC').trim().replace(/\s+/gu, ' ')
-  if (cashierFirstName.length < 1 || cashierFirstName.length > 60 ||
-      !/^[\p{L}\p{M}]+(?:[ '\u2019-][\p{L}\p{M}]+)*$/u.test(cashierFirstName))
+  if (
+    cashierFirstName.length < 1 ||
+    cashierFirstName.length > 60 ||
+    !/^[\p{L}\p{M}]+(?:[ '\u2019-][\p{L}\p{M}]+)*$/u.test(cashierFirstName)
+  )
     throw new Error('Saisissez un prénom valide (60 caractères maximum).')
 
   if (input.externalReference !== undefined && typeof input.externalReference !== 'string')
@@ -61,22 +58,29 @@ export function validateManualPaymentConfirmation(
   const attestation = prepareManualCashierAttestation(value)
   if (typeof value.receivedByUserId !== 'string' || !value.receivedByUserId.trim())
     throw new Error('Le compte du vendeur doit être identifié.')
-  if (typeof value.confirmedAt !== 'string' ||
-      !value.confirmedAt.trim() || !Number.isFinite(Date.parse(value.confirmedAt)))
+  if (
+    typeof value.confirmedAt !== 'string' ||
+    !value.confirmedAt.trim() ||
+    !Number.isFinite(Date.parse(value.confirmedAt))
+  )
     throw new Error('Date de confirmation invalide.')
-  return { ...attestation, receivedByUserId: value.receivedByUserId, confirmedAt: value.confirmedAt }
+  return {
+    ...attestation,
+    receivedByUserId: value.receivedByUserId,
+    confirmedAt: value.confirmedAt,
+  }
 }
 
-export type OrderEvent =
-  | 'approve'
-  | 'reserve'
-  | 'confirm_payment'
-  | 'cancel'
-  | 'expire'
+export type OrderEvent = 'approve' | 'reserve' | 'confirm_payment' | 'cancel' | 'expire'
 
 const transitions: Record<OrderStatus, Partial<Record<OrderEvent, OrderStatus>>> = {
   submitted: { approve: 'approved', cancel: 'cancelled', expire: 'expired' },
-  approved: { reserve: 'reserved', confirm_payment: 'paid', cancel: 'cancelled', expire: 'expired' },
+  approved: {
+    reserve: 'reserved',
+    confirm_payment: 'paid',
+    cancel: 'cancelled',
+    expire: 'expired',
+  },
   reserved: { confirm_payment: 'paid', cancel: 'cancelled', expire: 'expired' },
   paid: {},
   cancelled: {},
@@ -89,17 +93,11 @@ export function nextOrderStatus(status: OrderStatus, event: OrderEvent): OrderSt
   return next
 }
 
-export function requiresStockDeduction(
-  previous: OrderStatus,
-  next: OrderStatus,
-): boolean {
+export function requiresStockDeduction(previous: OrderStatus, next: OrderStatus): boolean {
   return previous !== 'paid' && next === 'paid'
 }
 
-export function releasesReservation(
-  previous: OrderStatus,
-  next: OrderStatus,
-): boolean {
+export function releasesReservation(previous: OrderStatus, next: OrderStatus): boolean {
   return previous === 'reserved' && (next === 'cancelled' || next === 'expired')
 }
 

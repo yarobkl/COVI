@@ -38,8 +38,15 @@ export const STOCK_CATEGORIES = [
 export type StockCategoryKey = (typeof STOCK_CATEGORIES)[number]['key']
 
 export function categoryKey(value: string): string {
-  return value.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('fr')
-    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'autres'
+  return (
+    value
+      .trim()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLocaleLowerCase('fr')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '') || 'autres'
+  )
 }
 
 export type StockCategoryQuantity = { category: string; quantity: number }

@@ -21,9 +21,15 @@ describe('omnichannel order lifecycle', () => {
       ...confirmation,
       cashierFirstName: 'Marie Lou',
     })
-    expect(() => validateManualPaymentConfirmation({ ...confirmation, receivedByUserId: ' ' })).toThrow()
-    expect(() => validateManualPaymentConfirmation({ ...confirmation, confirmedAt: 'invalid' })).toThrow()
-    expect(() => validateManualPaymentConfirmation({ ...confirmation, cashierFirstName: ' ' })).toThrow()
+    expect(() =>
+      validateManualPaymentConfirmation({ ...confirmation, receivedByUserId: ' ' }),
+    ).toThrow()
+    expect(() =>
+      validateManualPaymentConfirmation({ ...confirmation, confirmedAt: 'invalid' }),
+    ).toThrow()
+    expect(() =>
+      validateManualPaymentConfirmation({ ...confirmation, cashierFirstName: ' ' }),
+    ).toThrow()
   })
 
   it('requires a typed first name for the person who receives the money', () => {
@@ -33,26 +39,32 @@ describe('omnichannel order lifecycle', () => {
       cashierFirstName: 'Élodie',
     })
     for (const valid of ['Jean-Pierre', 'Marie Lou', 'N’Goma', 'Zoé']) {
-      expect(prepareManualCashierAttestation({
-        ...base,
-        cashierFirstName: valid,
-      }).cashierFirstName).toBe(valid)
+      expect(
+        prepareManualCashierAttestation({
+          ...base,
+          cashierFirstName: valid,
+        }).cashierFirstName,
+      ).toBe(valid)
     }
     for (const invalid of ['', '    ', 'Cashier123', '<script>', 'A'.repeat(61)]) {
-      expect(() => prepareManualCashierAttestation({
-        ...base,
-        cashierFirstName: invalid,
-      })).toThrow()
+      expect(() =>
+        prepareManualCashierAttestation({
+          ...base,
+          cashierFirstName: invalid,
+        }),
+      ).toThrow()
     }
   })
 
   it('does not accept client-facing attestation without account identity', () => {
-    expect(() => validateManualPaymentConfirmation({
-      method: 'mobile_money',
-      cashierFirstName: 'Luc',
-      receivedByUserId: '',
-      confirmedAt: '2026-10-12T12:00:00Z',
-    })).toThrow()
+    expect(() =>
+      validateManualPaymentConfirmation({
+        method: 'mobile_money',
+        cashierFirstName: 'Luc',
+        receivedByUserId: '',
+        confirmedAt: '2026-10-12T12:00:00Z',
+      }),
+    ).toThrow()
   })
 
   it('supports all three channels with one workflow', () => {

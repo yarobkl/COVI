@@ -20,9 +20,12 @@ describe('server-confirmed checkout receipt parsing', () => {
   })
 
   it('rejects any receipt whose sum differs from the saved total', () => {
-    expect(() => parseRecordedCheckoutReceipt({
-      ...valid, amountXaf: 15000,
-    })).toThrow('incohérent')
+    expect(() =>
+      parseRecordedCheckoutReceipt({
+        ...valid,
+        amountXaf: 15000,
+      }),
+    ).toThrow('incohérent')
   })
 
   it('rejects malformed server replies rather than displaying a fake paid receipt', () => {

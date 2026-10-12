@@ -24,10 +24,12 @@ describe('ballon and supplier reception planning', () => {
   })
 
   it('rejects quantities beyond PostgreSQL integer capacity', () => {
-    expect(() => prepareReceptionLines([
-      { category: 'Robes', quantity: 2147483647 },
-      { category: 'Robes', quantity: 1 },
-    ])).toThrow()
+    expect(() =>
+      prepareReceptionLines([
+        { category: 'Robes', quantity: 2147483647 },
+        { category: 'Robes', quantity: 1 },
+      ]),
+    ).toThrow()
   })
 
   it('allows a global balloon cost but never derives per-piece purchase cost', () => {

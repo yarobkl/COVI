@@ -50,21 +50,24 @@ function containsAsciiControl(value: string): boolean {
   })
 }
 
-export function prepareManualOrderLines(
-  lines: readonly ManualOrderLineInput[],
-): { lines: ManualOrderLine[]; amountXaf: number } {
+export function prepareManualOrderLines(lines: readonly ManualOrderLineInput[]): {
+  lines: ManualOrderLine[]
+  amountXaf: number
+} {
   if (lines.length < 1 || lines.length > 100)
     throw new Error('Une commande contient entre 1 et 100 lignes.')
   const grouped = new Map<string, ManualOrderLine>()
   const quantityByCategory = new Map<string, number>()
   let amountXaf = 0
   for (const item of lines) {
-    if (!UUID.test(item.categoryId))
-      throw new Error('Catégorie de stock invalide.')
+    if (!UUID.test(item.categoryId)) throw new Error('Catégorie de stock invalide.')
     if (!Number.isSafeInteger(item.quantity) || item.quantity < 1 || item.quantity > MAX_QTY)
       throw new Error('Quantité invalide.')
-    if (!Number.isSafeInteger(item.negotiatedUnitPriceXaf) ||
-        item.negotiatedUnitPriceXaf < 0 || item.negotiatedUnitPriceXaf > MAX_XAF)
+    if (
+      !Number.isSafeInteger(item.negotiatedUnitPriceXaf) ||
+      item.negotiatedUnitPriceXaf < 0 ||
+      item.negotiatedUnitPriceXaf > MAX_XAF
+    )
       throw new Error('Prix négocié invalide.')
 
     const lineTotal = item.quantity * item.negotiatedUnitPriceXaf
@@ -76,8 +79,7 @@ export function prepareManualOrderLines(
 
     const categoryId = item.categoryId.toLowerCase()
     const categoryQuantity = (quantityByCategory.get(categoryId) ?? 0) + item.quantity
-    if (categoryQuantity > MAX_QTY)
-      throw new Error('Quantité de catégorie trop élevée.')
+    if (categoryQuantity > MAX_QTY) throw new Error('Quantité de catégorie trop élevée.')
     quantityByCategory.set(categoryId, categoryQuantity)
 
     const key = categoryId + ':' + item.negotiatedUnitPriceXaf
@@ -93,8 +95,7 @@ export function prepareManualOrderLines(
     }
   }
   const prepared = Array.from(grouped.values()).sort(
-    (a, b) => a.categoryId.localeCompare(b.categoryId) ||
-      a.unitPriceXaf - b.unitPriceXaf,
+    (a, b) => a.categoryId.localeCompare(b.categoryId) || a.unitPriceXaf - b.unitPriceXaf,
   )
   return { lines: prepared, amountXaf }
 }
@@ -102,13 +103,17 @@ export function prepareManualOrderLines(
 export function prepareManualOrderRequest(input: ManualOrderRequest) {
   if (!UUID.test(input.shopId) || !UUID.test(input.operationId))
     throw new Error('Boutique ou identifiant de commande invalide.')
-  if (typeof input.isTest !== 'boolean' ||
-      (input.fulfillment !== 'pickup' && input.fulfillment !== 'delivery'))
+  if (
+    typeof input.isTest !== 'boolean' ||
+    (input.fulfillment !== 'pickup' && input.fulfillment !== 'delivery')
+  )
     throw new Error('Paramètres de commande invalides.')
   const customerPhone = input.customerPhone?.trim() || null
   const customerNote = input.customerNote?.trim() || null
-  if ((customerPhone && (customerPhone.length > 32 || containsAsciiControl(customerPhone))) ||
-      (customerNote && (customerNote.length > 500 || containsAsciiControl(customerNote))))
+  if (
+    (customerPhone && (customerPhone.length > 32 || containsAsciiControl(customerPhone))) ||
+    (customerNote && (customerNote.length > 500 || containsAsciiControl(customerNote)))
+  )
     throw new Error('Coordonnées ou note trop longues ou invalides.')
   const prepared = prepareManualOrderLines(input.lines)
   return {
@@ -126,10 +131,16 @@ export function parseRecordedManualOrder(data: unknown): RecordedManualOrder {
   if (!data || typeof data !== 'object' || Array.isArray(data))
     throw new Error('Réponse de commande invalide.')
   const row = data as Record<string, unknown>
-  if (typeof row.orderId !== 'string' || !UUID.test(row.orderId) ||
-      !['submitted', 'approved', 'reserved', 'paid', 'cancelled', 'expired'].includes(String(row.status)) ||
-      !Number.isSafeInteger(row.amountXaf) ||
-      (row.amountXaf as number) < 0 || (row.amountXaf as number) > MAX_XAF)
+  if (
+    typeof row.orderId !== 'string' ||
+    !UUID.test(row.orderId) ||
+    !['submitted', 'approved', 'reserved', 'paid', 'cancelled', 'expired'].includes(
+      String(row.status),
+    ) ||
+    !Number.isSafeInteger(row.amountXaf) ||
+    (row.amountXaf as number) < 0 ||
+    (row.amountXaf as number) > MAX_XAF
+  )
     throw new Error('Réponse de commande invalide.')
   return {
     orderId: row.orderId,
