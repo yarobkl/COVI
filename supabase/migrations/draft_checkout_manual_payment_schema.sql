@@ -48,6 +48,11 @@ create table if not exists public.manual_payment_confirmations (
   shop_id uuid not null,
   operation_id uuid not null,
   confirmed_by uuid not null references auth.users(id),
+  -- Human-readable cashier name is a receipt snapshot entered before validation,
+  -- NOT proof of identity. The server must verify confirmed_by via auth.uid().
+  cashier_first_name text not null
+    check (char_length(cashier_first_name) between 1 and 60
+       and cashier_first_name = btrim(cashier_first_name)),
   confirmed_at timestamptz not null default now(),
   method text not null check (method in ('cash', 'mobile_money', 'other')),
   external_reference text check (length(external_reference) <= 120),
@@ -101,5 +106,7 @@ commit;
 --   ensure is_test matches, check available stock, decrement exactly once, and
 --   insert immutable receipt + confirmation in one transaction.
 -- - Confirm receipt formatting and whether payment correction needs reversal.
+-- - Require and normalize cashier_first_name BEFORE confirming; store it with
+--   confirmed_by on the receipt as an immutable display snapshot.
 -- - Never trust client-supplied confirmed_by, confirmed_at or paid status.
 -- - Never grant direct UPDATE on stock, paid orders or confirmations.
