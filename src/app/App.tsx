@@ -34,6 +34,15 @@ const arrivalFilters: readonly { filter?: ArrivalFilter; label: string }[] = [
   { filter: 'ballons', label: 'Ballons' },
 ]
 
+function StockArrivalsTabs({ route }: { route: Route }) {
+  return (
+    <nav className="tabs page-tabs stock-arrivals-tabs" aria-label="Stock et arrivages">
+      <a className="tabs__tab" href={routeHash({ page: 'stock' })} aria-current={route.page === 'stock' ? 'page' : undefined}>Mon stock</a>
+      <a className="tabs__tab" href={routeHash({ page: 'arrivages' })} aria-current={route.page === 'arrivages' ? 'page' : undefined}>Arrivages</a>
+    </nav>
+  )
+}
+
 function ArrivalsScreen({ shopId, filter }: { shopId: string; filter?: ArrivalFilter }) {
   return (
     <>
@@ -69,12 +78,18 @@ function renderPage(route: Route, { shop, updateShop, onSimulation }: PageContex
       return <SalePage shopId={shop.id} shopName={shop.name} />
     case 'stock':
       return (
-        <LegacyPage>
-          <StockPage shopId={shop.id} />
-        </LegacyPage>
+        <>
+          <StockArrivalsTabs route={route} />
+          <LegacyPage>
+            <StockPage shopId={shop.id} />
+          </LegacyPage>
+        </>
       )
     case 'arrivages':
-      return <ArrivalsScreen shopId={shop.id} filter={route.filter} />
+      return <>
+        <StockArrivalsTabs route={route} />
+        <ArrivalsScreen shopId={shop.id} filter={route.filter} />
+      </>
     case 'ventes':
       return (
         <LegacyPage>
@@ -207,6 +222,13 @@ export function App({
   const menuTitle = useId()
   const main = useRef<HTMLElement>(null)
   const firstRoute = useRef(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const refresh = () => {
+    if (refreshing) return
+    setRefreshing(true)
+    window.dispatchEvent(new Event('covi-refresh'))
+    window.setTimeout(() => setRefreshing(false), 650)
+  }
 
   // Each page change: top of the page, focus on the page for screen readers.
   useEffect(() => {
@@ -219,7 +241,8 @@ export function App({
     main.current?.focus({ preventScroll: true })
   }, [route])
 
-  const current = (page: PageId) => (route.page === page ? 'page' : undefined)
+  const current = (page: PageId) =>
+    (route.page === page || (page === 'stock' && route.page === 'arrivages') ? 'page' : undefined)
   const askSignOut = () => {
     setMenuOpen(false)
     setSignOutOpen(true)
@@ -235,6 +258,9 @@ export function App({
       <header className="topbar">
         <p className="topbar__shop">{shop.name}</p>
         <NetStatus state={sync} shopId={shop.id} />
+        <button type="button" className="mobile-refresh" onClick={refresh} disabled={refreshing} aria-label="Actualiser les données" title="Actualiser les données">
+          <span className={refreshing ? 'mobile-refresh__icon is-spinning' : 'mobile-refresh__icon'} aria-hidden="true">↻</span>
+        </button>
         <button
           type="button"
           className="avatar"

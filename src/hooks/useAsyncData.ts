@@ -11,6 +11,15 @@ export function useAsyncData<T>(load: () => Promise<T>) {
   })
   const [attempt, setAttempt] = useState(0)
   useEffect(() => {
+    const refresh = () => setAttempt((n) => n + 1)
+    window.addEventListener('covi-data-changed', refresh)
+    window.addEventListener('covi-refresh', refresh)
+    return () => {
+      window.removeEventListener('covi-data-changed', refresh)
+      window.removeEventListener('covi-refresh', refresh)
+    }
+  }, [])
+  useEffect(() => {
     let active = true
     load().then(
       (data) => {

@@ -69,10 +69,11 @@ export function SalePage({ shopId, shopName }: { shopId: string; shopName: strin
 
   // Sales sent after a network cut change the stock: reload it.
   useEffect(() => {
-    const reload = () => void loadProducts()
+    const reload = () => { void loadProducts(); void todaySales(shopId).then(setToday) }
     window.addEventListener('covi-sync', reload)
-    return () => window.removeEventListener('covi-sync', reload)
-  }, [loadProducts])
+    window.addEventListener('covi-refresh', reload)
+    return () => { window.removeEventListener('covi-sync', reload); window.removeEventListener('covi-refresh', reload) }
+  }, [loadProducts, shopId])
 
   const visible = useMemo(
     () =>
@@ -89,6 +90,7 @@ export function SalePage({ shopId, shopName }: { shopId: string; shopName: strin
     setSelectedId(null)
     setQuery('')
     setToday((t) => (t ? { count: t.count + 1, total: t.total + sale.price * sale.quantity } : t))
+    window.dispatchEvent(new Event('covi-data-changed'))
     void loadProducts()
   }
 

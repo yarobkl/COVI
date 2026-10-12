@@ -19,7 +19,23 @@
   }
   .page {
     animation: covi-rise var(--dur-base) var(--ease-out) both;
+    min-width: 0;
   }
+  @media (max-width: 1023px) {
+    .page { animation-duration: 180ms; }
+    .bottom-nav { -webkit-tap-highlight-color: transparent; }
+    .bottom-nav__item { touch-action: manipulation; transition: color 160ms ease, transform 160ms ease; }
+    .bottom-nav__item:active { transform: scale(.94); }
+    .mobile-refresh { flex: none; width: 44px; height: 44px; border: 0; border-radius: 50%; background: transparent; color: var(--action); font-size: 28px; display: grid; place-items: center; cursor: pointer; touch-action: manipulation; }
+    .mobile-refresh:active:not(:disabled) { background: var(--action-tint); transform: scale(.94); }
+    .mobile-refresh:focus-visible { outline: var(--focus-ring); }
+    .mobile-refresh:disabled { opacity: .55; }
+    .mobile-refresh__icon { display: inline-block; line-height: 1; }
+    .mobile-refresh__icon.is-spinning { animation: covi-refresh-spin 650ms ease-in-out; }
+  }
+  @media (min-width: 1024px) { .mobile-refresh { display: none; } }
+  @keyframes covi-refresh-spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .page, .mobile-refresh__icon.is-spinning { animation: none; } .bottom-nav__item { transition: none; } }
 
   /* Bandeau du téléphone : la boutique, le réseau (s’il y a lieu), le menu. */
   .topbar {

@@ -30,7 +30,6 @@ export const pages: Record<PageId, NavEntry> = {
 export const sommaire: readonly NavEntry[] = [
   pages.accueil,
   pages.stock,
-  pages.arrivages,
   pages.ventes,
   pages.charges,
   pages.bilan,
@@ -42,7 +41,6 @@ export const bottomBar: readonly NavEntry[] = [pages.accueil, pages.vendre, page
 
 /** Pages listed in the « Plus » menu on phones. */
 export const morePages: readonly NavEntry[] = [
-  pages.arrivages,
   pages.ventes,
   pages.charges,
   pages.bilan,

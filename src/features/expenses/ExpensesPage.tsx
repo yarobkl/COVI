@@ -35,6 +35,9 @@ export function ExpensesPage({ shopId }: { shopId: string }) {
   )
   useEffect(() => {
     void load()
+    const refresh = () => { void load() }
+    window.addEventListener('covi-refresh', refresh)
+    return () => window.removeEventListener('covi-refresh', refresh)
   }, [load])
   const visible = useMemo(
     () =>
@@ -66,6 +69,7 @@ export function ExpensesPage({ shopId }: { shopId: string }) {
       setEditing(null)
       setMsg(editing ? 'Charge modifiée.' : 'Charge enregistrée.')
       await load()
+      window.dispatchEvent(new Event('covi-data-changed'))
     } catch {
       setMsg('Impossible d’enregistrer cette charge. Vérifiez les informations et votre connexion.')
     } finally {
