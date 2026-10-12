@@ -1,4 +1,27 @@
 import { supabase } from './supabase'
+
+const gatewayUrl = new URL(
+  '/functions/v1/public-checkout',
+  import.meta.env.VITE_SUPABASE_URL ?? 'https://bmbwmwgfzrijglzcgjut.supabase.co',
+)
+
+async function fetchGuestGateway(url: URL, options?: RequestInit): Promise<unknown> {
+  let response: Response
+  try {
+    response = await fetch(url, { ...options, credentials: 'omit', cache: 'no-store' })
+  } catch {
+    throw new Error('Connexion impossible. Réessayez lorsque le réseau est disponible.')
+  }
+  const data: unknown = await response.json().catch(() => null)
+  if (!response.ok) {
+    const message =
+      data && typeof data === 'object' && 'error' in data && typeof data.error === 'string'
+        ? data.error
+        : 'Service de commande indisponible.'
+    throw new Error(message)
+  }
+  return data
+}
 import { prepareManualOrderLines, type ManualOrderLineInput } from './manualOrder'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -10,9 +33,7 @@ type FuturePublicRpc = {
       | 'get_checkout_public_link'
       | 'configure_checkout_public_link'
       | 'rotate_checkout_public_link'
-      | 'get_checkout_public_catalog'
-      | 'submit_checkout_public_order'
-      | 'get_checkout_pending_orders',
+          | 'get_checkout_pending_orders',
     args: Record<string, unknown>,
   ) => PromiseLike<RpcResponse>
 }
@@ -141,11 +162,9 @@ export function parsePublicCatalog(value: unknown): PublicCatalog {
 
 export async function getPublicCatalog(token: string): Promise<PublicCatalog> {
   if (!UUID.test(token)) throw new Error('Lien public invalide.')
-  return parsePublicCatalog(
-    await invoke('get_checkout_public_catalog', {
-      p_token: token,
-    }),
-  )
+  const url = new URL(gatewayUrl)
+  url.searchParams.set('token', token)
+  return parsePublicCatalog(await fetchGuestGateway(url))
 }
 
 function invalidControl(value: string) {
@@ -223,9 +242,28 @@ export function parseRecordedPublicRequest(value: unknown): RecordedPublicReques
   }
 }
 
-export async function submitPublicOrder(input: PublicRequest): Promise<RecordedPublicRequest> {
+export async function submitPublicOrder(
+  input: PublicRequest & { challenge: string },
+): Promise<RecordedPublicRequest> {
   const args = preparePublicRequest(input)
-  return parseRecordedPublicRequest(await invoke('submit_checkout_public_order', args))
+  if (typeof input.challenge !== 'string' || input.challenge.length < 10)
+    throw new Error('Terminez la vérification anti-robot avant de continuer.')
+  return parseRecordedPublicRequest(
+    await fetchGuestGateway(gatewayUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        token: input.token,
+        channel: input.channel,
+        operationId: input.operationId,
+        lines: args.p_lines,
+        phone: args.p_customer_phone,
+        note: args.p_customer_note,
+        fulfillment: input.fulfillment,
+        challenge: input.challenge,
+      }),
+    }),
+  )
 }
 
 export type PendingPublicOrder = {
