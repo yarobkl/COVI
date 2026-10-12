@@ -30,6 +30,7 @@ run supabase/sql-drafts/draft_checkout_manual_payment_schema.sql
 run supabase/sql-drafts/draft_post_arrival_category_stock.sql
 run supabase/sql-drafts/draft_create_approve_manual_checkout_order.sql
 run supabase/sql-drafts/draft_confirm_manual_checkout_payment.sql
+run supabase/sql-drafts/draft_protect_confirmed_category_sales.sql
 run supabase/sql-drafts/draft_public_order_channels.sql
 echo "Running real PostgreSQL manual checkout smoke scenarios..."
 run tests/postgres/manual-checkout-smoke.sql
@@ -113,6 +114,7 @@ echo "PASS: Disposable PostgreSQL integration AND concurrency checks succeeded."
 
 echo "Running security, rollback and TEST/real stock isolation scenarios..."
 run tests/postgres/checkout-security-assert.sql
+run tests/postgres/confirmed-category-sale-immutability.sql
 echo "PASS: Security and rollback scenarios completed."
 
 echo "Running public link and anonymous request smoke tests..."
