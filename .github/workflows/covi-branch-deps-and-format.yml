@@ -1,0 +1,49 @@
+name: COVI branch dependencies and formatting (one-off)
+on:
+  push:
+    branches:
+      - feature/covi-stock-central-omnichannel
+    paths:
+      - '.github/workflows/covi-branch-deps-and-format.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  safely-polish:
+    if: github.repository == 'yarobkl/COVI' && github.ref == 'refs/heads/feature/covi-stock-central-omnichannel'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install exact existing dependencies
+        run: npm ci
+      - name: Add local-only QR SVG generation (no remote QR service)
+        run: |
+          npm install --save-exact qrcode@1.5.4
+          npm install --save-dev --save-exact @types/qrcode@1.5.5
+      - name: Format branch code without touching ignored auth forms
+        run: npm run format
+      - name: Verify formatting, types and lint
+        run: |
+          npm run format:check
+          npm run lint
+          npm run typecheck
+      - name: Commit ONLY to the dedicated feature branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m 'chore(checkout): locally generated QR dependency and Prettier formatting'
+            git push origin HEAD:refs/heads/feature/covi-stock-central-omnichannel
+          fi
