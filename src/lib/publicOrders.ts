@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { prepareManualOrderLines, type ManualOrderLineInput } from './manualOrder'
 
 const gatewayUrl = new URL(
   '/functions/v1/public-checkout',
@@ -22,7 +23,6 @@ async function fetchGuestGateway(url: URL, options?: RequestInit): Promise<unkno
   }
   return data
 }
-import { prepareManualOrderLines, type ManualOrderLineInput } from './manualOrder'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const MAX_PUBLIC_AMOUNT = 2_000_000_000
@@ -33,7 +33,7 @@ type FuturePublicRpc = {
       | 'get_checkout_public_link'
       | 'configure_checkout_public_link'
       | 'rotate_checkout_public_link'
-          | 'get_checkout_pending_orders',
+      | 'get_checkout_pending_orders',
     args: Record<string, unknown>,
   ) => PromiseLike<RpcResponse>
 }
