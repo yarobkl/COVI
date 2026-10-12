@@ -195,11 +195,13 @@ export async function dashboard(shopId: string) {
       paymentMethod: s.payment_method,
       total: Number(s.total_amount),
       lines:
-        categoryReceipts.find((r) => r.saleId === s.id && !r.isTest)?.lines.map((line) => ({
-          quantity: line.quantity,
-          name: line.label,
-          balloon: false,
-        })) ??
+        categoryReceipts
+          .find((r) => r.saleId === s.id && !r.isTest)
+          ?.lines.map((line) => ({
+            quantity: line.quantity,
+            name: line.label,
+            balloon: false,
+          })) ??
         (s.sale_items ?? []).map((i) => ({
           quantity: Number(i.quantity),
           name: i.products?.name ?? 'Article supprimé',
