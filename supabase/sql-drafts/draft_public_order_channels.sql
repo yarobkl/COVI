@@ -413,6 +413,81 @@ revoke all on function public.submit_checkout_public_order(
 grant execute on function public.submit_checkout_public_order(
   uuid,text,uuid,jsonb,text,text,text
 ) to service_role;
+
+-- Gateway quotas (independent of the shop-wide submission ceilings above).
+-- Hash source IP and link token in the Edge Function with a private HMAC key.
+-- Persist ONLY an opaque digest; no raw IP, token, or customer PII.
+create table if not exists public.checkout_gateway_rate_windows (
+  digest text not null check (digest ~ '^[0-9a-f]{64} gates for any deployment:
+-- A valid token must never be used as owner authentication.
+-- Blocking: implement and test a server gateway with source limits; direct calls are denied.
+-- Rotate links on abuse; owners must inspect/approve customer-quoted prices.
+-- Do not expose customer contact data or exact inventory publicly.
+-- Clean up obsolete rate windows periodically after approval.
+-- No payment API or public paid-status mutation exists here.
+),
+  bucket_kind text not null check (bucket_kind in (
+    'catalog_source_minute', 'catalog_link_minute',
+    'order_source_minute', 'order_source_day', 'order_link_minute'
+  )),
+  bucket_start timestamptz not null,
+  hits integer not null default 0 check (hits >= 0),
+  primary key (digest, bucket_kind, bucket_start)
+);
+alter table public.checkout_gateway_rate_windows enable row level security;
+revoke all on public.checkout_gateway_rate_windows from public, anon, authenticated;
+grant select, insert, update on public.checkout_gateway_rate_windows to service_role;
+create policy "trusted gateway alone counts requests"
+  on public.checkout_gateway_rate_windows for all to service_role
+  using (true) with check (true);
+
+-- SECURITY INVOKER: no escalation, fixed limits, atomic ON CONFLICT.
+-- Caller cannot supply a higher quota. Fail closed on invalid inputs.
+create or replace function public.consume_checkout_gateway_quota(
+  p_digest text, p_kind text
+) returns boolean
+language plpgsql security invoker set search_path = ''
+as $gateway$
+declare
+  v_limit integer;
+  v_bucket timestamptz;
+begin
+  if p_digest is null or p_digest !~ '^[0-9a-f]{64} gates for any deployment:
+-- A valid token must never be used as owner authentication.
+-- Blocking: implement and test a server gateway with source limits; direct calls are denied.
+-- Rotate links on abuse; owners must inspect/approve customer-quoted prices.
+-- Do not expose customer contact data or exact inventory publicly.
+-- Clean up obsolete rate windows periodically after approval.
+-- No payment API or public paid-status mutation exists here.
+ then
+    raise exception 'Quota source invalide';
+  end if;
+  v_limit := case p_kind
+    when 'catalog_source_minute' then 30
+    when 'catalog_link_minute' then 120
+    when 'order_source_minute' then 5
+    when 'order_source_day' then 80
+    when 'order_link_minute' then 60
+    else null
+  end;
+  if v_limit is null then raise exception 'Quota invalide'; end if;
+  v_bucket := case when p_kind = 'order_source_day'
+    then date_trunc('day', clock_timestamp())
+    else date_trunc('minute', clock_timestamp()) end;
+  insert into public.checkout_gateway_rate_windows
+    (digest, bucket_kind, bucket_start, hits)
+  values (p_digest, p_kind, v_bucket, 1)
+  on conflict (digest, bucket_kind, bucket_start)
+    do update set hits = public.checkout_gateway_rate_windows.hits + 1
+    where public.checkout_gateway_rate_windows.hits < v_limit;
+  return found;
+end;
+$gateway$;
+revoke all on function public.consume_checkout_gateway_quota(text,text)
+  from public, anon, authenticated;
+grant execute on function public.consume_checkout_gateway_quota(text,text)
+  to service_role;
+
 commit;
 
 -- BLOCKING gates for any deployment:
