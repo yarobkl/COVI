@@ -125,6 +125,161 @@
     }
   }
 
+  /* Panier multi-catégories : une feuille et des lignes, jamais un catalogue SKU. */
+  .checkout-flow {
+    display: grid;
+    gap: var(--space-5);
+    max-width: 44rem;
+    margin-inline: auto;
+  }
+
+  .checkout-flow__step {
+    width: fit-content;
+    font-size: var(--step-1);
+    rotate: -1deg;
+  }
+
+  .checkout-flow__demo {
+    padding: var(--space-2) var(--space-3);
+    border-inline-start: 3px solid var(--danger);
+    background: var(--danger-tint);
+    font-weight: var(--weight-bold);
+  }
+
+  .checkout-flow__loading {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .checkout-basket {
+    display: grid;
+    gap: var(--space-5);
+    width: 100%;
+    max-width: 42rem;
+    margin-inline: auto;
+    min-width: 0;
+  }
+
+  .checkout-basket__head,
+  .checkout-basket__form,
+  .checkout-basket__entry,
+  .checkout-basket__summary,
+  .checkout-basket__lines {
+    display: grid;
+    gap: var(--space-4);
+    min-width: 0;
+  }
+
+  .checkout-basket__head {
+    gap: var(--space-2);
+  }
+
+  .checkout-basket__hand {
+    width: fit-content;
+    font-size: var(--step-1);
+    rotate: -1deg;
+  }
+
+  .checkout-basket__intro,
+  .checkout-basket__empty {
+    color: var(--ink-soft);
+  }
+
+  .checkout-basket__entry {
+    padding: var(--space-4);
+    border: var(--border-hair) solid var(--line);
+    border-radius: var(--radius-3);
+    background: var(--paper);
+  }
+
+  .checkout-basket__entry > legend {
+    margin-bottom: var(--space-3);
+  }
+
+  .checkout-basket__entry-fields {
+    display: grid;
+    gap: var(--space-3);
+    min-width: 0;
+  }
+
+  .checkout-basket__quantity {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+    font-weight: var(--weight-bold);
+  }
+
+  .checkout-basket__quantity .field__hint {
+    font-weight: var(--weight-regular);
+  }
+
+  .checkout-basket__summary {
+    gap: var(--space-3);
+  }
+
+  .checkout-basket__item {
+    display: grid;
+    gap: var(--space-2);
+    padding-block: var(--space-3);
+    border-bottom: var(--border-hair) solid var(--line);
+    animation: covi-rise var(--dur-fast) var(--ease-out) both;
+  }
+
+  .checkout-basket__item-head,
+  .checkout-basket__item-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-4);
+  }
+
+  .checkout-basket__item-head {
+    justify-content: space-between;
+  }
+
+  .checkout-basket__item-head .figures {
+    font-size: var(--step--1);
+    color: var(--ink-soft);
+  }
+
+  .checkout-basket__item-actions > .amount {
+    margin-inline-start: auto;
+  }
+
+  .checkout-basket__remove {
+    color: var(--danger);
+    padding-inline: var(--space-2);
+  }
+
+  .checkout-basket__summary .ledger__row {
+    align-items: center;
+  }
+
+  .checkout-basket__form > .btn--sale {
+    justify-self: stretch;
+  }
+
+  @media (min-width: 600px) {
+    .checkout-basket__entry-fields {
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    }
+  }
+
+  @media (max-width: 360px) {
+    .checkout-basket {
+      padding: var(--space-4);
+    }
+
+    .checkout-basket__entry {
+      padding: var(--space-3);
+    }
+
+    .checkout-basket__item-actions {
+      gap: var(--space-2);
+    }
+  }
+
   /* Les animations sont déjà neutralisées globalement par base.css sous
      prefers-reduced-motion. Ne jamais forcer d'animation ici. */
 }
