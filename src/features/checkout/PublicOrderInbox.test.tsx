@@ -84,7 +84,9 @@ describe('shop owner QR/social requests inbox', () => {
     await screen.findByText('Robe du live', { exact: false })
     fireEvent.click(screen.getByRole('button', { name: 'Refuser cette demande' }))
 
-    await waitFor(() => expect(rejectCheckoutOrder).toHaveBeenCalledWith({ shopId, orderId }))
+    await waitFor(() =>
+      expect(rejectCheckoutOrder).toHaveBeenCalledWith({ shopId, orderId }),
+    )
     expect(screen.getByText(/Demande refusée/)).toBeTruthy()
     expect(screen.queryByText(/Encaissement bbbbbbbb/)).toBeNull()
     expect(screen.queryByText('Robe du live', { exact: false })).toBeNull()
@@ -96,7 +98,9 @@ describe('shop owner QR/social requests inbox', () => {
     render(<PublicOrderInbox shopId={shopId} shopName="Boutique A" />)
     await screen.findByText('Robe du live', { exact: false })
     fireEvent.click(screen.getByRole('button', { name: 'Refuser cette demande' }))
-    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Accès refusé'))
+    await waitFor(() =>
+      expect(screen.getByRole('alert').textContent).toContain('Accès refusé'),
+    )
     expect(screen.getByText('Robe du live', { exact: false })).toBeTruthy()
   })
 })
