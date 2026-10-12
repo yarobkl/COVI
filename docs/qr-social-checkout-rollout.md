@@ -21,13 +21,13 @@
   Seul `true` active les nouveaux écrans dans une compilation de développement.
 - L'ancien écran `#/vendre`, les connexions Google/Facebook et la production
   ne sont pas modifiés par cette activation tant que la branche n'est pas fusionnée.
-- Le lien public permet **uniquement de déposer une demande** : jamais de
+- Après installation d'une passerelle serveur sécurisée, le lien public permettra **uniquement de déposer une demande** : jamais de
   confirmer la réception des fonds ni de modifier les stocks.
 - La base ne publie que les noms et identifiants de catégories disponibles,
   sans quantités exactes, prix d'achat ou coordonnées des clients.
 - Les fonctions d'approbation et d'encaissement exigent l'identité du
   **propriétaire authentifié** et vérifient l'appartenance à la boutique.
-- Les demandes sont limitées en SQL à **60 nouvelles demandes par minute** et
+- Derrière la future passerelle, les demandes restent limitées en SQL à **60 nouvelles demandes par minute** et
   **1 000 par jour** par boutique. Un appel répété avec le même identifiant
   ne crée pas une seconde demande.
 - Un propriétaire peut désactiver son lien ou le renouveler. Le renouvellement
@@ -39,8 +39,12 @@
 
 1. Auditer les RPC `SECURITY DEFINER`, les RLS et les rôles avec une
    instance Supabase complète, au-delà de la fixture PostgreSQL des tests.
-2. Ajouter une protection réseau contre les abus (filtrage IP/WAF et,
-   si nécessaire, CAPTCHA) ; les quotas SQL ne suffisent pas seuls.
+2. **Blocage volontaire des accès directs** : le brouillon SQL retire `EXECUTE` aux
+   rôles `anon` et `authenticated` pour les RPC de catalogue public et d'envoi de
+   demandes ; seule la `service_role` serveur peut les appeler. Concevoir la
+   passerelle serveur avec quotas par source et limitation du catalogue, sans
+   exposer la clé serveur au navigateur, puis brancher le client dessus. **À ce
+   stade, activer le feature flag ne rend PAS les commandes publiques utilisables.**
 3. Construire les droits des comptes employés/caissiers. Dans la version
    testée, seul le propriétaire connecté peut approuver et encaisser.
 4. Permettre au vendeur de rectifier/rejeter un prix proposé avant
@@ -57,7 +61,7 @@
 
 Le workflow `COVI isolated branch checks` exécute les vérifications
 TypeScript, Vitest et PostgreSQL 17 jetable, y compris des ventes simultanées,
-des refus de privilèges, les liens QR, les demandes anonymes, la limitation
+des refus de privilèges, les liens QR, les demandes simulées via rôle serveur, la limitation
 de débit, la séparation du stock TEST et les retours réseau.
 
 Le workflow Windows vérifie aussi le formatage Prettier, la compilation
