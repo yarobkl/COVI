@@ -4,7 +4,10 @@ insert into public.stock_categories
 values
   ('aaaaaaaa-0000-4000-8000-000000000009',
    '11111111-1111-4111-8111-111111111111',
-   'vestes', 'Vestes', 1, false);
+   'vestes', 'Vestes', 1, false),
+  ('aaaaaaaa-0000-4000-8000-000000000010',
+   '11111111-1111-4111-8111-111111111111',
+   'pantalons', 'Pantalons', 2, false);
 
 begin;
 set local role authenticated;
@@ -29,6 +32,15 @@ begin
   end if;
   perform public.approve_manual_checkout_order(v_shop, (v_a->>'orderId')::uuid);
   perform public.approve_manual_checkout_order(v_shop, (v_b->>'orderId')::uuid);
+
+  -- Separate scenario: retrying the SAME order twice concurrently must
+  -- return one persistent receipt, not create another sale.
+  perform public.approve_manual_checkout_order(v_shop,
+    (public.create_manual_checkout_order(
+      v_shop, '33330000-0000-4000-8000-000000000003',
+      '[{"categoryId":"aaaaaaaa-0000-4000-8000-000000000010","quantity":1,"unitPriceXaf":6000}]'::jsonb
+    )->>'orderId')::uuid
+  );
 
   if (select quantity_on_hand from public.stock_categories
       where id = 'aaaaaaaa-0000-4000-8000-000000000009') <> 1 then
