@@ -418,14 +418,7 @@ grant execute on function public.submit_checkout_public_order(
 -- Hash source IP and link token in the Edge Function with a private HMAC key.
 -- Persist ONLY an opaque digest; no raw IP, token, or customer PII.
 create table if not exists public.checkout_gateway_rate_windows (
-  digest text not null check (digest ~ '^[0-9a-f]{64} gates for any deployment:
--- A valid token must never be used as owner authentication.
--- Blocking: implement and test a server gateway with source limits; direct calls are denied.
--- Rotate links on abuse; owners must inspect/approve customer-quoted prices.
--- Do not expose customer contact data or exact inventory publicly.
--- Clean up obsolete rate windows periodically after approval.
--- No payment API or public paid-status mutation exists here.
-),
+  digest text not null check (digest ~ '^[0-9a-f]{64}$'),
   bucket_kind text not null check (bucket_kind in (
     'catalog_source_minute', 'catalog_link_minute',
     'order_source_minute', 'order_source_day', 'order_link_minute'
@@ -452,14 +445,7 @@ declare
   v_limit integer;
   v_bucket timestamptz;
 begin
-  if p_digest is null or p_digest !~ '^[0-9a-f]{64} gates for any deployment:
--- A valid token must never be used as owner authentication.
--- Blocking: implement and test a server gateway with source limits; direct calls are denied.
--- Rotate links on abuse; owners must inspect/approve customer-quoted prices.
--- Do not expose customer contact data or exact inventory publicly.
--- Clean up obsolete rate windows periodically after approval.
--- No payment API or public paid-status mutation exists here.
- then
+  if p_digest is null or p_digest !~ '^[0-9a-f]{64}$' then
     raise exception 'Quota source invalide';
   end if;
   v_limit := case p_kind
