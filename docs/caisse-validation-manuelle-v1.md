@@ -42,7 +42,7 @@ puis appuie sur **Confirmer le paiement reçu**.
 
 ## État d'implémentation
 - Types et transitions côté TypeScript : écrits, tests ajoutés, exécution non confirmée.
-- Schéma SQL : brouillon sur branche, non appliqué.
+- Schémas SQL : brouillons sur branche, non appliqués. La création et l'approbation manuelles sont désormais écrites dans draft_create_approve_manual_checkout_order.sql.
 - Autorisation réelle des vendeurs/employés : à définir et vérifier.
 - RPC atomique de confirmation : **brouillon implémenté sur la branche** (`draft_confirm_manual_checkout_payment.sql`), **non appliqué** et à tester en base isolée. La version actuelle autorise uniquement le propriétaire authentifié ; les comptes employés nécessitent un modèle de permissions distinct.
 - Formulaire de confirmation avec prénom obligatoire et reçu « Le Cahier » :
@@ -56,7 +56,8 @@ puis appuie sur **Confirmer le paiement reçu**.
 2. Confirmer le comportement de la RPC à la concurrence : deux validations sur la même commande et deux ventes de la dernière pièce.
 3. Tester les autorisations : client anonyme et propriétaire d'une autre boutique refusés, propriétaire légitime autorisé. Un prénom seul n'ouvre jamais un droit.
 4. Vérifier que toute erreur annule ensemble le mouvement de stock, la vente, le reçu et le compteur de factures.
-5. Créer le parcours sécurisé de **création puis approbation de commande** ; la RPC actuelle accepte uniquement les commandes `approved`, et refuse `reserved` tant que le suivi des réservations n'est pas implémenté.
+5. **Tester** les deux RPC de création puis approbation de commande dans une base isolée. Leur implémentation est écrite sur la branche, non exécutée. Elles autorisent uniquement le propriétaire, et la confirmation refuse encore `reserved` tant que les réservations ne sont pas implémentées.
 6. Adapter le tableau de bord pour afficher les lignes par catégorie des ventes récentes ; l'ancien tableau de bord lit encore `sale_items` propre aux produits individuels.
 7. Revoir les droits du propriétaire SQL `SECURITY DEFINER`, les fonctions exposées et les permissions des futurs employés.
 8. Valider `npm run typecheck`, `npm test`, `npm run lint` puis effectuer des tests réels sur mobile avant toute mise en production.
+9. Exécuter la matrice des tests concurrents et des permissions : voir docs/manual-checkout-isolated-validation.md.
