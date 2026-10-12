@@ -44,9 +44,19 @@ puis appuie sur **Confirmer le paiement reçu**.
 - Types et transitions côté TypeScript : écrits, tests ajoutés, exécution non confirmée.
 - Schéma SQL : brouillon sur branche, non appliqué.
 - Autorisation réelle des vendeurs/employés : à définir et vérifier.
-- RPC atomique de confirmation : à développer et tester en base isolée.
+- RPC atomique de confirmation : **brouillon implémenté sur la branche** (`draft_confirm_manual_checkout_payment.sql`), **non appliqué** et à tester en base isolée. La version actuelle autorise uniquement le propriétaire authentifié ; les comptes employés nécessitent un modèle de permissions distinct.
 - Formulaire de confirmation avec prénom obligatoire et reçu « Le Cahier » :
-  composants ajoutés sur la branche de travail, **pas encore connectés à la caisse**.
-- Tests associés : écrits, pas encore confirmés exécutés.
+  composants ajoutés sur la branche de travail. `CashierCheckoutPanel` relie le formulaire à la future RPC, mais **n'est pas monté sur les routes de l'application**.
+- Tests associés : tests unitaires du formulaire, du reçu, du client RPC et de la réutilisation de l'identifiant lors d'une reprise réseau ajoutés ; **exécution non confirmée**.
 - API Mobile Money : aucune requise ni intégrée.
 - Production et authentification Google/Facebook : inchangées.
+
+## Conditions de mise en service (bloquantes)
+1. Exécuter les migrations de brouillon sur une base Supabase isolée. Une branche payante éventuelle requiert une validation du coût, et aucune n'a été créée.
+2. Confirmer le comportement de la RPC à la concurrence : deux validations sur la même commande et deux ventes de la dernière pièce.
+3. Tester les autorisations : client anonyme et propriétaire d'une autre boutique refusés, propriétaire légitime autorisé. Un prénom seul n'ouvre jamais un droit.
+4. Vérifier que toute erreur annule ensemble le mouvement de stock, la vente, le reçu et le compteur de factures.
+5. Créer le parcours sécurisé de **création puis approbation de commande** ; la RPC actuelle accepte uniquement les commandes `approved`, et refuse `reserved` tant que le suivi des réservations n'est pas implémenté.
+6. Adapter le tableau de bord pour afficher les lignes par catégorie des ventes récentes ; l'ancien tableau de bord lit encore `sale_items` propre aux produits individuels.
+7. Revoir les droits du propriétaire SQL `SECURITY DEFINER`, les fonctions exposées et les permissions des futurs employés.
+8. Valider `npm run typecheck`, `npm test`, `npm run lint` puis effectuer des tests réels sur mobile avant toute mise en production.
