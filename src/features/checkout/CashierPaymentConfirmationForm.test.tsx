@@ -36,4 +36,33 @@ describe('cashier confirmation form', () => {
     await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('prénom valide'))
     expect(onConfirm).not.toHaveBeenCalled()
   })
+
+  it('keeps the notebook total visible and prevents double clicks while the server records the sale', async () => {
+    let finish: (() => void) | undefined
+    const saving = new Promise<void>((resolve) => { finish = resolve })
+    const onConfirm = vi.fn(() => saving)
+
+    const { container } = render(
+      <CashierPaymentConfirmationForm amountXaf={12000} onConfirm={onConfirm} />,
+    )
+    expect(container.querySelector('form.checkout-confirmation.sheet')).toBeTruthy()
+    expect(screen.getByText('On note le paiement.')).toBeTruthy()
+    expect(screen.getByText('À encaisser')).toBeTruthy()
+    expect(screen.getByText(/COVI n'encaisse pas l'argent/)).toBeTruthy()
+
+    fireEvent.click(screen.getByLabelText('Espèces'))
+    fireEvent.change(screen.getByLabelText('Prénom de la personne qui encaisse'), {
+      target: { value: 'Amina' },
+    })
+    const button = screen.getByRole('button', { name: 'Confirmer le paiement reçu' })
+    fireEvent.click(button)
+    expect(button.getAttribute('aria-busy')).toBe('true')
+    expect((button as HTMLButtonElement).disabled).toBe(true)
+    expect(onConfirm).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(button)
+    expect(onConfirm).toHaveBeenCalledTimes(1)
+    finish?.()
+    await waitFor(() => expect(button.getAttribute('aria-busy')).toBeNull())
+  })
 })
