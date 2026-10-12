@@ -47,7 +47,8 @@ select set_config(
 );
 
 begin;
-set local role anon;
+-- Simulates a trusted server gateway (NOT a public browser).
+set local role service_role;
 do $visitor$
 declare
   v_catalog jsonb;
@@ -174,7 +175,7 @@ $owner$;
 commit;
 
 begin;
-set local role anon;
+set local role service_role;
 do $old_link$
 declare
   v_rejected boolean := false;
@@ -188,6 +189,35 @@ begin
   if not v_rejected then raise exception 'Rotated token still grants access'; end if;
 end;
 $old_link$;
+commit;
+
+-- A bearer token does not grant direct API access to anonymous visitors.
+begin;
+set local role anon;
+do $direct_denial$
+declare
+  v_denied boolean := false;
+begin
+  begin
+    perform public.get_checkout_public_catalog(
+      current_setting('covi.test.public_token')::uuid
+    );
+  exception when insufficient_privilege then v_denied := true;
+  end;
+  if not v_denied then raise exception 'Anon called catalog without gateway'; end if;
+
+  v_denied := false;
+  begin
+    perform public.submit_checkout_public_order(
+      current_setting('covi.test.public_token')::uuid, 'qr',
+      '77770000-0000-4000-8000-000000000006',
+      '[{"categoryId":"aaaaaaaa-0000-4000-8000-000000000001","quantity":1,"unitPriceXaf":2000}]'::jsonb
+    );
+  exception when insufficient_privilege then v_denied := true;
+  end;
+  if not v_denied then raise exception 'Anon bypassed server-only submission'; end if;
+end;
+$direct_denial$;
 commit;
 
 select 'PASS: Public QR order created once, owner alone approves/pays, invalid link rejected' as result;
