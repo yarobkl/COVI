@@ -44,7 +44,7 @@ puis appuie sur **Confirmer le paiement reçu**.
 - Types et transitions côté TypeScript : écrits, tests ajoutés, exécution non confirmée.
 - Schémas SQL : brouillons sur branche, non appliqués. La création et l'approbation manuelles sont désormais écrites dans draft_create_approve_manual_checkout_order.sql.
 - Autorisation réelle des vendeurs/employés : à définir et vérifier.
-- RPC atomique de confirmation : **brouillon implémenté sur la branche** (`draft_confirm_manual_checkout_payment.sql`), **non appliqué** et à tester en base isolée. La version actuelle autorise uniquement le propriétaire authentifié ; les comptes employés nécessitent un modèle de permissions distinct.
+- RPC atomique de confirmation : **brouillon implémenté sur la branche** (`supabase/sql-drafts/draft_confirm_manual_checkout_payment.sql`), **non appliqué** et à tester en base isolée. La version actuelle autorise uniquement le propriétaire authentifié ; les comptes employés nécessitent un modèle de permissions distinct.
 - Formulaire de confirmation avec prénom obligatoire et reçu « Le Cahier » :
   composants ajoutés sur la branche de travail. `CashierCheckoutPanel` relie le formulaire à la future RPC, mais **n'est pas monté sur les routes de l'application**.
 - Tests associés : tests unitaires du formulaire, du reçu, du client RPC et de la réutilisation de l'identifiant lors d'une reprise réseau ajoutés ; **exécution non confirmée**.
@@ -61,3 +61,5 @@ puis appuie sur **Confirmer le paiement reçu**.
 7. Revoir les droits du propriétaire SQL `SECURITY DEFINER`, les fonctions exposées et les permissions des futurs employés.
 8. Valider `npm run typecheck`, `npm test`, `npm run lint` puis effectuer des tests réels sur mobile avant toute mise en production.
 9. Exécuter la matrice des tests concurrents et des permissions : voir docs/manual-checkout-isolated-validation.md.
+
+**Sécurité des migrations :** les cinq brouillons SQL résident dans `supabase/sql-drafts/`, hors du dossier exécutable `supabase/migrations/`. Un contrôle statique bloquant a été ajouté au workflow CI de la branche.
