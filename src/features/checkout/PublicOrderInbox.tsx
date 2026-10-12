@@ -102,8 +102,8 @@ export function PublicOrderInbox({
       </div>
       <p>Les commandes des clients sont en attente : rien n'est encaissé automatiquement.</p>
       {loading && <p role="status">Lecture des demandes…</p>}
-      {loadError && <Notice tone="danger"><p role="alert">{loadError}</p></Notice>}
-      {error && <Notice tone="danger"><p role="alert">{error}</p></Notice>}
+      {loadError && <Notice tone="danger"><p>{loadError}</p></Notice>}
+      {error && <Notice tone="danger"><p>{error}</p></Notice>}
       {!loading && !loadError && orders.length === 0 && (
         <p role="status">Aucune demande en attente. Partagez votre lien pour en recevoir.</p>
       )}
