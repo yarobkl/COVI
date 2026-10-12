@@ -447,6 +447,59 @@
     overflow-wrap: anywhere;
   }
 
+
+  /* QR imprimable local : contraste noir/blanc, espace blanc de lecture,
+     aucune capture ni requête vers un générateur distant. */
+  .checkout-share__qr {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border: var(--border-hair) solid var(--line);
+    background: var(--sheet);
+    color: var(--ink);
+    text-align: center;
+  }
+
+  .checkout-share__qr img {
+    display: block;
+    width: min(264px, 100%);
+    height: auto;
+    aspect-ratio: 1;
+    background: white;
+  }
+
+  .checkout-share__qr p {
+    max-width: 20rem;
+  }
+
+  @media print {
+    .topbar,
+    .sommaire,
+    .bottom-nav,
+    .checkout-hub__head,
+    .checkout-hub__tabs,
+    .checkout-share > :not(.checkout-share__actions),
+    .checkout-share__actions > :not(.checkout-share__qr),
+    .checkout-share__print {
+      display: none !important;
+    }
+
+    .checkout-share,
+    .checkout-share__qr,
+    .checkout-hub {
+      box-shadow: none;
+      border: 0;
+      padding: 0;
+      background: white;
+    }
+
+    .checkout-share__qr {
+      margin: 1cm auto;
+      break-inside: avoid;
+    }
+  }
+
   @media (min-width: 600px) {
     .checkout-guest__choices {
       grid-template-columns: repeat(2, minmax(0, 1fr));
