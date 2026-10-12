@@ -1,42 +1,46 @@
 # COVI — Suivi de finalisation QR / réseaux sociaux
 
-Dernière mise à jour : 2026-10-12 21:17 Europe/Paris
-Projet concerné : `yarobkl/COVI`, PR #22, branche `feature/covi-stock-central-omnichannel`.
+Dernière mise à jour : 2026-10-12
+Projet : `yarobkl/COVI`, PR #22, branche `feature/covi-stock-central-omnichannel`.
 
 ## Terminé et preuves
 
-- PR #22 vérifiée : ouverte, brouillon, non fusionnée, base `main`. Aucun merge effectué.
-- Contrôles GitHub associés au commit PR `c5bac84cfa3a4c32f388ca62f4d6b947f4c6b297` :
-  - [COVI Windows](https://github.com/yarobkl/COVI/actions/runs/38295190809) : succès pour format, lint, TypeScript, build et tests web ; build natif Windows ignoré selon la configuration de la PR.
-  - [COVI isolated branch checks](https://github.com/yarobkl/COVI/actions/runs/38295190801) : succès pour tests unitaires/statique et test PostgreSQL jetable.
-  - [COVI native Supabase sandbox](https://github.com/yarobkl/COVI/actions/runs/38295190824) : succès pour Auth et PostgREST Supabase locaux jetables, rôles, isolation propriétaire, création idempotente de commandes et absence de décrément de stock au dépôt.
-- Le runbook `docs/public-gateway-staging-runbook.md` confirme : Turnstile obligatoire, vérification serveur, secret serveur uniquement, quotas atomiques et passerelle inactive jusqu’à configuration.
-- Projet Supabase `bmbwmwgfzrijglzcgjut` : `ACTIVE_HEALTHY`, Postgres 17. Liste actuelle des fonctions Edge vide ; branches de développement vides ; migrations enregistrées seulement jusqu’au socle existant du 7 octobre. Aucun schéma de caisse n’a été ajouté en production.
-- Déploiements Vercel consultés pour cette branche : des aperçus `READY` existent, dont le commit `d051a40027c82cafe2340ae624e103b6e9539c28` (cible preview). La PR renvoyée par le connecteur indique encore `c5bac84` comme HEAD ; cet écart entre les deux vues doit être résolu avant une livraison.
-- La limite Vercel gratuite de déploiements journaliers est atteinte : le commentaire Vercel dans la PR rapporte `api-deployments-free-per-day`, réessayer après 24 h. Aucun passage en offre payante.
-- Cloudflare : la session de navigateur disponible affiche la page de connexion. Aucune clé Turnstile créée, lue ou transmise.
+- PR #22 reste ouverte, en brouillon, non fusionnée. HEAD contrôlé : `8c30d8772e0a8e52c7b6ff2d9d182c98c11b4987`. Aucun merge effectué.
+- Vérifications antérieures réussies sur `c5bac84cfa3a4c32f388ca62f4d6b947f4c6b297` :
+  - [COVI Windows](https://github.com/yarobkl/COVI/actions/runs/38295190809) : format, lint, TypeScript, build et tests web réussis ; job natif Windows ignoré dans la PR.
+  - [COVI isolated branch checks](https://github.com/yarobkl/COVI/actions/runs/38295190801) : unit/static et PostgreSQL jetable réussis.
+  - [COVI native Supabase sandbox](https://github.com/yarobkl/COVI/actions/runs/38295190824) : Auth et PostgREST Supabase locaux jetables réussis, rôles/RLS, isolation des boutiques, commandes idempotentes, aucun stock décrémenté au dépôt.
+- Au HEAD `8c30d87`, la dernière lecture Actions indique : contrôles isolés réussis ; workflow COVI Windows et sandbox Supabase encore en cours au moment de la vérification. [État des actions](https://github.com/yarobkl/COVI/actions).
+- Vercel a produit un aperçu `READY` pour le HEAD `8c30d87`. Le build vert ne valide pas à lui seul le parcours métier. Aucun lien de prévisualisation n'est publié ici.
+- Runbook de la passerelle : `docs/public-gateway-staging-runbook.md`. Il prévoit Turnstile requis, vérification serveur du hostname/action, secret côté serveur uniquement, quotas atomiques et fonction inactive avant configuration.
+- Supabase `bmbwmwgfzrijglzcgjut` est `ACTIVE_HEALTHY` (Postgres 17), mais ne contient aucune fonction Edge, branche de développement ni migration de caisse. Aucun schéma de production n'a été modifié.
+- Cloudflare : le navigateur disponible affiche la connexion. Aucune clé Turnstile n'a été créée, lue ou transmise.
 
 ## Modifications et commits de cette session
 
-- Aucun fichier applicatif modifié.
-- Aucun commit ou push applicatif réalisé pendant cette vérification. Ce journal est le premier checkpoint demandé pour cette reprise.
+- Ajout de ce journal au dépôt sur la branche autorisée.
+- Commit checkpoint : `8c30d8772e0a8e52c7b6ff2d9d182c98c11b4987`.
+- Aucun code applicatif, secret, schéma Supabase, provider OAuth ou configuration de production modifié.
 
 ## Tests
 
-Réussis sur le commit `c5bac84...` : GitHub Windows web, contrôles isolés unitaires/statique, PostgreSQL temporaire, Supabase Auth/PostgREST local.
-Non testés en conditions réelles : Turnstile Cloudflare, fonction Edge déployée, Supabase distant isolé, parcours smartphone/WhatsApp complet et affichage réel des ventes/statistiques.
-Installateur Windows natif : ignoré par le workflow de PR.
-Aucun test ayant écrit dans la base de production.
+Réussis : web format/lint/TypeScript/build/tests, tests unitaires/statique, PostgreSQL jetable et Auth/PostgREST Supabase local sur les commits listés ci-dessus.
+En cours lors du dernier relevé pour le HEAD actuel : workflow web Windows et sandbox Supabase.
+Non exercés en conditions réelles : vrai challenge Turnstile, fonction Edge distante, environnement Supabase isolé, parcours QR/WhatsApp complet sur smartphone, confirmation de paiement puis stock/historique/statistiques.
+L'installateur Windows natif est ignoré dans le workflow de PR.
+Aucun test n'a écrit dans la base de production.
 
-## Éléments bloquants
+## Blocages
 
-1. Cloudflare n’est pas connecté dans le navigateur disponible, donc impossible de créer les clés sans interaction de compte.
-2. Aucun environnement Supabase isolé existant : créer un projet ou une branche peut entraîner un coût et est explicitement exclu sans validation. Ne pas déployer les brouillons SQL dans Supabase production.
-3. Pas de fonction `public-checkout` Edge déployée ni secrets serveur configurés.
-4. Le parcours complet QR/WhatsApp → commande → approbation → confirmation manuelle → stock → historique n’a pas été exercé sur un environnement Supabase distant isolé.
-5. La limite de déploiements gratuits Vercel bloque de nouveaux builds pendant environ 24 h.
-6. Confirmer le HEAD courant de la branche : PR snapshot `c5bac84...`, alors qu’un aperçu de cette même branche est lié à `d051a400...`.
+1. Session Cloudflare absente dans le navigateur : impossible de créer une clé Turnstile sans authentification personnelle.
+2. Aucun environnement Supabase distant isolé n'existe. Le seul projet connu est la production ; ne pas y déployer la fonction ni les SQL de caisse. Aucun projet ou branche payante ne doit être créé.
+3. La passerelle Edge n'est pas déployée et ses secrets serveur ne sont pas configurés.
+4. Il n'existe donc pas encore de preuve E2E distante pour le parcours QR/social → approbation → confirmation manuelle du paiement → stock → historique.
+5. La PR demeure en brouillon et contient encore les blocages comptables/sécurité/statistiques listés dans son audit. Verdict : NO-GO production.
 
 ## Prochaine action exacte
 
-À la reprise, actualiser le HEAD/CI de la PR #22. Puis, après accès Cloudflare autorisé, créer un widget Turnstile gratuit limité au domaine exact de test et acheminer la clé privée directement vers les secrets de la fonction Supabase de staging — sans l’afficher dans le navigateur, GitHub ou le chat. Tant qu’aucun environnement isolé gratuit n’existe, maintenir la passerelle désactivée et laisser le verdict **NO-GO production**.
+1. L'utilisateur connecte le compte Cloudflare dans le navigateur sécurisé disponible.
+2. Vérifier que l'offre Turnstile gratuite et un domaine de test sont disponibles ; créer le widget et conserver sa clé secrète hors chat, dépôt, logs et navigateur client.
+3. Utiliser ou préparer un environnement Supabase de staging strictement isolé et gratuit. Si aucun n'est disponible, s'arrêter sans toucher à la production.
+4. Déployer passerelle et secrets uniquement en staging ; exécuter le parcours E2E QR/WhatsApp, paiement manuel, stock et historique ; consigner les résultats et garder l'activation publique de production en attente de validation explicite.
