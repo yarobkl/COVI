@@ -125,6 +125,7 @@ echo "PASS: Public QR/social permission boundaries verified."
 
 echo "Testing private owner queue and rate-limit controls..."
 run tests/postgres/public-order-rate-limit.sql
+run tests/postgres/gateway-limits.sql
 echo "PASS: Anonymous request ceiling and contact protection verified."
 
 echo "Auditing PostgreSQL grants, RLS and SECURITY DEFINER ownership contract..."
