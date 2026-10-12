@@ -1,0 +1,175 @@
+/* Filtres des écrans calmes : mots entourés au stylo, mois à feuilleter, interrupteur. */
+@layer app {
+  /* FilterChips : « Aujourd’hui · 7 jours · Ce mois · Tout » */
+  .chips {
+    display: grid;
+    gap: var(--space-1);
+    min-width: 0;
+  }
+  .chips__legend {
+    margin-bottom: var(--space-1);
+    color: var(--ink-muted);
+    font-size: var(--step--1);
+  }
+  .chips__options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-2);
+  }
+  .chips__option {
+    position: relative;
+    display: block;
+    cursor: pointer;
+  }
+  .chips__input {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .chips__label {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap-min);
+    padding: 0 var(--space-3);
+    border-radius: var(--radius-pill);
+    color: var(--ink-soft);
+    white-space: nowrap;
+    transition:
+      background-color var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out);
+  }
+  .chips__option:hover .chips__label {
+    background: var(--action-tint);
+    color: var(--action);
+  }
+  .chips__input:focus-visible + .chips__label {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+  }
+  .chips__input:checked + .chips__label {
+    color: var(--action);
+    font-weight: var(--weight-bold);
+  }
+  /* Le mot choisi est entouré d’un trait de stylo, comme dans la marge du cahier. */
+  .chips__input:checked + .chips__label::after {
+    content: '';
+    position: absolute;
+    inset: 6px 0 5px;
+    border: 2px solid var(--action);
+    border-radius: 52% 46% 50% 44% / 58% 52% 48% 44%;
+    rotate: -1.5deg;
+    pointer-events: none;
+    -webkit-mask: conic-gradient(from 200deg, #000 var(--covi-sweep), transparent 0);
+    mask: conic-gradient(from 200deg, #000 var(--covi-sweep), transparent 0);
+    animation: covi-pen-circle 320ms var(--ease-out) both;
+  }
+
+  /* MonthNav : « ‹ septembre · Octobre · novembre › » */
+  .month-nav {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-2);
+    max-width: 30rem;
+  }
+  .month-nav__current {
+    color: var(--action);
+    font-size: var(--step-2);
+    font-weight: var(--weight-bold);
+    text-align: center;
+    white-space: nowrap;
+  }
+  .month-nav__current::first-letter {
+    text-transform: uppercase;
+  }
+  .month-nav__step {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    justify-self: start;
+    min-width: var(--tap-min);
+    min-height: var(--tap-min);
+    padding: 0 var(--space-2);
+    border: 0;
+    border-radius: var(--radius-2);
+    background: none;
+    color: var(--action);
+    font: inherit;
+    cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease-out);
+  }
+  .month-nav__step--next {
+    justify-self: end;
+  }
+  .month-nav__step:hover {
+    background: var(--action-tint);
+  }
+  .month-nav__step:active {
+    background: var(--action-tint-strong);
+  }
+  .month-nav__step--none {
+    visibility: hidden;
+  }
+
+  /* Switch : interrupteur dessiné à l’encre, libellé à côté */
+  .switch {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: var(--tap-min);
+    cursor: pointer;
+  }
+  .switch__input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .switch__track {
+    position: relative;
+    flex: none;
+    width: 44px;
+    height: 26px;
+    border: var(--border-field) solid var(--line-field);
+    border-radius: var(--radius-pill);
+    background: var(--sheet);
+    transition:
+      background-color var(--dur-fast) var(--ease-out),
+      border-color var(--dur-fast) var(--ease-out);
+  }
+  .switch__track::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background: var(--ink-muted);
+    transition:
+      translate var(--dur-fast) var(--ease-out),
+      background-color var(--dur-fast) var(--ease-out);
+  }
+  .switch__input:checked + .switch__track {
+    border-color: var(--action);
+    background: var(--action-tint);
+  }
+  .switch__input:checked + .switch__track::after {
+    translate: 18px 0;
+    background: var(--action);
+  }
+  .switch__input:focus-visible + .switch__track {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+  }
+  .switch:hover .switch__track {
+    border-color: var(--action);
+  }
+}

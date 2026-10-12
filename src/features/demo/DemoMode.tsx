@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import type { ComponentType } from 'react'
+import { useEffect, useId, useRef, useState, type ComponentType } from 'react'
 import {
   BarsIcon,
   BillIcon,
@@ -7,141 +6,210 @@ import {
   ChevronLeftIcon,
   HangerIcon,
   HomeIcon,
+  MenuIcon,
   NotebookIcon,
   type IconProps,
 } from '../../components/icons'
-import { Brand } from '../../components/Brand'
-import { DemoArrivals } from './DemoArrivals'
-import { DemoDashboard } from './DemoDashboard'
-import { DemoExpenses } from './DemoExpenses'
-import { DemoHistory } from './DemoHistory'
-import { DemoStatistics } from './DemoStatistics'
-import { DemoStock } from './DemoStock'
+import { Badge, Button, Dialog, LabelCard } from '../../components/ui'
+import '../../styles/app/exemple.css'
+import {
+  DemoArrivals,
+  DemoBilan,
+  DemoCharges,
+  DemoHome,
+  DemoSales,
+  DemoStock,
+  type DemoPageId,
+} from './DemoPages'
 
-type DemoPage =
-  | 'Tableau de bord'
-  | 'Produits vendus'
-  | 'Mon stock'
-  | 'Mes arrivages'
-  | 'Statistiques'
-  | 'Charges de la boutique'
+const pages: Record<DemoPageId, { label: string; icon: ComponentType<IconProps> }> = {
+  accueil: { label: 'Accueil', icon: HomeIcon },
+  ventes: { label: 'Ventes', icon: NotebookIcon },
+  stock: { label: 'Stock', icon: HangerIcon },
+  arrivages: { label: 'Arrivages', icon: BoxIcon },
+  charges: { label: 'Charges', icon: BillIcon },
+  bilan: { label: 'Bilan', icon: BarsIcon },
+}
+const order: DemoPageId[] = ['accueil', 'ventes', 'stock', 'arrivages', 'charges', 'bilan']
+/** Phone bottom bar; Charges and Bilan are in « Plus ». */
+const bottom: DemoPageId[] = ['accueil', 'ventes', 'stock', 'arrivages']
+const more: DemoPageId[] = ['charges', 'bilan']
 
-const nav: readonly (readonly [DemoPage, ComponentType<IconProps>])[] = [
-  ['Tableau de bord', HomeIcon],
-  ['Produits vendus', NotebookIcon],
-  ['Mon stock', HangerIcon],
-  ['Mes arrivages', BoxIcon],
-  ['Statistiques', BarsIcon],
-  ['Charges de la boutique', BillIcon],
-]
-
-const bottomNav: readonly (readonly [string, ComponentType<IconProps>, DemoPage])[] = [
-  ['Accueil', HomeIcon, 'Tableau de bord'],
-  ['Ventes', NotebookIcon, 'Produits vendus'],
-  ['Stock', HangerIcon, 'Mon stock'],
-  ['Arrivages', BoxIcon, 'Mes arrivages'],
-]
-
-/** Three-month store simulation with fictitious data, available without an account. */
-export function DemoMode({ onExit }: { onExit: () => void }) {
-  const [page, setPage] = useState<DemoPage>('Tableau de bord')
-  const [query, setQuery] = useState('')
-  const [selectedArrival, setSelectedArrival] = useState<string | null>(null)
-  const content =
-    page === 'Produits vendus' ? (
-      <DemoHistory query={query} onQueryChange={setQuery} />
-    ) : page === 'Mon stock' ? (
-      <DemoStock />
-    ) : page === 'Mes arrivages' ? (
-      <DemoArrivals selectedArrival={selectedArrival} onSelectArrival={setSelectedArrival} />
-    ) : page === 'Statistiques' ? (
-      <DemoStatistics />
-    ) : page === 'Charges de la boutique' ? (
-      <DemoExpenses />
-    ) : (
-      <DemoDashboard
-        onOpenArrival={(code) => {
-          setPage('Mes arrivages')
-          setSelectedArrival(code)
-        }}
-      />
-    )
+/** The example shop's label, like the real notebook label but marked « Boutique d’exemple ». */
+function ExampleLabel() {
   return (
-    <div className="app demo-app">
-      <aside>
-        <Brand />
-        <p className="tag">
-          Le système d’exploitation
-          <br />
-          de votre commerce.
-        </p>
-        <nav>
-          {nav.map(([name, Icon]) => (
-            <button
-              className={page === name ? 'active' : ''}
-              key={name}
-              onClick={() => setPage(name)}
-            >
-              <Icon />
-              {name}
-            </button>
-          ))}
-        </nav>
-        <div className="shop">
-          <span>BOUTIQUE DE SIMULATION</span>
-          <b>Élégance Brazzaville</b>
-          <small>Brazzaville · XAF</small>
+    <LabelCard className="shop-label">
+      <p className="sommaire__shop-kicker">Boutique d’exemple</p>
+      <p className="sommaire__shop-name">Chez Mama Grâce</p>
+      <p className="sommaire__shop-place">Poto-Poto, Brazzaville</p>
+      <p className="sommaire__shop-owner">
+        Tenu par <span className="hand">Grâce M.</span>
+      </p>
+    </LabelCard>
+  )
+}
+
+/**
+ * The example shop: three made-up months at « Chez Mama Grâce », drawn with the same notebook as
+ * the real application and clearly marked « Exemple ». Nothing is read from or written to the
+ * account. `signedIn` says where leaving goes back to.
+ */
+export function DemoMode({ onExit, signedIn = false }: { onExit: () => void; signedIn?: boolean }) {
+  const [page, setPage] = useState<DemoPageId>('accueil')
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuTitle = useId()
+  const main = useRef<HTMLElement>(null)
+  const first = useRef(true)
+  const exitLabel = signedIn ? 'Revenir à ma boutique' : 'Fermer l’exemple'
+
+  useEffect(() => {
+    document.title = `${pages[page].label} · exemple · COVI`
+    if (first.current) {
+      first.current = false
+      return
+    }
+    window.scrollTo(0, 0)
+    main.current?.focus({ preventScroll: true })
+  }, [page])
+
+  const go = (next: DemoPageId) => {
+    setMenuOpen(false)
+    setPage(next)
+  }
+  const current = (id: DemoPageId) => (page === id ? 'page' : undefined)
+
+  const content =
+    page === 'ventes' ? (
+      <DemoSales />
+    ) : page === 'stock' ? (
+      <DemoStock />
+    ) : page === 'arrivages' ? (
+      <DemoArrivals />
+    ) : page === 'charges' ? (
+      <DemoCharges />
+    ) : page === 'bilan' ? (
+      <DemoBilan />
+    ) : (
+      <DemoHome go={go} />
+    )
+
+  return (
+    <div className="shell demo-shell">
+      <a className="skip-link" href="#contenu-exemple">
+        Aller au contenu
+      </a>
+
+      <header className="topbar">
+        <p className="topbar__shop">Chez Mama Grâce</p>
+        <Badge tone="action">Exemple</Badge>
+      </header>
+
+      <nav className="sommaire" aria-label="Sommaire de l’exemple">
+        <ExampleLabel />
+        <h2 className="sommaire__title">Sommaire</h2>
+        <ul className="sommaire__list">
+          {order.map((id) => {
+            const Icon = pages[id].icon
+            return (
+              <li key={id}>
+                <button
+                  type="button"
+                  className="sommaire__link"
+                  aria-current={current(id)}
+                  onClick={() => go(id)}
+                >
+                  <Icon />
+                  <span>{pages[id].label}</span>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+        <div className="sommaire__foot">
+          <Button variant="secondary" icon={<ChevronLeftIcon />} onClick={onExit}>
+            {exitLabel}
+          </Button>
         </div>
-      </aside>
-      <main>
-        <div className="demo-banner">
-          <b>SIMULATION</b>
-          <span>
-            Données fictives du 1er juillet au 30 septembre 2026. Rien n’est enregistré dans ta
-            boutique.
-          </span>
-          <button onClick={onExit}>
-            <ChevronLeftIcon />
-            Quitter
-          </button>
-        </div>
-        <header>
-          <div className="demo-top-label">{page} · données de simulation</div>
-          <select
-            className="demo-page-select"
-            aria-label="Choisir une page de simulation"
-            value={page}
-            onChange={(e) => setPage(e.target.value as DemoPage)}
-          >
-            {nav.map(([name]) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </header>
-        <div className="content">
-          <div className="hello">
-            <div>
-              <h1>{page}</h1>
-              <span>Scénario de gestion d’une boutique sur trois mois.</span>
-            </div>
-          </div>
+      </nav>
+
+      <main className="shell__page seyes margin-rule" id="contenu-exemple" ref={main} tabIndex={-1}>
+        <aside className="demo-banner" aria-label="Boutique d’exemple">
+          <p className="demo-banner__stamp" aria-hidden="true">
+            Exemple
+          </p>
+          <p className="demo-banner__text">
+            <strong>Boutique d’exemple.</strong> Boutique fictive, de juillet à septembre 2026. Rien
+            de ce que vous voyez ici ne touche votre boutique.
+          </p>
+          <Button variant="ghost" className="demo-banner__exit" onClick={onExit}>
+            {exitLabel}
+          </Button>
+        </aside>
+        <div key={page} className="page">
           {content}
         </div>
       </main>
-      <div className="bottom">
-        {bottomNav.map(([name, Icon, target]) => (
-          <button
-            className={page === target ? 'active' : ''}
-            key={name}
-            onClick={() => setPage(target)}
-          >
-            <Icon />
-            {name}
-          </button>
-        ))}
-      </div>
+
+      <nav className="bottom-nav" aria-label="Navigation de l’exemple">
+        {bottom.map((id) => {
+          const Icon = pages[id].icon
+          return (
+            <button
+              key={id}
+              type="button"
+              className="bottom-nav__item"
+              aria-current={current(id)}
+              onClick={() => go(id)}
+            >
+              <Icon />
+              {pages[id].label}
+            </button>
+          )
+        })}
+        <button
+          type="button"
+          className="bottom-nav__item"
+          aria-haspopup="dialog"
+          aria-expanded={menuOpen}
+          aria-current={more.includes(page) ? 'page' : undefined}
+          onClick={() => setMenuOpen(true)}
+        >
+          <MenuIcon />
+          Plus
+        </button>
+      </nav>
+
+      <Dialog open={menuOpen} onClose={() => setMenuOpen(false)} labelledBy={menuTitle} sheet>
+        <div className="dialog__body menu-sheet">
+          <h2 className="visually-hidden" id={menuTitle}>
+            Menu de l’exemple
+          </h2>
+          <ExampleLabel />
+          <ul className="sommaire__list">
+            {more.map((id) => {
+              const Icon = pages[id].icon
+              return (
+                <li key={id}>
+                  <button
+                    type="button"
+                    className="sommaire__link"
+                    aria-current={current(id)}
+                    onClick={() => go(id)}
+                  >
+                    <Icon />
+                    <span>{pages[id].label}</span>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+          <div className="menu-sheet__foot">
+            <Button variant="secondary" icon={<ChevronLeftIcon />} onClick={onExit}>
+              {exitLabel}
+            </Button>
+          </div>
+        </div>
+      </Dialog>
     </div>
   )
 }
