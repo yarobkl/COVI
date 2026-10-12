@@ -4,9 +4,22 @@ import {
   releasesReservation,
   requiresStockDeduction,
   validateOrderChannel,
+  validateManualPaymentConfirmation,
 } from './orderLifecycle'
 
 describe('omnichannel order lifecycle', () => {
+  it('records manual cashier confirmation without a payment API', () => {
+    const confirmation = {
+      method: 'mobile_money' as const,
+      receivedByUserId: 'seller-123',
+      confirmedAt: '2026-10-12T12:00:00Z',
+      externalReference: 'SMS-987',
+    }
+    expect(validateManualPaymentConfirmation(confirmation)).toEqual(confirmation)
+    expect(() => validateManualPaymentConfirmation({ ...confirmation, receivedByUserId: ' ' })).toThrow()
+    expect(() => validateManualPaymentConfirmation({ ...confirmation, confirmedAt: 'invalid' })).toThrow()
+  })
+
   it('supports all three channels with one workflow', () => {
     expect(validateOrderChannel('qr')).toBe('qr')
     expect(validateOrderChannel('social')).toBe('social')
