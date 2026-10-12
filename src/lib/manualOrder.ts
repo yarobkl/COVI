@@ -43,6 +43,13 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const MAX_XAF = 9_000_000_000_000
 const MAX_QTY = 2_147_483_647
 
+function containsAsciiControl(value: string): boolean {
+  return Array.from(value).some((character) => {
+    const point = character.codePointAt(0)
+    return point !== undefined && (point < 32 || point === 127)
+  })
+}
+
 export function prepareManualOrderLines(
   lines: readonly ManualOrderLineInput[],
 ): { lines: ManualOrderLine[]; amountXaf: number } {
@@ -100,8 +107,8 @@ export function prepareManualOrderRequest(input: ManualOrderRequest) {
     throw new Error('Paramètres de commande invalides.')
   const customerPhone = input.customerPhone?.trim() || null
   const customerNote = input.customerNote?.trim() || null
-  if ((customerPhone && (customerPhone.length > 32 || /[\x00-\x1f\x7f]/.test(customerPhone))) ||
-      (customerNote && (customerNote.length > 500 || /[\x00-\x1f\x7f]/.test(customerNote))))
+  if ((customerPhone && (customerPhone.length > 32 || containsAsciiControl(customerPhone))) ||
+      (customerNote && (customerNote.length > 500 || containsAsciiControl(customerNote))))
     throw new Error('Coordonnées ou note trop longues ou invalides.')
   const prepared = prepareManualOrderLines(input.lines)
   return {
