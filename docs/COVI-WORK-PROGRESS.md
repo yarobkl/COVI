@@ -31,8 +31,8 @@ Aucun test n'a écrit dans la base de production.
 
 ## Blocages
 
-1. Session Cloudflare absente : créer un widget requiert une authentification personnelle.
-2. Aucun Supabase distant isolé n'existe. Le seul projet connu est la production ; ne pas y déployer la fonction ni les SQL de caisse. Ne créer aucun projet ou branche payante.
+1. Session Cloudflare absente : créer un widget requiert une authentification personnelle. La session cloud affiche `/login` et aucun mécanisme sécurisé browserAuth/handoff n'est exposé par l'outil navigateur de cette session ; ne jamais demander ni saisir le mot de passe dans le chat.
+2. Aucun Supabase distant isolé n'existe. L'organisation connectée est sur le plan gratuit et ne contient que COVI plus des projets sans lien à cette mission, laissés intacts. La vérification du coût d'une branche/projet échoue dans le connecteur ; aucune ressource n'a été créée. Ne pas déployer la fonction ni les SQL de caisse en production.
 3. Passerelle Edge et secrets serveur non déployés/configurés.
 4. Pas de preuve E2E distante du parcours QR/social → commande → approbation → confirmation paiement → stock → historique.
 5. La PR reste brouillon et l'audit de PR mentionne encore des blocages comptables, de statistiques, de vie privée, d'accès caissiers et de tests mobile. **NO-GO production.**
