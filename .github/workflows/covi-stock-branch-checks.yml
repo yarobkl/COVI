@@ -90,6 +90,7 @@ jobs:
           const paths = execFileSync('git',['diff','--name-only','--diff-filter=M'],{
             encoding:'utf8'
           }).split('\n').filter(Boolean)
+          console.log('COVI_FORMAT_TREE ' + execFileSync('git',['rev-parse','HEAD^{tree}'],{encoding:'utf8'}).trim())
           console.log('COVI_FORMAT_COUNT ' + paths.length)
           for(const path of paths) {
             // Never format the existing OAuth/signup forms as part of checkout.
