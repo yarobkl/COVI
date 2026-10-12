@@ -2,7 +2,9 @@
 -- DO NOT APPLY TO PRODUCTION. Requires draft_category_stock_schema.sql
 -- and draft_checkout_manual_payment_schema.sql first.
 -- No payment is captured, no stock is decremented, and no employees or
--- anonymous visitors are authorized by these two functions.
+-- anonymous visitors are authorized to approve by these two functions.
+-- The create function remains owner-only; the separate public intake draft
+-- accepts restricted QR/social requests without shop-owner privileges.
 begin;
 
 create or replace function public.create_manual_checkout_order(
@@ -216,10 +218,15 @@ begin
   for update;
   if not found then raise exception 'Commande introuvable'; end if;
 
-  -- Only manually created orders are approved by this owner-only entry point.
-  -- Future QR and social orders need their own audited public intake.
-  if v_order.channel <> 'manual' then
-    raise exception 'Ce canal de commande ne peut pas être approuvé ici';
+  -- Owner can approve either an owner-created manual order or a PUBLIC
+  -- request submitted through the narrowly restricted token/rate-limit RPC.
+  -- Neither the customer nor the public token grants approval privileges.
+  if not (
+    (v_order.channel = 'manual' and v_order.created_by = v_actor)
+    or (v_order.channel in ('qr','social') and v_order.created_by is null
+        and v_order.creation_payload is not null)
+  ) then
+    raise exception 'Commande non autorisée pour ce canal';
   end if;
   if v_order.status = 'approved' then
     return jsonb_build_object('orderId', v_order.id, 'status', 'approved',
