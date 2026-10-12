@@ -269,8 +269,16 @@ export function createPublicCheckoutGateway(env, fetchImpl = fetch) {
         p_customer_note: body.note?.trim() || null,
         p_fulfillment: body.fulfillment,
       })
-      if (!result || !UUID.test(result.orderId) || result.status !== 'submitted')
-        throw new Error('order')
+      if (
+        !result ||
+        !UUID.test(result.orderId) ||
+        !['submitted', 'approved', 'reserved', 'paid', 'cancelled', 'expired'].includes(
+          result.status,
+        ) ||
+        !Number.isSafeInteger(result.amountXaf) ||
+        result.amountXaf < 0 ||
+        result.amountXaf > 2000000000
+      ) throw new Error('order')
       return json(200, {
         orderId: result.orderId,
         status: result.status,
