@@ -34,7 +34,7 @@ export type RecordedManualOrder = {
 type RpcResult = { data: unknown; error: { message: string } | null }
 type FutureOrderRpc = {
   rpc: (
-    name: 'create_manual_checkout_order' | 'approve_manual_checkout_order',
+    name: 'create_manual_checkout_order' | 'approve_manual_checkout_order' | 'reject_checkout_order',
     args: Record<string, unknown>,
   ) => PromiseLike<RpcResult>
 }
@@ -173,5 +173,24 @@ export async function approveManualCheckoutOrder(input: {
   if (error) throw new Error(error.message)
   const order = parseRecordedManualOrder(data)
   if (order.status !== 'approved') throw new Error('Commande non approuvée.')
+  return order
+}
+
+/** Refuses an unpaid proposal. The server records the signed-in shop owner. */
+export async function rejectCheckoutOrder(input: {
+  shopId: string
+  orderId: string
+}): Promise<RecordedManualOrder> {
+  if (!UUID.test(input.shopId) || !UUID.test(input.orderId))
+    throw new Error('Identifiants de commande invalides.')
+  const client = supabase as unknown as FutureOrderRpc
+  const { data, error } = await client.rpc('reject_checkout_order', {
+    p_shop_id: input.shopId,
+    p_order_id: input.orderId,
+  })
+  if (error) throw new Error(error.message)
+  const order = parseRecordedManualOrder(data)
+  if (order.orderId !== input.orderId || order.status !== 'cancelled')
+    throw new Error('Refus non confirmé par le serveur.')
   return order
 }
