@@ -89,7 +89,7 @@ export function PublicOrderLinksPanel({ shopId, shopName }: { shopId: string; sh
       </p>
 
       {loading && <p role="status">Vérification du lien de la boutique…</p>}
-      {error && <Notice tone="danger"><p role="alert">{error}</p></Notice>}
+      {error && <Notice tone="danger"><p>{error}</p></Notice>}
       {notice && <p role="status" className="checkout-share__success">{notice}</p>}
 
       {!loading && (
