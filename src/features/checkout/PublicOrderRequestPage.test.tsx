@@ -58,7 +58,7 @@ describe('anonymous QR/social notebook request screen', () => {
     fireEvent.click(screen.getByRole('button', { name: /Envoyer la demande/ }))
     await screen.findByRole('heading', { name: 'Demande envoyée' })
     expect(screen.getByText('BBBBBBBB')).toBeTruthy()
-    expect(screen.getByText(/Votre paiement n'est pas confirmé/)).toBeTruthy()
+    expect(screen.getByText(/Aucun paiement ne peut être effectué depuis cette page/)).toBeTruthy()
     expect(submitPublicOrder).toHaveBeenCalledWith(
       expect.objectContaining({
         token,
