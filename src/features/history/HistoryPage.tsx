@@ -9,16 +9,13 @@ import { CategorySoldRow } from './CategorySoldRow'
 
 /** Legacy product sales and category-only receipts, most recent first. */
 export function HistoryPage({ shopId }: { shopId: string }) {
-  const load = useCallback(
-    async () => {
-      const [legacy, categories] = await Promise.all([
-        listSales(shopId),
-        listCategorySaleHistory(shopId),
-      ])
-      return { legacy, categories }
-    },
-    [shopId],
-  )
+  const load = useCallback(async () => {
+    const [legacy, categories] = await Promise.all([
+      listSales(shopId),
+      listCategorySaleHistory(shopId),
+    ])
+    return { legacy, categories }
+  }, [shopId])
   const { data: rows, error, retry } = useAsyncData(load)
   const items = useMemo(() => {
     if (!rows) return null
