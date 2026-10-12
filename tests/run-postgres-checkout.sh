@@ -13,7 +13,7 @@ if [[ "$PGHOST" != "127.0.0.1" && "$PGHOST" != "localhost" ]]; then
   exit 2
 fi
 
-if [[ -n "$SUPABASE_URL" || -n "$DATABASE_URL" ]]; then
+if [[ -n "${SUPABASE_URL-}" || -n "${DATABASE_URL-}" ]]; then
   echo "Refusing to run with Supabase or DATABASE_URL environment" >&2
   exit 2
 fi
