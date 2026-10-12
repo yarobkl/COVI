@@ -109,3 +109,7 @@ pay_parallel \
   "idempotent"
 run tests/postgres/concurrency-same-order-assert.sql
 echo "PASS: Disposable PostgreSQL integration AND concurrency checks succeeded."
+
+echo "Running security, rollback and TEST/real stock isolation scenarios..."
+run tests/postgres/checkout-security-assert.sql
+echo "PASS: Security and rollback scenarios completed."
