@@ -24,7 +24,7 @@ const order = {
   challenge: 'valid-turnstile-token-for-test',
 }
 
-function fakeBackend({ quota = true, captcha = true } = {}) {
+function fakeBackend({ quota = true, captcha = true, hostname = 'covi.example', action = 'covi_checkout', orderStatus = 'submitted' } = {}) {
   const calls = []
   const transport = vi.fn(async (url, init) => {
     const address = String(url)
@@ -32,8 +32,8 @@ function fakeBackend({ quota = true, captcha = true } = {}) {
     if (address.includes('siteverify')) {
       return Response.json({
         success: captcha,
-        hostname: 'covi.example',
-        action: 'covi_checkout',
+        hostname,
+        action,
       })
     }
     if (address.endsWith('consume_checkout_gateway_quota')) return Response.json(quota)
@@ -44,7 +44,7 @@ function fakeBackend({ quota = true, captcha = true } = {}) {
       })
     }
     if (address.endsWith('submit_checkout_public_order')) {
-      return Response.json({ orderId, status: 'submitted', amountXaf: 7000 })
+      return Response.json({ orderId, status: orderStatus, amountXaf: 7000 })
     }
     throw new Error('Unexpected endpoint')
   })
@@ -120,6 +120,25 @@ describe('isolated QR/social gateway', () => {
     const result = await createPublicCheckoutGateway(env, transport)(guestPost())
     expect(result.status).toBe(403)
     expect(calls.some((c) => c.address.includes('submit_checkout_public_order'))).toBe(false)
+  })
+
+  it('rejects a challenge for the wrong hostname or action, before link-wide quota', async () => {
+    for (const settings of [{ hostname: 'attacker.example' }, { action: 'other_action' }]) {
+      const { transport, calls } = fakeBackend(settings)
+      const result = await createPublicCheckoutGateway(env, transport)(guestPost())
+      expect(result.status).toBe(403)
+      expect(calls.some((c) => c.address.includes('submit_checkout_public_order'))).toBe(false)
+      expect(
+        calls.some((c) => c.address.includes('gateway_quota') && JSON.parse(c.init.body).p_kind === 'order_link_minute'),
+      ).toBe(false)
+    }
+  })
+
+  it('returns the existing request status after a legitimate network retry', async () => {
+    const { transport } = fakeBackend({ orderStatus: 'approved' })
+    const result = await createPublicCheckoutGateway(env, transport)(guestPost())
+    expect(result.status).toBe(200)
+    expect((await result.json()).status).toBe('approved')
   })
 
   it('stops source flooding before expensive external verification', async () => {
