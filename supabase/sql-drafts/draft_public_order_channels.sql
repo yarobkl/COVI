@@ -321,6 +321,66 @@ begin
 end;
 $function$;
 
+
+-- Private owner inbox. This function never exposes phone numbers to a guest.
+create or replace function public.get_checkout_pending_orders(p_shop_id uuid)
+returns jsonb language plpgsql security definer set search_path = ''
+as $function$
+declare
+  v_actor uuid := (select auth.uid());
+  v_rows jsonb;
+begin
+  if v_actor is null then
+    raise exception 'Authentification requise' using errcode = '28000';
+  end if;
+  if p_shop_id is null or not exists (
+    select 1 from public.shops s
+    where s.id = p_shop_id and s.owner_id = v_actor
+  ) then
+    raise exception 'Accès à cette boutique refusé' using errcode = '42501';
+  end if;
+
+  select coalesce(jsonb_agg(
+    jsonb_build_object(
+      'orderId', o.id,
+      'channel', o.channel,
+      'status', o.status,
+      'amountXaf', o.amount_xaf,
+      'customerPhone', o.customer_phone,
+      'customerNote', o.customer_note,
+      'fulfillment', o.fulfillment,
+      'createdAt', o.created_at,
+      'lines', coalesce((
+        select jsonb_agg(
+          jsonb_build_object(
+            'label', c.display_name,
+            'quantity', li.quantity,
+            'lineTotalXaf', li.line_total_xaf
+          ) order by li.id
+        )
+        from public.checkout_order_lines li
+        join public.stock_categories c
+          on c.id = li.category_id and c.shop_id = li.shop_id
+        where li.shop_id = p_shop_id and li.order_id = o.id
+      ), '[]'::jsonb)
+    ) order by o.created_at desc
+  ),'[]'::jsonb) into v_rows
+  from (
+    select * from public.checkout_orders o
+    where o.shop_id = p_shop_id
+      and o.channel in ('qr','social')
+      and o.status in ('submitted','approved')
+      and o.is_test = false
+    order by o.created_at desc, o.id desc
+    limit 30
+  ) o;
+  return v_rows;
+end;
+$function$;
+
+revoke all on function public.get_checkout_pending_orders(uuid) from public, anon;
+grant execute on function public.get_checkout_pending_orders(uuid) to authenticated;
+
 -- No open access to link configuration or token rotation.
 revoke all on function public.get_checkout_public_link(uuid)
   from public, anon;
