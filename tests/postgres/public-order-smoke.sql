@@ -60,10 +60,11 @@ begin
   v_catalog := public.get_checkout_public_catalog(
     current_setting('covi.test.public_token')::uuid);
   if v_catalog->>'shopName' <> 'Boutique A' or
-     jsonb_array_length(v_catalog->'categories') <> 2 then
+     jsonb_array_length(v_catalog->'categories') < 2 then
     raise exception 'Anonymous category catalog invalid or reveals TEST categories: %',v_catalog;
   end if;
-  if v_catalog::text like '%quantity_on_hand%' or v_catalog::text like '%owner_id%' then
+  if v_catalog::text like '%quantity_on_hand%' or v_catalog::text like '%owner_id%' or
+     v_catalog::text like '%aaaaaaaa-0000-4000-8000-000000000003%' then
     raise exception 'Anonymous catalog leaked protected data';
   end if;
 
