@@ -11,15 +11,23 @@ puis appuie sur **Confirmer le paiement reçu**.
 2. Le commerçant contrôle catégories, quantités, prix négociés et disponibilité.
 3. Éventuelle réservation temporaire, sans diminution définitive du stock.
 4. Le client règle hors application (espèces / Mobile Money / autre).
-5. Un utilisateur autorisé confirme manuellement la réception des fonds.
-6. Une transaction atomique serveur crée la confirmation et le reçu, passe la
+5. Avant de confirmer, le caissier ou vendeur choisit le moyen de paiement,
+   **saisit obligatoirement son prénom**, et peut ajouter une référence
+   Mobile Money ou un justificatif (facultatif).
+6. Un utilisateur autorisé clique sur **Confirmer le paiement reçu** après
+   avoir vérifié la réception effective des fonds.
+7. Une transaction atomique serveur crée la confirmation et le reçu, passe la
    commande à `paid`, et déduit les quantités une seule fois.
-7. Répéter la même opération ne doit jamais créer un deuxième reçu ni décrémenter
+8. Répéter la même opération ne doit jamais créer un deuxième reçu ni décrémenter
    le stock une seconde fois.
 
 ## Règles de confiance
 - Afficher **Paiement confirmé par le vendeur** ; ne jamais afficher
   « Paiement vérifié par l'opérateur ».
+- **Le prénom saisi n'authentifie personne** : il est déclaré par l'utilisateur
+  et conservé tel que validé dans une copie immuable sur le reçu :
+  **« Encaissé par : Marie Lou »**.
+- Le compte utilisateur lié à l'encaissement est identifié indépendamment.
 - `confirmed_by` doit provenir de la session serveur `auth.uid()` ;
   `confirmed_at` de l'horloge serveur.
 - La référence SMS/opérateur est facultative et n'est pas une preuve cryptographique.
@@ -37,6 +45,8 @@ puis appuie sur **Confirmer le paiement reçu**.
 - Schéma SQL : brouillon sur branche, non appliqué.
 - Autorisation réelle des vendeurs/employés : à définir et vérifier.
 - RPC atomique de confirmation : à développer et tester en base isolée.
-- UI « Confirmer le paiement reçu » : non développée.
+- Formulaire de confirmation avec prénom obligatoire et reçu « Le Cahier » :
+  composants ajoutés sur la branche de travail, **pas encore connectés à la caisse**.
+- Tests associés : écrits, pas encore confirmés exécutés.
 - API Mobile Money : aucune requise ni intégrée.
 - Production et authentification Google/Facebook : inchangées.
