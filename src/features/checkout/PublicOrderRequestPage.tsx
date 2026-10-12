@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { TurnstileChallenge } from './TurnstileChallenge'
 import {
   Amount,
   AmountInput,
@@ -42,6 +43,8 @@ export function PublicOrderRequestPage({ token, channel }: Props) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState<RecordedPublicRequest | null>(null)
+  const [challenge, setChallenge] = useState('')
+  const [challengeVersion, setChallengeVersion] = useState(0)
   const inFlight = useRef(false)
   const attempt = useRef<{ fingerprint: string; operationId: string } | null>(null)
 
@@ -135,7 +138,7 @@ export function PublicOrderRequestPage({ token, channel }: Props) {
         fulfillment,
       }
       const prepared = preparePublicRequest(input)
-      const result = await submitPublicOrder(input)
+      const result = await submitPublicOrder({ ...input, challenge })
       const expected = prepared.p_lines.reduce(
         (sum, line) => sum + line.quantity * line.unitPriceXaf,
         0,
@@ -145,6 +148,8 @@ export function PublicOrderRequestPage({ token, channel }: Props) {
       setSaved(result)
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Demande non envoyée. Réessayez.')
+      setChallenge('')
+      setChallengeVersion((current) => current + 1)
     } finally {
       inFlight.current = false
       setBusy(false)
@@ -377,6 +382,7 @@ export function PublicOrderRequestPage({ token, channel }: Props) {
               {error}
             </p>
           )}
+          <TurnstileChallenge key={challengeVersion} onTokenChange={setChallenge} />
           <p className="checkout-guest__caution">
             Ne payez pas depuis cette page. Le vendeur confirmera votre demande, puis constatera la
             réception du paiement séparément.
@@ -388,7 +394,7 @@ export function PublicOrderRequestPage({ token, channel }: Props) {
             size="lg"
             busy={busy}
             busyLabel="Envoi de la demande…"
-            disabled={busy || !lines.length || (fulfillment === 'delivery' && !phone.trim())}
+            disabled={busy || !challenge || !lines.length || (fulfillment === 'delivery' && !phone.trim())}
           >
             Envoyer la demande · {fcfa(total)} FCFA
           </Button>
