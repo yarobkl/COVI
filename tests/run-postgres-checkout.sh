@@ -118,3 +118,7 @@ echo "PASS: Security and rollback scenarios completed."
 echo "Running public link and anonymous request smoke tests..."
 run tests/postgres/public-order-smoke.sql
 echo "PASS: Public QR/social permission boundaries verified."
+
+echo "Testing private owner queue and rate-limit controls..."
+run tests/postgres/public-order-rate-limit.sql
+echo "PASS: Anonymous request ceiling and contact protection verified."
