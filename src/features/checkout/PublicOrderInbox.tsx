@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Amount, Button, Ledger, LedgerRow, Notice, Sheet } from '../../components/ui'
-import { approveManualCheckoutOrder } from '../../lib/manualOrder'
+import { approveManualCheckoutOrder, rejectCheckoutOrder } from '../../lib/manualOrder'
 import { getPendingPublicOrders, type PendingPublicOrder } from '../../lib/publicOrders'
 import { CashierCheckoutPanel } from './CashierCheckoutPanel'
 
@@ -15,6 +15,7 @@ export function PublicOrderInbox({ shopId, shopName }: { shopId: string; shopNam
   const [retry, setRetry] = useState(0)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const [selected, setSelected] = useState<PendingPublicOrder | null>(null)
 
   useEffect(() => {
@@ -39,6 +40,22 @@ export function PublicOrderInbox({ shopId, shopName }: { shopId: string; shopNam
       active = false
     }
   }, [shopId, retry])
+
+  async function reject(order: PendingPublicOrder) {
+    if (busyId || !window.confirm('Refuser cette commande sans encaisser ?')) return
+    setError('')
+    setNotice('')
+    setBusyId(order.orderId)
+    try {
+      await rejectCheckoutOrder({ shopId, orderId: order.orderId })
+      setOrders((current) => current.filter((item) => item.orderId !== order.orderId))
+      setNotice('Demande refusée. Aucun paiement ni stock n’a été modifié.')
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Refus impossible.')
+    } finally {
+      setBusyId(null)
+    }
+  }
 
   async function approve(order: PendingPublicOrder) {
     if (busyId) return
@@ -138,6 +155,7 @@ export function PublicOrderInbox({ shopId, shopName }: { shopId: string; shopNam
           <p>{error}</p>
         </Notice>
       )}
+      {notice && <p role="status">{notice}</p>}
       {!loading && !loadError && orders.length === 0 && (
         <p role="status">Aucune demande en attente. Partagez votre lien pour en recevoir.</p>
       )}
@@ -185,6 +203,16 @@ export function PublicOrderInbox({ shopId, shopName }: { shopId: string; shopNam
                 {order.status === 'approved'
                   ? 'Ouvrir la confirmation du paiement'
                   : 'Approuver et passer à l’encaissement'}
+              </Button>
+              <Button
+                variant="secondary"
+                block
+                disabled={Boolean(busyId)}
+                onClick={() => {
+                  void reject(order)
+                }}
+              >
+                Refuser cette demande
               </Button>
             </article>
           ))}
