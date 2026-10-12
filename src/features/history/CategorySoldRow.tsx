@@ -12,7 +12,7 @@ export function CategorySoldRow({
 }) {
   return (
     <div className="soldrow">
-      <ProductThumb fallback={line.label[0] ?? 'V'} />
+      <ProductThumb imageUrl={null} fallback={line.label[0] ?? 'V'} />
       <div className="grow">
         <b>
           {line.label} {receipt.isTest && <em className="test-tag">TEST</em>}
