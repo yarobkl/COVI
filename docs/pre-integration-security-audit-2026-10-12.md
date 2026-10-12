@@ -58,3 +58,21 @@ Ces contrôles ne constituent **pas** un audit d’une instance Supabase Auth/Po
 - Scripts brouillons protégés : `supabase/sql-drafts/`
 
 **État final : audit documenté, production COVI et autres projets intacts. Tant qu’un point B1–B4 n’est pas résolu, le verdict reste NO-GO.**
+
+
+## Durcissements proposés après l'audit initial (branche uniquement)
+
+- **B1 — porte d'entrée publique verrouillée en prévision d'une passerelle :**
+  `draft_public_order_channels.sql` ne donne plus `EXECUTE` sur les deux RPC
+  publiques au navigateur (`anon` / `authenticated`) ; seul le rôle de service
+  serveur est autorisé. La fixture PostgreSQL contrôle le refus d'accès direct.
+  **Le point B1 n'est PAS résolu :** aucune passerelle réseau et aucun quota
+  robuste par source ne sont encore livrés. Le QR social ne doit pas être activé.
+- **B2 — durcissement ciblé proposé :**
+  `draft_protect_confirmed_category_sales.sql` empêche la modification et la
+  suppression directes des ventes associées à un reçu de la caisse catégorie,
+  tout en laissant la caisse historique fonctionner. Un scénario jetable
+  `confirmed-category-sale-immutability.sql` teste les deux comportements.
+  **La production et les ventes historiques n'ont pas été modifiées.**
+- Le nouveau schéma reste purement préparatoire ; la protection ne fonctionne
+  réellement qu'après migration approuvée et tests Supabase Auth/PostgREST.
