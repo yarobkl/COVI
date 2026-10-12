@@ -19,12 +19,12 @@ Projet : `yarobkl/COVI`, PR #22, branche `feature/covi-stock-central-omnichannel
 ## Modifications et commits de cette session
 
 - Ajout puis mise à jour de ce journal sur la branche autorisée.
-- Checkpoints : `8c30d8772e0a8e52c7b6ff2d9d182c98c11b4987`, `7b06165fb6fa9589479ce8e24f03e6043ada1f97`, puis journal actualisé `f6cfb96f775902973db939b0be533c7286def886`.
+- Checkpoints documentés : `8c30d8772e0a8e52c7b6ff2d9d182c98c11b4987`, `7b06165fb6fa9589479ce8e24f03e6043ada1f97`, `f6cfb96f775902973db939b0be533c7286def886`, `d975898fa17a4491c31533f4f1f15df164783cd0`. Le dernier checkpoint de tests applicatifs est `7b06165`; les commits suivants ne modifient que le journal.
 - Aucun code applicatif, secret, schéma Supabase, provider OAuth ou paramètre de production modifié.
 
 ## Tests
 
-Réussis : format/lint/TypeScript/build/tests web, tests unitaires/statique, PostgreSQL jetable et Auth/PostgREST Supabase local sur les runs cités, y compris les trois workflows du checkpoint `7b06165`.
+Réussis au checkpoint de code `7b06165` : format/lint/TypeScript/build/tests web, tests unitaires/statique, PostgreSQL jetable et Auth/PostgREST Supabase local. Les trois workflows déclenchés par le dernier commit documentaire sont en attente (runs 38299364872, 38299364886, 38299364850) ; ils ne valident pas de nouveau code applicatif.
 Non exercés en conditions réelles : challenge Turnstile réel, fonction Edge distante, Supabase distant isolé, QR/WhatsApp sur smartphone, confirmation manuelle du paiement puis stock/historique/statistiques.
 Installateur natif Windows ignoré par le workflow de PR.
 Aucun test n'a écrit dans la base de production.
