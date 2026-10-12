@@ -8,7 +8,8 @@ select set_config(
 );
 
 begin;
-set local role anon;
+-- Requests below simulate the trusted server gateway role.
+set local role service_role;
 do $visitor$
 declare
   v_created jsonb;
@@ -89,7 +90,8 @@ values (
 on conflict (shop_id,bucket_kind,bucket_start) do update set submissions=60;
 
 begin;
-set local role anon;
+-- Requests below simulate the trusted server gateway role.
+set local role service_role;
 do $rate_limit$
 declare
   v_rejected boolean := false;
