@@ -46,6 +46,7 @@ create table if not exists public.checkout_order_lines (
 create table if not exists public.manual_payment_confirmations (
   order_id uuid primary key,
   shop_id uuid not null,
+  sale_id uuid not null,
   operation_id uuid not null,
   confirmed_by uuid not null references auth.users(id),
   -- Human-readable cashier name is a receipt snapshot entered before validation,
@@ -58,19 +59,25 @@ create table if not exists public.manual_payment_confirmations (
   external_reference text check (length(external_reference) <= 120),
   receipt_number text not null,
   amount_xaf bigint not null check (amount_xaf >= 0),
+  receipt_lines jsonb not null check (jsonb_typeof(receipt_lines) = 'array'),
   constraint manual_confirmations_order_shop_fk foreign key (order_id, shop_id)
     references public.checkout_orders(id, shop_id),
+  constraint manual_confirmations_sale_shop_fk foreign key (sale_id, shop_id)
+    references public.sales(id, shop_id),
+  constraint manual_confirmations_sale_unique unique (sale_id),
   constraint manual_confirmations_operation_unique unique (shop_id, operation_id),
   constraint manual_confirmations_receipt_unique unique (shop_id, receipt_number)
 );
 
 -- Receipt numbering must be allocated atomically in the payment RPC.
+-- TEST counters are separate from REAL counters and have a TEST prefix.
 -- Never generate sequential receipt numbers in the browser.
 create table if not exists public.shop_receipt_counters (
   shop_id uuid not null references public.shops(id),
   receipt_year integer not null check (receipt_year between 2020 and 9999),
+  is_test boolean not null default false,
   last_number bigint not null default 0 check (last_number >= 0),
-  primary key (shop_id, receipt_year)
+  primary key (shop_id, receipt_year, is_test)
 );
 
 create index if not exists checkout_orders_shop_status_created_idx
@@ -104,7 +111,10 @@ commit;
 -- - Public QR/social order submission needs a restricted endpoint and abuse controls.
 -- - Cashier confirmation RPC must lock order AND category rows, validate totals,
 --   ensure is_test matches, check available stock, decrement exactly once, and
---   insert immutable receipt + confirmation in one transaction.
+--   insert immutable receipt + confirmation and the existing sales ledger in one transaction.
+-- - Checkout lines remain the sale's category breakdown; old sale_items require products
+--   and must not be used for category-only sales.
+-- - A payment confirmation stores receipt_lines as a historical receipt snapshot.
 -- - Confirm receipt formatting and whether payment correction needs reversal.
 -- - Require and normalize cashier_first_name BEFORE confirming; store it with
 --   confirmed_by on the receipt as an immutable display snapshot.
