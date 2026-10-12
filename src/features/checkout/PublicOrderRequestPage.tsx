@@ -186,8 +186,12 @@ export function PublicOrderRequestPage({ token, channel }: Props) {
       <main className="checkout-guest seyes margin-rule">
         <Sheet className="checkout-guest__sheet">
           <p className="hand">C'est noté !</p>
-          <h1>Demande envoyée</h1>
-          <p>Votre demande est arrivée dans le cahier de {catalog.shopName}.</p>
+          <h1>
+            {saved.status === 'cancelled' || saved.status === 'expired'
+              ? 'Demande clôturée'
+              : 'Demande envoyée'}
+          </h1>
+          <p>Votre demande a été retrouvée dans le cahier de {catalog.shopName}.</p>
           <Ledger>
             <LedgerRow
               variant="total"
@@ -200,8 +204,11 @@ export function PublicOrderRequestPage({ token, channel }: Props) {
             {saved.orderId.slice(0, 8).toUpperCase()}
           </strong>
           <p className="checkout-guest__caution">
-            La boutique doit encore vérifier les articles et le prix. Votre paiement n'est pas
-            confirmé et aucun vêtement n'a été retiré du stock.
+            {saved.status === 'paid'
+              ? 'La boutique a enregistré votre règlement. Cette page ne permet jamais de payer.'
+              : saved.status === 'cancelled' || saved.status === 'expired'
+                ? 'Cette demande n’est plus active. Contactez la boutique pour une nouvelle demande.'
+                : 'La boutique doit vérifier votre demande et constater tout paiement séparément. Aucun paiement ne peut être effectué depuis cette page.'}
           </p>
         </Sheet>
       </main>
