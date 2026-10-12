@@ -17,6 +17,18 @@ create table if not exists public.checkout_orders (
   fulfillment text not null default 'pickup'
     check (fulfillment in ('pickup', 'delivery')),
   amount_xaf bigint not null check (amount_xaf >= 0 and amount_xaf <= 9000000000000),
+  -- Owner-only manual order creation uses a stable UUID + canonical payload
+  -- to distinguish an exact retry from conflicting order details.
+  creation_operation_id uuid,
+  creation_payload jsonb,
+  created_by uuid references auth.users(id),
+  approved_by uuid references auth.users(id),
+  approved_at timestamptz,
+  constraint checkout_orders_creation_pair check (
+    (creation_operation_id is null and creation_payload is null)
+    or (creation_operation_id is not null and creation_payload is not null)
+  ),
+  constraint checkout_orders_creation_id_unique unique (shop_id, creation_operation_id),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint checkout_orders_id_shop_unique unique (id, shop_id)
@@ -88,6 +100,7 @@ alter table public.checkout_order_lines enable row level security;
 alter table public.manual_payment_confirmations enable row level security;
 alter table public.shop_receipt_counters enable row level security;
 
+-- Rows written through narrowly authorized server functions only.
 -- Shop owner reads only; employee authorization and public QR submission
 -- require a separately audited role model and narrow RPCs.
 create policy "shop owner reads checkout orders"
@@ -108,6 +121,9 @@ commit;
 
 -- OPEN SECURITY/PRODUCT DECISIONS BEFORE DEPLOYMENT:
 -- - Define employee-to-shop membership and seller permissions (owner-only RLS is insufficient).
+-- - Manual order creation stores an idempotent canonical request under the owner's identity.
+-- - Approval records approved_by/approved_at from auth.uid()/now(), not the browser.
+-- - Only an approved order is eligible for manual payment confirmation.
 -- - Public QR/social order submission needs a restricted endpoint and abuse controls.
 -- - Cashier confirmation RPC must lock order AND category rows, validate totals,
 --   ensure is_test matches, check available stock, decrement exactly once, and
