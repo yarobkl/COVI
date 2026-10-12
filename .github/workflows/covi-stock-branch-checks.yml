@@ -64,39 +64,3 @@ jobs:
           PGPASSWORD: postgres
         run: bash tests/run-postgres-checkout.sh
 
-  safe-branch-format-and-qr-dependency:
-    name: Isolated branch formatting and local QR dependency
-    if: github.event_name == 'push' && github.repository == 'yarobkl/COVI' && github.ref == 'refs/heads/feature/covi-stock-central-omnichannel'
-    runs-on: ubuntu-latest
-    timeout-minutes: 12
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          persist-credentials: true
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-      - run: npm ci
-      - name: Install bundled QR SVG dependency
-        run: |
-          npm install --save-exact qrcode@1.5.4
-          npm install --save-dev --save-exact @types/qrcode@1.5.5
-      - name: Format checkout branch while preserving ignored OAuth files
-        run: npm run format
-      - name: Verify branch formatting
-        run: npm run format:check
-      - name: Commit and push to feature branch only
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m 'chore(checkout): format isolated branch and add local QR SVG library'
-            git push origin HEAD:refs/heads/feature/covi-stock-central-omnichannel
-          fi
