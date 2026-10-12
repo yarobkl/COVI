@@ -10,7 +10,7 @@ Projet : `yarobkl/COVI`, PR #22, branche `feature/covi-stock-central-omnichannel
   - [COVI Windows](https://github.com/yarobkl/COVI/actions/runs/38295190809) : format, lint, TypeScript, build et tests web réussis ; job natif Windows ignoré dans la PR.
   - [COVI isolated branch checks](https://github.com/yarobkl/COVI/actions/runs/38295190801) : unit/static et PostgreSQL jetable réussis.
   - [COVI native Supabase sandbox](https://github.com/yarobkl/COVI/actions/runs/38295190824) : Auth et PostgREST Supabase locaux jetables réussis, rôles/RLS, isolation des boutiques, commandes idempotentes, aucun stock décrémenté au dépôt.
-- Sur le checkpoint `7b06165`, [contrôles isolés](https://github.com/yarobkl/COVI/actions/runs/38298381749) et [COVI Windows](https://github.com/yarobkl/COVI/actions/runs/38298381774) sont en succès. [Sandbox Supabase natif](https://github.com/yarobkl/COVI/actions/runs/38298381764) était encore en cours : démarrage de Supabase local jetable terminé, démarrage des conteneurs en cours.
+- Sur le checkpoint `7b06165`, les trois workflows sont maintenant terminés avec succès : [contrôles isolés](https://github.com/yarobkl/COVI/actions/runs/38298381749), [COVI Windows](https://github.com/yarobkl/COVI/actions/runs/38298381774), [sandbox Supabase natif Auth/PostgREST](https://github.com/yarobkl/COVI/actions/runs/38298381764). Le build natif Windows reste ignoré selon la configuration de la PR.
 - Vercel a produit un aperçu READY sur le checkpoint `8c30d87`. Ce build ne valide pas le parcours métier ; aucun test utilisateur distant n'a été réalisé.
 - Runbook de passerelle : `docs/public-gateway-staging-runbook.md`. Il exige Turnstile, vérification serveur du hostname/action, secret serveur uniquement, quotas atomiques ; la fonction reste inactive sans configuration.
 - Supabase `bmbwmwgfzrijglzcgjut` : `ACTIVE_HEALTHY`, Postgres 17. Aucune fonction Edge, branche de développement ou migration de caisse. Aucun changement au schéma de production.
@@ -19,12 +19,12 @@ Projet : `yarobkl/COVI`, PR #22, branche `feature/covi-stock-central-omnichannel
 ## Modifications et commits de cette session
 
 - Ajout puis mise à jour de ce journal sur la branche autorisée.
-- Checkpoints : `8c30d8772e0a8e52c7b6ff2d9d182c98c11b4987`, puis `7b06165fb6fa9589479ce8e24f03e6043ada1f97`.
+- Checkpoints : `8c30d8772e0a8e52c7b6ff2d9d182c98c11b4987`, `7b06165fb6fa9589479ce8e24f03e6043ada1f97`, puis journal actualisé `f6cfb96f775902973db939b0be533c7286def886`.
 - Aucun code applicatif, secret, schéma Supabase, provider OAuth ou paramètre de production modifié.
 
 ## Tests
 
-Réussis : format/lint/TypeScript/build/tests web, tests unitaires/statique, PostgreSQL jetable et Auth/PostgREST Supabase local sur les runs cités.
+Réussis : format/lint/TypeScript/build/tests web, tests unitaires/statique, PostgreSQL jetable et Auth/PostgREST Supabase local sur les runs cités, y compris les trois workflows du checkpoint `7b06165`.
 Non exercés en conditions réelles : challenge Turnstile réel, fonction Edge distante, Supabase distant isolé, QR/WhatsApp sur smartphone, confirmation manuelle du paiement puis stock/historique/statistiques.
 Installateur natif Windows ignoré par le workflow de PR.
 Aucun test n'a écrit dans la base de production.
