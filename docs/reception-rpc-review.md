@@ -11,7 +11,7 @@ Fichier : `supabase/migrations/draft_post_arrival_category_stock.sql`.
 - Refus d'une seconde réception avec un autre identifiant d'opération.
 
 ## Points bloquants avant application
-1. **Idempotence incomplète** : une répétition avec le même `operation_id` mais un contenu différent renvoie actuellement 0 ; il faut enregistrer une empreinte canonique des lignes et rejeter le conflit.
+1. **Idempotence : correctif écrit, non testé**. Le brouillon enregistre maintenant les lignes regroupées dans `arrival_stock_postings` ; une répétition identique retourne le nombre de catégories, tandis qu'un même identifiant avec un contenu différent doit échouer. Vérifier réellement les cas réordonnés, doublonnés et concurrents.
 2. **Privilèges `SECURITY DEFINER`** : créer une fonction possédée par un rôle dédié et limité ; vérifier que l'absence de politique d'écriture directe n'empêche pas l'exécution contrôlée.
 3. **Traçabilité** : décider comment corriger une réception erronée sans effacer l'historique ; ne jamais écraser les entrées de journal.
 4. **Réception de ballons multiples** : tester la concurrence sur une catégorie commune et la limite de l'entier PostgreSQL.
@@ -20,6 +20,6 @@ Fichier : `supabase/migrations/draft_post_arrival_category_stock.sql`.
 7. **Tests de base jetable** : contrôler anonymes, autres boutiques, doublons, erreurs JSON, dépassements et retour arrière atomique.
 
 ## Séquence suivante
-- Ajouter une table de journal d'opérations avec hash du payload ou une contrainte équivalente.
+- La table `arrival_stock_postings` et la comparaison JSONB canonique ont été ajoutées au brouillon. Exécuter les tests en base jetable avant toute activation.
 - Tester les cas en base isolée.
 - Préparer ensuite une transaction de caisse séparée, sans changer `record_sale` ni l'authentification existantes.
