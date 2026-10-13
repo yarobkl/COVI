@@ -85,10 +85,11 @@ export function SettingsPage({
       name: draft.name.trim(),
       country: draft.country.trim(),
       city: (draft.city === OTHER_CITY ? draft.customCity : draft.city).trim(),
-      neighborhood: (draft.neighborhood === OTHER_NEIGHBORHOOD
-        ? draft.customNeighborhood
-        : draft.neighborhood
-      ).trim(),
+      neighborhood:
+        (draft.neighborhood === OTHER_NEIGHBORHOOD
+          ? draft.customNeighborhood
+          : draft.neighborhood
+        ).trim() || null,
       latitude: draft.gps?.latitude ?? null,
       longitude: draft.gps?.longitude ?? null,
       location_accuracy_m: draft.gps?.accuracy ?? null,
@@ -106,7 +107,7 @@ export function SettingsPage({
         !payload.neighborhood) ||
       (draft.neighborhood === OTHER_NEIGHBORHOOD && !payload.neighborhood)
     ) {
-      setMsg('Choisissez un pays et renseignez votre ville ou localité.')
+      setMsg('Choisissez un pays, une ville et, si vous modifiez votre adresse, un quartier.')
       return
     }
 
@@ -117,7 +118,7 @@ export function SettingsPage({
         .from('shops')
         .update(payload)
         .eq('id', shopId)
-        .select('id,name,city,country,currency')
+        .select('id,name,city,country,currency,neighborhood,latitude,longitude,location_accuracy_m')
         .single()
       if (error || !data) {
         setMsg('Impossible d’enregistrer les paramètres. Vérifiez votre connexion puis réessayez.')
