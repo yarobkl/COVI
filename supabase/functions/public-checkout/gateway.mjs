@@ -50,6 +50,7 @@ function validRequest(body) {
     !UUID.test(body.operationId) ||
     !['qr', 'social'].includes(body.channel) ||
     !['pickup', 'delivery'].includes(body.fulfillment) ||
+    !['cash', 'mobile_money', 'other'].includes(body.paymentMethod ?? 'cash') ||
     !Array.isArray(body.lines) ||
     body.lines.length < 1 ||
     body.lines.length > 20 ||
@@ -276,6 +277,7 @@ export function createPublicCheckoutGateway(env, fetchImpl = fetch) {
         p_customer_phone: body.phone?.trim() || null,
         p_customer_note: body.note?.trim() || null,
         p_fulfillment: body.fulfillment,
+        p_payment_method: body.paymentMethod ?? 'cash',
       })
       if (
         !result ||
