@@ -43,6 +43,23 @@ function invalidControl(value) {
   return /[\u0000-\u001f\u007f]/.test(value)
 }
 
+function decodeReferenceJpeg(value) {
+  if (typeof value !== 'string' || value.length > 450000) return null
+  const match = /^data:image\\/jpeg;base64,([A-Za-z0-9+/]+={0,2})$/.exec(value)
+  if (!match) return null
+  try {
+    const binary = atob(match[1])
+    if (binary.length < 4 || binary.length > 320000) return null
+    const size = binary.length
+    if (binary.charCodeAt(0) !== 255 || binary.charCodeAt(1) !== 216 ||
+      binary.charCodeAt(2) !== 255 || binary.charCodeAt(size - 2) !== 255 ||
+      binary.charCodeAt(size - 1) !== 217) return null
+    return Uint8Array.from(binary, char => char.charCodeAt(0))
+  } catch {
+    return null
+  }
+}
+
 function validRequest(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) return false
   if (
@@ -51,6 +68,7 @@ function validRequest(body) {
     !['qr', 'social'].includes(body.channel) ||
     !['pickup', 'delivery'].includes(body.fulfillment) ||
     !['cash', 'mobile_money', 'other'].includes(body.paymentMethod ?? 'cash') ||
+    (body.referenceImage != null && !decodeReferenceJpeg(body.referenceImage)) ||
     !Array.isArray(body.lines) ||
     body.lines.length < 1 ||
     body.lines.length > 20 ||
@@ -102,7 +120,7 @@ function validRequest(body) {
 
 async function limitedJson(request) {
   const length = Number(request.headers.get('content-length'))
-  if (Number.isFinite(length) && length > 12000) throw new Error('size')
+  if (Number.isFinite(length) && length > 475000) throw new Error('size')
   const reader = request.body?.getReader()
   if (!reader) throw new Error('body')
   const parts = []
@@ -111,7 +129,7 @@ async function limitedJson(request) {
     const { done, value } = await reader.read()
     if (done) break
     size += value.byteLength
-    if (size > 12000) {
+    if (size > 475000) {
       await reader.cancel()
       throw new Error('size')
     }
@@ -166,6 +184,45 @@ async function backendRpc(env, fetchImpl, name, payload) {
   })
   if (!response.ok) throw new Error('backend')
   return response.json()
+}
+
+/** Only the Edge gateway can upload private, bounded JPEG references. */
+async function saveCheckoutReference(env, fetchImpl, result, body) {
+  const image = decodeReferenceJpeg(body.referenceImage)
+  if (!image || !UUID.test(result.shopId) || !UUID.test(result.orderId))
+    throw new Error('Invalid reference upload')
+  const path = result.shopId + '/' + result.orderId + '/reference.jpg'
+  const endpoint = new URL(
+    '/storage/v1/object/covi-order-references/' + path,
+    env.SUPABASE_URL,
+  )
+  const response = await fetchImpl(endpoint, {
+    method: 'POST',
+    headers: {
+      apikey: env.COVI_SUPABASE_SECRET_KEY,
+      ...(env.COVI_SUPABASE_SECRET_KEY.startsWith('eyJ')
+        ? { Authorization: 'Bearer ' + env.COVI_SUPABASE_SECRET_KEY }
+        : {}),
+      'Content-Type': 'image/jpeg',
+      'x-upsert': 'false',
+      'Cache-Control': 'no-store',
+    },
+    body: image,
+  })
+  // A retry must never overwrite a previous screenshot.
+  if (!response.ok && response.status !== 409) throw new Error('Storage upload failed')
+  const attached = await backendRpc(
+    env,
+    fetchImpl,
+    'attach_checkout_public_reference',
+    {
+      p_token: body.token,
+      p_order_id: result.orderId,
+      p_operation_id: body.operationId,
+      p_image_path: path,
+    },
+  )
+  if (attached !== true) throw new Error('Attachment authorization failed')
 }
 
 async function verifyTurnstile(env, fetchImpl, challenge) {
@@ -334,6 +391,7 @@ export function createPublicCheckoutGateway(env, fetchImpl = fetch) {
         !result ||
         !UUID.test(result.orderId) ||
         !UUID.test(result.trackingToken) ||
+        !UUID.test(result.shopId) ||
         !['submitted', 'approved', 'reserved', 'paid', 'cancelled', 'expired'].includes(
           result.status,
         ) ||
@@ -341,6 +399,9 @@ export function createPublicCheckoutGateway(env, fetchImpl = fetch) {
         result.amountXaf < 0 ||
         result.amountXaf > 2000000000
       ) throw new Error('order')
+      if (body.referenceImage) {
+        await saveCheckoutReference(env, fetchImpl, result, body)
+      }
       return json(200, {
         orderId: result.orderId,
         status: result.status,
