@@ -15,7 +15,8 @@ const operationId = '77770000-0000-4000-8000-000000000001'
 const categoryId = 'aaaaaaaa-0000-4000-8000-000000000001'
 const orderId = 'bbbbbbbb-0000-4000-8000-000000000001'
 const shopId = '11111111-1111-4111-8111-111111111111'
-const validImage = 'data:image/jpeg;base64,' + btoa(String.fromCharCode(255, 216, 255, 1, 2, 3, 255, 217))
+const validImage =
+  'data:image/jpeg;base64,' + btoa(String.fromCharCode(255, 216, 255, 1, 2, 3, 255, 217))
 const trackingToken = 'eeeeeeee-0000-4000-8000-000000000001'
 const origin = { Origin: 'https://covi.example' }
 const order = {
@@ -266,9 +267,10 @@ describe('isolated QR/social gateway', () => {
   })
   it('uploads an optional social screenshot privately after a valid Turnstile order', async () => {
     const { transport, calls } = fakeBackend()
-    const response = await createPublicCheckoutGateway(env, transport)(
-      guestPost({ ...order, channel: 'social', referenceImage: validImage }),
-    )
+    const response = await createPublicCheckoutGateway(
+      env,
+      transport,
+    )(guestPost({ ...order, channel: 'social', referenceImage: validImage }))
     expect(response.status).toBe(200)
     const body = await response.json()
     expect(body.trackingToken).toBe(trackingToken)
@@ -308,11 +310,11 @@ describe('isolated QR/social gateway', () => {
 
   it('never uploads a screenshot if bot verification fails', async () => {
     const { transport, calls } = fakeBackend({ captcha: false })
-    const result = await createPublicCheckoutGateway(env, transport)(
-      guestPost({ ...order, referenceImage: validImage }),
-    )
+    const result = await createPublicCheckoutGateway(
+      env,
+      transport,
+    )(guestPost({ ...order, referenceImage: validImage }))
     expect(result.status).toBe(403)
     expect(calls.some((call) => call.address.includes('/storage/v1/object/'))).toBe(false)
   })
-
 })

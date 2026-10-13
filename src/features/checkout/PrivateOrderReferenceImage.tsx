@@ -17,10 +17,15 @@ export function PrivateOrderReferenceImage({
   const [failed, setFailed] = useState<string | null>(null)
   useEffect(() => {
     let active = true
-    if (!imagePath) return () => { active = false }
+    if (!imagePath)
+      return () => {
+        active = false
+      }
     const expected = shopId + '/' + orderId + '/reference.jpg'
     if (imagePath !== expected) {
-      return () => { active = false }
+      return () => {
+        active = false
+      }
     }
     void supabase.storage
       .from('covi-order-references')
@@ -33,20 +38,25 @@ export function PrivateOrderReferenceImage({
           setSigned({ path: imagePath, url: data.signedUrl })
         }
       })
-    return () => { active = false }
+    return () => {
+      active = false
+    }
   }, [shopId, orderId, imagePath])
 
   if (!imagePath) return null
   const url = signed?.path === imagePath ? signed.url : ''
   const expected = shopId + '/' + orderId + '/reference.jpg'
-  const error = imagePath !== expected
-    ? 'La référence photo ne correspond pas à cette commande.'
-    : failed === imagePath ? 'Cette capture n’est pas disponible.' : ''
+  const error =
+    imagePath !== expected
+      ? 'La référence photo ne correspond pas à cette commande.'
+      : failed === imagePath
+        ? 'Cette capture n’est pas disponible.'
+        : ''
   return (
     <section className="checkout-inbox__reference" aria-label="Capture jointe à la demande">
       <p className="field__hint">
-        Capture envoyée par le client depuis un statut ou un live — référence uniquement,
-        sans création de fiche produit.
+        Capture envoyée par le client depuis un statut ou un live — référence uniquement, sans
+        création de fiche produit.
       </p>
       {url && (
         <img

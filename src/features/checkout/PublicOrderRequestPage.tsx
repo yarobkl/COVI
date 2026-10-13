@@ -462,19 +462,21 @@ export function PublicOrderRequestPage({ token, channel }: Props) {
                     setPhotoBusy(true)
                     setReferenceImage(null)
                     setError('')
-                    void prepareOrderReferencePhoto(file).then(
-                      (encoded) => {
-                        setReferenceImage(encoded)
-                        setError('')
-                      },
-                      (reason) => {
-                        setError(
-                          reason instanceof Error
-                            ? reason.message
-                            : 'Impossible de préparer cette capture.',
-                        )
-                      },
-                    ).finally(() => setPhotoBusy(false))
+                    void prepareOrderReferencePhoto(file)
+                      .then(
+                        (encoded) => {
+                          setReferenceImage(encoded)
+                          setError('')
+                        },
+                        (reason) => {
+                          setError(
+                            reason instanceof Error
+                              ? reason.message
+                              : 'Impossible de préparer cette capture.',
+                          )
+                        },
+                      )
+                      .finally(() => setPhotoBusy(false))
                   }}
                 />
               )}
