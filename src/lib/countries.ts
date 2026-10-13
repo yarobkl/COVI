@@ -1,3 +1,5 @@
+import { CENTRAL_AFRICA } from './centralAfricaLocations'
+
 const names = new Intl.DisplayNames(['fr'], { type: 'region' })
 const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const codes = Array.from(
@@ -19,3 +21,32 @@ export const countries = codes
         : String.fromCodePoint(...[...country.code].map((c) => 127397 + c.charCodeAt(0))),
   }))
   .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
+
+/** Central Africa shown first on supplier receipts, with the rest of the world still selectable. */
+const centralAfricaIsoCodes: Record<string, string> = {
+  'République du Congo': 'CG',
+  'République démocratique du Congo': 'CD',
+  Cameroun: 'CM',
+  Gabon: 'GA',
+  'République centrafricaine': 'CF',
+  Tchad: 'TD',
+  'Guinée équatoriale': 'GQ',
+  'São Tomé-et-Príncipe': 'ST',
+  Angola: 'AO',
+  Burundi: 'BI',
+  Rwanda: 'RW',
+}
+
+const priorityCountries = CENTRAL_AFRICA.map(({ country }) => ({
+  name: country,
+  code: centralAfricaIsoCodes[country],
+  flag: countries.find((c) => c.code === centralAfricaIsoCodes[country])?.flag ?? '',
+}))
+
+/** The supplier origin is worldwide; unlike a boutique address it has no dependent city. */
+const suggestedNames = new Set<string>()
+export const arrivalCountrySuggestions = [...priorityCountries, ...countries].filter((item) => {
+  if (suggestedNames.has(item.name)) return false
+  suggestedNames.add(item.name)
+  return true
+})

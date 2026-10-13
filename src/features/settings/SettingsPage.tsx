@@ -1,11 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import {
-  CENTRAL_AFRICA,
-  listedAfricanCities,
   OTHER_CITY,
   resolveAfricanCity,
   resolveAfricanCountry,
 } from '../../lib/centralAfricaLocations'
+import { CentralAfricaLocationFields } from '../locations/CentralAfricaLocationFields'
 import { supabase } from '../../lib/supabase'
 import type { Shop } from '../../lib/types'
 import { ProfilePhotoEditor } from '../profile/ProfilePhotoEditor'
@@ -75,7 +74,11 @@ export function SettingsPage({
       setMsg('Le nom de la boutique est obligatoire.')
       return
     }
-    if (!payload.country || (draft.city === OTHER_CITY && !payload.city)) {
+    if (
+      !payload.country ||
+      (draft.city === OTHER_CITY && !payload.city) ||
+      (resolveAfricanCountry(shop.country) !== payload.country && !payload.city)
+    ) {
       setMsg('Choisissez un pays et renseignez votre ville ou localité.')
       return
     }
@@ -108,9 +111,6 @@ export function SettingsPage({
     return loadError ? <p role="alert">{msg}</p> : <p>Chargement des paramètres…</p>
   }
 
-  const cities = listedAfricanCities(draft.country)
-  const legacyCountry = !CENTRAL_AFRICA.some((entry) => entry.country === draft.country)
-
   return (
     <div>
       <div className="hello">
@@ -130,65 +130,27 @@ export function SettingsPage({
             onChange={(e) => setDraft({ ...draft, name: e.target.value })}
           />
         </label>
-        <label>
-          Pays
-          <select
-            className="input"
-            name="country"
-            required
-            value={draft.country}
-            onChange={(e) =>
-              setDraft({
-                ...draft,
-                country: e.target.value,
-                city: '',
-                customCity: '',
-              })
-            }
-          >
-            {legacyCountry && <option value={draft.country}>{draft.country}</option>}
-            {CENTRAL_AFRICA.map((entry) => (
-              <option key={entry.country} value={entry.country}>
-                {entry.country}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Ville
-          <select
-            className="input"
-            name="city"
-            value={draft.city}
-            onChange={(e) =>
-              setDraft({
-                ...draft,
-                city: e.target.value,
-                customCity: e.target.value === OTHER_CITY ? draft.customCity : '',
-              })
-            }
-          >
-            <option value="">Choisir une ville</option>
-            {cities.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-            <option value={OTHER_CITY}>Ma ville n’apparaît pas</option>
-          </select>
-        </label>
-        {draft.city === OTHER_CITY && (
-          <label>
-            Ma ville ou localité
-            <input
-              name="customCity"
-              required
-              placeholder="Ex. quartier ou localité"
-              value={draft.customCity}
-              onChange={(e) => setDraft({ ...draft, customCity: e.target.value })}
-            />
-          </label>
-        )}
+        <CentralAfricaLocationFields
+          country={draft.country}
+          city={draft.city}
+          customCity={draft.customCity}
+          onCountryChange={(country) =>
+            setDraft({
+              ...draft,
+              country,
+              city: '',
+              customCity: '',
+            })
+          }
+          onCityChange={(city) =>
+            setDraft({
+              ...draft,
+              city,
+              customCity: '',
+            })
+          }
+          onCustomCityChange={(customCity) => setDraft({ ...draft, customCity })}
+        />
         <label>
           Devise
           <input value={shop.currency} disabled />
