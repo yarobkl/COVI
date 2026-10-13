@@ -2,124 +2,9 @@ import { useState, type FormEvent } from 'react'
 import { Button, Field, Input, LabelCard, Notice } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
 import type { Shop } from '../../lib/types'
+import { CENTRAL_AFRICA, listedAfricanCities, OTHER_CITY } from '../../lib/centralAfricaLocations'
 import { AuthPage } from './AuthPage'
 import { authError } from './authErrors'
-
-const CENTRAL_AFRICA = [
-  {
-    country: 'République du Congo',
-    cities: [
-      'Brazzaville',
-      'Pointe-Noire',
-      'Dolisie',
-      'Nkayi',
-      'Ouesso',
-      'Owando',
-      'Oyo',
-      'Impfondo',
-      'Sibiti',
-      'Madingou',
-      'Kinkala',
-      'Djambala',
-      'Ewo',
-      'Mossendjo',
-      'Makoua',
-      'Gamboma',
-      'Mindouli',
-      'Loango',
-    ],
-  },
-  {
-    country: 'République démocratique du Congo',
-    cities: [
-      'Kinshasa',
-      'Lubumbashi',
-      'Mbuji-Mayi',
-      'Kananga',
-      'Kisangani',
-      'Goma',
-      'Bukavu',
-      'Kolwezi',
-      'Likasi',
-      'Matadi',
-      'Kikwit',
-      'Bunia',
-      'Beni',
-    ],
-  },
-  {
-    country: 'Cameroun',
-    cities: [
-      'Yaoundé',
-      'Douala',
-      'Bafoussam',
-      'Garoua',
-      'Bamenda',
-      'Maroua',
-      'Ngaoundéré',
-      'Bertoua',
-      'Ebolowa',
-      'Kribi',
-      'Limbé',
-      'Buéa',
-    ],
-  },
-  {
-    country: 'Gabon',
-    cities: [
-      'Libreville',
-      'Port-Gentil',
-      'Franceville',
-      'Oyem',
-      'Moanda',
-      'Lambaréné',
-      'Mouila',
-      'Tchibanga',
-      'Makokou',
-    ],
-  },
-  {
-    country: 'République centrafricaine',
-    cities: ['Bangui', 'Bimbo', 'Berbérati', 'Bambari', 'Bouar', 'Bossangoa', 'Bria', 'Carnot'],
-  },
-  {
-    country: 'Tchad',
-    cities: ["N'Djamena", 'Moundou', 'Sarh', 'Abéché', 'Kélo', 'Doba', 'Koumra', 'Mongo', 'Pala'],
-  },
-  {
-    country: 'Guinée équatoriale',
-    cities: ['Malabo', 'Bata', 'Ebebiyín', 'Mongomo', 'Luba', 'Evinayong'],
-  },
-  {
-    country: 'São Tomé-et-Príncipe',
-    cities: ['São Tomé', 'Santo António', 'Trindade', 'Neves', 'Santana'],
-  },
-  {
-    country: 'Angola',
-    cities: [
-      'Luanda',
-      'Huambo',
-      'Benguela',
-      'Lobito',
-      'Lubango',
-      'Cabinda',
-      'Malanje',
-      'Namibe',
-      'Soyo',
-      'Uíge',
-    ],
-  },
-  {
-    country: 'Burundi',
-    cities: ['Bujumbura', 'Gitega', 'Ngozi', 'Rumonge', 'Muyinga', 'Kayanza', 'Bururi'],
-  },
-  {
-    country: 'Rwanda',
-    cities: ['Kigali', 'Huye', 'Musanze', 'Rubavu', 'Muhanga', 'Rusizi', 'Nyagatare'],
-  },
-] as const
-
-const OTHER_CITY = '__other__'
 
 /** First sign-in: creates the owner's shop (currency fixed to XAF). */
 export function CreateShopForm({
@@ -135,7 +20,7 @@ export function CreateShopForm({
   const [city, setCity] = useState('')
   const [country, setCountry] = useState<string>('République du Congo')
   const [customCity, setCustomCity] = useState('')
-  const availableCities = CENTRAL_AFRICA.find((entry) => entry.country === country)?.cities ?? []
+  const availableCities = listedAfricanCities(country)
   const selectedCity = city === OTHER_CITY ? customCity.trim() : city
   const [busy, setBusy] = useState(false)
 
