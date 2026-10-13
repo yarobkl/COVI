@@ -274,6 +274,7 @@ export type Database = {
           currency: string
           id: string
           name: string
+          neighborhood: string | null
           owner_id: string
         }
         Insert: {
@@ -283,6 +284,7 @@ export type Database = {
           currency?: string
           id?: string
           name: string
+          neighborhood: string | null
           owner_id: string
         }
         Update: {
@@ -292,6 +294,7 @@ export type Database = {
           currency?: string
           id?: string
           name?: string
+          neighborhood?: string | null
           owner_id?: string
         }
         Relationships: []
@@ -315,6 +318,32 @@ export type Database = {
           currency: string
           id: string
           name: string
+          neighborhood: string | null
+          owner_id: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'shops'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_my_shop_with_neighborhood: {
+        Args: {
+          p_city: string
+          p_country: string
+          p_currency?: string
+          p_name: string
+          p_neighborhood: string
+        }
+        Returns: {
+          city: string | null
+          country: string | null
+          created_at: string
+          currency: string
+          id: string
+          name: string
+          neighborhood: string | null
           owner_id: string
         }
         SetofOptions: {
