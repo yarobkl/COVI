@@ -13,7 +13,7 @@ if (process.env.COVI_NATIVE_CI !== 'true' ||
     process.env.PGPORT !== '54322' || process.env.PGDATABASE !== 'postgres')
   throw new Error('Native test must use disposable local Supabase only')
 
-const { a, b } = JSON.parse(readFileSync('/tmp/covi-native-actors.json', 'utf8'))
+const { a, b, c } = JSON.parse(readFileSync('/tmp/covi-native-actors.json', 'utf8'))
 const options = { auth: { persistSession: false, autoRefreshToken: false } }
 const service = createClient(url, secretKey, options)
 const anon = createClient(url, anonKey, options)
@@ -28,6 +28,7 @@ async function session(actor) {
 }
 const owner = await session(a)
 const other = await session(b)
+const cashier = await session(c)
 async function rpc(client, name, args) {
   for (let i = 0; i < 6; i++) {
     const result = await client.rpc(name, args)
@@ -127,6 +128,56 @@ assert.ifError(queue.error)
 assert.ok(queue.data.some((x) => x.orderId === created.data.orderId && x.referenceImagePath === imagePath))
 await denied(other, 'get_checkout_pending_orders', { p_shop_id: shop },
   'Foreign owner cannot read private orders')
+
+await denied(cashier, 'get_checkout_pending_orders', { p_shop_id: shop },
+  'Uninvited cashier has no checkout access')
+const invite = await rpc(owner, 'create_checkout_cashier_invite', {
+  p_shop_id: shop, p_first_name: 'Aminata',
+})
+assert.ifError(invite.error)
+assert.match(invite.data.inviteCode, /^[0-9a-f-]{36}$/)
+await denied(other, 'set_checkout_cashier_active', {
+  p_shop_id: shop, p_cashier_user_id: c.id, p_active: false,
+}, 'Other boutique cannot manage staff')
+const joined = await rpc(cashier, 'redeem_checkout_cashier_invite', {
+  p_invite_code: invite.data.inviteCode,
+})
+assert.ifError(joined.error)
+assert.equal(joined.data.shopId, shop)
+await denied(other, 'redeem_checkout_cashier_invite', {
+  p_invite_code: invite.data.inviteCode,
+}, 'Cashier invitation is one-use')
+const enrolled = await rpc(cashier, 'set_checkout_cashier_pin', {
+  p_shop_id: shop, p_new_pin: '837294',
+})
+assert.ifError(enrolled.error)
+assert.equal(enrolled.data, true)
+const staffShops = await rpc(cashier, 'get_my_checkout_cashier_shops', {})
+assert.ifError(staffShops.error)
+assert.equal(staffShops.data.length, 1)
+assert.equal(staffShops.data[0].pinConfigured, true)
+const cashierQueue = await rpc(cashier, 'get_checkout_pending_orders', { p_shop_id: shop })
+assert.ifError(cashierQueue.error)
+assert.ok(cashierQueue.data.length >= 1)
+await denied(cashier, 'configure_checkout_public_link', {
+  p_shop_id: shop, p_enabled: false,
+}, 'Employee cannot change the public shop QR link')
+await denied(cashier, 'set_checkout_cashier_active', {
+  p_shop_id: shop, p_cashier_user_id: c.id, p_active: false,
+}, 'Employee cannot edit own role')
+const badPin = await rpc(cashier,'confirm_manual_checkout_payment', {
+  p_shop_id:shop, p_order_id:created.data.orderId,p_operation_id:randomUUID(),
+  p_cashier_first_name:'Aminata',p_method:'cash',p_pin:'111111',
+})
+assert.ifError(badPin.error)
+assert.equal(badPin.data.pinRejected,true)
+const disabled = await rpc(owner,'set_checkout_cashier_active',{
+  p_shop_id:shop,p_cashier_user_id:c.id,p_active:false,
+})
+assert.ifError(disabled.error)
+await denied(cashier,'get_checkout_pending_orders',{p_shop_id:shop},
+  'Revoked staff cannot read checkout orders')
+
 const stock = await service.from('stock_categories').select('quantity_on_hand').eq('id', category).single()
 assert.ifError(stock.error)
 assert.equal(stock.data.quantity_on_hand, 3, 'Orders never decrement stock')
