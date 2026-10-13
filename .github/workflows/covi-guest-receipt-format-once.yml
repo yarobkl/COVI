@@ -1,0 +1,35 @@
+name: COVI guest receipt format once
+on:
+  push:
+    branches:
+      - feature/covi-stock-central-omnichannel
+permissions:
+  contents: write
+jobs:
+  prettier:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/covi-stock-central-omnichannel
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: |
+          npx --no-install prettier --write \
+            src/features/checkout/PublicOrderTrackingPage.tsx \
+            src/features/checkout/publicRoute.test.ts \
+            src/lib/receiptPdf.test.ts \
+            src/lib/receiptPdf.ts \
+            tests/public-checkout-gateway.test.mjs
+      - run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/checkout/PublicOrderTrackingPage.tsx src/features/checkout/publicRoute.test.ts src/lib/receiptPdf.test.ts src/lib/receiptPdf.ts tests/public-checkout-gateway.test.mjs
+          git commit -m "style(caisse): format customer tracking and downloadable receipts"
+          git push origin HEAD:feature/covi-stock-central-omnichannel
