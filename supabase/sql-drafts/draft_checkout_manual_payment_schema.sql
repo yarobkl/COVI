@@ -8,6 +8,7 @@ begin;
 create table if not exists public.checkout_orders (
   id uuid primary key default gen_random_uuid(),
   shop_id uuid not null references public.shops(id),
+  guest_tracking_token uuid not null default gen_random_uuid() unique,
   channel text not null check (channel in ('qr', 'social', 'manual')),
   status text not null default 'submitted'
     check (status in ('submitted', 'approved', 'reserved', 'paid', 'cancelled', 'expired')),
