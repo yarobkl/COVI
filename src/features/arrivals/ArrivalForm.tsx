@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react'
-import { countries } from '../../lib/countries'
+import { arrivalCountrySuggestions } from '../../lib/countries'
 import { localDay } from '../../lib/dates'
 import type { Arrival } from '../../lib/types'
 
@@ -37,7 +37,7 @@ export function ArrivalForm({
         Pays d'origine
         <input name="country" list="covi-countries" required placeholder="Rechercher un pays…" />
         <datalist id="covi-countries">
-          {countries.map((c) => (
+          {arrivalCountrySuggestions.map((c) => (
             <option key={c.code} value={c.name}>
               {c.flag} {c.name}
             </option>
