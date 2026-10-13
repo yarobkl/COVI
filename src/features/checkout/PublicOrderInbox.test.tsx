@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { approveManualCheckoutOrder, rejectCheckoutOrder } from '../../lib/manualOrder'
 import { getPendingPublicOrders } from '../../lib/publicOrders'
+import { watchCheckoutOrderUpdates } from '../../lib/checkoutInboxUpdates'
 import { PublicOrderInbox } from './PublicOrderInbox'
 
 vi.mock('../../lib/publicOrders', () => ({
@@ -10,6 +11,9 @@ vi.mock('../../lib/publicOrders', () => ({
 vi.mock('../../lib/manualOrder', () => ({
   approveManualCheckoutOrder: vi.fn(),
   rejectCheckoutOrder: vi.fn(),
+}))
+vi.mock('../../lib/checkoutInboxUpdates', () => ({
+  watchCheckoutOrderUpdates: vi.fn(() => () => undefined),
 }))
 vi.mock('./CashierCheckoutPanel', () => ({
   CashierCheckoutPanel: ({ orderId }: { orderId: string }) => <p>Encaissement {orderId}</p>,
@@ -33,6 +37,7 @@ const rows = [
 
 beforeEach(() => {
   vi.mocked(getPendingPublicOrders).mockReset()
+  vi.mocked(watchCheckoutOrderUpdates).mockClear()
   vi.mocked(approveManualCheckoutOrder).mockReset()
   vi.mocked(rejectCheckoutOrder).mockReset()
   vi.mocked(getPendingPublicOrders).mockResolvedValue(rows)
@@ -105,4 +110,24 @@ describe('shop owner QR/social requests inbox', () => {
     await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Accès refusé'))
     expect(screen.getByText('Robe du live', { exact: false })).toBeTruthy()
   })
+  it('refreshes the private inbox on Realtime change signals without trusting event payload', async () => {
+    const nextId = 'bbbbbbbb-0000-4000-8000-000000000002'
+    const nextRows = [{ ...rows[0], orderId: nextId, customerNote: 'Nouveau client' }]
+    vi.mocked(getPendingPublicOrders)
+      .mockResolvedValueOnce(rows)
+      .mockResolvedValueOnce(nextRows)
+    let notify: (() => void) | undefined
+    vi.mocked(watchCheckoutOrderUpdates).mockImplementation((_shop, callback) => {
+      notify = callback
+      return () => undefined
+    })
+    render(<PublicOrderInbox shopId={shopId} shopName="Boutique A" />)
+    await screen.findByText('Robe du live', { exact: false })
+    expect(notify).toBeTypeOf('function')
+    notify?.()
+    await screen.findByText('Nouveau client', { exact: false })
+    expect(getPendingPublicOrders).toHaveBeenCalledTimes(2)
+    expect(getPendingPublicOrders).toHaveBeenNthCalledWith(2, shopId)
+  })
+
 })
