@@ -2,7 +2,8 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import '../styles/index.css'
 import { AuthGate } from '../features/auth/AuthGate'
 import { categoryCheckoutEnabled } from '../lib/checkoutFeatureFlag'
-import { parseGuestOrderHash } from '../features/checkout/publicRoute'
+import { parseGuestOrderHash, parseGuestTrackingHash } from '../features/checkout/publicRoute'
+import { PublicOrderTrackingPage } from '../features/checkout/PublicOrderTrackingPage'
 import { PublicOrderRequestPage } from '../features/checkout/PublicOrderRequestPage'
 import { App } from './App'
 import { LegacyPage } from './LegacyPage'
@@ -27,6 +28,9 @@ export function Root() {
 
   // Public QR/social requests are the ONLY guest screen. Disabled at build
   // time in production until the PostgreSQL RPCs and abuse controls are live.
+  const tracking = categoryCheckoutEnabled ? parseGuestTrackingHash(guestHash) : null
+  if (tracking) return <PublicOrderTrackingPage key={tracking} token={tracking} />
+
   const guest = categoryCheckoutEnabled ? parseGuestOrderHash(guestHash) : null
   if (guest) {
     return (
