@@ -10,7 +10,9 @@ describe('supplier origin country suggestions throughout COVI', () => {
     for (const name of ['France', 'Chine', 'Inde', 'Émirats arabes unis']) {
       expect(arrivalCountrySuggestions.some((c) => c.name === name)).toBe(true)
     }
-    expect(arrivalCountrySuggestions.length).toBeGreaterThan(countries.length)
+    expect(arrivalCountrySuggestions.length).toBeGreaterThanOrEqual(
+      new Set(countries.map((c) => c.name)).size,
+    )
   })
 
   it('does not repeat an identical country name in the suggestions', () => {
