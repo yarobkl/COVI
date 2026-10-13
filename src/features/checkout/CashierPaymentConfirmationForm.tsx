@@ -20,11 +20,16 @@ const paymentOptions = [
 export function CashierPaymentConfirmationForm({
   amountXaf,
   onConfirm,
+  verifiedCashierFirstName,
+  requirePin = false,
 }: {
   amountXaf: number
   onConfirm: (attestation: ManualCashierAttestation) => Promise<void>
+  verifiedCashierFirstName?: string
+  requirePin?: boolean
 }) {
-  const [cashierFirstName, setCashierFirstName] = useState('')
+  const [cashierFirstName, setCashierFirstName] = useState(verifiedCashierFirstName ?? '')
+  const [pin, setPin] = useState('')
   const [method, setMethod] = useState<ManualPaymentMethod | null>(null)
   const [externalReference, setExternalReference] = useState('')
   const [error, setError] = useState('')
@@ -44,6 +49,7 @@ export function CashierPaymentConfirmationForm({
         cashierFirstName,
         method,
         externalReference,
+        pin: pin || undefined,
       })
       await onConfirm(attestation)
     } catch (reason) {
@@ -99,8 +105,21 @@ export function CashierPaymentConfirmationForm({
               maxLength={60}
               required
               value={cashierFirstName}
+              readOnly={Boolean(verifiedCashierFirstName)}
               onChange={(event) => setCashierFirstName(event.target.value)}
               placeholder="Ex. : Marie Lou"
+            />
+          )}
+        </Field>
+
+        <Field label="Mon code personnel de caisse" optional={!requirePin}
+          hint="Code secret de 6 à 8 chiffres, vérifié par COVI. Jamais affiché sur la facture.">
+          {(props) => (
+            <Input {...props} type="password" inputMode="numeric"
+              pattern="[0-9]{6,8}" autoComplete="off" minLength={6} maxLength={8}
+              required={requirePin} value={pin}
+              onChange={(event) => setPin(event.target.value)}
+              placeholder="••••••"
             />
           )}
         </Field>
@@ -129,7 +148,7 @@ export function CashierPaymentConfirmationForm({
       <p className="checkout-confirmation__assurance">
         COVI n'encaisse pas l'argent : vous confirmez sa réception dans votre boutique.
       </p>
-      {(!method || !cashierFirstName.trim()) && (
+      {(!method || !cashierFirstName.trim() || (requirePin && !/^[0-9]{6,8}$/.test(pin))) && (
         <p className="field__hint" role="status">
           Choisissez le moyen de paiement et saisissez votre prénom pour continuer.
         </p>
@@ -141,7 +160,7 @@ export function CashierPaymentConfirmationForm({
         block
         busy={busy}
         busyLabel="Enregistrement de la vente…"
-        disabled={busy || !method || !cashierFirstName.trim()}
+        disabled={busy || !method || !cashierFirstName.trim() || (requirePin && !/^[0-9]{6,8}$/.test(pin))}
       >
         Confirmer le paiement reçu
       </Button>
