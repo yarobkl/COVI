@@ -20,7 +20,7 @@ begin
     'social',
     '88880000-0000-4000-8000-000000000001',
     '[{"categoryId":"aaaaaaaa-0000-4000-8000-000000000002","quantity":1,"unitPriceXaf":1800}]'::jsonb,
-    '+242 060000001', 'Vu pendant le live', 'delivery'
+    '+242 060000001', 'Vu pendant le live', 'delivery', 'cash', 'Brazzaville, Poto-Poto, rue centrale'
   );
   if v_created->>'status'<>'submitted' then
     raise exception 'Social delivery request not accepted';
@@ -104,7 +104,7 @@ begin
     'social',
     '88880000-0000-4000-8000-000000000001',
     '[{"categoryId":"aaaaaaaa-0000-4000-8000-000000000002","quantity":1,"unitPriceXaf":1800}]'::jsonb,
-    '+242 060000001', 'Vu pendant le live', 'delivery'
+    '+242 060000001', 'Vu pendant le live', 'delivery', 'cash', 'Brazzaville, Poto-Poto, rue centrale'
   );
   if v_retry->>'status'<>'submitted' then
     raise exception 'Duplicate public request was not idempotent under quota';
