@@ -132,3 +132,6 @@ echo "PASS: Anonymous request ceiling and contact protection verified."
 echo "Auditing PostgreSQL grants, RLS and SECURITY DEFINER ownership contract..."
 run tests/postgres/pre-integration-security-audit.sql
 echo "PASS: SQL permission and RLS boundary audit completed."
+echo "Testing cashier accounts, PIN lockout and staff payment in disposable DB..."
+run tests/postgres/cashier-staff-security.sql
+
