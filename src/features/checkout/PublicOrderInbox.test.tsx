@@ -30,6 +30,7 @@ const rows = [
     customerPhone: '+242 060000000',
     customerNote: 'Robe du live',
     fulfillment: 'pickup' as const,
+    paymentMethod: 'mobile_money' as const,
     createdAt: '2026-10-12T12:00:00Z',
     lines: [{ label: 'Robes', quantity: 2, lineTotalXaf: 7000 }],
   },
