@@ -42,6 +42,7 @@ async function fill() {
   fireEvent.change(screen.getByLabelText('Catégorie'), { target: { value: categoryId } })
   fireEvent.change(screen.getByLabelText('Prix discuté par pièce'), { target: { value: '3500' } })
   fireEvent.click(screen.getByRole('button', { name: 'Ajouter à la demande' }))
+  fireEvent.click(screen.getByRole('radio', { name: 'Espèces' }))
   fireEvent.click(screen.getByRole('button', { name: /Vérifier que je ne suis pas un robot/ }))
 }
 
@@ -63,6 +64,7 @@ describe('anonymous QR/social notebook request screen', () => {
       expect.objectContaining({
         token,
         channel: 'qr',
+        paymentMethod: 'cash',
         operationId: '77770000-0000-4000-8000-000000000001',
       }),
     )
