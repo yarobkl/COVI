@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseGuestOrderHash } from './publicRoute'
+import { parseGuestOrderHash, parseGuestTrackingHash } from './publicRoute'
 
 describe('feature-gated public link routing', () => {
   const token = 'dddddddd-0000-4000-8000-000000000001'
@@ -27,4 +27,12 @@ describe('feature-gated public link routing', () => {
       expect(parseGuestOrderHash(hash)).toBeNull()
     }
   })
+  it('routes only private receipt capabilities and never confuses shop public links', () => {
+    const receiptToken = 'eeeeeeee-0000-4000-8000-000000000001'
+    expect(parseGuestTrackingHash('#/suivi/' + receiptToken)).toBe(receiptToken)
+    expect(parseGuestTrackingHash('#/suivi/bad')).toBeNull()
+    expect(parseGuestTrackingHash('#/commander/' + receiptToken)).toBeNull()
+    expect(parseGuestTrackingHash('#/suivi/' + receiptToken + '/payment')).toBeNull()
+  })
+
 })
