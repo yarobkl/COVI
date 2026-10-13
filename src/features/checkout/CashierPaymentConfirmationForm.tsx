@@ -112,12 +112,22 @@ export function CashierPaymentConfirmationForm({
           )}
         </Field>
 
-        <Field label="Mon code personnel de caisse" optional={!requirePin}
-          hint="Code secret de 6 à 8 chiffres, vérifié par COVI. Jamais affiché sur la facture.">
+        <Field
+          label="Mon code personnel de caisse"
+          optional={!requirePin}
+          hint="Code secret de 6 à 8 chiffres, vérifié par COVI. Jamais affiché sur la facture."
+        >
           {(props) => (
-            <Input {...props} type="password" inputMode="numeric"
-              pattern="[0-9]{6,8}" autoComplete="off" minLength={6} maxLength={8}
-              required={requirePin} value={pin}
+            <Input
+              {...props}
+              type="password"
+              inputMode="numeric"
+              pattern="[0-9]{6,8}"
+              autoComplete="off"
+              minLength={6}
+              maxLength={8}
+              required={requirePin}
+              value={pin}
               onChange={(event) => setPin(event.target.value)}
               placeholder="••••••"
             />
@@ -160,7 +170,9 @@ export function CashierPaymentConfirmationForm({
         block
         busy={busy}
         busyLabel="Enregistrement de la vente…"
-        disabled={busy || !method || !cashierFirstName.trim() || (requirePin && !/^[0-9]{6,8}$/.test(pin))}
+        disabled={
+          busy || !method || !cashierFirstName.trim() || (requirePin && !/^[0-9]{6,8}$/.test(pin))
+        }
       >
         Confirmer le paiement reçu
       </Button>

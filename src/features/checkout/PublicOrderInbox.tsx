@@ -11,7 +11,10 @@ import { watchCheckoutOrderUpdates } from '../../lib/checkoutInboxUpdates'
  * No public page can access this component or the approval RPC.
  */
 export function PublicOrderInbox({
-  shopId, shopName, verifiedCashierFirstName, requirePin = false,
+  shopId,
+  shopName,
+  verifiedCashierFirstName,
+  requirePin = false,
 }: {
   shopId: string
   shopName: string

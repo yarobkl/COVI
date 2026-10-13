@@ -26,7 +26,7 @@ export function CashierPinSetup({
     }
     setBusy(true)
     try {
-      await setPersonalCashierPin(shopId,pin,hasPin ? oldPin : undefined)
+      await setPersonalCashierPin(shopId, pin, hasPin ? oldPin : undefined)
       setPin('')
       setCheck('')
       setOldPin('')
@@ -41,25 +41,60 @@ export function CashierPinSetup({
     <Sheet>
       <h3>Mon code personnel de caisse</h3>
       <p>Ce code protège votre validation des paiements. Ne le partagez pas.</p>
-      <form onSubmit={(event) => { void save(event) }}>
+      <form
+        onSubmit={(event) => {
+          void save(event)
+        }}
+      >
         {hasPin && (
           <Field label="Code actuel">
-            {(props) => <Input {...props} type="password" inputMode="numeric"
-              pattern="[0-9]{6,8}" autoComplete="off" required value={oldPin}
-              onChange={(e) => setOldPin(e.target.value)} />}
+            {(props) => (
+              <Input
+                {...props}
+                type="password"
+                inputMode="numeric"
+                pattern="[0-9]{6,8}"
+                autoComplete="off"
+                required
+                value={oldPin}
+                onChange={(e) => setOldPin(e.target.value)}
+              />
+            )}
           </Field>
         )}
         <Field label="Nouveau code (6 à 8 chiffres)">
-          {(props) => <Input {...props} type="password" inputMode="numeric"
-            pattern="[0-9]{6,8}" autoComplete="new-password" required value={pin}
-            onChange={(e) => setPin(e.target.value)} />}
+          {(props) => (
+            <Input
+              {...props}
+              type="password"
+              inputMode="numeric"
+              pattern="[0-9]{6,8}"
+              autoComplete="new-password"
+              required
+              value={pin}
+              onChange={(e) => setPin(e.target.value)}
+            />
+          )}
         </Field>
         <Field label="Confirmer le nouveau code">
-          {(props) => <Input {...props} type="password" inputMode="numeric"
-            pattern="[0-9]{6,8}" autoComplete="new-password" required value={check}
-            onChange={(e) => setCheck(e.target.value)} />}
+          {(props) => (
+            <Input
+              {...props}
+              type="password"
+              inputMode="numeric"
+              pattern="[0-9]{6,8}"
+              autoComplete="new-password"
+              required
+              value={check}
+              onChange={(e) => setCheck(e.target.value)}
+            />
+          )}
         </Field>
-        {error && <Notice tone="danger"><p>{error}</p></Notice>}
+        {error && (
+          <Notice tone="danger">
+            <p>{error}</p>
+          </Notice>
+        )}
         <Button type="submit" variant="primary" busy={busy}>
           {hasPin ? 'Modifier mon code' : 'Activer mon code'}
         </Button>

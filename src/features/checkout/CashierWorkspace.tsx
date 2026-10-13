@@ -17,7 +17,7 @@ export function CashierWorkspace({
   onRefresh: () => void
 }) {
   const [current, setCurrent] = useState(shops[0]?.shopId ?? '')
-  const selected = shops.find(shop => shop.shopId === current) ?? shops[0]
+  const selected = shops.find((shop) => shop.shopId === current) ?? shops[0]
   const [pinReady, setPinReady] = useState<Record<string, boolean>>({})
   if (!selected) return null
   const ready = pinReady[selected.shopId] ?? selected.pinConfigured
@@ -26,22 +26,37 @@ export function CashierWorkspace({
       <Sheet>
         <p className="hand">COVI — Caisse</p>
         <h1>{selected.shopName}</h1>
-        <p>Bonjour {selected.firstName}. Vous avez accès uniquement aux commandes à encaisser de cette boutique.</p>
+        <p>
+          Bonjour {selected.firstName}. Vous avez accès uniquement aux commandes à encaisser de
+          cette boutique.
+        </p>
         {shops.length > 1 && (
-          <label>Choisir la boutique{' '}
+          <label>
+            Choisir la boutique{' '}
             <select value={selected.shopId} onChange={(event) => setCurrent(event.target.value)}>
-              {shops.map(shop => <option key={shop.shopId} value={shop.shopId}>{shop.shopName}</option>)}
+              {shops.map((shop) => (
+                <option key={shop.shopId} value={shop.shopId}>
+                  {shop.shopName}
+                </option>
+              ))}
             </select>
           </label>
         )}
-        <Button variant="secondary" onClick={() => { void signOut() }}>Se déconnecter</Button>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            void signOut()
+          }}
+        >
+          Se déconnecter
+        </Button>
       </Sheet>
       {!ready && (
         <CashierPinSetup
           shopId={selected.shopId}
           hasPin={false}
           onSaved={() => {
-            setPinReady(value => ({ ...value, [selected.shopId]: true }))
+            setPinReady((value) => ({ ...value, [selected.shopId]: true }))
             onRefresh()
           }}
         />
@@ -55,8 +70,7 @@ export function CashierWorkspace({
             verifiedCashierFirstName={selected.firstName}
             requirePin
           />
-          <CashierPinSetup shopId={selected.shopId} hasPin
-            onSaved={() => onRefresh()} />
+          <CashierPinSetup shopId={selected.shopId} hasPin onSaved={() => onRefresh()} />
         </>
       )}
     </main>

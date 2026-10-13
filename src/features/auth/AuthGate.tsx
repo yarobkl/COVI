@@ -81,15 +81,21 @@ export function AuthGate({
           const memberships = await myCashierShops()
           if (active) setCashierShops(memberships)
         } catch (reason) {
-          if (active) setMessage(reason instanceof Error
-            ? reason.message : 'La gestion des caissiers est indisponible.')
+          if (active)
+            setMessage(
+              reason instanceof Error
+                ? reason.message
+                : 'La gestion des caissiers est indisponible.',
+            )
         }
       } else {
         setCashierShops([])
       }
       if (active) setLoading(false)
     })()
-    return () => { active = false }
+    return () => {
+      active = false
+    }
   }, [session, cashierRefresh])
   if (loading)
     return (
@@ -114,16 +120,26 @@ export function AuthGate({
     )
   if (!shop) {
     if (categoryCheckoutEnabled && cashierShops.length) {
-      return <CashierWorkspace shops={cashierShops}
-        onRefresh={() => setCashierRefresh(value => value + 1)}
-        signOut={async () => { await supabase.auth.signOut() }} />
+      return (
+        <CashierWorkspace
+          shops={cashierShops}
+          onRefresh={() => setCashierRefresh((value) => value + 1)}
+          signOut={async () => {
+            await supabase.auth.signOut()
+          }}
+        />
+      )
     }
     if (categoryCheckoutEnabled && !wantShop) {
-      return <CashierJoinPage
-        onJoined={() => setCashierRefresh(value => value + 1)}
-        onCreateShop={() => setWantShop(true)}
-        signOut={async () => { await supabase.auth.signOut() }}
-      />
+      return (
+        <CashierJoinPage
+          onJoined={() => setCashierRefresh((value) => value + 1)}
+          onCreateShop={() => setWantShop(true)}
+          signOut={async () => {
+            await supabase.auth.signOut()
+          }}
+        />
+      )
     }
     return <CreateShopForm message={message} onMessage={setMessage} onCreated={setShop} />
   }
