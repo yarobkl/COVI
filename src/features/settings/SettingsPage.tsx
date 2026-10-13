@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { supabase } from '../../lib/supabase'
 import type { Shop } from '../../lib/types'
+import { ProfilePhotoEditor } from '../profile/ProfilePhotoEditor'
 
 /** Shop identity (name, city, country); the currency stays XAF. */
 export function SettingsPage({
@@ -54,6 +55,7 @@ export function SettingsPage({
           <span>Identité et informations principales de votre commerce.</span>
         </div>
       </div>
+      <ProfilePhotoEditor />
       <form className="card formgrid" onSubmit={save}>
         <label>
           Nom de la boutique
