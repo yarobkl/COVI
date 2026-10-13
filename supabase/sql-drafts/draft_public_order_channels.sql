@@ -280,7 +280,8 @@ begin
       return jsonb_build_object(
         'orderId',v_order.id, 'status',v_order.status,
         'amountXaf',v_order.amount_xaf,
-        'trackingToken',v_order.guest_tracking_token
+        'trackingToken',v_order.guest_tracking_token,
+        'shopId',v_shop_id
       );
     end if;
     raise exception 'Cet identifiant de commande a déjà été utilisé';
@@ -329,11 +330,55 @@ begin
 
   return jsonb_build_object(
     'orderId',v_order.id,'status',v_order.status,'amountXaf',v_order.amount_xaf,
-    'trackingToken',v_order.guest_tracking_token
+    'trackingToken',v_order.guest_tracking_token,
+    'shopId',v_shop_id
   );
 end;
 $function$;
 
+
+-- Only the trusted Edge gateway can attach a reference screenshot to the
+-- specific order originally created with the private operation ID.
+-- This endpoint never confirms funds or modifies inventory.
+create or replace function public.attach_checkout_public_reference(
+  p_token uuid, p_order_id uuid, p_operation_id uuid, p_image_path text
+)
+returns boolean language plpgsql security definer set search_path = ''
+as $function$
+declare v_order public.checkout_orders%rowtype;
+begin
+  if p_token is null or p_order_id is null or p_operation_id is null then
+    raise exception 'Référence de commande invalide';
+  end if;
+  select o.* into v_order
+  from public.checkout_orders o
+  join public.checkout_public_links l on l.shop_id = o.shop_id
+  where l.public_token = p_token and l.enabled = true
+    and o.id = p_order_id and o.creation_operation_id = p_operation_id
+    and o.channel in ('qr','social') and o.is_test = false
+  for update of o;
+  if not found or v_order.status not in ('submitted','approved') then
+    raise exception 'Commande non disponible pour cette capture';
+  end if;
+  if p_image_path is distinct from (
+    v_order.shop_id::text || '/' || v_order.id::text || '/reference.jpg'
+  ) then
+    raise exception 'Chemin de capture non autorisé';
+  end if;
+  if v_order.reference_image_path is null then
+    update public.checkout_orders
+      set reference_image_path = p_image_path, updated_at = now()
+      where id = v_order.id and shop_id = v_order.shop_id;
+  elsif v_order.reference_image_path <> p_image_path then
+    raise exception 'Capture de référence déjà définie';
+  end if;
+  return true;
+end;
+$function$;
+revoke all on function public.attach_checkout_public_reference(uuid,uuid,uuid,text)
+  from public, anon, authenticated;
+grant execute on function public.attach_checkout_public_reference(uuid,uuid,uuid,text)
+  to service_role;
 
 -- Guest tracking uses an independent, cryptographically random bearer token.
 -- It works after permanent shop-link rotation, never accepts a shop UUID, and
@@ -416,6 +461,7 @@ begin
       'fulfillment', o.fulfillment,
       'paymentMethod', o.payment_method_requested,
       'customerDeliveryAddress',o.customer_delivery_address,
+      'referenceImagePath',o.reference_image_path,
       'createdAt', o.created_at,
       'lines', coalesce((
         select jsonb_agg(
