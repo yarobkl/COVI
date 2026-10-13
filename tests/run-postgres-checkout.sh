@@ -27,6 +27,7 @@ run tests/postgres/fixture.sql
 echo "Loading only explicitly named review SQL from the non-migration directory..."
 run supabase/sql-drafts/draft_category_stock_schema.sql
 run supabase/sql-drafts/draft_checkout_manual_payment_schema.sql
+run supabase/sql-drafts/draft_checkout_cashier_accounts.sql
 run supabase/sql-drafts/draft_post_arrival_category_stock.sql
 run supabase/sql-drafts/draft_create_approve_manual_checkout_order.sql
 run supabase/sql-drafts/draft_reject_checkout_order.sql
