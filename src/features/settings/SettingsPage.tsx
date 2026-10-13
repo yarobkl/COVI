@@ -5,6 +5,7 @@ import {
   resolveAfricanCountry,
 } from '../../lib/centralAfricaLocations'
 import { CentralAfricaLocationFields } from '../locations/CentralAfricaLocationFields'
+import { ShopGpsControl, type ShopGpsPosition } from '../locations/ShopGpsControl'
 import { OTHER_NEIGHBORHOOD, resolveNeighborhood } from '../../lib/neighborhoods'
 import { supabase } from '../../lib/supabase'
 import type { Shop } from '../../lib/types'
@@ -17,6 +18,7 @@ type ShopDraft = {
   customCity: string
   neighborhood: string
   customNeighborhood: string
+  gps: ShopGpsPosition | null
 }
 
 /** Existing shops get the same country/city selector as new boutiques. */
@@ -37,7 +39,7 @@ export function SettingsPage({
     let active = true
     void supabase
       .from('shops')
-      .select('id,name,city,country,currency,neighborhood')
+      .select('id,name,city,country,currency,neighborhood,latitude,longitude,location_accuracy_m')
       .eq('id', shopId)
       .single()
       .then(({ data, error }) => {
@@ -59,6 +61,11 @@ export function SettingsPage({
           neighborhood,
           customNeighborhood:
             neighborhood === OTHER_NEIGHBORHOOD ? (data.neighborhood ?? '') : '',
+          gps:
+            data.latitude !== null && data.longitude !== null
+              ? { latitude: data.latitude, longitude: data.longitude,
+                  accuracy: data.location_accuracy_m ?? 0.1 }
+              : null,
         })
         setLoadError(false)
         setMsg('')
@@ -81,6 +88,9 @@ export function SettingsPage({
           ? draft.customNeighborhood
           : draft.neighborhood
       ).trim(),
+      latitude: draft.gps?.latitude ?? null,
+      longitude: draft.gps?.longitude ?? null,
+      location_accuracy_m: draft.gps?.accuracy ?? null,
     }
     if (!payload.name) {
       setMsg('Le nom de la boutique est obligatoire.')
@@ -166,6 +176,7 @@ export function SettingsPage({
               customCity: '',
               neighborhood: '',
               customNeighborhood: '',
+              gps: null,
             })
           }
           onCityChange={(city) =>
@@ -178,9 +189,10 @@ export function SettingsPage({
             })
           }
           onCustomCityChange={(customCity) =>
-            setDraft({ ...draft, customCity, neighborhood: '', customNeighborhood: '' })
+            setDraft({ ...draft, customCity, neighborhood: '', customNeighborhood: '', gps: null })
           }
         />
+        <ShopGpsControl value={draft.gps} onChange={(gps) => setDraft({ ...draft, gps })} />
         <label>
           Devise
           <input value={shop.currency} disabled />
