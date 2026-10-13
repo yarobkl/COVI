@@ -125,6 +125,7 @@ describe('public checkout links and restricted requests', () => {
       note: null,
       fulfillment: 'pickup',
       paymentMethod: 'cash',
+      deliveryAddress: null,
       challenge: 'valid-human-challenge-token',
     })
     expect(supabase.rpc).not.toHaveBeenCalled()
