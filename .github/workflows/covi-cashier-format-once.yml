@@ -1,0 +1,42 @@
+name: COVI cashier format once
+on:
+  push:
+    branches:
+      - feature/covi-stock-central-omnichannel
+permissions:
+  contents: write
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/covi-stock-central-omnichannel
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: |
+          npx --no-install prettier --write src/features/auth/AuthGate.tsx \
+            src/features/checkout/CashierCheckoutPanel.tsx \
+            src/features/checkout/CashierJoinPage.tsx \
+            src/features/checkout/CashierPaymentConfirmationForm.tsx \
+            src/features/checkout/CashierPinSetup.tsx \
+            src/features/checkout/CashierTeamPanel.tsx \
+            src/features/checkout/CashierWorkspace.tsx \
+            src/features/checkout/PublicOrderInbox.tsx \
+            src/lib/cashierAccounts.ts
+      - run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/auth/AuthGate.tsx src/features/checkout/CashierCheckoutPanel.tsx \
+            src/features/checkout/CashierJoinPage.tsx src/features/checkout/CashierPaymentConfirmationForm.tsx \
+            src/features/checkout/CashierPinSetup.tsx src/features/checkout/CashierTeamPanel.tsx \
+            src/features/checkout/CashierWorkspace.tsx src/features/checkout/PublicOrderInbox.tsx \
+            src/lib/cashierAccounts.ts
+          git commit -m "style(caisse): apply pinned repository Prettier to cashier accounts"
+          git push origin HEAD:feature/covi-stock-central-omnichannel
