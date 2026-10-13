@@ -85,18 +85,21 @@ describe('cashier confirmation form', () => {
     expect(name.value).toBe('Aminata')
     expect(name.readOnly).toBe(true)
     fireEvent.click(screen.getByLabelText('Espèces'))
-    const submit = screen.getByRole('button', { name: 'Confirmer le paiement reçu' }) as HTMLButtonElement
+    const submit = screen.getByRole('button', {
+      name: 'Confirmer le paiement reçu',
+    }) as HTMLButtonElement
     expect(submit.disabled).toBe(true)
     fireEvent.change(screen.getByLabelText('Mon code personnel de caisse'), {
       target: { value: '654321' },
     })
     expect(submit.disabled).toBe(false)
     fireEvent.click(submit)
-    await waitFor(() => expect(onConfirm).toHaveBeenCalledWith({
-      cashierFirstName: 'Aminata',
-      method: 'cash',
-      pin: '654321',
-    }))
+    await waitFor(() =>
+      expect(onConfirm).toHaveBeenCalledWith({
+        cashierFirstName: 'Aminata',
+        method: 'cash',
+        pin: '654321',
+      }),
+    )
   })
-
 })
