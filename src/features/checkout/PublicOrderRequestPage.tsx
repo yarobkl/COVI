@@ -12,6 +12,7 @@ import {
   Stepper,
 } from '../../components/ui'
 import { fcfa, parseAmount } from '../../lib/format'
+import { prepareOrderReferencePhoto } from '../../lib/orderReferencePhoto'
 import { prepareManualOrderLines, type ManualOrderLineInput } from '../../lib/manualOrder'
 import {
   getPublicCatalog,
@@ -43,6 +44,8 @@ export function PublicOrderRequestPage({ token, channel }: Props) {
   const [phone, setPhone] = useState('')
   const [deliveryAddress, setDeliveryAddress] = useState('')
   const [note, setNote] = useState('')
+  const [referenceImage, setReferenceImage] = useState<string | null>(null)
+  const [photoBusy, setPhotoBusy] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState<RecordedPublicRequest | null>(null)
@@ -129,6 +132,7 @@ export function PublicOrderRequestPage({ token, channel }: Props) {
         note.trim(),
         fulfillment,
         paymentMethod,
+        referenceImage,
       ])
       if (!attempt.current || attempt.current.fingerprint !== fingerprint) {
         attempt.current = { fingerprint, operationId: crypto.randomUUID() }
@@ -143,6 +147,7 @@ export function PublicOrderRequestPage({ token, channel }: Props) {
         note,
         fulfillment,
         paymentMethod: paymentMethod || undefined,
+        referenceImage: referenceImage ?? undefined,
       }
       const prepared = preparePublicRequest(input)
       if (!paymentMethod) throw new Error('Choisissez le moyen de paiement prévu.')
@@ -437,6 +442,53 @@ export function PublicOrderRequestPage({ token, channel }: Props) {
               </Field>
             )}
             <Field
+              label="Capture de l'article vu sur WhatsApp ou pendant un live"
+              optional
+              hint="Une capture facultative pour aider le vendeur à retrouver l'article. COVI ne crée pas de fiche produit ni de galerie de photos."
+            >
+              {(props) => (
+                <input
+                  {...props}
+                  className="input"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  disabled={busy || photoBusy}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0]
+                    if (!file) {
+                      setReferenceImage(null)
+                      return
+                    }
+                    setPhotoBusy(true)
+                    setReferenceImage(null)
+                    setError('')
+                    void prepareOrderReferencePhoto(file).then(
+                      (encoded) => {
+                        setReferenceImage(encoded)
+                        setError('')
+                      },
+                      (reason) => {
+                        setError(
+                          reason instanceof Error
+                            ? reason.message
+                            : 'Impossible de préparer cette capture.',
+                        )
+                      },
+                    ).finally(() => setPhotoBusy(false))
+                  }}
+                />
+              )}
+            </Field>
+            {photoBusy && <p role="status">Préparation de la capture…</p>}
+            {referenceImage && (
+              <p role="status">
+                Capture prête. Elle sera visible uniquement par cette boutique, dans votre demande.
+                <Button variant="ghost" onClick={() => setReferenceImage(null)}>
+                  Retirer la capture
+                </Button>
+              </p>
+            )}
+            <Field
               label="Précisions pour le vendeur"
               optional
               hint="Ex. : article montré pendant un live, couleur ou capture à retrouver"
@@ -472,6 +524,7 @@ export function PublicOrderRequestPage({ token, channel }: Props) {
             busyLabel="Envoi de la demande…"
             disabled={
               busy ||
+              photoBusy ||
               !challenge ||
               !lines.length ||
               !paymentMethod ||
