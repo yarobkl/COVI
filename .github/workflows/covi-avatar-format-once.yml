@@ -1,0 +1,41 @@
+name: COVI avatar one-time formatting
+on:
+  push:
+    branches:
+      - feature/covi-profile-photo
+permissions:
+  contents: write
+jobs:
+  format-avatar:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/covi-profile-photo
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Normalize formatting with repository-pinned Prettier
+        run: |
+          npx --no-install prettier --write \
+            src/app/App.tsx \
+            src/features/auth/CreateShopForm.tsx \
+            src/features/auth/LoginForm.tsx \
+            src/features/profile/ProfilePhotoEditor.tsx \
+            src/lib/profilePhoto.test.ts \
+            src/lib/profilePhoto.ts
+      - name: Commit formatting only if changed
+        run: |
+          if git diff --quiet; then
+            echo 'Files already formatted'
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app/App.tsx src/features/auth/CreateShopForm.tsx src/features/auth/LoginForm.tsx src/features/profile/ProfilePhotoEditor.tsx src/lib/profilePhoto.test.ts src/lib/profilePhoto.ts
+          git commit -m "style(profile): normalize account photo and existing auth forms"
+          git push origin HEAD:feature/covi-profile-photo
