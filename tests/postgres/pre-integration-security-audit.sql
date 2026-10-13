@@ -18,7 +18,10 @@ begin
     'manual_payment_confirmations',
     'shop_receipt_counters',
     'checkout_public_links',
-    'checkout_public_rate_windows'
+    'checkout_public_rate_windows',
+    'checkout_cashiers',
+    'checkout_cashier_invites',
+    'checkout_cashier_secrets'
   ] loop
     select c.relrowsecurity into v_rls
       from pg_catalog.pg_class c
@@ -43,9 +46,15 @@ begin
     'public.create_manual_checkout_order(uuid,uuid,jsonb,boolean,text,text,text)',
     'public.approve_manual_checkout_order(uuid,uuid)',
     'public.reject_checkout_order(uuid,uuid)',
-    'public.confirm_manual_checkout_payment(uuid,uuid,uuid,text,text,text)',
+    'public.confirm_manual_checkout_payment(uuid,uuid,uuid,text,text,text,text)',
     'public.post_arrival_category_stock(uuid,uuid,uuid,jsonb)',
     'public.get_checkout_pending_orders(uuid)',
+    'public.create_checkout_cashier_invite(uuid,text)',
+    'public.redeem_checkout_cashier_invite(uuid)',
+    'public.set_checkout_cashier_pin(uuid,text,text)',
+    'public.list_checkout_cashiers(uuid)',
+    'public.get_my_checkout_cashier_shops()',
+    'public.set_checkout_cashier_active(uuid,uuid,boolean)',
     'public.configure_checkout_public_link(uuid,boolean)',
     'public.rotate_checkout_public_link(uuid)',
     'public.get_checkout_public_link(uuid)'
