@@ -3,6 +3,7 @@ import { Amount, Button, Ledger, LedgerRow, Notice, Sheet } from '../../componen
 import { approveManualCheckoutOrder, rejectCheckoutOrder } from '../../lib/manualOrder'
 import { getPendingPublicOrders, type PendingPublicOrder } from '../../lib/publicOrders'
 import { CashierCheckoutPanel } from './CashierCheckoutPanel'
+import { PrivateOrderReferenceImage } from './PrivateOrderReferenceImage'
 import { watchCheckoutOrderUpdates } from '../../lib/checkoutInboxUpdates'
 
 /** A private shop-owner inbox for incoming QR / social requests.
@@ -132,6 +133,11 @@ export function PublicOrderInbox({ shopId, shopName }: { shopId: string; shopNam
               value={<Amount value={selected.amountXaf} size="lg" unit />}
             />
           </Ledger>
+          <PrivateOrderReferenceImage
+            shopId={shopId}
+            orderId={selected.orderId}
+            imagePath={selected.referenceImagePath}
+          />
           <p>
             Le commerçant a validé les quantités et les prix proposés. Confirmer le paiement
             uniquement après avoir constaté l'argent reçu.
@@ -215,6 +221,11 @@ export function PublicOrderInbox({ shopId, shopName }: { shopId: string; shopNam
                 · À vérifier avant l’encaissement.
               </p>
               {order.customerPhone && <p>Téléphone : {order.customerPhone}</p>}
+              <PrivateOrderReferenceImage
+                shopId={shopId}
+                orderId={order.orderId}
+                imagePath={order.referenceImagePath}
+              />
               {order.customerDeliveryAddress && (
                 <p>Adresse de livraison : {order.customerDeliveryAddress}</p>
               )}
