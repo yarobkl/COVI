@@ -43,6 +43,6 @@ describe('saved server-confirmed receipt PDF', () => {
     }).text()
     expect(pdf).toContain('/Count 2')
     expect(pdf).toContain('Chemise num')
-    expect(pdf).toContain('5600')
+    expect(pdf).toContain('5 600')
   })
 })
