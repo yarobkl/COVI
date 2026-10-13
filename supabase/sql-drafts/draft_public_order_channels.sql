@@ -274,7 +274,8 @@ begin
     if v_order.channel = p_channel and v_order.creation_payload = v_payload then
       return jsonb_build_object(
         'orderId',v_order.id, 'status',v_order.status,
-        'amountXaf',v_order.amount_xaf
+        'amountXaf',v_order.amount_xaf,
+        'trackingToken',v_order.guest_tracking_token
       );
     end if;
     raise exception 'Cet identifiant de commande a déjà été utilisé';
@@ -320,11 +321,64 @@ begin
   end loop;
 
   return jsonb_build_object(
-    'orderId',v_order.id,'status',v_order.status,'amountXaf',v_order.amount_xaf
+    'orderId',v_order.id,'status',v_order.status,'amountXaf',v_order.amount_xaf,
+    'trackingToken',v_order.guest_tracking_token
   );
 end;
 $function$;
 
+
+-- Guest tracking uses an independent, cryptographically random bearer token.
+-- It works after permanent shop-link rotation, never accepts a shop UUID, and
+-- never exposes the customer phone, note, owner identity or stock numbers.
+-- It MUST only be called by the edge gateway after HMAC-backed rate checks.
+create or replace function public.get_checkout_guest_status(p_tracking_token uuid)
+returns jsonb language plpgsql security definer set search_path = ''
+as $function$
+declare
+  v_order public.checkout_orders%rowtype;
+  v_shop_name text;
+  v_payment public.manual_payment_confirmations%rowtype;
+begin
+  if p_tracking_token is null then
+    raise exception 'Lien de suivi invalide';
+  end if;
+  select * into v_order from public.checkout_orders
+    where guest_tracking_token = p_tracking_token
+      and channel in ('qr','social')
+      and is_test = false;
+  if not found then raise exception 'Lien de suivi invalide'; end if;
+
+  select name into v_shop_name from public.shops where id = v_order.shop_id;
+  if v_order.status = 'paid' then
+    select * into v_payment from public.manual_payment_confirmations
+      where order_id = v_order.id and shop_id = v_order.shop_id;
+    if not found then
+      raise exception 'Confirmation du paiement indisponible';
+    end if;
+    return jsonb_build_object(
+      'shopName',v_shop_name,
+      'orderId',v_order.id, 'status',v_order.status,
+      'amountXaf',v_order.amount_xaf,
+      'receipt',jsonb_build_object(
+        'receiptNumber',v_payment.receipt_number,
+        'confirmedAt',v_payment.confirmed_at,
+        'cashierFirstName',v_payment.cashier_first_name,
+        'method',v_payment.method,
+        'amountXaf',v_payment.amount_xaf,
+        'lines',v_payment.receipt_lines
+      )
+    );
+  end if;
+  return jsonb_build_object(
+    'shopName',v_shop_name,
+    'orderId',v_order.id,'status',v_order.status,
+    'amountXaf',v_order.amount_xaf
+  );
+end;
+$function$;
+revoke all on function public.get_checkout_guest_status(uuid) from public, anon, authenticated;
+grant execute on function public.get_checkout_guest_status(uuid) to service_role;
 
 -- Private owner inbox. This function never exposes phone numbers to a guest.
 create or replace function public.get_checkout_pending_orders(p_shop_id uuid)
@@ -426,7 +480,8 @@ create table if not exists public.checkout_gateway_rate_windows (
   digest text not null check (digest ~ '^[0-9a-f]{64}$'),
   bucket_kind text not null check (bucket_kind in (
     'catalog_source_minute', 'catalog_link_minute',
-    'order_source_minute', 'order_source_day', 'order_link_minute'
+    'order_source_minute', 'order_source_day', 'order_link_minute',
+    'status_source_minute', 'status_token_minute'
   )),
   bucket_start timestamptz not null,
   hits integer not null default 0 check (hits >= 0),
@@ -459,6 +514,8 @@ begin
     when 'order_source_minute' then 5
     when 'order_source_day' then 80
     when 'order_link_minute' then 60
+    when 'status_source_minute' then 30
+    when 'status_token_minute' then 120
     else null
   end;
   if v_limit is null then raise exception 'Quota invalide'; end if;
