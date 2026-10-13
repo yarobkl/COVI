@@ -81,6 +81,10 @@ describe('anonymous QR/social notebook request screen', () => {
     const send = screen.getByRole('button', { name: /Envoyer la demande/ }) as HTMLButtonElement
     expect(send.disabled).toBe(true)
     fireEvent.change(screen.getByLabelText('Votre téléphone'), { target: { value: '+242 0612' } })
+    expect(send.disabled).toBe(true)
+    fireEvent.change(screen.getByLabelText('Adresse de livraison'), {
+      target: { value: 'Brazzaville, Poto-Poto, rue principale' },
+    })
     expect(send.disabled).toBe(false)
   })
 
