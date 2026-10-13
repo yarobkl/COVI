@@ -13,7 +13,8 @@
     padding-inline-end: var(--gutter);
   }
   .auth__brand {
-    justify-self: start;
+    justify-self: center;
+    text-align: center;
     padding: var(--space-2) var(--space-4) var(--space-3);
   }
   .auth__name {
