@@ -19,7 +19,10 @@ using (
   and exists (
     select 1 from public.checkout_orders o
     join public.shops s on s.id = o.shop_id
-    where s.owner_id = (select auth.uid())
+    where (s.owner_id = (select auth.uid()) or exists (
+      select 1 from public.checkout_cashiers c where c.shop_id=o.shop_id
+        and c.user_id=(select auth.uid()) and c.active=true
+    ))
       and o.reference_image_path = storage.objects.name
       and o.shop_id::text = split_part(storage.objects.name, '/', 1)
       and o.id::text = split_part(storage.objects.name, '/', 2)
