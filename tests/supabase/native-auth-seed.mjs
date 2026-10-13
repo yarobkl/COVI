@@ -24,7 +24,8 @@ async function owner() {
 }
 const a = await owner()
 const b = await owner()
-writeFileSync('/tmp/covi-native-actors.json', JSON.stringify({ a, b }), { mode: 0o600 })
+const c = await owner()
+writeFileSync('/tmp/covi-native-actors.json', JSON.stringify({ a, b, c }), { mode: 0o600 })
 
 const sql = [
   "insert into public.shops (id,owner_id,name) values",
