@@ -5,6 +5,8 @@ import {
   resolveAfricanCountry,
 } from '../../lib/centralAfricaLocations'
 import { CentralAfricaLocationFields } from '../locations/CentralAfricaLocationFields'
+import { ShopGpsControl, type ShopGpsPosition } from '../locations/ShopGpsControl'
+import { OTHER_NEIGHBORHOOD, resolveNeighborhood } from '../../lib/neighborhoods'
 import { supabase } from '../../lib/supabase'
 import type { Shop } from '../../lib/types'
 import { ProfilePhotoEditor } from '../profile/ProfilePhotoEditor'
@@ -14,6 +16,9 @@ type ShopDraft = {
   country: string
   city: string
   customCity: string
+  neighborhood: string
+  customNeighborhood: string
+  gps: ShopGpsPosition | null
 }
 
 /** Existing shops get the same country/city selector as new boutiques. */
@@ -34,7 +39,7 @@ export function SettingsPage({
     let active = true
     void supabase
       .from('shops')
-      .select('id,name,city,country,currency')
+      .select('id,name,city,country,currency,neighborhood,latitude,longitude,location_accuracy_m')
       .eq('id', shopId)
       .single()
       .then(({ data, error }) => {
@@ -46,12 +51,23 @@ export function SettingsPage({
         }
         const country = resolveAfricanCountry(data.country)
         const city = resolveAfricanCity(data.city, country)
+        const neighborhood = resolveNeighborhood(data.neighborhood, country, data.city ?? '')
         setShop(data)
         setDraft({
           name: data.name,
           country,
           city,
           customCity: city === OTHER_CITY ? (data.city ?? '') : '',
+          neighborhood,
+          customNeighborhood: neighborhood === OTHER_NEIGHBORHOOD ? (data.neighborhood ?? '') : '',
+          gps:
+            data.latitude !== null && data.longitude !== null
+              ? {
+                  latitude: data.latitude,
+                  longitude: data.longitude,
+                  accuracy: data.location_accuracy_m ?? 0.1,
+                }
+              : null,
         })
         setLoadError(false)
         setMsg('')
@@ -69,6 +85,14 @@ export function SettingsPage({
       name: draft.name.trim(),
       country: draft.country.trim(),
       city: (draft.city === OTHER_CITY ? draft.customCity : draft.city).trim(),
+      neighborhood:
+        (draft.neighborhood === OTHER_NEIGHBORHOOD
+          ? draft.customNeighborhood
+          : draft.neighborhood
+        ).trim() || null,
+      latitude: draft.gps?.latitude ?? null,
+      longitude: draft.gps?.longitude ?? null,
+      location_accuracy_m: draft.gps?.accuracy ?? null,
     }
     if (!payload.name) {
       setMsg('Le nom de la boutique est obligatoire.')
@@ -77,9 +101,13 @@ export function SettingsPage({
     if (
       !payload.country ||
       (draft.city === OTHER_CITY && !payload.city) ||
-      (resolveAfricanCountry(shop.country) !== payload.country && !payload.city)
+      (resolveAfricanCountry(shop.country) !== payload.country && !payload.city) ||
+      ((resolveAfricanCountry(shop.country) !== payload.country ||
+        (shop.city ?? '') !== payload.city) &&
+        !payload.neighborhood) ||
+      (draft.neighborhood === OTHER_NEIGHBORHOOD && !payload.neighborhood)
     ) {
-      setMsg('Choisissez un pays et renseignez votre ville ou localité.')
+      setMsg('Choisissez un pays, une ville et, si vous modifiez votre adresse, un quartier.')
       return
     }
 
@@ -90,7 +118,7 @@ export function SettingsPage({
         .from('shops')
         .update(payload)
         .eq('id', shopId)
-        .select('id,name,city,country,currency')
+        .select('id,name,city,country,currency,neighborhood,latitude,longitude,location_accuracy_m')
         .single()
       if (error || !data) {
         setMsg('Impossible d’enregistrer les paramètres. Vérifiez votre connexion puis réessayez.')
@@ -134,12 +162,23 @@ export function SettingsPage({
           country={draft.country}
           city={draft.city}
           customCity={draft.customCity}
+          neighborhood={draft.neighborhood}
+          customNeighborhood={draft.customNeighborhood}
+          onNeighborhoodChange={(neighborhood) =>
+            setDraft({ ...draft, neighborhood, customNeighborhood: '' })
+          }
+          onCustomNeighborhoodChange={(customNeighborhood) =>
+            setDraft({ ...draft, customNeighborhood })
+          }
           onCountryChange={(country) =>
             setDraft({
               ...draft,
               country,
               city: '',
               customCity: '',
+              neighborhood: '',
+              customNeighborhood: '',
+              gps: null,
             })
           }
           onCityChange={(city) =>
@@ -147,10 +186,15 @@ export function SettingsPage({
               ...draft,
               city,
               customCity: '',
+              neighborhood: '',
+              customNeighborhood: '',
             })
           }
-          onCustomCityChange={(customCity) => setDraft({ ...draft, customCity })}
+          onCustomCityChange={(customCity) =>
+            setDraft({ ...draft, customCity, neighborhood: '', customNeighborhood: '', gps: null })
+          }
         />
+        <ShopGpsControl value={draft.gps} onChange={(gps) => setDraft({ ...draft, gps })} />
         <label>
           Devise
           <input value={shop.currency} disabled />
