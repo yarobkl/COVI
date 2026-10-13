@@ -45,7 +45,7 @@ function invalidControl(value) {
 
 function decodeReferenceJpeg(value) {
   if (typeof value !== 'string' || value.length > 450000) return null
-  const match = /^data:image\\/jpeg;base64,([A-Za-z0-9+/]+={0,2})$/.exec(value)
+  const match = /^data:image\/jpeg;base64,([A-Za-z0-9+/]+={0,2})$/.exec(value)
   if (!match) return null
   try {
     const binary = atob(match[1])
