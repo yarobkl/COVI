@@ -159,6 +159,8 @@ assert.equal(staffShops.data[0].pinConfigured, true)
 const cashierQueue = await rpc(cashier, 'get_checkout_pending_orders', { p_shop_id: shop })
 assert.ifError(cashierQueue.error)
 assert.ok(cashierQueue.data.length >= 1)
+await denied(cashier, 'get_checkout_public_link', { p_shop_id: shop },
+  'Cashier cannot retrieve the permanent owner QR token')
 await denied(cashier, 'configure_checkout_public_link', {
   p_shop_id: shop, p_enabled: false,
 }, 'Employee cannot change the public shop QR link')
