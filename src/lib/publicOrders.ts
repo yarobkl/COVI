@@ -39,6 +39,7 @@ type FuturePublicRpc = {
 }
 
 export type OrderChannel = 'qr' | 'social'
+export type ProposedPaymentMethod = 'cash' | 'mobile_money' | 'other'
 export type PublicOrderLink = { publicToken: string; enabled: boolean }
 export type PublicCategory = { id: string; label: string }
 export type PublicCatalog = { shopName: string; categories: PublicCategory[] }
@@ -50,6 +51,7 @@ export type PublicRequest = {
   phone?: string
   note?: string
   fulfillment: 'pickup' | 'delivery'
+  paymentMethod?: ProposedPaymentMethod
 }
 export type RecordedPublicRequest = {
   orderId: string
@@ -179,7 +181,8 @@ export function preparePublicRequest(input: PublicRequest) {
     !UUID.test(input.token) ||
     !UUID.test(input.operationId) ||
     !['qr', 'social'].includes(input.channel) ||
-    !['pickup', 'delivery'].includes(input.fulfillment)
+    !['pickup', 'delivery'].includes(input.fulfillment) ||
+    !['cash', 'mobile_money', 'other'].includes(input.paymentMethod ?? 'cash')
   )
     throw new Error('Paramètres de commande invalides.')
   if (input.lines.length < 1 || input.lines.length > 20)
@@ -219,6 +222,7 @@ export function preparePublicRequest(input: PublicRequest) {
     p_customer_phone: phone,
     p_customer_note: note,
     p_fulfillment: input.fulfillment,
+    p_payment_method: input.paymentMethod ?? 'cash',
   }
 }
 
@@ -260,6 +264,7 @@ export async function submitPublicOrder(
         phone: args.p_customer_phone,
         note: args.p_customer_note,
         fulfillment: input.fulfillment,
+        paymentMethod: args.p_payment_method,
         challenge: input.challenge,
       }),
     }),
@@ -274,6 +279,7 @@ export type PendingPublicOrder = {
   customerPhone: string | null
   customerNote: string | null
   fulfillment: 'pickup' | 'delivery'
+  paymentMethod: ProposedPaymentMethod
   createdAt: string
   lines: Array<{ label: string; quantity: number; lineTotalXaf: number }>
 }
@@ -292,6 +298,7 @@ export function parsePendingPublicOrders(value: unknown): PendingPublicOrder[] {
       (row.amountXaf as number) < 0 ||
       (row.amountXaf as number) > MAX_PUBLIC_AMOUNT ||
       (row.fulfillment !== 'pickup' && row.fulfillment !== 'delivery') ||
+      !['cash', 'mobile_money', 'other'].includes(String(row.paymentMethod ?? 'cash')) ||
       typeof row.createdAt !== 'string' ||
       !Number.isFinite(Date.parse(row.createdAt)) ||
       (row.customerPhone !== null && typeof row.customerPhone !== 'string') ||
@@ -331,6 +338,7 @@ export function parsePendingPublicOrders(value: unknown): PendingPublicOrder[] {
       customerPhone: row.customerPhone as string | null,
       customerNote: row.customerNote as string | null,
       fulfillment: row.fulfillment as PendingPublicOrder['fulfillment'],
+      paymentMethod: (row.paymentMethod ?? 'cash') as ProposedPaymentMethod,
       createdAt: row.createdAt,
       lines,
     }
