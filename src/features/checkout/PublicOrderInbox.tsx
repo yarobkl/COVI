@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Amount, Button, Ledger, LedgerRow, Notice, Sheet } from '../../components/ui'
 import { approveManualCheckoutOrder, rejectCheckoutOrder } from '../../lib/manualOrder'
 import { getPendingPublicOrders, type PendingPublicOrder } from '../../lib/publicOrders'
 import { CashierCheckoutPanel } from './CashierCheckoutPanel'
+import { watchCheckoutOrderUpdates } from '../../lib/checkoutInboxUpdates'
 
 /** A private shop-owner inbox for incoming QR / social requests.
  * Client-suggested prices are ALWAYS reviewed before payment is confirmed.
@@ -18,28 +19,43 @@ export function PublicOrderInbox({ shopId, shopName }: { shopId: string; shopNam
   const [notice, setNotice] = useState('')
   const [selected, setSelected] = useState<PendingPublicOrder | null>(null)
 
+  // New orders should appear without a manual refresh. Realtime acts only as a
+  // signal; the authorized RPC remains the only source of displayed information.
+  // Polling is a fallback while Realtime publication or connectivity is unavailable.
+  const refresh = useCallback(async (silent: boolean, alive: () => boolean) => {
+    if (!silent) setLoading(true)
+    try {
+      const rows = await getPendingPublicOrders(shopId)
+      if (!alive()) return
+      setOrders(rows)
+      setLoadError('')
+    } catch (reason) {
+      if (!alive()) return
+      setLoadError(reason instanceof Error ? reason.message : 'Demandes indisponibles.')
+    } finally {
+      if (alive()) setLoading(false)
+    }
+  }, [shopId])
+
   useEffect(() => {
     let active = true
-    getPendingPublicOrders(shopId)
-      .then(
-        (rows) => {
-          if (active) {
-            setOrders(rows)
-            setLoadError('')
-          }
-        },
-        (reason) => {
-          if (active)
-            setLoadError(reason instanceof Error ? reason.message : 'Demandes indisponibles.')
-        },
-      )
-      .finally(() => {
-        if (active) setLoading(false)
-      })
+    // Serialise overlapping responses to avoid reverting a more recent list.
+    let latest = 0
+    const load = (silent: boolean) => {
+      const sequence = ++latest
+      void refresh(silent, () => active && sequence === latest)
+    }
+    load(false)
+    const stop = watchCheckoutOrderUpdates(shopId, () => load(true))
+    const interval = window.setInterval(() => {
+      if (document.visibilityState !== 'hidden') load(true)
+    }, 15000)
     return () => {
       active = false
+      window.clearInterval(interval)
+      stop()
     }
-  }, [shopId, retry])
+  }, [shopId, retry, refresh])
 
   async function reject(order: PendingPublicOrder) {
     if (busyId || !window.confirm('Refuser cette commande sans encaisser ?')) return
