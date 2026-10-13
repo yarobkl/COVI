@@ -202,6 +202,15 @@ export function PublicOrderInbox({ shopId, shopName }: { shopId: string; shopNam
                   value={<Amount value={order.amountXaf} unit />}
                 />
               </Ledger>
+              <p>
+                Moyen annoncé : {
+                  order.paymentMethod === 'cash'
+                    ? 'Espèces'
+                    : order.paymentMethod === 'mobile_money'
+                      ? 'Mobile Money'
+                      : 'Autre'
+                } · À vérifier avant l’encaissement.
+              </p>
               {order.customerPhone && <p>Téléphone : {order.customerPhone}</p>}
               {order.customerNote && <p>Note du client : {order.customerNote}</p>}
               <p className="checkout-inbox__notice">
