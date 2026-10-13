@@ -28,7 +28,8 @@ jobs:
             src/features/checkout/CashierTeamPanel.tsx \
             src/features/checkout/CashierWorkspace.tsx \
             src/features/checkout/PublicOrderInbox.tsx \
-            src/lib/cashierAccounts.ts
+            src/lib/cashierAccounts.ts \
+            src/features/checkout/CashierPaymentConfirmationForm.test.tsx
       - run: |
           if git diff --quiet; then exit 0; fi
           git config user.name "github-actions[bot]"
@@ -37,6 +38,6 @@ jobs:
             src/features/checkout/CashierJoinPage.tsx src/features/checkout/CashierPaymentConfirmationForm.tsx \
             src/features/checkout/CashierPinSetup.tsx src/features/checkout/CashierTeamPanel.tsx \
             src/features/checkout/CashierWorkspace.tsx src/features/checkout/PublicOrderInbox.tsx \
-            src/lib/cashierAccounts.ts
+            src/lib/cashierAccounts.ts src/features/checkout/CashierPaymentConfirmationForm.test.tsx
           git commit -m "style(caisse): apply pinned repository Prettier to cashier accounts"
           git push origin HEAD:feature/covi-stock-central-omnichannel
