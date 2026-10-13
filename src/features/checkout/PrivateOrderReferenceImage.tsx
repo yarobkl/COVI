@@ -13,16 +13,13 @@ export function PrivateOrderReferenceImage({
   orderId: string
   imagePath: string | null
 }) {
-  const [url, setUrl] = useState('')
-  const [error, setError] = useState('')
+  const [signed, setSigned] = useState<{ path: string; url: string } | null>(null)
+  const [failed, setFailed] = useState<string | null>(null)
   useEffect(() => {
     let active = true
-    setUrl('')
-    setError('')
     if (!imagePath) return () => { active = false }
     const expected = shopId + '/' + orderId + '/reference.jpg'
     if (imagePath !== expected) {
-      setError('La référence photo ne correspond pas à cette commande.')
       return () => { active = false }
     }
     void supabase.storage
@@ -31,15 +28,20 @@ export function PrivateOrderReferenceImage({
       .then(({ data, error: failure }) => {
         if (!active) return
         if (failure || !data?.signedUrl) {
-          setError('Cette capture n’est pas disponible.')
+          setFailed(imagePath)
         } else {
-          setUrl(data.signedUrl)
+          setSigned({ path: imagePath, url: data.signedUrl })
         }
       })
     return () => { active = false }
   }, [shopId, orderId, imagePath])
 
   if (!imagePath) return null
+  const url = signed?.path === imagePath ? signed.url : ''
+  const expected = shopId + '/' + orderId + '/reference.jpg'
+  const error = imagePath !== expected
+    ? 'La référence photo ne correspond pas à cette commande.'
+    : failed === imagePath ? 'Cette capture n’est pas disponible.' : ''
   return (
     <section className="checkout-inbox__reference" aria-label="Capture jointe à la demande">
       <p className="field__hint">
