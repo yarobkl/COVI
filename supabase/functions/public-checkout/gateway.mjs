@@ -206,12 +206,13 @@ export function createPublicCheckoutGateway(env, fetchImpl = fetch) {
       return json(503, { error: 'Commandes indisponibles pour le moment.' }, allowedOrigin)
 
     try {
-      const isCatalog = request.method === 'GET'
       const url = new URL(request.url)
+      const isTracking = request.method === 'GET' && url.searchParams.has('tracking')
+      const isCatalog = request.method === 'GET' && !isTracking
       let token
       let body
-      if (isCatalog) {
-        token = url.searchParams.get('token')
+      if (request.method === 'GET') {
+        token = url.searchParams.get(isTracking ? 'tracking' : 'token')
       } else {
         if (!request.headers.get('content-type')?.toLowerCase().startsWith('application/json'))
           return json(415, { error: 'Format de demande non pris en charge.' }, allowedOrigin)
@@ -231,9 +232,11 @@ export function createPublicCheckoutGateway(env, fetchImpl = fetch) {
       const source = sourceFingerprint(request)
       const sourceDigest = await hmac(env.COVI_GATEWAY_PEPPER, 'source:' + token + ':' + source)
       const linkDigest = await hmac(env.COVI_GATEWAY_PEPPER, 'link:' + token)
-      const limits = isCatalog
-        ? [['catalog_source_minute', sourceDigest], ['catalog_link_minute', linkDigest]]
-        : [
+      const limits = isTracking
+        ? [['status_source_minute', sourceDigest], ['status_token_minute', linkDigest]]
+        : isCatalog
+          ? [['catalog_source_minute', sourceDigest], ['catalog_link_minute', linkDigest]]
+          : [
             ['order_source_minute', sourceDigest],
             ['order_source_day', sourceDigest],
           ]
@@ -256,6 +259,49 @@ export function createPublicCheckoutGateway(env, fetchImpl = fetch) {
           !Array.isArray(catalog.categories)
         ) throw new Error('catalog')
         return json(200, catalog, allowedOrigin)
+      }
+
+      if (isTracking) {
+        // A dedicated random receipt capability: no customer data or payment
+        // mutation can be requested using this GET endpoint.
+        const tracked = await backendRpc(env, fetchImpl, 'get_checkout_guest_status', {
+          p_tracking_token: token,
+        })
+        if (
+          !tracked ||
+          !UUID.test(tracked.orderId) ||
+          typeof tracked.shopName !== 'string' ||
+          !tracked.shopName.trim() ||
+          !['submitted', 'approved', 'reserved', 'paid', 'cancelled', 'expired'].includes(
+            tracked.status,
+          ) ||
+          !Number.isSafeInteger(tracked.amountXaf) ||
+          tracked.amountXaf < 0 ||
+          tracked.amountXaf > 2000000000
+        ) throw new Error('invalid tracking status')
+        if (tracked.status === 'paid') {
+          const receipt = tracked.receipt
+          if (
+            !receipt ||
+            typeof receipt.receiptNumber !== 'string' ||
+            !receipt.receiptNumber ||
+            typeof receipt.confirmedAt !== 'string' ||
+            !Number.isFinite(Date.parse(receipt.confirmedAt)) ||
+            typeof receipt.cashierFirstName !== 'string' ||
+            !['cash', 'mobile_money', 'other'].includes(receipt.method) ||
+            receipt.amountXaf !== tracked.amountXaf ||
+            !Array.isArray(receipt.lines) ||
+            receipt.lines.length < 1 ||
+            receipt.lines.length > 40
+          ) throw new Error('invalid paid receipt')
+        }
+        return json(200, {
+          shopName: tracked.shopName,
+          orderId: tracked.orderId,
+          status: tracked.status,
+          amountXaf: tracked.amountXaf,
+          ...(tracked.status === 'paid' ? { receipt: tracked.receipt } : {}),
+        }, allowedOrigin)
       }
 
       if (!(await verifyTurnstile(env, fetchImpl, body.challenge)))
@@ -282,6 +328,7 @@ export function createPublicCheckoutGateway(env, fetchImpl = fetch) {
       if (
         !result ||
         !UUID.test(result.orderId) ||
+        !UUID.test(result.trackingToken) ||
         !['submitted', 'approved', 'reserved', 'paid', 'cancelled', 'expired'].includes(
           result.status,
         ) ||
@@ -293,6 +340,7 @@ export function createPublicCheckoutGateway(env, fetchImpl = fetch) {
         orderId: result.orderId,
         status: result.status,
         amountXaf: result.amountXaf,
+        trackingToken: result.trackingToken,
       }, allowedOrigin)
     } catch {
       // No database, token, key, IP, phone or provider error details in responses.
