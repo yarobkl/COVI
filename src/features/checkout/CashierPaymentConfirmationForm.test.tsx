@@ -71,4 +71,32 @@ describe('cashier confirmation form', () => {
     finish?.()
     await waitFor(() => expect(button.getAttribute('aria-busy')).toBeNull())
   })
+  it('requires a PIN from an employee account and preserves the verified first name', async () => {
+    const onConfirm = vi.fn(async () => {})
+    render(
+      <CashierPaymentConfirmationForm
+        amountXaf={5700}
+        onConfirm={onConfirm}
+        requirePin
+        verifiedCashierFirstName="Aminata"
+      />,
+    )
+    const name = screen.getByLabelText('Prénom de la personne qui encaisse') as HTMLInputElement
+    expect(name.value).toBe('Aminata')
+    expect(name.readOnly).toBe(true)
+    fireEvent.click(screen.getByLabelText('Espèces'))
+    const submit = screen.getByRole('button', { name: 'Confirmer le paiement reçu' }) as HTMLButtonElement
+    expect(submit.disabled).toBe(true)
+    fireEvent.change(screen.getByLabelText('Mon code personnel de caisse'), {
+      target: { value: '654321' },
+    })
+    expect(submit.disabled).toBe(false)
+    fireEvent.click(submit)
+    await waitFor(() => expect(onConfirm).toHaveBeenCalledWith({
+      cashierFirstName: 'Aminata',
+      method: 'cash',
+      pin: '654321',
+    }))
+  })
+
 })
