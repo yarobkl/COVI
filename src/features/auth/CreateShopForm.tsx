@@ -3,6 +3,7 @@ import { Button, Field, Input, LabelCard, Notice } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
 import type { Shop } from '../../lib/types'
 import { OTHER_CITY } from '../../lib/centralAfricaLocations'
+import { OTHER_NEIGHBORHOOD } from '../../lib/neighborhoods'
 import { CentralAfricaLocationFields } from '../locations/CentralAfricaLocationFields'
 import { AuthPage } from './AuthPage'
 import { authError } from './authErrors'
@@ -21,22 +22,27 @@ export function CreateShopForm({
   const [city, setCity] = useState('')
   const [country, setCountry] = useState<string>('République du Congo')
   const [customCity, setCustomCity] = useState('')
+  const [neighborhood, setNeighborhood] = useState('')
+  const [customNeighborhood, setCustomNeighborhood] = useState('')
   const selectedCity = city === OTHER_CITY ? customCity.trim() : city
+  const selectedNeighborhood =
+    neighborhood === OTHER_NEIGHBORHOOD ? customNeighborhood.trim() : neighborhood.trim()
   const [busy, setBusy] = useState(false)
 
   async function createShop(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     onMessage('')
     const f = new FormData(e.currentTarget)
-    if (!selectedCity.trim()) {
-      onMessage('Choisissez votre ville ou renseignez votre localité.')
+    if (!selectedCity.trim() || !selectedNeighborhood) {
+      onMessage('Choisissez votre ville et votre quartier, ou saisissez-les manuellement.')
       return
     }
     setBusy(true)
     try {
-      const { data, error } = await supabase.rpc('create_my_shop', {
+      const { data, error } = await supabase.rpc('create_my_shop_with_neighborhood', {
         p_name: String(f.get('name')).trim(),
         p_city: selectedCity.trim(),
+        p_neighborhood: selectedNeighborhood,
         p_country: country,
         p_currency: 'XAF',
       })
@@ -85,16 +91,32 @@ export function CreateShopForm({
           city={city}
           customCity={customCity}
           requireCity
+          requireNeighborhood
+          neighborhood={neighborhood}
+          customNeighborhood={customNeighborhood}
+          onNeighborhoodChange={(value) => {
+            setNeighborhood(value)
+            setCustomNeighborhood('')
+          }}
+          onCustomNeighborhoodChange={setCustomNeighborhood}
           onCountryChange={(value) => {
             setCountry(value)
             setCity('')
             setCustomCity('')
+            setNeighborhood('')
+            setCustomNeighborhood('')
           }}
           onCityChange={(value) => {
             setCity(value)
             setCustomCity('')
+            setNeighborhood('')
+            setCustomNeighborhood('')
           }}
-          onCustomCityChange={setCustomCity}
+          onCustomCityChange={(value) => {
+            setCustomCity(value)
+            setNeighborhood('')
+            setCustomNeighborhood('')
+          }}
         />
         {message && (
           <Notice tone="danger">
