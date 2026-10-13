@@ -63,7 +63,8 @@ jobs:
             draft_reject_checkout_order.sql \
             draft_confirm_manual_checkout_payment.sql \
             draft_protect_confirmed_category_sales.sql \
-            draft_public_order_channels.sql; do
+            draft_public_order_channels.sql \
+            draft_checkout_private_reference_storage.sql; do
             psql -X -v ON_ERROR_STOP=1 --no-password -f "supabase/sql-drafts/$file"
           done
 
