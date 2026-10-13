@@ -2,8 +2,8 @@
 -- Dependencies (in order):
 --   draft_category_stock_schema.sql
 --   draft_checkout_manual_payment_schema.sql
--- This is an OWNER-ONLY confirmation for the first isolated implementation.
--- Employee permissions, QR/public order creation and reservations are NOT enabled.
+-- Supports an authenticated shop owner or an active checkout cashier with PIN.
+-- Never authorize by a client-supplied first name or by user metadata.
 --
 -- Critical trust boundary: money is received OUTSIDE COVI. The signed-in shop
 -- owner attests that money has been received. No Mobile Money API is used.
@@ -16,7 +16,8 @@ create or replace function public.confirm_manual_checkout_payment(
   p_operation_id uuid,
   p_cashier_first_name text,
   p_method text,
-  p_external_reference text default null
+  p_external_reference text default null,
+  p_pin text default null
 )
 returns jsonb
 language plpgsql
@@ -29,6 +30,8 @@ declare
   v_existing public.manual_payment_confirmations%rowtype;
   v_first_name text;
   v_reference text;
+  v_owner boolean;
+  v_cashier_name text;
   v_lines jsonb;
   v_line_count integer;
   v_line_total numeric;
@@ -48,17 +51,24 @@ begin
     raise exception 'Identifiants de confirmation manquants';
   end if;
 
-  -- Do not authorize by the freely typed first name.
-  -- Current schema has owner_id, but no audited staff membership/permissions.
-  if not exists (
-    select 1 from public.shops s
-    where s.id = p_shop_id and s.owner_id = v_actor
-  ) then
-    raise exception 'Vous ne pouvez pas valider les paiements de cette boutique'
-      using errcode = '42501';
+  select exists(select 1 from public.shops s
+    where s.id=p_shop_id and s.owner_id=v_actor) into v_owner;
+  select c.first_name into v_cashier_name
+    from public.checkout_cashiers c
+    where c.shop_id=p_shop_id and c.user_id=v_actor and c.active=true;
+  if not v_owner and v_cashier_name is null then
+    raise exception 'Caissier non autorisé pour cette boutique' using errcode='42501';
+  end if;
+  -- A failed PIN attempt must be committed to retain the attempt counter.
+  -- Returning a sentinel instead of raising preserves the lockout update.
+  if not public.checkout_cashier_pin_ok(p_shop_id,v_actor,p_pin,v_owner) then
+    return jsonb_build_object('pinRejected',true);
   end if;
 
   v_first_name := regexp_replace(btrim(p_cashier_first_name), '[[:space:]]+', ' ', 'g');
+  if not v_owner and v_first_name is distinct from v_cashier_name then
+    raise exception 'Prénom différent de celui du compte caissier';
+  end if;
   v_reference := nullif(btrim(p_external_reference), '');
   if v_first_name is null
      or char_length(v_first_name) not between 1 and 60
@@ -249,7 +259,7 @@ $function$;
 
 -- Supabase/PostgREST functions may be executable by PUBLIC by default.
 revoke all on function public.confirm_manual_checkout_payment(
-  uuid, uuid, uuid, text, text, text
+  uuid, uuid, uuid, text, text, text, text
 ) from public, anon;
 grant execute on function public.confirm_manual_checkout_payment(
   uuid, uuid, uuid, text, text, text
