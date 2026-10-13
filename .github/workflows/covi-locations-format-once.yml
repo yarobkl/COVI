@@ -1,0 +1,34 @@
+name: COVI locations one-time formatting
+on:
+  push:
+    branches:
+      - feature/covi-unified-country-city-fields
+permissions:
+  contents: write
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/covi-unified-country-city-fields
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Apply pinned Prettier formatter for worldwide country suggestions
+        run: npx --no-install prettier --write src/lib/countries.ts
+      - name: Commit only formatting changes
+        run: |
+          if git diff --quiet; then
+            echo 'Already formatted'
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/lib/countries.ts
+          git commit -m "style(locations): format worldwide country suggestions"
+          git push origin HEAD:feature/covi-unified-country-city-fields
