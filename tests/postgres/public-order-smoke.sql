@@ -83,6 +83,7 @@ begin
   if (v_created->>'trackingToken')::uuid is null then
     raise exception 'Guest order did not receive a private tracking token';
   end if;
+  perform set_config('covi.test.tracking_token', v_created->>'trackingToken', false);
   v_follow := public.get_checkout_guest_status((v_created->>'trackingToken')::uuid);
   if v_follow->>'status' <> 'submitted' or v_follow ? 'receipt' or
      v_follow ? 'customerPhone' then
@@ -202,8 +203,7 @@ begin
   if not v_rejected then raise exception 'Rotated token still grants access'; end if;
   -- Old QR codes cease to accept orders, but paid customers can still access
   -- their own receipt using the independent private tracking capability.
-  select guest_tracking_token into v_tracking from public.checkout_orders
-    where creation_operation_id='77770000-0000-4000-8000-000000000001';
+  v_tracking := current_setting('covi.test.tracking_token')::uuid;
   v_follow := public.get_checkout_guest_status(v_tracking);
   if v_follow->>'status' <> 'paid' or
      v_follow->'receipt'->>'cashierFirstName' <> 'Marie Lou' or
