@@ -151,6 +151,9 @@ export function PublicOrderRequestPage({ token, channel }: Props) {
       if (result.amountXaf !== expected)
         throw new Error('Le montant renvoyé par la boutique ne correspond pas à votre demande.')
       setSaved(result)
+      // Preserve a private, reloadable order follow-up link. Unlike the QR,
+      // this random token grants access only to this single order's status.
+      window.location.hash = '/suivi/' + result.trackingToken
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Demande non envoyée. Réessayez.')
       setChallenge('')
