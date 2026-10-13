@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { prepareManualOrderLines, type ManualOrderLineInput } from './manualOrder'
+import { validateReferencePhotoDataUri } from './orderReferencePhoto'
 
 const gatewayUrl = new URL(
   '/functions/v1/public-checkout',
@@ -53,6 +54,7 @@ export type PublicRequest = {
   fulfillment: 'pickup' | 'delivery'
   paymentMethod?: ProposedPaymentMethod
   deliveryAddress?: string
+  referenceImage?: string
 }
 export type RecordedPublicRequest = {
   trackingToken: string
@@ -207,6 +209,8 @@ export function preparePublicRequest(input: PublicRequest) {
     quantityByCategory.set(line.categoryId, sum)
   }
 
+  if (input.referenceImage) validateReferencePhotoDataUri(input.referenceImage)
+
   const phone = input.phone?.trim() || null
   const note = input.note?.trim() || null
   const address = input.deliveryAddress?.trim() || null
@@ -274,6 +278,7 @@ export async function submitPublicOrder(
         fulfillment: input.fulfillment,
         paymentMethod: args.p_payment_method,
         deliveryAddress: args.p_delivery_address,
+        referenceImage: input.referenceImage ?? null,
         challenge: input.challenge,
       }),
     }),
@@ -288,6 +293,7 @@ export type PendingPublicOrder = {
   customerPhone: string | null
   customerNote: string | null
   customerDeliveryAddress: string | null
+  referenceImagePath: string | null
   fulfillment: 'pickup' | 'delivery'
   paymentMethod: ProposedPaymentMethod
   createdAt: string
@@ -314,6 +320,9 @@ export function parsePendingPublicOrders(value: unknown): PendingPublicOrder[] {
       (row.customerPhone !== null && typeof row.customerPhone !== 'string') ||
       (row.customerNote !== null && typeof row.customerNote !== 'string') ||
       (row.customerDeliveryAddress != null && typeof row.customerDeliveryAddress !== 'string') ||
+      (row.referenceImagePath != null &&
+        (typeof row.referenceImagePath !== 'string' ||
+          !/^[0-9a-f-]{36}\\/[0-9a-f-]{36}\\/reference\\.jpg$/.test(row.referenceImagePath))) ||
       !Array.isArray(row.lines) ||
       row.lines.length < 1
     )
@@ -349,6 +358,7 @@ export function parsePendingPublicOrders(value: unknown): PendingPublicOrder[] {
       customerPhone: row.customerPhone as string | null,
       customerNote: row.customerNote as string | null,
       customerDeliveryAddress: (row.customerDeliveryAddress ?? null) as string | null,
+      referenceImagePath: (row.referenceImagePath ?? null) as string | null,
       fulfillment: row.fulfillment as PendingPublicOrder['fulfillment'],
       paymentMethod: (row.paymentMethod ?? 'cash') as ProposedPaymentMethod,
       createdAt: row.createdAt,
