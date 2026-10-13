@@ -25,7 +25,7 @@ jobs:
           cache: npm
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: '2.120.0'
       - name: Install exact application dependencies
         run: npm ci
       - name: Start disposable local Supabase stack
