@@ -11,7 +11,9 @@ create table if not exists public.checkout_orders (
   guest_tracking_token uuid not null default gen_random_uuid() unique,
   reference_image_path text check (
     reference_image_path is null or
-    reference_image_path ~ '^[0-9a-f-]{36}/[0-9a-f-]{36}/reference[.]jpg  channel text not null check (channel in ('qr', 'social', 'manual')),
+    reference_image_path ~ '^[0-9a-f-]{36}/[0-9a-f-]{36}/reference[.]jpg$'
+  ),
+  channel text not null check (channel in ('qr', 'social', 'manual')),
   status text not null default 'submitted'
     check (status in ('submitted', 'approved', 'reserved', 'paid', 'cancelled', 'expired')),
   is_test boolean not null default false,
