@@ -20,6 +20,7 @@ vi.mock('../../lib/publicOrders', async (original) => ({
 const token = 'dddddddd-0000-4000-8000-000000000001'
 const categoryId = 'aaaaaaaa-0000-4000-8000-000000000001'
 const orderId = 'bbbbbbbb-0000-4000-8000-000000000001'
+const trackingToken = 'eeeeeeee-0000-4000-8000-000000000001'
 
 beforeEach(() => {
   vi.mocked(getPublicCatalog).mockReset()
@@ -35,6 +36,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
+  window.history.replaceState(null, '', '#/')
 })
 
 async function fill() {
@@ -50,6 +52,7 @@ describe('anonymous QR/social notebook request screen', () => {
   it('does not display a payment receipt or deduct stock when request is submitted', async () => {
     vi.mocked(submitPublicOrder).mockResolvedValue({
       orderId,
+      trackingToken,
       status: 'submitted',
       amountXaf: 3500,
     })
@@ -59,6 +62,7 @@ describe('anonymous QR/social notebook request screen', () => {
     fireEvent.click(screen.getByRole('button', { name: /Envoyer la demande/ }))
     await screen.findByRole('heading', { name: 'Demande envoyée' })
     expect(screen.getByText('BBBBBBBB')).toBeTruthy()
+    expect(window.location.hash).toContain('/suivi/' + trackingToken)
     expect(screen.getByText(/Aucun paiement ne peut être effectué depuis cette page/)).toBeTruthy()
     expect(submitPublicOrder).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -83,7 +87,7 @@ describe('anonymous QR/social notebook request screen', () => {
   it('retains the operation UUID when retrying after a network loss', async () => {
     vi.mocked(submitPublicOrder)
       .mockRejectedValueOnce(new Error('Réseau perdu'))
-      .mockResolvedValueOnce({ orderId, status: 'submitted', amountXaf: 3500 })
+      .mockResolvedValueOnce({ orderId, trackingToken, status: 'submitted', amountXaf: 3500 })
     render(<PublicOrderRequestPage token={token} channel="social" />)
     await fill()
     fireEvent.click(screen.getByRole('button', { name: /Envoyer la demande/ }))
