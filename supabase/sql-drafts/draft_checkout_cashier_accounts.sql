@@ -48,6 +48,15 @@ create policy "cashier and shop owner read membership"
     select 1 from public.shops s
     where s.id = shop_id and s.owner_id = (select auth.uid())
   ));
+-- Supabase Realtime SELECT policies may deliver events only to ACTIVE cashiers
+-- in this exact shop. Realtime is never the authoritative order data source.
+create policy "active cashier reads own shop checkout events"
+  on public.checkout_orders for select to authenticated
+  using (exists (
+    select 1 from public.checkout_cashiers c
+    where c.shop_id=checkout_orders.shop_id
+      and c.user_id=(select auth.uid()) and c.active=true
+  ));
 revoke all on public.checkout_cashier_secrets, public.checkout_cashier_invites
   from public, anon, authenticated;
 revoke insert, update, delete on public.checkout_cashiers from anon, authenticated;
