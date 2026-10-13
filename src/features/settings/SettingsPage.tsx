@@ -105,11 +105,7 @@ export function SettingsPage({
   }
 
   if (!shop || !draft) {
-    return loadError ? (
-      <p role="alert">{msg}</p>
-    ) : (
-      <p>Chargement des paramètres…</p>
-    )
+    return loadError ? <p role="alert">{msg}</p> : <p>Chargement des paramètres…</p>
   }
 
   const cities = listedAfricanCities(draft.country)
@@ -202,7 +198,11 @@ export function SettingsPage({
           {busy ? 'Enregistrement…' : 'Enregistrer les paramètres'}
         </button>
       </form>
-      {msg && <p className="successmsg" role="status">{msg}</p>}
+      {msg && (
+        <p className="successmsg" role="status">
+          {msg}
+        </p>
+      )}
       <section className="card">
         <small>COVI V1</small>
         <h2>Commerce connecté</h2>
