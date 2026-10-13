@@ -158,7 +158,8 @@ create or replace function public.submit_checkout_public_order(
   p_lines jsonb,
   p_customer_phone text default null,
   p_customer_note text default null,
-  p_fulfillment text default 'pickup'
+  p_fulfillment text default 'pickup',
+  p_payment_method text default 'cash'
 )
 returns jsonb language plpgsql security definer set search_path = ''
 as $function$
@@ -181,7 +182,9 @@ begin
 
   if p_operation_id is null or p_channel not in ('qr','social')
      or p_channel is null or p_fulfillment not in ('pickup','delivery')
-     or p_fulfillment is null then
+     or p_fulfillment is null
+     or p_payment_method not in ('cash','mobile_money','other')
+     or p_payment_method is null then
     raise exception 'Paramètres de commande invalides';
   end if;
 
@@ -254,7 +257,8 @@ begin
 
   v_payload := jsonb_build_object(
     'channel',p_channel, 'lines',v_canonical, 'isTest',false,
-    'customerPhone',v_phone, 'customerNote',v_note, 'fulfillment',p_fulfillment
+    'customerPhone',v_phone, 'customerNote',v_note, 'fulfillment',p_fulfillment,
+    'paymentMethod',p_payment_method
   );
 
   -- Exactly-one order on retries, even if two anonymous sessions race.
@@ -298,10 +302,10 @@ begin
 
   insert into public.checkout_orders (
     shop_id,channel,status,is_test,customer_phone,customer_note,
-    fulfillment,amount_xaf,creation_operation_id,creation_payload
+    fulfillment,payment_method_requested,amount_xaf,creation_operation_id,creation_payload
   ) values (
     v_shop_id,p_channel,'submitted',false,v_phone,v_note,
-    p_fulfillment,v_total,p_operation_id,v_payload
+    p_fulfillment,p_payment_method,v_total,p_operation_id,v_payload
   ) returning * into v_order;
 
   for v_line in
@@ -349,6 +353,7 @@ begin
       'customerPhone', o.customer_phone,
       'customerNote', o.customer_note,
       'fulfillment', o.fulfillment,
+      'paymentMethod', o.payment_method_requested,
       'createdAt', o.created_at,
       'lines', coalesce((
         select jsonb_agg(
@@ -408,10 +413,10 @@ grant execute on function public.get_checkout_public_catalog(uuid)
   to service_role;
 
 revoke all on function public.submit_checkout_public_order(
-  uuid,text,uuid,jsonb,text,text,text
+  uuid,text,uuid,jsonb,text,text,text,text
 ) from public, anon, authenticated;
 grant execute on function public.submit_checkout_public_order(
-  uuid,text,uuid,jsonb,text,text,text
+  uuid,text,uuid,jsonb,text,text,text,text
 ) to service_role;
 
 -- Gateway quotas (independent of the shop-wide submission ceilings above).
