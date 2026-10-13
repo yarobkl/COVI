@@ -10,7 +10,14 @@ import { watchCheckoutOrderUpdates } from '../../lib/checkoutInboxUpdates'
  * Client-suggested prices are ALWAYS reviewed before payment is confirmed.
  * No public page can access this component or the approval RPC.
  */
-export function PublicOrderInbox({ shopId, shopName }: { shopId: string; shopName: string }) {
+export function PublicOrderInbox({
+  shopId, shopName, verifiedCashierFirstName, requirePin = false,
+}: {
+  shopId: string
+  shopName: string
+  verifiedCashierFirstName?: string
+  requirePin?: boolean
+}) {
   const [orders, setOrders] = useState<PendingPublicOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -148,6 +155,8 @@ export function PublicOrderInbox({ shopId, shopName }: { shopId: string; shopNam
           shopName={shopName}
           orderId={selected.orderId}
           amountXaf={selected.amountXaf}
+          verifiedCashierFirstName={verifiedCashierFirstName}
+          requirePin={requirePin}
         />
       </section>
     )
