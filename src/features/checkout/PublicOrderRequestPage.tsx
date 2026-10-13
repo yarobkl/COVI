@@ -356,8 +356,8 @@ export function PublicOrderRequestPage({ token, channel }: Props) {
             <fieldset className="checkout-guest__payment">
               <legend className="section-title">Comment souhaitez-vous payer ?</legend>
               <p className="field__hint">
-                Ce choix ne débite aucun compte. Le vendeur vérifiera lui-même la réception
-                de votre argent avant de valider la vente.
+                Ce choix ne débite aucun compte. Le vendeur vérifiera lui-même la réception de votre
+                argent avant de valider la vente.
               </p>
               <div className="checkout-guest__choices">
                 <label>
@@ -446,7 +446,11 @@ export function PublicOrderRequestPage({ token, channel }: Props) {
             busy={busy}
             busyLabel="Envoi de la demande…"
             disabled={
-              busy || !challenge || !lines.length || !paymentMethod || (fulfillment === 'delivery' && !phone.trim())
+              busy ||
+              !challenge ||
+              !lines.length ||
+              !paymentMethod ||
+              (fulfillment === 'delivery' && !phone.trim())
             }
           >
             Envoyer la demande · {fcfa(total)} FCFA

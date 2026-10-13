@@ -113,9 +113,7 @@ describe('shop owner QR/social requests inbox', () => {
   it('refreshes the private inbox on Realtime change signals without trusting event payload', async () => {
     const nextId = 'bbbbbbbb-0000-4000-8000-000000000002'
     const nextRows = [{ ...rows[0], orderId: nextId, customerNote: 'Nouveau client' }]
-    vi.mocked(getPendingPublicOrders)
-      .mockResolvedValueOnce(rows)
-      .mockResolvedValueOnce(nextRows)
+    vi.mocked(getPendingPublicOrders).mockResolvedValueOnce(rows).mockResolvedValueOnce(nextRows)
     let notify: (() => void) | undefined
     vi.mocked(watchCheckoutOrderUpdates).mockImplementation((_shop, callback) => {
       notify = callback
@@ -129,5 +127,4 @@ describe('shop owner QR/social requests inbox', () => {
     expect(getPendingPublicOrders).toHaveBeenCalledTimes(2)
     expect(getPendingPublicOrders).toHaveBeenNthCalledWith(2, shopId)
   })
-
 })

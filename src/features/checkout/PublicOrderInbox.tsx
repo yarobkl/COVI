@@ -22,20 +22,23 @@ export function PublicOrderInbox({ shopId, shopName }: { shopId: string; shopNam
   // New orders should appear without a manual refresh. Realtime acts only as a
   // signal; the authorized RPC remains the only source of displayed information.
   // Polling is a fallback while Realtime publication or connectivity is unavailable.
-  const refresh = useCallback(async (silent: boolean, alive: () => boolean) => {
-    if (!silent) setLoading(true)
-    try {
-      const rows = await getPendingPublicOrders(shopId)
-      if (!alive()) return
-      setOrders(rows)
-      setLoadError('')
-    } catch (reason) {
-      if (!alive()) return
-      setLoadError(reason instanceof Error ? reason.message : 'Demandes indisponibles.')
-    } finally {
-      if (alive()) setLoading(false)
-    }
-  }, [shopId])
+  const refresh = useCallback(
+    async (silent: boolean, alive: () => boolean) => {
+      if (!silent) setLoading(true)
+      try {
+        const rows = await getPendingPublicOrders(shopId)
+        if (!alive()) return
+        setOrders(rows)
+        setLoadError('')
+      } catch (reason) {
+        if (!alive()) return
+        setLoadError(reason instanceof Error ? reason.message : 'Demandes indisponibles.')
+      } finally {
+        if (alive()) setLoading(false)
+      }
+    },
+    [shopId],
+  )
 
   useEffect(() => {
     let active = true
@@ -203,13 +206,13 @@ export function PublicOrderInbox({ shopId, shopName }: { shopId: string; shopNam
                 />
               </Ledger>
               <p>
-                Moyen annoncé : {
-                  order.paymentMethod === 'cash'
-                    ? 'Espèces'
-                    : order.paymentMethod === 'mobile_money'
-                      ? 'Mobile Money'
-                      : 'Autre'
-                } · À vérifier avant l’encaissement.
+                Moyen annoncé :{' '}
+                {order.paymentMethod === 'cash'
+                  ? 'Espèces'
+                  : order.paymentMethod === 'mobile_money'
+                    ? 'Mobile Money'
+                    : 'Autre'}{' '}
+                · À vérifier avant l’encaissement.
               </p>
               {order.customerPhone && <p>Téléphone : {order.customerPhone}</p>}
               {order.customerNote && <p>Note du client : {order.customerNote}</p>}
