@@ -18,6 +18,7 @@ import {
   preparePublicRequest,
   submitPublicOrder,
   type OrderChannel,
+  type ProposedPaymentMethod,
   type PublicCatalog,
   type RecordedPublicRequest,
 } from '../../lib/publicOrders'
@@ -38,6 +39,7 @@ export function PublicOrderRequestPage({ token, channel }: Props) {
   const [quantity, setQuantity] = useState(1)
   const [priceInput, setPriceInput] = useState('')
   const [fulfillment, setFulfillment] = useState<'pickup' | 'delivery'>('pickup')
+  const [paymentMethod, setPaymentMethod] = useState<ProposedPaymentMethod | ''>('')
   const [phone, setPhone] = useState('')
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
@@ -124,6 +126,7 @@ export function PublicOrderRequestPage({ token, channel }: Props) {
         phone.trim(),
         note.trim(),
         fulfillment,
+        paymentMethod,
       ])
       if (!attempt.current || attempt.current.fingerprint !== fingerprint) {
         attempt.current = { fingerprint, operationId: crypto.randomUUID() }
@@ -136,9 +139,11 @@ export function PublicOrderRequestPage({ token, channel }: Props) {
         phone,
         note,
         fulfillment,
+        paymentMethod: paymentMethod || undefined,
       }
       const prepared = preparePublicRequest(input)
-      const result = await submitPublicOrder({ ...input, challenge })
+      if (!paymentMethod) throw new Error('Choisissez le moyen de paiement prévu.')
+      const result = await submitPublicOrder({ ...input, paymentMethod, challenge })
       const expected = prepared.p_lines.reduce(
         (sum, line) => sum + line.quantity * line.unitPriceXaf,
         0,
@@ -348,6 +353,45 @@ export function PublicOrderRequestPage({ token, channel }: Props) {
                 Livraison
               </label>
             </div>
+            <fieldset className="checkout-guest__payment">
+              <legend className="section-title">Comment souhaitez-vous payer ?</legend>
+              <p className="field__hint">
+                Ce choix ne débite aucun compte. Le vendeur vérifiera lui-même la réception
+                de votre argent avant de valider la vente.
+              </p>
+              <div className="checkout-guest__choices">
+                <label>
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    checked={paymentMethod === 'cash'}
+                    onChange={() => setPaymentMethod('cash')}
+                    required
+                  />{' '}
+                  Espèces
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    checked={paymentMethod === 'mobile_money'}
+                    onChange={() => setPaymentMethod('mobile_money')}
+                    required
+                  />{' '}
+                  Mobile Money
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    checked={paymentMethod === 'other'}
+                    onChange={() => setPaymentMethod('other')}
+                    required
+                  />{' '}
+                  Autre moyen
+                </label>
+              </div>
+            </fieldset>
             <Field
               label="Votre téléphone"
               optional={fulfillment === 'pickup'}
@@ -402,7 +446,7 @@ export function PublicOrderRequestPage({ token, channel }: Props) {
             busy={busy}
             busyLabel="Envoi de la demande…"
             disabled={
-              busy || !challenge || !lines.length || (fulfillment === 'delivery' && !phone.trim())
+              busy || !challenge || !lines.length || !paymentMethod || (fulfillment === 'delivery' && !phone.trim())
             }
           >
             Envoyer la demande · {fcfa(total)} FCFA
