@@ -23,7 +23,6 @@ export const countries = codes
   .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
 
 /** Central Africa shown first on supplier receipts, with the rest of the world still selectable. */
-
 const centralAfricaIsoCodes: Record<string, string> = {
   'République du Congo': 'CG',
   'République démocratique du Congo': 'CD',
@@ -45,7 +44,9 @@ const priorityCountries = CENTRAL_AFRICA.map(({ country }) => ({
 }))
 
 /** The supplier origin is worldwide; unlike a boutique address it has no dependent city. */
-export const arrivalCountrySuggestions = [
-  ...priorityCountries,
-  ...countries.filter((item) => !priorityCountries.some((priority) => priority.name === item.name)),
-]
+const suggestedNames = new Set<string>()
+export const arrivalCountrySuggestions = [...priorityCountries, ...countries].filter((item) => {
+  if (suggestedNames.has(item.name)) return false
+  suggestedNames.add(item.name)
+  return true
+})
