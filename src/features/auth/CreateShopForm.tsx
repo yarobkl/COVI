@@ -5,6 +5,7 @@ import type { Shop } from '../../lib/types'
 import { OTHER_CITY } from '../../lib/centralAfricaLocations'
 import { OTHER_NEIGHBORHOOD } from '../../lib/neighborhoods'
 import { CentralAfricaLocationFields } from '../locations/CentralAfricaLocationFields'
+import { ShopGpsControl, type ShopGpsPosition } from '../locations/ShopGpsControl'
 import { AuthPage } from './AuthPage'
 import { authError } from './authErrors'
 
@@ -24,6 +25,7 @@ export function CreateShopForm({
   const [customCity, setCustomCity] = useState('')
   const [neighborhood, setNeighborhood] = useState('')
   const [customNeighborhood, setCustomNeighborhood] = useState('')
+  const [gps, setGps] = useState<ShopGpsPosition | null>(null)
   const selectedCity = city === OTHER_CITY ? customCity.trim() : city
   const selectedNeighborhood =
     neighborhood === OTHER_NEIGHBORHOOD ? customNeighborhood.trim() : neighborhood.trim()
@@ -39,12 +41,15 @@ export function CreateShopForm({
     }
     setBusy(true)
     try {
-      const { data, error } = await supabase.rpc('create_my_shop_with_neighborhood', {
+      const { data, error } = await supabase .rpc('create_my_shop_with_location', {
         p_name: String(f.get('name')).trim(),
         p_city: selectedCity.trim(),
         p_neighborhood: selectedNeighborhood,
         p_country: country,
         p_currency: 'XAF',
+        p_latitude: gps?.latitude ?? undefined,
+        p_longitude: gps?.longitude ?? undefined,
+        p_location_accuracy_m: gps?.accuracy ?? undefined,
       })
       if (error) onMessage(authError(error))
       else onCreated(data)
@@ -105,19 +110,23 @@ export function CreateShopForm({
             setCustomCity('')
             setNeighborhood('')
             setCustomNeighborhood('')
+            setGps(null)
           }}
           onCityChange={(value) => {
             setCity(value)
             setCustomCity('')
             setNeighborhood('')
             setCustomNeighborhood('')
+            setGps(null)
           }}
           onCustomCityChange={(value) => {
             setCustomCity(value)
             setNeighborhood('')
             setCustomNeighborhood('')
+            setGps(null)
           }}
         />
+        <ShopGpsControl value={gps} onChange={setGps} />
         {message && (
           <Notice tone="danger">
             <p>{message}</p>
