@@ -52,6 +52,7 @@ export type PublicRequest = {
   note?: string
   fulfillment: 'pickup' | 'delivery'
   paymentMethod?: ProposedPaymentMethod
+  deliveryAddress?: string
 }
 export type RecordedPublicRequest = {
   trackingToken: string
@@ -208,10 +209,12 @@ export function preparePublicRequest(input: PublicRequest) {
 
   const phone = input.phone?.trim() || null
   const note = input.note?.trim() || null
+  const address = input.deliveryAddress?.trim() || null
   if (
     (phone && (phone.length > 32 || invalidControl(phone))) ||
     (note && (note.length > 500 || invalidControl(note))) ||
-    (input.fulfillment === 'delivery' && !phone)
+    (address && (address.length > 240 || invalidControl(address))) ||
+    (input.fulfillment === 'delivery' && (!phone || !address))
   )
     throw new Error('Téléphone requis pour la livraison, ou coordonnées invalides.')
 
@@ -224,6 +227,7 @@ export function preparePublicRequest(input: PublicRequest) {
     p_customer_note: note,
     p_fulfillment: input.fulfillment,
     p_payment_method: input.paymentMethod ?? 'cash',
+    p_delivery_address: input.fulfillment === 'delivery' ? address : null,
   }
 }
 
@@ -269,6 +273,7 @@ export async function submitPublicOrder(
         note: args.p_customer_note,
         fulfillment: input.fulfillment,
         paymentMethod: args.p_payment_method,
+        deliveryAddress: args.p_delivery_address,
         challenge: input.challenge,
       }),
     }),
@@ -282,6 +287,7 @@ export type PendingPublicOrder = {
   amountXaf: number
   customerPhone: string | null
   customerNote: string | null
+  customerDeliveryAddress: string | null
   fulfillment: 'pickup' | 'delivery'
   paymentMethod: ProposedPaymentMethod
   createdAt: string
@@ -307,6 +313,7 @@ export function parsePendingPublicOrders(value: unknown): PendingPublicOrder[] {
       !Number.isFinite(Date.parse(row.createdAt)) ||
       (row.customerPhone !== null && typeof row.customerPhone !== 'string') ||
       (row.customerNote !== null && typeof row.customerNote !== 'string') ||
+      (row.customerDeliveryAddress != null && typeof row.customerDeliveryAddress !== 'string') ||
       !Array.isArray(row.lines) ||
       row.lines.length < 1
     )
@@ -341,6 +348,7 @@ export function parsePendingPublicOrders(value: unknown): PendingPublicOrder[] {
       amountXaf: row.amountXaf as number,
       customerPhone: row.customerPhone as string | null,
       customerNote: row.customerNote as string | null,
+      customerDeliveryAddress: (row.customerDeliveryAddress ?? null) as string | null,
       fulfillment: row.fulfillment as PendingPublicOrder['fulfillment'],
       paymentMethod: (row.paymentMethod ?? 'cash') as ProposedPaymentMethod,
       createdAt: row.createdAt,
