@@ -54,6 +54,7 @@ export type PublicRequest = {
   paymentMethod?: ProposedPaymentMethod
 }
 export type RecordedPublicRequest = {
+  trackingToken: string
   orderId: string
   status: 'submitted' | 'approved' | 'paid' | 'cancelled' | 'expired' | 'reserved'
   amountXaf: number
@@ -231,6 +232,8 @@ export function parseRecordedPublicRequest(value: unknown): RecordedPublicReques
   if (
     typeof row.orderId !== 'string' ||
     !UUID.test(row.orderId) ||
+    typeof row.trackingToken !== 'string' ||
+    !UUID.test(row.trackingToken) ||
     !['submitted', 'approved', 'paid', 'cancelled', 'expired', 'reserved'].includes(
       String(row.status),
     ) ||
@@ -241,6 +244,7 @@ export function parseRecordedPublicRequest(value: unknown): RecordedPublicReques
     throw new Error('Réponse de commande invalide.')
   return {
     orderId: row.orderId,
+    trackingToken: row.trackingToken,
     status: row.status as RecordedPublicRequest['status'],
     amountXaf: row.amountXaf as number,
   }
@@ -352,4 +356,105 @@ export async function getPendingPublicOrders(shopId: string): Promise<PendingPub
       p_shop_id: shopId,
     }),
   )
+}
+
+export type GuestCheckoutStatus = {
+  shopName: string
+  orderId: string
+  status: RecordedPublicRequest['status']
+  amountXaf: number
+  receipt?: {
+    receiptNumber: string
+    confirmedAt: string
+    cashierFirstName: string
+    method: 'cash' | 'mobile_money' | 'other'
+    amountXaf: number
+    lines: { label: string; quantity: number; lineTotalXaf: number }[]
+  }
+}
+
+/** This data is available only with the per-order random tracking capability.
+ * A shop's permanent public QR token is NOT sufficient to read a receipt.
+ */
+export function parseGuestCheckoutStatus(value: unknown): GuestCheckoutStatus {
+  const data = record(value)
+  if (
+    typeof data.shopName !== 'string' ||
+    !data.shopName.trim() ||
+    typeof data.orderId !== 'string' ||
+    !UUID.test(data.orderId) ||
+    !['submitted', 'approved', 'reserved', 'paid', 'cancelled', 'expired'].includes(
+      String(data.status),
+    ) ||
+    !Number.isSafeInteger(data.amountXaf) ||
+    (data.amountXaf as number) < 0 ||
+    (data.amountXaf as number) > MAX_PUBLIC_AMOUNT
+  )
+    throw new Error('Suivi de commande invalide.')
+
+  const response: GuestCheckoutStatus = {
+    shopName: data.shopName.trim(),
+    orderId: data.orderId,
+    status: data.status as GuestCheckoutStatus['status'],
+    amountXaf: data.amountXaf as number,
+  }
+  if (data.status !== 'paid') {
+    if ('receipt' in data) throw new Error('Reçu non autorisé avant paiement.')
+    return response
+  }
+
+  const receipt = record(data.receipt)
+  if (
+    typeof receipt.receiptNumber !== 'string' ||
+    !receipt.receiptNumber ||
+    typeof receipt.confirmedAt !== 'string' ||
+    !Number.isFinite(Date.parse(receipt.confirmedAt)) ||
+    typeof receipt.cashierFirstName !== 'string' ||
+    !receipt.cashierFirstName ||
+    !['cash', 'mobile_money', 'other'].includes(String(receipt.method)) ||
+    receipt.amountXaf !== data.amountXaf ||
+    !Array.isArray(receipt.lines) ||
+    receipt.lines.length < 1 ||
+    receipt.lines.length > 40
+  )
+    throw new Error('Reçu de paiement invalide.')
+
+  const lines: NonNullable<GuestCheckoutStatus['receipt']>['lines'] = []
+  let total = 0
+  for (const item of receipt.lines) {
+    const line = record(item)
+    if (
+      typeof line.label !== 'string' ||
+      !line.label.trim() ||
+      !Number.isSafeInteger(line.quantity) ||
+      (line.quantity as number) < 1 ||
+      !Number.isSafeInteger(line.lineTotalXaf) ||
+      (line.lineTotalXaf as number) < 0
+    )
+      throw new Error('Lignes du reçu invalides.')
+    total += line.lineTotalXaf as number
+    if (!Number.isSafeInteger(total)) throw new Error('Somme du reçu invalide.')
+    lines.push({
+      label: line.label.trim(),
+      quantity: line.quantity as number,
+      lineTotalXaf: line.lineTotalXaf as number,
+    })
+  }
+  if (total !== data.amountXaf) throw new Error('Total du reçu incohérent.')
+  response.receipt = {
+    receiptNumber: receipt.receiptNumber,
+    confirmedAt: receipt.confirmedAt,
+    cashierFirstName: receipt.cashierFirstName,
+    method: receipt.method as NonNullable<GuestCheckoutStatus['receipt']>['method'],
+    amountXaf: receipt.amountXaf as number,
+    lines,
+  }
+  return response
+}
+
+export async function getGuestCheckoutStatus(trackingToken: string): Promise<GuestCheckoutStatus> {
+  if (!UUID.test(trackingToken)) throw new Error('Lien de suivi invalide.')
+  const url = new URL(gatewayUrl)
+  url.searchParams.set('tracking', trackingToken)
+  return parseGuestCheckoutStatus(await fetchGuestGateway(url))
 }
