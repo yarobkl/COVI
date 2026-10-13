@@ -14,6 +14,7 @@ const token = 'dddddddd-0000-4000-8000-000000000001'
 const operationId = '77770000-0000-4000-8000-000000000001'
 const categoryId = 'aaaaaaaa-0000-4000-8000-000000000001'
 const orderId = 'bbbbbbbb-0000-4000-8000-000000000001'
+const trackingToken = 'eeeeeeee-0000-4000-8000-000000000001'
 const origin = { Origin: 'https://covi.example' }
 const order = {
   token,
@@ -50,7 +51,10 @@ function fakeBackend({
       })
     }
     if (address.endsWith('submit_checkout_public_order')) {
-      return Response.json({ orderId, status: orderStatus, amountXaf: 7000 })
+      return Response.json({ orderId, trackingToken, status: orderStatus, amountXaf: 7000 })
+    }
+    if (address.endsWith('get_checkout_guest_status')) {
+      return Response.json({ shopName: 'La boutique', orderId, status: 'submitted', amountXaf: 7000 })
     }
     throw new Error('Unexpected endpoint')
   })
@@ -131,6 +135,7 @@ describe('isolated QR/social gateway', () => {
     expect(result.status).toBe(200)
     expect(await result.json()).toEqual({
       orderId,
+      trackingToken,
       status: 'submitted',
       amountXaf: 7000,
     })
@@ -212,4 +217,38 @@ describe('isolated QR/social gateway', () => {
       false,
     )
   })
+  it('uses a separate random tracking capability and rate-limited GET, never a payment RPC', async () => {
+    const { transport, calls } = fakeBackend()
+    const request = new Request(
+      'https://example.supabase.co/functions/v1/public-checkout?tracking=' + trackingToken,
+      { headers: origin },
+    )
+    const response = await createPublicCheckoutGateway(env, transport)(request)
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({
+      shopName: 'La boutique',
+      orderId,
+      status: 'submitted',
+      amountXaf: 7000,
+    })
+    const kinds = calls
+      .filter((c) => c.address.includes('consume_checkout_gateway_quota'))
+      .map((c) => JSON.parse(c.init.body).p_kind)
+    expect(kinds).toEqual(['status_source_minute', 'status_token_minute'])
+    expect(calls.some((c) => c.address.includes('get_checkout_guest_status'))).toBe(true)
+    expect(calls.some((c) => c.address.includes('confirm_manual_checkout_payment'))).toBe(false)
+    expect(calls.some((c) => c.address.includes('siteverify'))).toBe(false)
+  })
+
+  it('rejects malformed tracking IDs before any backend access', async () => {
+    const { transport } = fakeBackend()
+    const response = await createPublicCheckoutGateway(env, transport)(
+      new Request('https://example.supabase.co/functions/v1/public-checkout?tracking=guess', {
+        headers: origin,
+      }),
+    )
+    expect(response.status).toBe(400)
+    expect(transport).not.toHaveBeenCalled()
+  })
+
 })
