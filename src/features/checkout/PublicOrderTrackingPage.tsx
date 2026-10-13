@@ -1,10 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Button, Notice, Sheet } from '../../components/ui'
 import { fcfa } from '../../lib/format'
-import {
-  getGuestCheckoutStatus,
-  type GuestCheckoutStatus,
-} from '../../lib/publicOrders'
+import { getGuestCheckoutStatus, type GuestCheckoutStatus } from '../../lib/publicOrders'
 import { downloadConfirmedReceiptPdf } from '../../lib/receiptPdf'
 import { ConfirmedCheckoutTicket } from './ConfirmedCheckoutTicket'
 
@@ -91,8 +88,8 @@ export function PublicOrderTrackingPage({ token }: { token: string }) {
                   Télécharger mon reçu PDF
                 </Button>
                 <p className="field__hint">
-                  Ce reçu confirme l'encaissement déclaré par la boutique.
-                  Les mentions fiscales d'une facture dépendent des informations légales du commerce.
+                  Ce reçu confirme l'encaissement déclaré par la boutique. Les mentions fiscales
+                  d'une facture dépendent des informations légales du commerce.
                 </p>
               </>
             ) : closed ? (
@@ -101,8 +98,8 @@ export function PublicOrderTrackingPage({ token }: { token: string }) {
               <>
                 <p role="status">Paiement en attente de confirmation par le commerçant.</p>
                 <p>
-                  Conservez cette page : son suivi se met à jour automatiquement.
-                  Aucun montant n'est débité par COVI depuis cet écran.
+                  Conservez cette page : son suivi se met à jour automatiquement. Aucun montant
+                  n'est débité par COVI depuis cet écran.
                 </p>
               </>
             )}

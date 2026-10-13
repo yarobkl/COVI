@@ -26,12 +26,8 @@ describe('saved server-confirmed receipt PDF', () => {
   })
 
   it('refuses tampered or incoherent payment records', () => {
-    expect(() => makeConfirmedReceiptPdf({ ...paid, amountXaf: 8000 })).toThrow(
-      /incohérent/,
-    )
-    expect(() => makeConfirmedReceiptPdf({ ...paid, receiptNumber: ' ' })).toThrow(
-      /incomplet/,
-    )
+    expect(() => makeConfirmedReceiptPdf({ ...paid, amountXaf: 8000 })).toThrow(/incohérent/)
+    expect(() => makeConfirmedReceiptPdf({ ...paid, receiptNumber: ' ' })).toThrow(/incomplet/)
   })
 
   it('supports more than one page without overwriting receipt lines', async () => {

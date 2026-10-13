@@ -54,7 +54,12 @@ function fakeBackend({
       return Response.json({ orderId, trackingToken, status: orderStatus, amountXaf: 7000 })
     }
     if (address.endsWith('get_checkout_guest_status')) {
-      return Response.json({ shopName: 'La boutique', orderId, status: 'submitted', amountXaf: 7000 })
+      return Response.json({
+        shopName: 'La boutique',
+        orderId,
+        status: 'submitted',
+        amountXaf: 7000,
+      })
     }
     throw new Error('Unexpected endpoint')
   })
@@ -242,7 +247,10 @@ describe('isolated QR/social gateway', () => {
 
   it('rejects malformed tracking IDs before any backend access', async () => {
     const { transport } = fakeBackend()
-    const response = await createPublicCheckoutGateway(env, transport)(
+    const response = await createPublicCheckoutGateway(
+      env,
+      transport,
+    )(
       new Request('https://example.supabase.co/functions/v1/public-checkout?tracking=guess', {
         headers: origin,
       }),
@@ -250,5 +258,4 @@ describe('isolated QR/social gateway', () => {
     expect(response.status).toBe(400)
     expect(transport).not.toHaveBeenCalled()
   })
-
 })

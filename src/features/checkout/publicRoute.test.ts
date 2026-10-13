@@ -34,5 +34,4 @@ describe('feature-gated public link routing', () => {
     expect(parseGuestTrackingHash('#/commander/' + receiptToken)).toBeNull()
     expect(parseGuestTrackingHash('#/suivi/' + receiptToken + '/payment')).toBeNull()
   })
-
 })

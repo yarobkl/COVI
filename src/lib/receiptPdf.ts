@@ -12,8 +12,8 @@ import type { ConfirmedCheckoutReceipt } from '../features/checkout/ConfirmedChe
 function encodedPdfText(value: string): string {
   const symbols: Record<string, number> = {
     '€': 128,
-    'Œ': 140,
-    'œ': 156,
+    Œ: 140,
+    œ: 156,
     '–': 150,
     '—': 151,
     '’': 146,
@@ -57,13 +57,7 @@ function receiptLines(receipt: ConfirmedCheckoutReceipt): string[] {
     '----------------------------------------',
   ]
   for (const line of receipt.lines) {
-    lines.push(
-      line.quantity +
-        ' x ' +
-        line.label.slice(0, 46) +
-        '    ' +
-        fcfa(line.lineTotalXaf),
-    )
+    lines.push(line.quantity + ' x ' + line.label.slice(0, 46) + '    ' + fcfa(line.lineTotalXaf))
   }
   lines.push(
     '----------------------------------------',
@@ -97,7 +91,11 @@ function pdfObjects(receipt: ConfirmedCheckoutReceipt): Uint8Array {
   const textLines = receiptLines(receipt)
   const perPage = 37
   const pages = Math.ceil(textLines.length / perPage)
-  const objects: string[] = ['', '', '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>']
+  const objects: string[] = [
+    '',
+    '',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
+  ]
   const pageIds: number[] = []
   for (let page = 0; page < pages; page += 1) {
     const chunk = textLines.slice(page * perPage, (page + 1) * perPage)
@@ -127,7 +125,11 @@ function pdfObjects(receipt: ConfirmedCheckoutReceipt): Uint8Array {
   }
   objects[0] = '<< /Type /Catalog /Pages 2 0 R >>'
   objects[1] =
-    '<< /Type /Pages /Count ' + pages + ' /Kids [' + pageIds.map((id) => id + ' 0 R').join(' ') + '] >>'
+    '<< /Type /Pages /Count ' +
+    pages +
+    ' /Kids [' +
+    pageIds.map((id) => id + ' 0 R').join(' ') +
+    '] >>'
 
   let output = '%PDF-1.4\n'
   const offsets = [0]
