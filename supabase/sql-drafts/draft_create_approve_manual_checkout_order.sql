@@ -39,6 +39,9 @@ begin
   end if;
   if not exists (
     select 1 from public.shops s where s.id = p_shop_id and s.owner_id = v_actor
+  ) and not exists (
+    select 1 from public.checkout_cashiers c
+    where c.shop_id=p_shop_id and c.user_id=v_actor and c.active=true
   ) then
     raise exception 'Accès à cette boutique refusé' using errcode = '42501';
   end if;
@@ -208,6 +211,9 @@ begin
   end if;
   if not exists (
     select 1 from public.shops s where s.id = p_shop_id and s.owner_id = v_actor
+  ) and not exists (
+    select 1 from public.checkout_cashiers c
+    where c.shop_id=p_shop_id and c.user_id=v_actor and c.active=true
   ) then
     raise exception 'Accès à cette boutique refusé' using errcode = '42501';
   end if;
