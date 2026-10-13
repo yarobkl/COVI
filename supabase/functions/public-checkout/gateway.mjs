@@ -62,14 +62,18 @@ function validRequest(body) {
 
   const phone = body.phone ?? ''
   const note = body.note ?? ''
+  const deliveryAddress = body.deliveryAddress ?? ''
   if (
     typeof phone !== 'string' ||
     typeof note !== 'string' ||
+    typeof deliveryAddress !== 'string' ||
     phone.trim().length > 32 ||
     note.trim().length > 500 ||
+    deliveryAddress.trim().length > 240 ||
     invalidControl(phone) ||
     invalidControl(note) ||
-    (body.fulfillment === 'delivery' && !phone.trim())
+    invalidControl(deliveryAddress) ||
+    (body.fulfillment === 'delivery' && (!phone.trim() || !deliveryAddress.trim()))
   ) return false
 
   let total = 0
@@ -324,6 +328,7 @@ export function createPublicCheckoutGateway(env, fetchImpl = fetch) {
         p_customer_note: body.note?.trim() || null,
         p_fulfillment: body.fulfillment,
         p_payment_method: body.paymentMethod ?? 'cash',
+        p_delivery_address: body.fulfillment === 'delivery' ? body.deliveryAddress?.trim() : null,
       })
       if (
         !result ||
