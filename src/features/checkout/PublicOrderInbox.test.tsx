@@ -29,6 +29,7 @@ const rows = [
     amountXaf: 7000,
     customerPhone: '+242 060000000',
     customerNote: 'Robe du live',
+    customerDeliveryAddress: null,
     fulfillment: 'pickup' as const,
     paymentMethod: 'mobile_money' as const,
     createdAt: '2026-10-12T12:00:00Z',
