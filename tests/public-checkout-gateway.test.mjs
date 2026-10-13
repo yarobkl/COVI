@@ -14,6 +14,8 @@ const token = 'dddddddd-0000-4000-8000-000000000001'
 const operationId = '77770000-0000-4000-8000-000000000001'
 const categoryId = 'aaaaaaaa-0000-4000-8000-000000000001'
 const orderId = 'bbbbbbbb-0000-4000-8000-000000000001'
+const shopId = '11111111-1111-4111-8111-111111111111'
+const validImage = 'data:image/jpeg;base64,' + btoa(String.fromCharCode(255, 216, 255, 1, 2, 3, 255, 217))
 const trackingToken = 'eeeeeeee-0000-4000-8000-000000000001'
 const origin = { Origin: 'https://covi.example' }
 const order = {
@@ -51,8 +53,12 @@ function fakeBackend({
       })
     }
     if (address.endsWith('submit_checkout_public_order')) {
-      return Response.json({ orderId, trackingToken, status: orderStatus, amountXaf: 7000 })
+      return Response.json({ orderId, shopId, trackingToken, status: orderStatus, amountXaf: 7000 })
     }
+    if (address.includes('/storage/v1/object/covi-order-references/')) {
+      return Response.json({ Key: 'private-image' })
+    }
+    if (address.endsWith('attach_checkout_public_reference')) return Response.json(true)
     if (address.endsWith('get_checkout_guest_status')) {
       return Response.json({
         shopName: 'La boutique',
@@ -258,4 +264,55 @@ describe('isolated QR/social gateway', () => {
     expect(response.status).toBe(400)
     expect(transport).not.toHaveBeenCalled()
   })
+  it('uploads an optional social screenshot privately after a valid Turnstile order', async () => {
+    const { transport, calls } = fakeBackend()
+    const response = await createPublicCheckoutGateway(env, transport)(
+      guestPost({ ...order, channel: 'social', referenceImage: validImage }),
+    )
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body.trackingToken).toBe(trackingToken)
+    expect(body).not.toHaveProperty('shopId')
+    expect(body).not.toHaveProperty('referenceImage')
+    const upload = calls.find((call) => call.address.includes('/storage/v1/object/'))
+    expect(upload.address).toContain(shopId + '/' + orderId + '/reference.jpg')
+    expect(upload.init.headers['Content-Type']).toBe('image/jpeg')
+    expect(upload.init.headers['x-upsert']).toBe('false')
+    expect(upload.init.body).toBeInstanceOf(Uint8Array)
+    const attach = calls.find((call) => call.address.endsWith('attach_checkout_public_reference'))
+    expect(JSON.parse(attach.init.body)).toEqual({
+      p_token: token,
+      p_order_id: orderId,
+      p_operation_id: operationId,
+      p_image_path: shopId + '/' + orderId + '/reference.jpg',
+    })
+    expect(calls.findIndex((call) => call.address.includes('siteverify'))).toBeLessThan(
+      calls.findIndex((call) => call.address.includes('/storage/v1/object/')),
+    )
+  })
+
+  it('rejects fake, oversized, and remote reference images before any network operation', async () => {
+    const { transport } = fakeBackend()
+    const gateway = createPublicCheckoutGateway(env, transport)
+    for (const referenceImage of [
+      'https://example.com/photo.jpg',
+      'data:image/jpeg;base64,AAAA',
+      'data:text/html;base64,PHNjcmlwdD4=',
+      'data:image/jpeg;base64,' + 'A'.repeat(460000),
+    ]) {
+      const response = await gateway(guestPost({ ...order, referenceImage }))
+      expect(response.status).toBe(400)
+    }
+    expect(transport).not.toHaveBeenCalled()
+  })
+
+  it('never uploads a screenshot if bot verification fails', async () => {
+    const { transport, calls } = fakeBackend({ captcha: false })
+    const result = await createPublicCheckoutGateway(env, transport)(
+      guestPost({ ...order, referenceImage: validImage }),
+    )
+    expect(result.status).toBe(403)
+    expect(calls.some((call) => call.address.includes('/storage/v1/object/'))).toBe(false)
+  })
+
 })
