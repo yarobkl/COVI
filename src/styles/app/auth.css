@@ -46,6 +46,14 @@
     display: grid;
     gap: var(--space-4);
   }
+  /* Full-color provider marks: avoid the generic button SVG outline stroke. */
+  .auth__form .auth__social-logo {
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
+    stroke: none;
+    stroke-width: 0;
+  }
   .auth__or {
     display: flex;
     align-items: center;
