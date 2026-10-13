@@ -34,7 +34,7 @@ export function CashierTeamPanel({ shopId }: { shopId: string }) {
   }, [shopId])
 
   useEffect(() => {
-    void refresh()
+    void Promise.resolve().then(refresh)
   }, [refresh])
 
   async function invite(e: FormEvent<HTMLFormElement>) {
