@@ -270,6 +270,9 @@ export type Database = {
         Row: {
           city: string | null
           country: string | null
+          latitude: number | null
+          longitude: number | null
+          location_accuracy_m: number | null
           created_at: string
           currency: string
           id: string
@@ -280,6 +283,9 @@ export type Database = {
         Insert: {
           city?: string | null
           country?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          location_accuracy_m?: number | null
           created_at?: string
           currency?: string
           id?: string
@@ -290,6 +296,9 @@ export type Database = {
         Update: {
           city?: string | null
           country?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          location_accuracy_m?: number | null
           created_at?: string
           currency?: string
           id?: string
@@ -314,6 +323,9 @@ export type Database = {
         Returns: {
           city: string | null
           country: string | null
+          latitude: number | null
+          longitude: number | null
+          location_accuracy_m: number | null
           created_at: string
           currency: string
           id: string
@@ -339,9 +351,43 @@ export type Database = {
         Returns: {
           city: string | null
           country: string | null
+          latitude: number | null
+          longitude: number | null
+          location_accuracy_m: number | null
           created_at: string
           currency: string
           id: string
+          name: string
+          neighborhood: string | null
+          owner_id: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'shops'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_my_shop_with_location: {
+        Args: {
+          p_name: string
+          p_city: string
+          p_country: string
+          p_neighborhood: string
+          p_currency?: string
+          p_latitude?: number
+          p_longitude?: number
+          p_location_accuracy_m?: number
+        }
+        Returns: {
+          city: string | null
+          country: string | null
+          created_at: string
+          currency: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          location_accuracy_m: number | null
           name: string
           neighborhood: string | null
           owner_id: string
