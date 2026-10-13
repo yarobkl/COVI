@@ -14,6 +14,8 @@ create table if not exists public.checkout_orders (
   is_test boolean not null default false,
   customer_phone text,
   customer_note text,
+  payment_method_requested text not null default 'cash'
+    check (payment_method_requested in ('cash', 'mobile_money', 'other')),
   fulfillment text not null default 'pickup'
     check (fulfillment in ('pickup', 'delivery')),
   amount_xaf bigint not null check (amount_xaf >= 0 and amount_xaf <= 9000000000000),
