@@ -215,6 +215,9 @@ export function PublicOrderInbox({ shopId, shopName }: { shopId: string; shopNam
                 · À vérifier avant l’encaissement.
               </p>
               {order.customerPhone && <p>Téléphone : {order.customerPhone}</p>}
+              {order.customerDeliveryAddress && (
+                <p>Adresse de livraison : {order.customerDeliveryAddress}</p>
+              )}
               {order.customerNote && <p>Note du client : {order.customerNote}</p>}
               <p className="checkout-inbox__notice">
                 Vérifiez vous-même la disponibilité et les prix proposés avant d'approuver.
