@@ -17,6 +17,7 @@ const token = 'dddddddd-0000-4000-8000-000000000001'
 const shopId = '11111111-1111-4111-8111-111111111111'
 const categoryId = 'aaaaaaaa-0000-4000-8000-000000000001'
 const orderId = 'bbbbbbbb-0000-4000-8000-000000000001'
+const trackingToken = 'eeeeeeee-0000-4000-8000-000000000001'
 const operationId = '77770000-0000-4000-8000-000000000001'
 
 beforeEach(() => vi.mocked(supabase.rpc).mockReset())
@@ -100,7 +101,7 @@ describe('public checkout links and restricted requests', () => {
   it('sends a guest proposal with anti-robot token only to the server gateway', async () => {
     const guestFetch = vi.fn().mockResolvedValue({
       ok: true,
-      json: async () => ({ orderId, status: 'submitted', amountXaf: 7000 }),
+      json: async () => ({ orderId, trackingToken, status: 'submitted', amountXaf: 7000 }),
     })
     vi.stubGlobal('fetch', guestFetch)
     expect(
@@ -112,7 +113,7 @@ describe('public checkout links and restricted requests', () => {
         fulfillment: 'pickup',
         challenge: 'valid-human-challenge-token',
       }),
-    ).toEqual({ orderId, status: 'submitted', amountXaf: 7000 })
+    ).toEqual({ orderId, trackingToken, status: 'submitted', amountXaf: 7000 })
     const [url, options] = guestFetch.mock.calls[0]
     expect(String(url)).toContain('/functions/v1/public-checkout')
     expect(JSON.parse(options.body)).toEqual({
