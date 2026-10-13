@@ -19,6 +19,8 @@ type Props = {
   shopName: string
   orderId: string
   amountXaf: number
+  verifiedCashierFirstName?: string
+  requirePin?: boolean
 }
 
 export function CashierCheckoutPanel(props: Props) {
@@ -27,7 +29,7 @@ export function CashierCheckoutPanel(props: Props) {
   return <CashierCheckoutPanelInstance key={props.shopId + ':' + props.orderId} {...props} />
 }
 
-function CashierCheckoutPanelInstance({ shopId, shopName, orderId, amountXaf }: Props) {
+function CashierCheckoutPanelInstance({ shopId, shopName, orderId, amountXaf, verifiedCashierFirstName, requirePin }: Props) {
   const [receipt, setReceipt] = useState<RecordedCheckoutReceipt | null>(null)
 
   // A lost network response may be retried with the SAME operation ID only
@@ -95,5 +97,6 @@ function CashierCheckoutPanelInstance({ shopId, shopName, orderId, amountXaf }: 
     )
   }
 
-  return <CashierPaymentConfirmationForm amountXaf={amountXaf} onConfirm={onConfirm} />
+  return <CashierPaymentConfirmationForm amountXaf={amountXaf} onConfirm={onConfirm}
+    verifiedCashierFirstName={verifiedCashierFirstName} requirePin={requirePin} />
 }
