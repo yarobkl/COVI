@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { ManualCheckoutFlow } from './ManualCheckoutFlow'
 import { PublicOrderInbox } from './PublicOrderInbox'
 import { PublicOrderLinksPanel } from './PublicOrderLinksPanel'
+import { CashierTeamPanel } from './CashierTeamPanel'
 
-type Tab = 'manual' | 'orders' | 'links'
+type Tab = 'manual' | 'orders' | 'links' | 'staff'
 
 /** The future owner-only checkout workspace. Retains the existing notebook DA.
  * The whole workspace is behind VITE_COVI_CATEGORY_CHECKOUT_ENABLED=true.
@@ -15,6 +16,7 @@ export function NotebookCheckoutHub({ shopId, shopName }: { shopId: string; shop
     { id: 'manual', label: 'Vente au comptoir' },
     { id: 'orders', label: 'Commandes reçues' },
     { id: 'links', label: 'QR & liens' },
+    { id: 'staff', label: 'Mon équipe caisse' },
   ]
   return (
     <section className="checkout-hub">
@@ -39,6 +41,7 @@ export function NotebookCheckoutHub({ shopId, shopName }: { shopId: string; shop
       {tab === 'manual' && <ManualCheckoutFlow shopId={shopId} shopName={shopName} />}
       {tab === 'orders' && <PublicOrderInbox shopId={shopId} shopName={shopName} />}
       {tab === 'links' && <PublicOrderLinksPanel shopId={shopId} shopName={shopName} />}
+      {tab === 'staff' && <CashierTeamPanel shopId={shopId} />}
     </section>
   )
 }
