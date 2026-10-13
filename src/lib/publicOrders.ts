@@ -322,7 +322,7 @@ export function parsePendingPublicOrders(value: unknown): PendingPublicOrder[] {
       (row.customerDeliveryAddress != null && typeof row.customerDeliveryAddress !== 'string') ||
       (row.referenceImagePath != null &&
         (typeof row.referenceImagePath !== 'string' ||
-          !/^[0-9a-f-]{36}\\/[0-9a-f-]{36}\\/reference\\.jpg$/.test(row.referenceImagePath))) ||
+          !/^[0-9a-f-]{36}\/[0-9a-f-]{36}\/reference\.jpg$/.test(row.referenceImagePath))) ||
       !Array.isArray(row.lines) ||
       row.lines.length < 1
     )
