@@ -19,10 +19,11 @@ export function currentProfilePhotoPath(metadataValue: unknown, userId: string |
 
 export function validateProfilePhoto(file: Pick<File, 'size' | 'type' | 'name'>): string | null {
   if (!Number.isFinite(file.size) || file.size <= 0) return 'Cette photo est vide.'
-  if (file.size > MAX_SOURCE_PHOTO_BYTES)
-    return 'Cette photo est trop volumineuse (15 Mo maximum).'
-  if (!PHOTO_TYPES.has(file.type.toLowerCase()) &&
-    !(file.type === '' && PHOTO_EXTENSIONS.test(file.name)))
+  if (file.size > MAX_SOURCE_PHOTO_BYTES) return 'Cette photo est trop volumineuse (15 Mo maximum).'
+  if (
+    !PHOTO_TYPES.has(file.type.toLowerCase()) &&
+    !(file.type === '' && PHOTO_EXTENSIONS.test(file.name))
+  )
     return 'Choisissez une image JPEG, PNG, WebP ou HEIC.'
   return null
 }
@@ -38,7 +39,8 @@ export async function prepareProfilePhoto(file: File): Promise<Blob> {
     try {
       await new Promise<void>((resolve, reject) => {
         image.onload = () => resolve()
-        image.onerror = () => reject(new Error('Format de photo non pris en charge sur cet appareil.'))
+        image.onerror = () =>
+          reject(new Error('Format de photo non pris en charge sur cet appareil.'))
         image.src = sourceUrl
       })
     } catch {
@@ -56,10 +58,14 @@ export async function prepareProfilePhoto(file: File): Promise<Blob> {
     if (!context) throw new Error('Impossible de préparer la photo sur cet appareil.')
     context.drawImage(image, 0, 0, canvas.width, canvas.height)
     const normalized = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob((blob) => {
-        if (blob) resolve(blob)
-        else reject(new Error('Impossible de convertir la photo.'))
-      }, 'image/jpeg', 0.82)
+      canvas.toBlob(
+        (blob) => {
+          if (blob) resolve(blob)
+          else reject(new Error('Impossible de convertir la photo.'))
+        },
+        'image/jpeg',
+        0.82,
+      )
     })
     if (normalized.size > MAX_SAVED_PHOTO_BYTES)
       throw new Error('La photo reste trop volumineuse. Choisissez-en une autre.')

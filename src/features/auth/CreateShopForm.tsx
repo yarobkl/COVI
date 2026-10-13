@@ -6,17 +6,117 @@ import { AuthPage } from './AuthPage'
 import { authError } from './authErrors'
 
 const CENTRAL_AFRICA = [
-  { country: 'République du Congo', cities: ['Brazzaville', 'Pointe-Noire', 'Dolisie', 'Nkayi', 'Ouesso', 'Owando', 'Oyo', 'Impfondo', 'Sibiti', 'Madingou', 'Kinkala', 'Djambala', 'Ewo', 'Mossendjo', 'Makoua', 'Gamboma', 'Mindouli', 'Loango'] },
-  { country: 'République démocratique du Congo', cities: ['Kinshasa', 'Lubumbashi', 'Mbuji-Mayi', 'Kananga', 'Kisangani', 'Goma', 'Bukavu', 'Kolwezi', 'Likasi', 'Matadi', 'Kikwit', 'Bunia', 'Beni'] },
-  { country: 'Cameroun', cities: ['Yaoundé', 'Douala', 'Bafoussam', 'Garoua', 'Bamenda', 'Maroua', 'Ngaoundéré', 'Bertoua', 'Ebolowa', 'Kribi', 'Limbé', 'Buéa'] },
-  { country: 'Gabon', cities: ['Libreville', 'Port-Gentil', 'Franceville', 'Oyem', 'Moanda', 'Lambaréné', 'Mouila', 'Tchibanga', 'Makokou'] },
-  { country: 'République centrafricaine', cities: ['Bangui', 'Bimbo', 'Berbérati', 'Bambari', 'Bouar', 'Bossangoa', 'Bria', 'Carnot'] },
-  { country: 'Tchad', cities: ["N'Djamena", 'Moundou', 'Sarh', 'Abéché', 'Kélo', 'Doba', 'Koumra', 'Mongo', 'Pala'] },
-  { country: 'Guinée équatoriale', cities: ['Malabo', 'Bata', 'Ebebiyín', 'Mongomo', 'Luba', 'Evinayong'] },
-  { country: 'São Tomé-et-Príncipe', cities: ['São Tomé', 'Santo António', 'Trindade', 'Neves', 'Santana'] },
-  { country: 'Angola', cities: ['Luanda', 'Huambo', 'Benguela', 'Lobito', 'Lubango', 'Cabinda', 'Malanje', 'Namibe', 'Soyo', 'Uíge'] },
-  { country: 'Burundi', cities: ['Bujumbura', 'Gitega', 'Ngozi', 'Rumonge', 'Muyinga', 'Kayanza', 'Bururi'] },
-  { country: 'Rwanda', cities: ['Kigali', 'Huye', 'Musanze', 'Rubavu', 'Muhanga', 'Rusizi', 'Nyagatare'] },
+  {
+    country: 'République du Congo',
+    cities: [
+      'Brazzaville',
+      'Pointe-Noire',
+      'Dolisie',
+      'Nkayi',
+      'Ouesso',
+      'Owando',
+      'Oyo',
+      'Impfondo',
+      'Sibiti',
+      'Madingou',
+      'Kinkala',
+      'Djambala',
+      'Ewo',
+      'Mossendjo',
+      'Makoua',
+      'Gamboma',
+      'Mindouli',
+      'Loango',
+    ],
+  },
+  {
+    country: 'République démocratique du Congo',
+    cities: [
+      'Kinshasa',
+      'Lubumbashi',
+      'Mbuji-Mayi',
+      'Kananga',
+      'Kisangani',
+      'Goma',
+      'Bukavu',
+      'Kolwezi',
+      'Likasi',
+      'Matadi',
+      'Kikwit',
+      'Bunia',
+      'Beni',
+    ],
+  },
+  {
+    country: 'Cameroun',
+    cities: [
+      'Yaoundé',
+      'Douala',
+      'Bafoussam',
+      'Garoua',
+      'Bamenda',
+      'Maroua',
+      'Ngaoundéré',
+      'Bertoua',
+      'Ebolowa',
+      'Kribi',
+      'Limbé',
+      'Buéa',
+    ],
+  },
+  {
+    country: 'Gabon',
+    cities: [
+      'Libreville',
+      'Port-Gentil',
+      'Franceville',
+      'Oyem',
+      'Moanda',
+      'Lambaréné',
+      'Mouila',
+      'Tchibanga',
+      'Makokou',
+    ],
+  },
+  {
+    country: 'République centrafricaine',
+    cities: ['Bangui', 'Bimbo', 'Berbérati', 'Bambari', 'Bouar', 'Bossangoa', 'Bria', 'Carnot'],
+  },
+  {
+    country: 'Tchad',
+    cities: ["N'Djamena", 'Moundou', 'Sarh', 'Abéché', 'Kélo', 'Doba', 'Koumra', 'Mongo', 'Pala'],
+  },
+  {
+    country: 'Guinée équatoriale',
+    cities: ['Malabo', 'Bata', 'Ebebiyín', 'Mongomo', 'Luba', 'Evinayong'],
+  },
+  {
+    country: 'São Tomé-et-Príncipe',
+    cities: ['São Tomé', 'Santo António', 'Trindade', 'Neves', 'Santana'],
+  },
+  {
+    country: 'Angola',
+    cities: [
+      'Luanda',
+      'Huambo',
+      'Benguela',
+      'Lobito',
+      'Lubango',
+      'Cabinda',
+      'Malanje',
+      'Namibe',
+      'Soyo',
+      'Uíge',
+    ],
+  },
+  {
+    country: 'Burundi',
+    cities: ['Bujumbura', 'Gitega', 'Ngozi', 'Rumonge', 'Muyinga', 'Kayanza', 'Bururi'],
+  },
+  {
+    country: 'Rwanda',
+    cities: ['Kigali', 'Huye', 'Musanze', 'Rubavu', 'Muhanga', 'Rusizi', 'Nyagatare'],
+  },
 ] as const
 
 const OTHER_CITY = '__other__'
@@ -110,7 +210,9 @@ export function CreateShopForm({
               }}
             >
               {CENTRAL_AFRICA.map((entry) => (
-                <option key={entry.country} value={entry.country}>{entry.country}</option>
+                <option key={entry.country} value={entry.country}>
+                  {entry.country}
+                </option>
               ))}
             </select>
           )}
@@ -130,7 +232,9 @@ export function CreateShopForm({
             >
               <option value="">Choisir une ville</option>
               {availableCities.map((value) => (
-                <option key={value} value={value}>{value}</option>
+                <option key={value} value={value}>
+                  {value}
+                </option>
               ))}
               <option value={OTHER_CITY}>Ma ville n’apparaît pas</option>
             </select>

@@ -244,11 +244,7 @@ export function App({
           aria-haspopup="dialog"
           onClick={() => setMenuOpen(true)}
         >
-          {profilePhotoUrl ? (
-            <img src={profilePhotoUrl} alt="" />
-          ) : (
-            initials(owner ?? shop.name)
-          )}
+          {profilePhotoUrl ? <img src={profilePhotoUrl} alt="" /> : initials(owner ?? shop.name)}
         </button>
       </header>
 

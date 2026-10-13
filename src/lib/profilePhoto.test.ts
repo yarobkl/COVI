@@ -15,9 +15,7 @@ describe('COVI private profile photos', () => {
     expect(PROFILE_PHOTO_BUCKET).toBe('covi-profile-photos')
   })
   it('never displays an avatar path from another user or a URL in metadata', () => {
-    expect(currentProfilePhotoPath(`${user}/${photo}.jpg`, user)).toBe(
-      `${user}/${photo}.jpg`,
-    )
+    expect(currentProfilePhotoPath(`${user}/${photo}.jpg`, user)).toBe(`${user}/${photo}.jpg`)
     expect(currentProfilePhotoPath(`${other}/${photo}.jpg`, user)).toBeNull()
     expect(currentProfilePhotoPath('https://attacker.example/photo.jpg', user)).toBeNull()
     expect(currentProfilePhotoPath(`${user}/../${photo}.jpg`, user)).toBeNull()
@@ -31,12 +29,14 @@ describe('COVI private profile photos', () => {
     expect(validateProfilePhoto({ size: 400, type: 'image/svg+xml', name: 'avatar.svg' })).toMatch(
       /JPEG/,
     )
-    expect(validateProfilePhoto({ size: 400, type: 'text/html', name: 'evil.jpg' })).toMatch(
-      /JPEG/,
-    )
+    expect(validateProfilePhoto({ size: 400, type: 'text/html', name: 'evil.jpg' })).toMatch(/JPEG/)
     expect(validateProfilePhoto({ size: 0, type: 'image/png', name: 'empty.png' })).toBeTruthy()
-    expect(validateProfilePhoto({
-      size: MAX_SOURCE_PHOTO_BYTES + 1, type: 'image/png', name: 'large.png',
-    })).toMatch(/15 Mo/)
+    expect(
+      validateProfilePhoto({
+        size: MAX_SOURCE_PHOTO_BYTES + 1,
+        type: 'image/png',
+        name: 'large.png',
+      }),
+    ).toMatch(/15 Mo/)
   })
 })

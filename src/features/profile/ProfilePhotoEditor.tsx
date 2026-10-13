@@ -99,7 +99,9 @@ export function ProfilePhotoEditor() {
           )}
         </div>
         <div className="profile-photo__details">
-          <p>Personnalisez votre compte COVI. Cette photo apparaîtra dans le menu de votre boutique.</p>
+          <p>
+            Personnalisez votre compte COVI. Cette photo apparaîtra dans le menu de votre boutique.
+          </p>
           <div className="profile-photo__actions">
             <input
               ref={input}
@@ -129,10 +131,19 @@ export function ProfilePhotoEditor() {
               </button>
             )}
           </div>
-          <small>JPEG, PNG, WebP ou photo iPhone (HEIC). L’image est adaptée automatiquement.</small>
+          <small>
+            JPEG, PNG, WebP ou photo iPhone (HEIC). L’image est adaptée automatiquement.
+          </small>
         </div>
       </div>
-      {notice && <p role={notice.error ? 'alert' : 'status'} className={notice.error ? 'profile-photo__error' : 'profile-photo__success'}>{notice.text}</p>}
+      {notice && (
+        <p
+          role={notice.error ? 'alert' : 'status'}
+          className={notice.error ? 'profile-photo__error' : 'profile-photo__success'}
+        >
+          {notice.text}
+        </p>
+      )}
     </section>
   )
 }
