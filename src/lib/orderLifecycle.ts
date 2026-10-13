@@ -14,6 +14,7 @@ export type ManualCashierAttestation = {
   method: ManualPaymentMethod
   cashierFirstName: string
   externalReference?: string
+  pin?: string
 }
 
 /** A server-recorded confirmation additionally contains verified audit metadata. */
@@ -41,6 +42,9 @@ export function prepareManualCashierAttestation(
 
   if (input.externalReference !== undefined && typeof input.externalReference !== 'string')
     throw new Error('Référence de paiement invalide.')
+  const pin = input.pin?.trim()
+  if (pin !== undefined && !/^[0-9]{6,8}$/.test(pin))
+    throw new Error('Code personnel : 6 à 8 chiffres requis.')
   const externalReference = input.externalReference?.trim()
   if (externalReference && externalReference.length > 120)
     throw new Error('Référence de paiement trop longue.')
@@ -49,6 +53,7 @@ export function prepareManualCashierAttestation(
     method: input.method,
     cashierFirstName,
     ...(externalReference ? { externalReference } : {}),
+    ...(pin ? { pin } : {}),
   }
 }
 
