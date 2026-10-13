@@ -50,14 +50,12 @@ function ArrivalsScreen({ shopId, filter }: { shopId: string; filter?: ArrivalFi
           </a>
         ))}
       </nav>
-      <LegacyPage>
-        <ArrivalsPage
-          shopId={shopId}
-          kind={
-            filter === 'commandes' ? 'supplier_order' : filter === 'ballons' ? 'balloon' : undefined
-          }
-        />
-      </LegacyPage>
+      <ArrivalsPage
+        shopId={shopId}
+        kind={
+          filter === 'commandes' ? 'supplier_order' : filter === 'ballons' ? 'balloon' : undefined
+        }
+      />
     </>
   )
 }
@@ -69,11 +67,7 @@ function renderPage(route: Route, { shop, updateShop, onSimulation }: PageContex
     case 'vendre':
       return <SalePage shopId={shop.id} shopName={shop.name} />
     case 'stock':
-      return (
-        <LegacyPage>
-          <StockPage shopId={shop.id} />
-        </LegacyPage>
-      )
+      return <StockPage shopId={shop.id} />
     case 'arrivages':
       return <ArrivalsScreen shopId={shop.id} filter={route.filter} />
     case 'ventes':
