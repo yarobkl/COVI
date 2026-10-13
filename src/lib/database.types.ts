@@ -284,7 +284,7 @@ export type Database = {
           currency?: string
           id?: string
           name: string
-          neighborhood: string | null
+          neighborhood?: string | null
           owner_id: string
         }
         Update: {
