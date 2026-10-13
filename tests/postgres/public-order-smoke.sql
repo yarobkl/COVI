@@ -54,6 +54,7 @@ declare
   v_catalog jsonb;
   v_created jsonb;
   v_retried jsonb;
+  v_follow jsonb;
   v_rejected boolean;
   v_lines jsonb :=
     '[{"categoryId":"aaaaaaaa-0000-4000-8000-000000000001","quantity":1,"unitPriceXaf":2000}]'::jsonb;
@@ -79,12 +80,22 @@ begin
     raise exception 'Guest did not create a submitted request: %',v_created;
   end if;
 
+  if (v_created->>'trackingToken')::uuid is null then
+    raise exception 'Guest order did not receive a private tracking token';
+  end if;
+  v_follow := public.get_checkout_guest_status((v_created->>'trackingToken')::uuid);
+  if v_follow->>'status' <> 'submitted' or v_follow ? 'receipt' or
+     v_follow ? 'customerPhone' then
+    raise exception 'Unpaid guest order tracking disclosed receipt or contact details: %',v_follow;
+  end if;
+
   v_retried := public.submit_checkout_public_order(
     current_setting('covi.test.public_token')::uuid, 'qr',
     '77770000-0000-4000-8000-000000000001',
     v_lines, null, 'Je suis en caisse', 'pickup'
   );
-  if v_retried->>'orderId' <> v_created->>'orderId' then
+  if v_retried->>'orderId' <> v_created->>'orderId' or
+     v_retried->>'trackingToken' <> v_created->>'trackingToken' then
     raise exception 'Public network retry created another order';
   end if;
 
@@ -179,6 +190,8 @@ set local role service_role;
 do $old_link$
 declare
   v_rejected boolean := false;
+  v_tracking uuid;
+  v_follow jsonb;
 begin
   begin
     perform public.get_checkout_public_catalog(
@@ -187,6 +200,16 @@ begin
   exception when others then v_rejected := true;
   end;
   if not v_rejected then raise exception 'Rotated token still grants access'; end if;
+  -- Old QR codes cease to accept orders, but paid customers can still access
+  -- their own receipt using the independent private tracking capability.
+  select guest_tracking_token into v_tracking from public.checkout_orders
+    where creation_operation_id='77770000-0000-4000-8000-000000000001';
+  v_follow := public.get_checkout_guest_status(v_tracking);
+  if v_follow->>'status' <> 'paid' or
+     v_follow->'receipt'->>'cashierFirstName' <> 'Marie Lou' or
+     v_follow->'receipt'->>'receiptNumber' is null then
+    raise exception 'Customer cannot retrieve confirmed receipt: %',v_follow;
+  end if;
 end;
 $old_link$;
 commit;
@@ -205,6 +228,15 @@ begin
   exception when insufficient_privilege then v_denied := true;
   end;
   if not v_denied then raise exception 'Anon called catalog without gateway'; end if;
+
+  v_denied := false;
+  begin
+    perform public.get_checkout_guest_status(
+      'eeeeeeee-0000-4000-8000-000000000001'::uuid
+    );
+  exception when insufficient_privilege then v_denied := true;
+  end;
+  if not v_denied then raise exception 'Anonymous role bypassed private tracking gateway'; end if;
 
   v_denied := false;
   begin
