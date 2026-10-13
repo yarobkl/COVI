@@ -41,6 +41,7 @@ export function PublicOrderRequestPage({ token, channel }: Props) {
   const [fulfillment, setFulfillment] = useState<'pickup' | 'delivery'>('pickup')
   const [paymentMethod, setPaymentMethod] = useState<ProposedPaymentMethod | ''>('')
   const [phone, setPhone] = useState('')
+  const [deliveryAddress, setDeliveryAddress] = useState('')
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -124,6 +125,7 @@ export function PublicOrderRequestPage({ token, channel }: Props) {
         channel,
         lines,
         phone.trim(),
+        deliveryAddress.trim(),
         note.trim(),
         fulfillment,
         paymentMethod,
@@ -137,6 +139,7 @@ export function PublicOrderRequestPage({ token, channel }: Props) {
         operationId: attempt.current.operationId,
         lines,
         phone,
+        deliveryAddress,
         note,
         fulfillment,
         paymentMethod: paymentMethod || undefined,
@@ -414,6 +417,25 @@ export function PublicOrderRequestPage({ token, channel }: Props) {
                 />
               )}
             </Field>
+            {fulfillment === 'delivery' && (
+              <Field
+                label="Adresse de livraison"
+                hint="Précisez le quartier, la rue et un point de repère."
+              >
+                {(props) => (
+                  <textarea
+                    {...props}
+                    className="input"
+                    rows={2}
+                    maxLength={240}
+                    required
+                    value={deliveryAddress}
+                    placeholder="Ville, quartier, rue et point de repère"
+                    onChange={(e) => setDeliveryAddress(e.target.value)}
+                  />
+                )}
+              </Field>
+            )}
             <Field
               label="Précisions pour le vendeur"
               optional
@@ -453,7 +475,7 @@ export function PublicOrderRequestPage({ token, channel }: Props) {
               !challenge ||
               !lines.length ||
               !paymentMethod ||
-              (fulfillment === 'delivery' && !phone.trim())
+              (fulfillment === 'delivery' && (!phone.trim() || !deliveryAddress.trim()))
             }
           >
             Envoyer la demande · {fcfa(total)} FCFA
