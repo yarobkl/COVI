@@ -38,7 +38,7 @@ export function ArrivalForm({
         <input name="country" list="covi-countries" required placeholder="Rechercher un pays…" />
         <datalist id="covi-countries">
           {arrivalCountrySuggestions.map((c) => (
-            <option key={c.code} value={c.name}>
+            <option key={c.name} value={c.name}>
               {c.flag} {c.name}
             </option>
           ))}
