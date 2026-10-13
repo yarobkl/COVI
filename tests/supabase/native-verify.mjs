@@ -89,9 +89,42 @@ assert.equal(created.data.amountXaf, 3500)
 const retry = await rpc(service, 'submit_checkout_public_order', args)
 assert.ifError(retry.error)
 assert.equal(retry.data.orderId, created.data.orderId)
+assert.equal(retry.data.shopId, shop)
+const imagePath = shop + '/' + created.data.orderId + '/reference.jpg'
+await denied(anon, 'attach_checkout_public_reference', {
+  p_token: token,
+  p_order_id: created.data.orderId,
+  p_operation_id: args.p_operation_id,
+  p_image_path: imagePath,
+}, 'Anonymous photo attachment')
+await denied(other, 'attach_checkout_public_reference', {
+  p_token: token,
+  p_order_id: created.data.orderId,
+  p_operation_id: args.p_operation_id,
+  p_image_path: imagePath,
+}, 'Foreign shop image attachment')
+const referenceImage = Buffer.from([255, 216, 255, 224, 0, 1, 2, 3, 255, 217])
+const uploaded = await service.storage.from('covi-order-references')
+  .upload(imagePath, referenceImage, { contentType: 'image/jpeg', upsert: false })
+assert.ifError(uploaded.error)
+const attached = await rpc(service, 'attach_checkout_public_reference', {
+  p_token: token,
+  p_order_id: created.data.orderId,
+  p_operation_id: args.p_operation_id,
+  p_image_path: imagePath,
+})
+assert.ifError(attached.error)
+assert.equal(attached.data, true)
+const ownerPicture = await owner.storage.from('covi-order-references').createSignedUrl(imagePath, 60)
+assert.ifError(ownerPicture.error)
+assert.ok(ownerPicture.data?.signedUrl?.includes('reference.jpg'))
+const outsiderPicture = await other.storage.from('covi-order-references').createSignedUrl(imagePath, 60)
+assert.ok(outsiderPicture.error, 'Other shop must not sign the customer picture')
+const guestPicture = await anon.storage.from('covi-order-references').createSignedUrl(imagePath, 60)
+assert.ok(guestPicture.error, 'Anonymous customer cannot access private order image')
 const queue = await rpc(owner, 'get_checkout_pending_orders', { p_shop_id: shop })
 assert.ifError(queue.error)
-assert.ok(queue.data.some((x) => x.orderId === created.data.orderId))
+assert.ok(queue.data.some((x) => x.orderId === created.data.orderId && x.referenceImagePath === imagePath))
 await denied(other, 'get_checkout_pending_orders', { p_shop_id: shop },
   'Foreign owner cannot read private orders')
 const stock = await service.from('stock_categories').select('quantity_on_hand').eq('id', category).single()
