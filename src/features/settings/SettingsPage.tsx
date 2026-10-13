@@ -59,12 +59,14 @@ export function SettingsPage({
           city,
           customCity: city === OTHER_CITY ? (data.city ?? '') : '',
           neighborhood,
-          customNeighborhood:
-            neighborhood === OTHER_NEIGHBORHOOD ? (data.neighborhood ?? '') : '',
+          customNeighborhood: neighborhood === OTHER_NEIGHBORHOOD ? (data.neighborhood ?? '') : '',
           gps:
             data.latitude !== null && data.longitude !== null
-              ? { latitude: data.latitude, longitude: data.longitude,
-                  accuracy: data.location_accuracy_m ?? 0.1 }
+              ? {
+                  latitude: data.latitude,
+                  longitude: data.longitude,
+                  accuracy: data.location_accuracy_m ?? 0.1,
+                }
               : null,
         })
         setLoadError(false)
@@ -83,10 +85,9 @@ export function SettingsPage({
       name: draft.name.trim(),
       country: draft.country.trim(),
       city: (draft.city === OTHER_CITY ? draft.customCity : draft.city).trim(),
-      neighborhood: (
-        draft.neighborhood === OTHER_NEIGHBORHOOD
-          ? draft.customNeighborhood
-          : draft.neighborhood
+      neighborhood: (draft.neighborhood === OTHER_NEIGHBORHOOD
+        ? draft.customNeighborhood
+        : draft.neighborhood
       ).trim(),
       latitude: draft.gps?.latitude ?? null,
       longitude: draft.gps?.longitude ?? null,

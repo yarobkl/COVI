@@ -41,7 +41,7 @@ export function CreateShopForm({
     }
     setBusy(true)
     try {
-      const { data, error } = await supabase .rpc('create_my_shop_with_location', {
+      const { data, error } = await supabase.rpc('create_my_shop_with_location', {
         p_name: String(f.get('name')).trim(),
         p_city: selectedCity.trim(),
         p_neighborhood: selectedNeighborhood,

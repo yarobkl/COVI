@@ -65,13 +65,12 @@ export function ShopGpsControl({
         automatiquement. Le point sur la carte sera ajouté dans une prochaine version.
       </p>
       <div>
-        <button
-          type="button"
-          className="btn btn--secondary"
-          disabled={busy}
-          onClick={locate}
-        >
-          {busy ? 'Localisation en cours…' : value ? 'Actualiser ma position' : 'Utiliser ma position GPS'}
+        <button type="button" className="btn btn--secondary" disabled={busy} onClick={locate}>
+          {busy
+            ? 'Localisation en cours…'
+            : value
+              ? 'Actualiser ma position'
+              : 'Utiliser ma position GPS'}
         </button>
         {value && (
           <button
@@ -88,11 +87,15 @@ export function ShopGpsControl({
       </div>
       {value && (
         <p role="status" className="field__hint">
-          ✓ Position enregistrable · précision estimée : {Math.ceil(value.accuracy)} m.
-          Vous pourrez la corriger sur la carte plus tard.
+          ✓ Position enregistrable · précision estimée : {Math.ceil(value.accuracy)} m. Vous pourrez
+          la corriger sur la carte plus tard.
         </p>
       )}
-      {message && <p role="status" className="field__hint">{message}</p>}
+      {message && (
+        <p role="status" className="field__hint">
+          {message}
+        </p>
+      )}
     </div>
   )
 }

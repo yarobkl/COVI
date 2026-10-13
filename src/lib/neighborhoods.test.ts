@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  OTHER_NEIGHBORHOOD,
-  neighborhoodSuggestions,
-  resolveNeighborhood,
-} from './neighborhoods'
+import { OTHER_NEIGHBORHOOD, neighborhoodSuggestions, resolveNeighborhood } from './neighborhoods'
 
 describe('quartier / secteur selected by city', () => {
   it('shows the districts and sectors of Brazzaville and Pointe-Noire separately', () => {
