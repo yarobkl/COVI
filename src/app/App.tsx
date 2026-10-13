@@ -4,6 +4,7 @@ import { Button, ButtonLink, cx, Dialog, LabelCard } from '../components/ui'
 import { ArrivalsPage } from '../features/arrivals/ArrivalsPage'
 import { useCurrentUser } from '../features/auth/useCurrentUser'
 import { DashboardPage } from '../features/dashboard/DashboardPage'
+import { useProfilePhoto } from '../features/profile/useProfilePhoto'
 import { ExpensesPage } from '../features/expenses/ExpensesPage'
 import { HistoryPage } from '../features/history/HistoryPage'
 import { SalePage } from '../features/sale/SalePage'
@@ -199,6 +200,7 @@ export function App({
   const sync = useSyncState()
   const user = useCurrentUser()
   const owner = ownerName(user?.user_metadata)
+  const profilePhotoUrl = useProfilePhoto(user)
   // The menu belongs to the page it was opened on: changing page (back button too) closes it.
   const [menuFor, setMenuFor] = useState<string | null>(null)
   const menuOpen = menuFor === routeKey(route)
@@ -242,7 +244,11 @@ export function App({
           aria-haspopup="dialog"
           onClick={() => setMenuOpen(true)}
         >
-          {initials(owner ?? shop.name)}
+          {profilePhotoUrl ? (
+            <img src={profilePhotoUrl} alt="" />
+          ) : (
+            initials(owner ?? shop.name)
+          )}
         </button>
       </header>
 
