@@ -88,7 +88,7 @@ begin
     'public.create_manual_checkout_order(uuid,uuid,jsonb,boolean,text,text,text)',
     'public.approve_manual_checkout_order(uuid,uuid)',
     'public.reject_checkout_order(uuid,uuid)',
-    'public.confirm_manual_checkout_payment(uuid,uuid,uuid,text,text,text)',
+    'public.confirm_manual_checkout_payment(uuid,uuid,uuid,text,text,text,text)',
     'public.post_arrival_category_stock(uuid,uuid,uuid,jsonb)',
     'public.submit_checkout_public_order(uuid,text,uuid,jsonb,text,text,text,text,text)'
   ] loop
