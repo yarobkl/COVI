@@ -15,6 +15,9 @@ vi.mock('../../lib/manualOrder', () => ({
 vi.mock('../../lib/checkoutInboxUpdates', () => ({
   watchCheckoutOrderUpdates: vi.fn(() => () => undefined),
 }))
+vi.mock('./PrivateOrderReferenceImage', () => ({
+  PrivateOrderReferenceImage: () => null,
+}))
 vi.mock('./CashierCheckoutPanel', () => ({
   CashierCheckoutPanel: ({ orderId }: { orderId: string }) => <p>Encaissement {orderId}</p>,
 }))
@@ -30,6 +33,7 @@ const rows = [
     customerPhone: '+242 060000000',
     customerNote: 'Robe du live',
     customerDeliveryAddress: null,
+    referenceImagePath: null,
     fulfillment: 'pickup' as const,
     paymentMethod: 'mobile_money' as const,
     createdAt: '2026-10-12T12:00:00Z',
