@@ -150,7 +150,10 @@ function pdfObjects(receipt: ConfirmedCheckoutReceipt): Uint8Array {
 }
 
 export function makeConfirmedReceiptPdf(receipt: ConfirmedCheckoutReceipt): Blob {
-  return new Blob([pdfObjects(receipt)], { type: 'application/pdf' })
+  const bytes = pdfObjects(receipt)
+  const buffer = new ArrayBuffer(bytes.length)
+  new Uint8Array(buffer).set(bytes)
+  return new Blob([buffer], { type: 'application/pdf' })
 }
 
 export function downloadConfirmedReceiptPdf(receipt: ConfirmedCheckoutReceipt): void {
