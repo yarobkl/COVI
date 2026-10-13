@@ -262,7 +262,7 @@ revoke all on function public.confirm_manual_checkout_payment(
   uuid, uuid, uuid, text, text, text, text
 ) from public, anon;
 grant execute on function public.confirm_manual_checkout_payment(
-  uuid, uuid, uuid, text, text, text
+  uuid, uuid, uuid, text, text, text, text
 ) to authenticated;
 commit;
 
