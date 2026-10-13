@@ -12,6 +12,7 @@ type ManualCheckoutRpcArgs = {
   p_cashier_first_name: string
   p_method: ManualPaymentMethod
   p_external_reference: string | null
+  p_pin: string | null
 }
 
 export type RecordedCheckoutReceipt = {
@@ -121,7 +122,10 @@ export async function confirmManualCheckoutPayment({
     p_cashier_first_name: input.cashierFirstName,
     p_method: input.method,
     p_external_reference: input.externalReference ?? null,
+    p_pin: input.pin ?? null,
   })
   if (error) throw new Error(error.message)
+  if (data && typeof data === 'object' && 'pinRejected' in data)
+    throw new Error('Code personnel incorrect ou compte temporairement bloqué.')
   return parseRecordedCheckoutReceipt(data)
 }
