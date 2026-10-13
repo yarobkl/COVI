@@ -7,6 +7,7 @@ const migrationsDir = 'supabase/migrations'
 const expected = [
   'draft_category_stock_schema.sql',
   'draft_checkout_manual_payment_schema.sql',
+  'draft_checkout_cashier_accounts.sql',
   'draft_create_approve_manual_checkout_order.sql',
   'draft_confirm_manual_checkout_payment.sql',
   'draft_post_arrival_category_stock.sql',
