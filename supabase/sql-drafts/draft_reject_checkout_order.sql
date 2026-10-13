@@ -20,9 +20,13 @@ begin
   if v_actor is null then
     raise exception 'Authentification requise' using errcode = '28000';
   end if;
-  if p_shop_id is null or p_order_id is null or not exists (
-    select 1 from public.shops s
-    where s.id = p_shop_id and s.owner_id = v_actor
+  if p_shop_id is null or p_order_id is null or (
+    not exists (
+      select 1 from public.shops s where s.id=p_shop_id and s.owner_id=v_actor
+    ) and not exists (
+      select 1 from public.checkout_cashiers c
+      where c.shop_id=p_shop_id and c.user_id=v_actor and c.active=true
+    )
   ) then
     raise exception 'Accès à cette boutique refusé' using errcode = '42501';
   end if;
