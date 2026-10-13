@@ -81,6 +81,13 @@
       0 0 0 4.5px #a9b9d8;
     transition: background-color var(--dur-fast) var(--ease-out);
   }
+  .avatar img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+  }
   .avatar:hover {
     background: var(--action-tint);
   }
@@ -96,6 +103,65 @@
     body:has(.shell) {
       background: var(--ground);
     }
+  }
+
+  /* Photo personnelle conservée dans Supabase Storage privé. */
+  .profile-photo {
+    margin-bottom: var(--space-5);
+  }
+  .profile-photo h2 {
+    margin-bottom: var(--space-3);
+  }
+  .profile-photo__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-4);
+  }
+  .profile-photo__preview {
+    display: grid;
+    place-items: center;
+    flex: 0 0 100px;
+    width: 100px;
+    height: 100px;
+    overflow: hidden;
+    border: var(--border-field) solid var(--action);
+    border-radius: 50%;
+    background: var(--action-tint);
+    color: var(--action);
+    font-size: var(--step-2);
+    font-weight: var(--weight-bold);
+  }
+  .profile-photo__preview img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .profile-photo__details {
+    flex: 1 1 220px;
+    min-width: 0;
+  }
+  .profile-photo__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin-block: var(--space-3);
+  }
+  .profile-photo__input {
+    display: none;
+  }
+  .profile-photo__details small {
+    color: var(--ink-muted);
+  }
+  .profile-photo__error {
+    margin-top: var(--space-3);
+    color: var(--danger);
+  }
+  .profile-photo__success {
+    margin-top: var(--space-3);
+    color: var(--success);
   }
 
   /* Sommaire (ordinateur) */
