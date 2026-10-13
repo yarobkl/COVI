@@ -62,7 +62,7 @@ begin
   -- Only a server gateway using service_role may call these two entrypoints.
   foreach v_call in array array[
     'public.get_checkout_public_catalog(uuid)',
-    'public.submit_checkout_public_order(uuid,text,uuid,jsonb,text,text,text)'
+    'public.submit_checkout_public_order(uuid,text,uuid,jsonb,text,text,text,text)'
   ] loop
     if pg_catalog.has_function_privilege('anon', v_call, 'EXECUTE')
       or pg_catalog.has_function_privilege('authenticated', v_call, 'EXECUTE') then
@@ -81,7 +81,7 @@ begin
     'public.reject_checkout_order(uuid,uuid)',
     'public.confirm_manual_checkout_payment(uuid,uuid,uuid,text,text,text)',
     'public.post_arrival_category_stock(uuid,uuid,uuid,jsonb)',
-    'public.submit_checkout_public_order(uuid,text,uuid,jsonb,text,text,text)'
+    'public.submit_checkout_public_order(uuid,text,uuid,jsonb,text,text,text,text)'
   ] loop
     if not exists(
       select 1 from pg_catalog.pg_proc p
