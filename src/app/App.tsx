@@ -68,10 +68,7 @@ function ArrivalsScreen({ shopId, filter }: { shopId: string; filter?: ArrivalFi
   )
 }
 
-function renderPage(
-  route: Route,
-  { shop, updateShop, onSimulation, ownerId }: PageContext,
-) {
+function renderPage(route: Route, { shop, updateShop, onSimulation, ownerId }: PageContext) {
   switch (route.page) {
     case 'accueil':
       return <DashboardPage shop={shop} onSimulation={onSimulation} />
