@@ -48,6 +48,9 @@ insert into public.shop_members(id, shop_id, user_id, display_name, max_discount
 insert into public.member_pins(member_id, pin_hash) values
   ('$m1', extensions.crypt('4826', extensions.gen_salt('bf', 10))),
   ('$m2', extensions.crypt('6284', extensions.gen_salt('bf', 10)));
+-- Harness fixture: C1 previously presented the correct PIN in this signed-in JWT session.
+insert into public.member_pin_unlocks(member_id, session_id, unlocked_until)
+values ('$m1', '$c1', now() + interval '5 minutes');
 insert into public.till_sessions(shop_id, member_id, token_hash, opened_by, expires_at) values
   ('$shop', '$m2', sha256(convert_to('covi-till:$token', 'UTF8')), '$owner', now() + interval '1 hour');
 insert into public.products(id, shop_id, name, initial_sale_price, quantity_on_hand, is_unique_piece)
@@ -58,6 +61,7 @@ rm -f "$work/go"
 psql_db -At -v ON_ERROR_STOP=0 >"$work/s1.out" 2>&1 <<SQL &
 set application_name = 'covi-members-s1';
 set request.jwt.claim.sub = '$c1';
+set request.jwt.claim.session_id = '$c1';
 set role authenticated;
 begin;
 select 'sale:' || public.record_sale('$shop', '$piece', 1, 20000, 'cash',
