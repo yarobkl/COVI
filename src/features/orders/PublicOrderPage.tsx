@@ -77,7 +77,7 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
 
   const articleTypes = useMemo(
     () => (catalog?.articleTypes?.length ? catalog.articleTypes : [...DEFAULT_ARTICLE_TYPES]),
-    [catalog?.articleTypes],
+    [catalog],
   )
 
   const update = (key: number, patch: Partial<Line>) =>
