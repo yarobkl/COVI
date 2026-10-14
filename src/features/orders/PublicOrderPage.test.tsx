@@ -17,6 +17,7 @@ const base: PublicCatalog = {
   neighborhood: null,
   message: null,
   showCatalog: true,
+  articleTypes: ['Pantalon', 'Chemise', 'Robe'],
   products: [],
   ordersOpen: true,
 }
@@ -26,53 +27,54 @@ beforeEach(() => {
 })
 afterEach(() => cleanup())
 
-describe('QR client — liste des articles et description de remplacement', () => {
-  it('propose une description quand aucun article ne peut être publié', async () => {
+describe('QR client — types vendus, indépendamment des références et du stock', () => {
+  it('affiche pantalon et chemise même quand le stock public est vide', async () => {
     vi.mocked(fetchCatalog).mockResolvedValue({ ...base })
     render(<PublicOrderPage token="test-token" channel="qr" />)
-    expect(
-      await screen.findByText(/La boutique n’a pas encore d’articles disponibles/),
-    ).toBeTruthy()
-    expect(screen.getByPlaceholderText('Ex. robe wax rouge vue dans votre statut')).toBeTruthy()
-    expect(screen.queryByRole('combobox', { name: 'Article' })).toBeNull()
+    const select = await screen.findByRole('combobox', { name: 'Choisir un article' })
+    expect(screen.getByRole('option', { name: 'Pantalon' })).toBeTruthy()
+    expect(screen.getByRole('option', { name: 'Chemise' })).toBeTruthy()
+    fireEvent.change(select, { target: { value: 'Pantalon' } })
+    expect((select as HTMLSelectElement).value).toBe('Pantalon')
+    expect(screen.getByPlaceholderText('Ex. taille L, bleu, vu sur WhatsApp')).toBeTruthy()
   })
 
-  it('laisse choisir un article connu OU décrire un autre article', async () => {
+  it('respecte la liste personnalisée de la boutique, pas les produits en stock', async () => {
     vi.mocked(fetchCatalog).mockResolvedValue({
       ...base,
-      products: [
-        {
-          id: 'product-1',
-          name: 'Chemise',
-          category: 'Vêtements',
-          brand: null,
-          size: 'L',
-          priceXaf: 10000,
-          maxQuantity: 2,
-        },
-      ],
+      articleTypes: ['Boubou', 'Pagne'],
+      products: [{
+        id: 'sku-1',
+        name: 'Chaussure unique',
+        category: 'Chaussures',
+        brand: null,
+        size: null,
+        priceXaf: 12000,
+        maxQuantity: 1,
+      }],
     })
     render(<PublicOrderPage token="test-token" channel="social" />)
-    const select = await screen.findByRole('combobox', { name: 'Article' })
-    expect(screen.getByRole('option', { name: /Chemise/ })).toBeTruthy()
+    const select = await screen.findByRole('combobox', { name: 'Choisir un article' })
+    expect(screen.getByRole('option', { name: 'Boubou' })).toBeTruthy()
+    expect(screen.getByRole('option', { name: 'Pagne' })).toBeTruthy()
+    expect(screen.queryByRole('option', { name: /Chaussure unique/ })).toBeNull()
     fireEvent.change(select, { target: { value: '__covi_other_article__' } })
-    expect(screen.getByPlaceholderText('Ex. chemise vue sur WhatsApp ou TikTok')).toBeTruthy()
-    fireEvent.change(select, { target: { value: 'product-1' } })
+    expect(screen.getByPlaceholderText('Ex. tenue traditionnelle pour enfant')).toBeTruthy()
+    fireEvent.change(select, { target: { value: 'Pagne' } })
     await waitFor(() =>
-      expect(screen.queryByPlaceholderText('Ex. chemise vue sur WhatsApp ou TikTok')).toBeNull(),
+      expect(screen.queryByPlaceholderText('Ex. tenue traditionnelle pour enfant')).toBeNull(),
     )
   })
 
-  it('propose aussi une description lorsque la boutique masque volontairement son catalogue', async () => {
+  it('propose une description quand la boutique désactive son catalogue', async () => {
     vi.mocked(fetchCatalog).mockResolvedValue({
       ...base,
       showCatalog: false,
-      products: [],
     })
     render(<PublicOrderPage token="test-token" channel="qr" />)
     expect(
       await screen.findByPlaceholderText('Ex. robe wax rouge vue dans votre statut'),
     ).toBeTruthy()
-    expect(screen.queryByText(/La boutique n’a pas encore d’articles disponibles/)).toBeNull()
+    expect(screen.queryByRole('combobox', { name: 'Choisir un article' })).toBeNull()
   })
 })
