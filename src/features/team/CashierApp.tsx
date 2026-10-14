@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Button } from '../../components/ui'
 import { LegacyPage } from '../../app/LegacyPage'
+import { retrySyncAfterPinUnlock } from '../../lib/offline'
 import type { MemberShop } from '../../lib/team'
 import { HistoryPage } from '../history/HistoryPage'
 import { SalePage } from '../sale/SalePage'
@@ -46,6 +47,8 @@ export function CashierApp({
   const open = () => {
     setOpened(true)
     setGate('open')
+    // Pending offline sales remain queued while the server-side cashier PIN is locked.
+    retrySyncAfterPinUnlock()
   }
 
   // Inactivity lock: any touch, click or key restarts the 5 minutes.
