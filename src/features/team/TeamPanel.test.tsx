@@ -86,20 +86,26 @@ describe('TeamPanel « Équipe » (owner)', () => {
     expect(screen.queryByText('ABCD-EFGH-JKMN')).toBeNull()
   })
 
-  it('refuses a discount above 100 % before calling the server', async () => {
+  it('offers a discount dropdown limited to 0 through 100 %', async () => {
     serve()
     await act(async () => {
       render(<TeamPanel shopId="shop-1" shopName="Boutique" />)
     })
+    const discount = screen.getByLabelText(/Remise maximale autorisée/) as HTMLSelectElement
+    expect(discount.tagName).toBe('SELECT')
+    const values = Array.from(discount.options).map((option) => option.value)
+    expect(values).toContain('0')
+    expect(values).toContain('100')
+    expect(values).not.toContain('150')
     fireEvent.change(screen.getByLabelText('Prénom du caissier'), { target: { value: 'Bema' } })
-    fireEvent.change(screen.getByLabelText(/Remise maximale autorisée/), {
-      target: { value: '150' },
-    })
+    fireEvent.change(discount, { target: { value: '100' } })
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Créer un code d’invitation' }))
     })
-    expect(screen.getByText('La remise maximale va de 0 à 100 %.')).toBeTruthy()
-    expect(rpc).not.toHaveBeenCalledWith('create_member_invite', expect.anything())
+    expect(rpc).toHaveBeenCalledWith(
+      'create_member_invite',
+      expect.objectContaining({ p_max_discount_pct: 100 }),
+    )
   })
 
   it('resets a PIN after confirmation', async () => {
