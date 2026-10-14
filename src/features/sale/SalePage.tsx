@@ -242,6 +242,26 @@ export function SalePage({
 
       <div className="sale-layout">
         <div className="sale-layout__articles" ref={articles}>
+          <label className="sale-product-picker">
+            Choisir un article dans la liste
+            <select
+              className="select"
+              aria-label="Ajouter un article du stock au panier"
+              defaultValue=""
+              onChange={(event) => {
+                const product = products?.find((item) => item.id === event.target.value)
+                if (product) add(product)
+                event.target.value = ''
+              }}
+            >
+              <option value="">Sélectionner un article…</option>
+              {(products ?? []).map((product) => (
+                <option key={product.id} value={product.id}>
+                  {product.name} · {fcfa(Number(product.initial_sale_price))}
+                </option>
+              ))}
+            </select>
+          </label>
           <SearchField
             className="sale-search"
             label="Chercher un article"
