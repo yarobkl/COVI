@@ -346,9 +346,10 @@ actuellement en ligne continue de fonctionner sur la base migrée.
 - **Supabase Auth :** le conseiller de sécurité signale une protection contre les mots de passe
   compromis désactivée. La disponibilité de ce réglage dépend de l'offre Supabase ;
   **ne pas engager de frais ni modifier l'abonnement sans autorisation**.
-- **Production :** les migrations multi-caissiers n'ont pas été appliquées. Cette PR reste en
-  brouillon et ne doit pas être fusionnée tant que le mode appareil partagé n'est pas clarifié et
-  qu'un essai fonctionnel isolé de bout en bout n'est pas validé.
+- **Production (contrôles du 14/10/2026) :** les huit migrations ont été appliquées dans l'ordre via Supabase MCP et leurs noms vérifiés dans `supabase_migrations.schema_migrations`. Le bilan lu en base est : 8 migrations, 149 ventes (inchangées), 55 produits, 3 boutiques, 6 tables de caisse et `bool_and(prosecdef)` vrai pour les fonctions de vente. L'outil `apply_migration` a attribué des versions d'exécution `20261014...` distinctes des noms de fichiers GitHub. **Le front de production reste sur `main` (`ffbc1c73...`), la PR #28 reste en brouillon et n'a pas été fusionnée.**
+- **Audit des privilèges réels (lecture seule, 14/10/2026) :** les huit tables internes contrôlées ont RLS activé ; `anon` n'a aucun droit SELECT ; `authenticated` ne peut lire que `shop_members` et `shop_audit_log` (sous RLS), et n'a aucun droit d'écriture sur ces huit tables. `cashier_pin_unlocked`, `cashier_session_id` et `cashier_touch_unlock` ne sont exécutables ni par `anon` ni directement par `authenticated`. Les RPC prévues pour les caissiers (`record_sale`, `record_cart_sale`, `verify_my_pin`) sont accessibles à `authenticated` mais interdites à `anon`; l'autorisation et le PIN doivent être validés à l'intérieur de la fonction. **Ces constats ne remplacent pas des essais avec de vrais JWT et de vrais comptes Supabase.**
+- **Conseiller de sécurité (14/10/2026) :** 24 fonctions `SECURITY DEFINER` exécutables par `authenticated` signalées, 6 tables RLS sans politique (tables privées sans GRANT direct), et protection des mots de passe compromis désactivée. Les alertes de fonctions imposent une revue de contrôle d'accès mais n'établissent pas à elles seules une faille.
+- **Publication :** PR #28 toujours en brouillon ; ne pas fusionner ou mettre en service l'appareil partagé tant que le modèle de privilèges n'a pas été corrigé et que des tests fonctionnels isolés bout en bout ne sont pas passés.
 
 ## Tests
 
