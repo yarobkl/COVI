@@ -1,16 +1,21 @@
 import type { FormEvent } from 'react'
-import type { Arrival } from '../../lib/types'
+import { ChoiceField } from '../../components/ui/ChoiceField'
+import { productChoices } from '../../lib/productChoices'
+import type { Arrival, Product } from '../../lib/types'
 
 /** Adds a product to a received arrival (a single piece for a balloon). */
 export function ArrivalProductForm({
   arrival,
+  products,
   onSubmit,
   onCancel,
 }: {
   arrival: Arrival
+  products: Product[]
   onSubmit: (e: FormEvent<HTMLFormElement>) => void
   onCancel: () => void
 }) {
+  const choices = productChoices(products)
   return (
     <form className="card formgrid" onSubmit={onSubmit}>
       <div className="span2">
@@ -23,7 +28,7 @@ export function ArrivalProductForm({
       </div>
       <label>
         Produit
-        <input name="name" required />
+        <ChoiceField name="name" choices={choices.names} required prompt="Choisir un article" otherLabel="Créer un nouvel article" />
       </label>
       <label>
         Photo
@@ -31,15 +36,15 @@ export function ArrivalProductForm({
       </label>
       <label>
         Catégorie
-        <input name="category" />
+        <ChoiceField name="category" choices={choices.categories} prompt="Choisir une catégorie" otherLabel="Nouvelle catégorie" />
       </label>
       <label>
         Marque
-        <input name="brand" />
+        <ChoiceField name="brand" choices={choices.brands} prompt="Choisir une marque" otherLabel="Nouvelle marque" />
       </label>
       <label>
         Taille
-        <input name="size" />
+        <ChoiceField name="size" choices={choices.sizes} prompt="Choisir une taille" otherLabel="Autre taille" />
       </label>
       <label>
         Prix de vente initial
