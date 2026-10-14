@@ -25,9 +25,7 @@ export function TillSwitch({ shopId }: { shopId: string }) {
     setError('')
     try {
       const [owner, members] = await Promise.all([ownerPinStatus(shopId), listShopMembers(shopId)])
-      if (
-        !members.some((member) => member.active && member.pin_set && !member.pin_must_change)
-      ) {
+      if (!members.some((member) => member.active && member.pin_set && !member.pin_must_change)) {
         setError(
           'Aucun caissier prêt. Invitez un employé dans Ma boutique → Équipe et demandez-lui de créer son PIN personnel.',
         )
