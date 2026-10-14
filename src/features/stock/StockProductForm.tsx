@@ -27,10 +27,6 @@ export function StockProductForm({
         />
       </label>
       <label>
-        Photo
-        <input name="image" type="file" accept="image/jpeg,image/png,image/webp" />
-      </label>
-      <label>
         Arrivage
         <select name="arrival">
           <option value="">Sans arrivage</option>
