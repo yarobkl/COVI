@@ -24,11 +24,11 @@ language sql
 stable
 set search_path to ''
 as $function$
-  select pg_catalog.coalesce(
-    pg_catalog.nullif(
-      pg_catalog.nullif(pg_catalog.current_setting('request.jwt.claims', true), '')::jsonb
+  select coalesce(
+    nullif(
+      nullif(pg_catalog.current_setting('request.jwt.claims', true), '')::jsonb
         ->> 'session_id', ''),
-    pg_catalog.nullif(pg_catalog.current_setting('request.jwt.claim.session_id', true), '')
+    nullif(pg_catalog.current_setting('request.jwt.claim.session_id', true), '')
   )::uuid
 $function$;
 
@@ -209,7 +209,7 @@ stable
 security definer
 set search_path to ''
 as $function$
-  select pg_catalog.coalesce(
+  select coalesce(
     (exists (select 1 from public.shops s where s.id = p_shop_id and s.owner_id = auth.uid())
       and p_permission in ('manage', 'sell', 'view_products', 'view_own_sales', 'view_shop_sales'))
     or exists (
