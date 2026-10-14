@@ -35,6 +35,8 @@ export function saleErrorMessage(
       : 'Ce prix est en dessous du minimum autorisé. Demandez au responsable.'
   }
   if (m.includes('pin required')) return 'Choisissez d’abord votre code PIN pour pouvoir vendre.'
+  if (m.includes('pin unlock required'))
+    return 'Cette caisse doit être déverrouillée. Touchez « Verrouiller », puis entrez votre code PIN avant de réessayer.'
   if (m.includes('till session invalid'))
     return 'La caisse de ce caissier est fermée ou a expiré. Touchez « Changer de caissier » et entrez à nouveau son code PIN.'
   if (m.includes('shop not found'))
