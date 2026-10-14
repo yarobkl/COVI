@@ -206,7 +206,8 @@ export function CounterApp({
   signOut: () => Promise<void>
 }) {
   const session = useTillSession(shop.id)
-  const [view, setView] = useState<View>('open')
+  // On refresh, a saved till must be unlocked with the cashier's PIN again.
+  const [view, setView] = useState<View>('locked')
   // Where « Annuler » of the picker and the owner prompt go back to.
   const [back, setBack] = useState<'open' | 'locked'>('open')
   const [page, setPage] = useState<Page>('vendre')
