@@ -9,10 +9,15 @@ import {
   pinResultMessage,
   teamErrorMessage,
   unlockTillSession,
-  type TeamMember,
   type TillSession,
 } from '../../lib/team'
 import { clearTillSession, setTillSession } from '../../lib/tillSession'
+import {
+  closeSharedCashierTill,
+  listSharedCashiers,
+  openSharedCashierTill,
+  unlockSharedCashierTill,
+} from '../../lib/sharedCashiers'
 import type { Shop } from '../../lib/types'
 import { HistoryPage } from '../history/HistoryPage'
 import { SalePage } from '../sale/SalePage'
@@ -26,6 +31,12 @@ import { useTillSession } from './useTillSession'
 type Page = 'vendre' | 'ventes'
 /** open: selling; locked: 5 minutes without activity; pick: who holds the till; leave: owner PIN. */
 type View = 'open' | 'locked' | 'pick' | 'leave'
+type CashierChoice = {
+  id: string
+  display_name: string
+  pin_set: boolean
+  profile: boolean
+}
 
 /** Who holds the till: active cashiers with a PIN, then their PIN (open_till_session). */
 function CashierPicker({
@@ -42,18 +53,31 @@ function CashierPicker({
   onCancel?: () => void
   onLeave: () => void
 }) {
-  const [members, setMembers] = useState<TeamMember[] | null>(null)
+  const [members, setMembers] = useState<CashierChoice[] | null>(null)
   const [loadError, setLoadError] = useState('')
-  const [picked, setPicked] = useState<TeamMember | null>(null)
+  const [picked, setPicked] = useState<CashierChoice | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
     let active = true
-    listShopMembers(shopId).then(
-      (rows) => {
+    Promise.all([listShopMembers(shopId), listSharedCashiers(shopId)]).then(
+      ([registered, shared]) => {
         if (!active) return
-        setMembers(rows.filter((m) => m.active))
+        setMembers([
+          ...shared.filter((m) => m.active).map((m) => ({
+            id: m.id,
+            display_name: m.display_name,
+            pin_set: m.pin_set,
+            profile: true,
+          })),
+          ...registered.filter((m) => m.active).map((m) => ({
+            id: m.id,
+            display_name: m.display_name,
+            pin_set: m.pin_set,
+            profile: false,
+          })),
+        ])
         setLoadError('')
       },
       (e) => active && setLoadError(teamErrorMessage(e)),
@@ -63,13 +87,20 @@ function CashierPicker({
     }
   }, [shopId])
 
-  const unlock = async (member: TeamMember, pin: string) => {
+  const unlock = async (member: CashierChoice, pin: string) => {
     setBusy(true)
     setError('')
     try {
-      const result = await openTillSession(shopId, member.id, pin)
+      const result = member.profile
+        ? await openSharedCashierTill(shopId, member.id, pin)
+        : await openTillSession(shopId, member.id, pin)
       if ('refused' in result) return setError(pinResultMessage(result.refused))
-      if (current) await closeTillSession(shopId, current.token).catch(() => false)
+      if (current) {
+        const closed = current.cashierProfileId
+          ? await closeSharedCashierTill(shopId, current.token)
+          : await closeTillSession(shopId, current.token)
+        if (!closed) throw new Error('Impossible de fermer la caisse précédente.')
+      }
       onOpened(result.session)
     } catch (e) {
       setError(teamErrorMessage(e))
@@ -157,7 +188,9 @@ function CounterLock({
     setBusy(true)
     setError('')
     try {
-      const result = await unlockTillSession(shopId, session.token, pin)
+      const result = session.cashierProfileId
+        ? await unlockSharedCashierTill(shopId, session.token, pin)
+        : await unlockTillSession(shopId, session.token, pin)
       if (result.status === 'ok') onUnlocked()
       else setError(pinResultMessage(result))
     } catch (e) {
@@ -335,7 +368,8 @@ export function CounterApp({
                 shopId={shop.id}
                 mine
                 // A session kept from an older version has no seller id: show nothing rather than all.
-                sellerId={ownSalesOnly ? (session.sellerId ?? '') : undefined}
+                sellerId={ownSalesOnly && !session.cashierProfileId ? (session.sellerId ?? '') : undefined}
+                cashierProfileId={ownSalesOnly ? session.cashierProfileId : undefined}
               />
             </LegacyPage>
           )}
