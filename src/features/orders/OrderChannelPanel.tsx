@@ -1,12 +1,14 @@
 import { useEffect, useId, useMemo, useState } from 'react'
 import { Button, Notice } from '../../components/ui'
 import { localQrSvgDataUrl } from '../../lib/localQr'
+import { DEFAULT_ARTICLE_TYPES, uniqueArticleTypes } from '../../lib/articleTypes'
 import {
   configureOrderChannel,
   getOrderChannel,
   orderErrorMessage,
   orderLink,
   rotateOrderChannel,
+  saveOrderArticleTypes,
   type OrderChannelSettings,
 } from '../../lib/publicOrders'
 
@@ -19,6 +21,9 @@ export function OrderChannelPanel({ shopId, shopName }: { shopId: string; shopNa
   const [channel, setChannel] = useState<OrderChannelSettings | null | undefined>(undefined)
   const [message, setMessage] = useState('')
   const [showCatalog, setShowCatalog] = useState(true)
+  const [articleTypes, setArticleTypes] = useState<string[]>([...DEFAULT_ARTICLE_TYPES])
+  const [suggestedType, setSuggestedType] = useState('')
+  const [customType, setCustomType] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState('')
@@ -32,6 +37,7 @@ export function OrderChannelPanel({ shopId, shopName }: { shopId: string; shopNa
         if (c) {
           setMessage(c.message ?? '')
           setShowCatalog(c.showCatalog)
+          setArticleTypes(c.articleTypes?.length ? c.articleTypes : [...DEFAULT_ARTICLE_TYPES])
         }
       })
       .catch((e) => setError(orderErrorMessage(e)))
@@ -45,18 +51,30 @@ export function OrderChannelPanel({ shopId, shopName }: { shopId: string; shopNa
     setBusy(true)
     setError('')
     try {
-      setChannel(
-        await configureOrderChannel(shopId, {
-          enabled,
-          showCatalog,
-          message: message.trim() || null,
-        }),
-      )
+      if (!articleTypes.length) throw new Error('Choisissez au moins un type d’article.')
+      await configureOrderChannel(shopId, {
+        enabled,
+        showCatalog,
+        message: message.trim() || null,
+      })
+      setChannel(await saveOrderArticleTypes(shopId, uniqueArticleTypes(articleTypes)))
     } catch (e) {
       setError(orderErrorMessage(e))
     } finally {
       setBusy(false)
     }
+  }
+
+  const addArticleType = (type: string) => {
+    const name = type.trim()
+    if (!name || name.length > 50) {
+      setError('Le type d’article doit contenir 1 à 50 caractères.')
+      return
+    }
+    setError('')
+    setArticleTypes((current) => uniqueArticleTypes([...current, name]))
+    setSuggestedType('')
+    setCustomType('')
   }
 
   const copy = async (text: string, what: string) => {
@@ -101,8 +119,60 @@ export function OrderChannelPanel({ shopId, shopName }: { shopId: string; shopNa
           checked={showCatalog}
           onChange={(e) => setShowCatalog(e.target.checked)}
         />
-        Montrer aux clients les articles en stock et leur prix (sinon, ils décrivent l’article)
+        Afficher aux clients les types d’articles vendus (indépendamment du stock)
       </label>
+      <div className="card" aria-label="Types d’articles vendus">
+        <h3>Les articles que vend cette boutique</h3>
+        <p className="muted">
+          Le client pourra choisir parmi ces types même lorsque le stock est à zéro.
+          Ajoutez ou retirez des types selon votre activité.
+        </p>
+        <div className="order-channel__actions">
+          {articleTypes.map((type) => (
+            <Button
+              key={type}
+              variant="secondary"
+              disabled={busy}
+              aria-label={`Retirer ${type}`}
+              onClick={() => setArticleTypes((types) => types.filter((item) => item !== type))}
+            >
+              {type} ×
+            </Button>
+          ))}
+        </div>
+        <label>
+          Ajouter un type courant
+          <select
+            className="select"
+            value={suggestedType}
+            onChange={(event) => setSuggestedType(event.target.value)}
+          >
+            <option value="">Choisir un type d’article…</option>
+            {DEFAULT_ARTICLE_TYPES.filter(
+              (type) => !articleTypes.some((item) => item.toLowerCase() === type.toLowerCase()),
+            ).map((type) => <option key={type} value={type}>{type}</option>)}
+          </select>
+        </label>
+        <Button variant="secondary" disabled={!suggestedType || busy}
+          onClick={() => addArticleType(suggestedType)}>
+          Ajouter à la liste
+        </Button>
+        <label>
+          Autre type d’article
+          <input
+            className="input"
+            value={customType}
+            maxLength={50}
+            placeholder="Ex. Boubou, pagne, foulard"
+            onChange={(event) => setCustomType(event.target.value)}
+          />
+        </label>
+        <Button variant="secondary" disabled={!customType.trim() || busy}
+          onClick={() => addArticleType(customType)}>
+          Ajouter ce type
+        </Button>
+        <p className="muted">Enregistrez ensuite les réglages pour publier cette liste.</p>
+      </div>
       <label htmlFor={`${ids}-msg`}>Message affiché aux clients (facultatif)</label>
       <textarea
         id={`${ids}-msg`}
