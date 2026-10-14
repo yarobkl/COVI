@@ -215,10 +215,111 @@ select pg_temp.fails(format($$select public.confirm_public_order_payment(%L, 'mo
 select pg_temp.check(not exists (select 1 from public.sales where shop_id = :'shop')
   and (select quantity_on_hand from public.products where id = :'jean') = 5,
   'Les refus n''ont créé aucune vente ni mouvement de stock');
+select pg_temp.check((select count(*) from public.sales where operation_reference is null) = 0,
+  'Aucune vente sans référence COVI, même avant la première commande payée');
 
 select public.confirm_public_order_payment(:'order_id', 'mobile_money', 'MP241014.1234', true,
   :'lines_ok', :'till') as confirmed \gset
 select (:'confirmed'::jsonb ->> 'saleId') as sale_id \gset
+select pg_temp.check(
+  (:'confirmed'::jsonb ->> 'internalReference') =
+    (select operation_reference from public.sales where id = :'sale_id')
+  and (:'confirmed'::jsonb ->> 'internalReference') ~ '^COVI-[0-9A-F]{32}
+select pg_temp.check(
+  (select status = 'paid' and paid_method = 'mobile_money' and payment_reference = 'MP241014.1234'
+     and cashier_profile_id = :'cashier' and sale_id = :'sale_id'
+   from public.public_orders where id = :'order_id'),
+  'Règlement confirmé : commande payée, attribuée au caissier, référence saisie par le caissier');
+select pg_temp.check(
+  (select cashier_profile_id = :'cashier' and total_amount = 64000 and payment_method = 'mobile_money'
+   from public.sales where id = :'sale_id')
+  and (select quantity_on_hand from public.products where id = :'jean') = 3
+  and (select quantity_on_hand from public.products where id = :'robe') = 1
+  and (select quantity_on_hand = 0 and status = 'sold' from public.products where id = :'piece'),
+  'Vente enregistrée une fois, stock décrémenté à la confirmation seulement');
+select pg_temp.check(
+  (public.confirm_public_order_payment(:'order_id', 'mobile_money', 'MP241014.1234', true, :'lines_ok', :'till')
+    ->> 'alreadyConfirmed')::boolean
+  and (public.confirm_public_order_payment(:'order_id', 'mobile_money', 'MP241014.1234', true, :'lines_ok', :'till')
+    ->> 'internalReference') = (select operation_reference from public.sales where id = :'sale_id')
+  and (select count(*) from public.sales where shop_id = :'shop') = 1
+  and (select quantity_on_hand from public.products where id = :'jean') = 3,
+  'Double confirmation : aucune seconde vente, aucun second décrément');
+select pg_temp.fails(format($$select public.reject_public_order(%L, 'trop tard')$$, :'order_id'),
+  'Une commande payée ne peut plus être refusée');
+reset role;
+
+set local role service_role;
+select public.get_public_order_status(:'tracking') as status2 \gset
+select pg_temp.check((:'status2'::jsonb ->> 'status') = 'paid'
+  and (:'status2'::jsonb -> 'receipt' ->> 'totalXaf')::numeric = 64000
+  and (:'status2'::jsonb -> 'receipt' ->> 'cashierName') = 'Awa caisse'
+  and (:'status2'::jsonb -> 'receipt' ->> 'method') = 'mobile_money'
+  and (:'status2'::jsonb -> 'receipt' ->> 'receiptNumber') =
+     (select operation_reference from public.sales where id = :'sale_id'),
+  'Suivi client : reçu après confirmation en caisse');
+
+-- Un deuxième paiement Mobile Money sans référence d'opérateur doit être possible UNIQUEMENT
+-- après confirmation humaine. Une référence COVI distincte naît lors de la vente.
+select (public.submit_public_order(:'token', 'qr', gen_random_uuid(), 'Bema', '066000000', 'pickup',
+  null, 'mobile_money', null, '[{"description":"Jean demandé","quantity":1}]')) ->> 'orderId' as second_paid_order \gset
+select pg_temp.check(
+  (select status='new' and sale_id is null and payment_reference is null
+   from public.public_orders where id=:'second_paid_order'),
+  'Demande en attente : ni vente ni référence de paiement inventée');
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', :'owner', true);
+select id as second_line_id from public.public_order_lines where order_id=:'second_paid_order' \gset
+\set second_lines '[{"lineId":"' :second_line_id '","productId":"' :jean '","unitPriceXaf":10000}]'
+select pg_temp.fails(format(
+  $select public.confirm_public_order_payment(%L,'mobile_money',null,false,%L,%L)$,
+  :'second_paid_order',:'second_lines',:'till'),
+  'Numéro externe facultatif mais refus sans vérification effective');
+select pg_temp.check(
+  (select status='new' and sale_id is null from public.public_orders where id=:'second_paid_order'),
+  'Échec de vérification : aucun paiement ni mouvement de stock');
+select public.confirm_public_order_payment(:'second_paid_order','mobile_money',null,true,
+  :'second_lines',:'till') as second_paid \gset
+select (:'second_paid'::jsonb ->> 'saleId') as second_sale_id \gset
+select pg_temp.check(
+  (select status='paid' and payment_reference is null and sale_id=:'second_sale_id'
+   from public.public_orders where id=:'second_paid_order')
+  and (select operation_reference from public.sales where id=:'second_sale_id')
+    = (:'second_paid'::jsonb ->> 'internalReference')
+  and (select operation_reference from public.sales where id=:'second_sale_id')
+    <> (select operation_reference from public.sales where id=:'sale_id')
+  and (select count(distinct operation_reference) from public.sales where shop_id=:'shop')=2,
+  'Référence externe absente autorisée, deux ventes = deux références internes uniques');
+select pg_temp.check(
+ (public.confirm_public_order_payment(:'second_paid_order','mobile_money',null,true,
+  :'second_lines',:'till')->>'internalReference')
+   = (:'second_paid'::jsonb ->> 'internalReference')
+ and (select count(*) from public.sales where shop_id=:'shop')=2,
+ 'Deuxième clic = même référence interne, pas de vente supplémentaire');
+reset role;
+set local role service_role;
+
+-- Refus et renouvellement du lien ------------------------------------------------------------------
+select (public.submit_public_order(:'token', 'qr', gen_random_uuid(), 'Bema', '066000000', 'pickup',
+  null, 'cash', null, '[{"description":"chemise","quantity":1}]')) ->> 'orderId' as order2 \gset
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', :'owner', true);
+select pg_temp.check(public.reject_public_order(:'order2', 'Article épuisé') = 'rejected', 'Commande refusée');
+select pg_temp.fails(format($$select public.confirm_public_order_payment(%L, 'cash', null, true, '[]', %L)$$,
+  :'order2', :'till'), 'Commande refusée : encaissement impossible');
+select (public.rotate_public_order_channel(:'shop')) ->> 'token' as token2 \gset
+select pg_temp.check(:'token2' <> :'token', 'Nouveau lien généré');
+reset role;
+set local role service_role;
+select pg_temp.check(public.get_public_order_catalog(:'token') is null
+  and public.get_public_order_catalog(:'token2') is not null,
+  'L''ancien QR ne fonctionne plus, le nouveau oui');
+reset role;
+rollback;
+,
+  'Référence COVI créée uniquement à la confirmation, unique, issue de la vente réelle');
 select pg_temp.check(
   (select status = 'paid' and paid_method = 'mobile_money' and payment_reference = 'MP241014.1234'
      and cashier_profile_id = :'cashier' and sale_id = :'sale_id'
