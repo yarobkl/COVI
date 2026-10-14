@@ -2,11 +2,15 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { clearCounterMode, isCounterMode } from '../../lib/counterMode'
 import { listShopMembers, ownerPinStatus } from '../../lib/team'
+import { listSharedCashiers } from '../../lib/sharedCashiers'
 import { TillSwitch } from './TillSwitch'
 
 let pending = 0
 vi.mock('../sync/useSyncState', () => ({
   useSyncState: () => ({ online: true, pending, rejected: 0 }),
+}))
+vi.mock('../../lib/sharedCashiers', () => ({
+  listSharedCashiers: vi.fn(),
 }))
 vi.mock('../../lib/team', () => ({
   ownerPinStatus: vi.fn(),
@@ -24,6 +28,7 @@ beforeEach(() => {
   localStorage.clear()
   clearCounterMode()
   vi.mocked(ownerPinStatus).mockResolvedValue({ pin_set: true, locked_until: null })
+  vi.mocked(listSharedCashiers).mockResolvedValue([])
   vi.mocked(listShopMembers).mockResolvedValue([
     { id: 'm-awa', active: true, pin_set: true, pin_must_change: false },
   ] as Awaited<ReturnType<typeof listShopMembers>>)
