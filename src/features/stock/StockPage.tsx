@@ -82,7 +82,7 @@ export function StockPage({ shopId }: { shopId: string }) {
           Ajouter un produit
         </button>
       </div>
-      {show && <StockProductForm arrivals={arrivals} onSubmit={save} />}
+      {show && <StockProductForm arrivals={arrivals} products={p} onSubmit={save} />}
       {msg && <p className="successmsg">{msg}</p>}
       <section className="card">
         <div className="search">
