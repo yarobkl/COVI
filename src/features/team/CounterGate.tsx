@@ -11,10 +11,13 @@ import { useTillSession } from './useTillSession'
  */
 export function CounterGate({
   shop,
+  userId,
   signOut,
   children,
 }: {
   shop: Shop
+  /** The signed-in owner (AuthGate): carts rung up at the counter are tied to this account. */
+  userId: string
   signOut: () => Promise<void>
   children: ReactNode
 }) {
@@ -24,6 +27,6 @@ export function CounterGate({
   useEffect(() => {
     if (till && !counter) enterCounterMode(shop.id)
   }, [till, counter, shop.id])
-  if (counter || till) return <CounterApp shop={shop} signOut={signOut} />
+  if (counter || till) return <CounterApp shop={shop} userId={userId} signOut={signOut} />
   return <>{children}</>
 }

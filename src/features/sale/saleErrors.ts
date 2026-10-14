@@ -36,9 +36,13 @@ export function saleErrorMessage(
   }
   if (m.includes('pin required')) return 'Choisissez d’abord votre code PIN pour pouvoir vendre.'
   if (m.includes('till session invalid'))
-    return 'La caisse de ce caissier est fermée ou a expiré. Touchez « Changer » et entrez à nouveau son code PIN.'
+    return 'La caisse de ce caissier est fermée ou a expiré. Touchez « Changer de caissier » et entrez à nouveau son code PIN.'
   if (m.includes('shop not found'))
     return 'Vous n’avez plus accès à cette boutique. Demandez au responsable.'
+  if (m.includes('cannot mix test and real products'))
+    return 'Les articles d’exemple ne se vendent pas avec les vrais. Faites deux ventes séparées.'
+  if (m.includes('duplicate product in cart'))
+    return 'Un article est deux fois dans le panier. Retirez-en un, puis validez à nouveau.'
   if (m.includes('unique piece quantity')) return 'C’est une pièce unique : la quantité est 1.'
   if (m.includes('insufficient stock')) return capitalize(remainingText(context.remaining, ''))
   if (m.includes('product unavailable'))

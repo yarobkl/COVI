@@ -51,6 +51,7 @@ async function unlock() {
 const renderApp = (m: Partial<MemberShop> = {}) =>
   render(
     <CashierApp
+      userId="u-awa"
       membership={{ ...membership, ...m }}
       signOut={vi.fn().mockResolvedValue(undefined)}
       onLostAccess={vi.fn()}

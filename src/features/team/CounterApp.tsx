@@ -195,7 +195,16 @@ function CounterLock({
  * The till locks after 5 minutes without activity (cashier's PIN); only the OWNER's code, checked
  * by the server, gives the full application back.
  */
-export function CounterApp({ shop, signOut }: { shop: Shop; signOut: () => Promise<void> }) {
+export function CounterApp({
+  shop,
+  userId,
+  signOut,
+}: {
+  shop: Shop
+  /** The signed-in owner (AuthGate): carts rung up at the counter are tied to this account. */
+  userId: string
+  signOut: () => Promise<void>
+}) {
   const session = useTillSession(shop.id)
   const [view, setView] = useState<View>('open')
   // Where « Annuler » of the picker and the owner prompt go back to.
@@ -219,8 +228,8 @@ export function CounterApp({ shop, signOut }: { shop: Shop; signOut: () => Promi
     setView('pick')
   }
 
-  if (view === 'leave')
-    return (
+  const screen =
+    view === 'leave' ? (
       <div className="counter">
         <OwnerPinPrompt
           shopId={shop.id}
@@ -233,11 +242,8 @@ export function CounterApp({ shop, signOut }: { shop: Shop; signOut: () => Promi
           onSignOut={() => void signOut()}
         />
       </div>
-    )
-
-  // No till session (expired, closed, page reloaded): someone must take the till first.
-  if (!session || view === 'pick')
-    return (
+    ) : !session || view === 'pick' ? (
+      // No till session (expired, closed, page reloaded): someone must take the till first.
       <div className="counter">
         <p className="pin-screen__shop">{shop.name} · comptoir</p>
         <CashierPicker
@@ -252,10 +258,7 @@ export function CounterApp({ shop, signOut }: { shop: Shop; signOut: () => Promi
           onLeave={() => goLeave('locked')}
         />
       </div>
-    )
-
-  if (view === 'locked')
-    return (
+    ) : view === 'locked' ? (
       <div className="counter">
         <p className="pin-screen__shop">{shop.name} · comptoir</p>
         <CounterLock
@@ -267,72 +270,84 @@ export function CounterApp({ shop, signOut }: { shop: Shop; signOut: () => Promi
           onLeave={() => goLeave('locked')}
         />
       </div>
-    )
+    ) : null
 
+  if (!session) return screen
+
+  // The till of the current cashier stays mounted (hidden) behind the lock, the picker and the
+  // owner's prompt: their cart — a cart waiting for the server's answer above all — is still
+  // there when they come back. Another cashier gets a fresh till (keyed by the session).
   const ownSalesOnly = !session.canViewShopSales
   return (
-    <div className="cashier counter">
-      <header className="cashier__top">
-        <div>
-          <p className="cashier__shop">{shop.name} · comptoir</p>
-          <p className="cashier__who">
-            Caisse de <b>{session.displayName}</b>
-            {session.maxDiscountPct > 0 && ` · remise max ${session.maxDiscountPct} %`}
-          </p>
-        </div>
-        <NetStatus state={sync} shopId={shop.id} />
-        <Button variant="secondary" onClick={() => setView('locked')}>
-          Verrouiller
-        </Button>
-      </header>
-      <nav className="tabs cashier__tabs" aria-label="Caisse">
-        {(
-          [
-            ['vendre', 'Vendre'],
-            ['ventes', ownSalesOnly ? 'Ses ventes' : 'Ventes'],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            className="tabs__tab"
-            aria-current={page === id ? 'page' : undefined}
-            onClick={() => setPage(id)}
-          >
-            {label}
-          </button>
-        ))}
-      </nav>
-      <main className="cashier__page seyes margin-rule" id="contenu">
-        {page === 'vendre' ? (
-          <SalePage
-            shopId={shop.id}
-            shopName={shop.name}
-            seller={{
-              name: session.displayName,
-              maxDiscountPct: session.maxDiscountPct,
-              tillToken: session.token,
-            }}
-          />
-        ) : (
-          <LegacyPage>
-            <HistoryPage
+    <>
+      {screen}
+      <div className="cashier counter" hidden={Boolean(screen)}>
+        <header className="cashier__top">
+          <div>
+            <p className="cashier__shop">{shop.name} · comptoir</p>
+            <p className="cashier__who">
+              Caisse de <b>{session.displayName}</b>
+              {session.maxDiscountPct > 0 && ` · remise max ${session.maxDiscountPct} %`}
+            </p>
+          </div>
+          <NetStatus state={sync} shopId={shop.id} />
+          <Button variant="secondary" onClick={() => setView('locked')}>
+            Verrouiller
+          </Button>
+        </header>
+        <nav className="tabs cashier__tabs" aria-label="Caisse">
+          {(
+            [
+              ['vendre', 'Vendre'],
+              ['ventes', ownSalesOnly ? 'Ses ventes' : 'Ventes'],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              className="tabs__tab"
+              aria-current={page === id ? 'page' : undefined}
+              onClick={() => setPage(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+        <main className="cashier__page seyes margin-rule" id="contenu">
+          <div hidden={page !== 'vendre'}>
+            <SalePage
+              key={session.token}
+              userId={userId}
               shopId={shop.id}
-              mine
-              // A session kept from an older version has no seller id: show nothing rather than all.
-              sellerId={ownSalesOnly ? (session.sellerId ?? '') : undefined}
+              shopName={shop.name}
+              seller={{
+                name: session.displayName,
+                maxDiscountPct: session.maxDiscountPct,
+                tillToken: session.token,
+              }}
+              paused={Boolean(screen) || page !== 'vendre'}
             />
-          </LegacyPage>
-        )}
-      </main>
-      <footer className="cashier__foot">
-        <Button variant="ghost" onClick={() => goPick('open')}>
-          Changer de caissier
-        </Button>
-        <Button variant="ghost" onClick={() => goLeave('open')}>
-          Revenir au responsable
-        </Button>
-      </footer>
-    </div>
+          </div>
+          {page === 'ventes' && (
+            <LegacyPage>
+              <HistoryPage
+                shopId={shop.id}
+                mine
+                // A session kept from an older version has no seller id: show nothing rather than all.
+                sellerId={ownSalesOnly ? (session.sellerId ?? '') : undefined}
+              />
+            </LegacyPage>
+          )}
+        </main>
+        <footer className="cashier__foot">
+          <Button variant="ghost" onClick={() => goPick('open')}>
+            Changer de caissier
+          </Button>
+          <Button variant="ghost" onClick={() => goLeave('open')}>
+            Revenir au responsable
+          </Button>
+        </footer>
+      </div>
+    </>
   )
 }

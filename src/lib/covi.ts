@@ -114,32 +114,6 @@ export async function recordSale(
   if (error) throw error
   return data
 }
-/**
- * Sale made on the owner's shared device in the name of the cashier of a till session
- * (« Changer de caissier »). Online only: the offline queue (lib/offline.ts) does not carry the
- * till session, so a sale kept for later would be attributed to the wrong person.
- */
-export async function recordTillSale(
-  shopId: string,
-  productId: string,
-  quantity: number,
-  soldUnitPrice: number,
-  paymentLabel: string,
-  tillSession: string,
-  clientOperationId = crypto.randomUUID(),
-) {
-  const { data, error } = await supabase.rpc('record_sale', {
-    p_shop_id: shopId,
-    p_product_id: productId,
-    p_quantity: quantity,
-    p_sold_unit_price: soldUnitPrice,
-    p_payment_method: paymentCode(paymentLabel),
-    p_client_operation_id: clientOperationId,
-    p_till_session: tillSession,
-  })
-  if (error) throw error
-  return data
-}
 export async function listSales(shopId: string): Promise<Sale[]> {
   const { data, error } = await supabase
     .from('sales')

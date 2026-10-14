@@ -33,6 +33,8 @@ export function AuthGate({
     shop: Shop,
     signOut: () => Promise<void>,
     updateShop: (shop: Shop) => void,
+    /** The signed-in account of the validated session (sales and carts are tied to it). */
+    userId: string,
   ) => ReactNode
   onSimulation: () => void
 }) {
@@ -178,6 +180,7 @@ export function AuthGate({
     return (
       <CashierApp
         key={membership.member_id}
+        userId={session.user.id}
         membership={membership}
         signOut={signOutEverywhere}
         onLostAccess={reloadMemberships}
@@ -192,5 +195,5 @@ export function AuthGate({
       />
     )
   }
-  return <>{children(shop!, signOutEverywhere, setShop)}</>
+  return <>{children(shop!, signOutEverywhere, setShop, session.user.id)}</>
 }

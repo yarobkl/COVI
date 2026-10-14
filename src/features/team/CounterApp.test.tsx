@@ -56,7 +56,7 @@ const OwnerApp = () => (
 const signOut = vi.fn().mockResolvedValue(undefined)
 const renderGate = () =>
   render(
-    <CounterGate shop={shop} signOut={signOut}>
+    <CounterGate shop={shop} userId="u-owner" signOut={signOut}>
       <OwnerApp />
     </CounterGate>,
   )
@@ -69,6 +69,9 @@ function answer(leave: unknown, unlock: unknown = { status: 'ok' }) {
     return Promise.resolve({ data: null, error: { message: 'unexpected ' + name } })
   }) as never)
 }
+
+/** The till is shown (not only mounted behind a lock screen). */
+const tillShown = () => screen.getByText('page:sale:Awa:till').closest('[hidden]') === null
 
 const type = (pin: string) => {
   for (const d of pin) fireEvent.click(screen.getByRole('button', { name: d }))
@@ -174,8 +177,9 @@ describe('Counter mode (owner’s shared device)', () => {
     enterCounterMode('shop-1')
     renderGate()
     fireEvent.click(screen.getByRole('button', { name: 'Revenir au responsable' }))
+    expect(tillShown()).toBe(false)
     fireEvent.click(screen.getByRole('button', { name: 'Rester au comptoir' }))
-    expect(screen.getByText('page:sale:Awa:till')).toBeTruthy()
+    expect(tillShown()).toBe(true)
   })
 
   it('locks after 5 minutes without activity; the cashier’s PIN reopens it', async () => {
@@ -188,7 +192,8 @@ describe('Counter mode (owner’s shared device)', () => {
       vi.advanceTimersByTime(INACTIVITY_MS + 10)
     })
     expect(screen.getByText('Caisse de Awa verrouillée')).toBeTruthy()
-    expect(screen.queryByText('page:sale:Awa:till')).toBeNull()
+    // The till stays mounted behind the lock (the cart is kept), but hidden.
+    expect(screen.getByText('page:sale:Awa:till').closest('[hidden]')).toBeTruthy()
     type('1111')
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Reprendre la caisse' }))
@@ -204,7 +209,7 @@ describe('Counter mode (owner’s shared device)', () => {
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Reprendre la caisse' }))
     })
-    expect(screen.getByText('page:sale:Awa:till')).toBeTruthy()
+    expect(tillShown()).toBe(true)
   })
 
   it('from the lock, « Changer de caissier » then « Annuler » stays locked', () => {

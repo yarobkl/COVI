@@ -56,6 +56,7 @@ function renderApp(overrides: Partial<Shop> = {}) {
   const onSimulation = vi.fn()
   const view = render(
     <App
+      userId="u-owner"
       shop={{ ...shop, ...overrides }}
       signOut={signOut}
       updateShop={vi.fn()}

@@ -24,6 +24,8 @@ import { useHashRoute } from './useHashRoute'
 
 type PageContext = {
   shop: Shop
+  /** The signed-in account of the validated session (AuthGate). */
+  userId: string
   updateShop: (shop: Shop) => void
   navigate: (route: Route) => void
   onSimulation: () => void
@@ -65,12 +67,15 @@ function ArrivalsScreen({ shopId, filter }: { shopId: string; filter?: ArrivalFi
   )
 }
 
-function renderPage(route: Route, { shop, updateShop, onSimulation, ownerId }: PageContext) {
+function renderPage(
+  route: Route,
+  { shop, userId, updateShop, onSimulation, ownerId }: PageContext,
+) {
   switch (route.page) {
     case 'accueil':
       return <DashboardPage shop={shop} onSimulation={onSimulation} />
     case 'vendre':
-      return <SalePage shopId={shop.id} shopName={shop.name} owner />
+      return <SalePage userId={userId} shopId={shop.id} shopName={shop.name} owner />
     case 'stock':
       return (
         <LegacyPage>
@@ -193,11 +198,14 @@ function SignOutDialog({
  */
 export function App({
   shop,
+  userId,
   signOut,
   updateShop,
   onSimulation,
 }: {
   shop: Shop
+  /** The signed-in account of the validated session (AuthGate). */
+  userId: string
   signOut: () => Promise<void>
   updateShop: (shop: Shop) => void
   onSimulation: () => void
@@ -232,7 +240,14 @@ export function App({
     setMenuOpen(false)
     setSignOutOpen(true)
   }
-  const ctx: PageContext = { shop, updateShop, navigate, onSimulation, ownerId: user?.id ?? null }
+  const ctx: PageContext = {
+    shop,
+    userId,
+    updateShop,
+    navigate,
+    onSimulation,
+    ownerId: user?.id ?? userId,
+  }
 
   return (
     <div className="shell">
