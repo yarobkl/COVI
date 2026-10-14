@@ -300,21 +300,30 @@ Production : projet `bmbwmwgfzrijglzcgjut`. **Rien n’a été appliqué** par c
 7. Faites un essai réel avec un compte caissier de test (données `is_test`) : invitation, PIN,
    vente au minimum, vente refusée sous le minimum, désactivation.
 
+## Compatibilité avec la production actuelle
+
+Les migrations sont appliquées **avant** le nouveau front. `tests/sql/production_compat.sql`
+rejoue, en propriétaire authentifié et après toutes les migrations, chaque appel Supabase du
+front de `main` (création de boutique avec quartier et GPS, produits, arrivages, charges,
+réglages de la boutique, photos, `record_sale` sans `p_till_session`). Il passe : le front
+actuellement en ligne continue de fonctionner sur la base migrée.
+
 ## Retour arrière
 
 - **Front seul.** Redéployez la version précédente. La base reste compatible : l’ancien front
   appelle `record_sale` sans `p_till_session` et vend au nom du propriétaire.
-- **Base.** Désactivez d’abord les caissiers (`set_member_active(false)`) ou fermez l’accès en
-  retirant `EXECUTE` sur les RPC de l’équipe. C’est immédiat et sans perte. Une suppression
-  complète se fait par une nouvelle migration qui :
-  1. recrée `record_sale` et `record_cart_sale` dans leur version `20261010*`, réservée au
-     propriétaire, après `drop function` des versions à 7 et 5 paramètres ;
-  2. supprime les politiques `*_member_select` et `COVI members read product images` ;
-  3. supprime `till_sessions`, `member_pins`, `shop_audit_log`, `shop_member_invite_attempts`,
-     `shop_member_invites` et `shop_members`, ainsi que leurs fonctions.
+- **Base, arrêt immédiat sans perte.** Désactivez les caissiers (`set_member_active(false)`).
+- **Base, retour complet.** Trois scripts testés (`tests/sql/rollback.sql`), à exécuter dans
+  l’ordre, chacun en une transaction avec le rôle postgres, puis `notify pgrst, 'reload schema'` :
+  1. `supabase/rollback/1_caisse_20261014.sql` : annule 20261014090000 à 20261014090300
+     (équipe, invitations, PIN, sessions de caisse, code du responsable, déverrouillages PIN,
+     journal) et remet `record_sale` / `record_cart_sale` en version propriétaire seul ;
+  2. `supabase/rollback/2_agregats_panier_20261013.sql` : annule 20261013100100 et 20261013100200 ;
+  3. `supabase/rollback/3_ecritures_sensibles_20261013.sql` : annule 20261013100000.
 
-  `sales.seller_id` peut rester : la colonne est nullable et ignorée par l’ancien code. Exportez
-  `shop_audit_log` avant de le supprimer.
+  Les boutiques, produits, ventes, arrivages et charges ne sont jamais touchés.
+  `sales.seller_id` reste (nullable, ignorée par l’ancien front). Exportez `shop_audit_log` et
+  la liste de l’équipe avant le script 1.
 
 ## État réel et limites avant publication
 
