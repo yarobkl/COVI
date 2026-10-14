@@ -24,11 +24,10 @@ export function TillSwitch({ shopId }: { shopId: string }) {
     setBusy(true)
     setError('')
     try {
-      const [owner, members] = await Promise.all([
-        ownerPinStatus(shopId),
-        listShopMembers(shopId),
-      ])
-      if (!members.some((member) => member.active && member.pin_set && !member.pin_must_change)) {
+      const [owner, members] = await Promise.all([ownerPinStatus(shopId), listShopMembers(shopId)])
+      if (
+        !members.some((member) => member.active && member.pin_set && !member.pin_must_change)
+      ) {
         setError(
           'Aucun caissier prêt. Invitez un employé dans Ma boutique → Équipe et demandez-lui de créer son PIN personnel.',
         )
@@ -64,20 +63,11 @@ export function TillSwitch({ shopId }: { shopId: string }) {
   return (
     <section className="card till-switch">
       <h2>Passer en caisse</h2>
-      <p>
-        Le compte de gestion de la boutique reste connecté. Chaque caissier choisit
-        son prénom et saisit son propre code PIN avant de vendre.
-      </p>
-      <p className="muted">
-        Les ventes sont enregistrées au nom du caissier sélectionné, avec sa limite
-        de remise. Vous pouvez changer de caissier sans vous déconnecter.
-      </p>
+      <p>Chaque caissier choisit son prénom et saisit son propre PIN avant de vendre.</p>
+      <p className="muted">La gestion reste connectée. Les ventes portent le nom du caissier.</p>
       {pending > 0 && (
         <Notice tone="danger">
-          <p>
-            {pending} vente(s) en attente de synchronisation. Attendez leur envoi
-            avant de changer de caisse.
-          </p>
+          <p>{pending} vente(s) en attente. Attendez leur synchronisation.</p>
         </Notice>
       )}
       {error && (
