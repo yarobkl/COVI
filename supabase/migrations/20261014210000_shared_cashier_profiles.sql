@@ -552,3 +552,48 @@ begin
   return v_sale_id;
 end;
 $function$;
+
+-- Returning to management uses the existing owner PIN and closes the active cashier till.
+CREATE OR REPLACE FUNCTION public.leave_counter_mode(p_shop_id uuid, p_pin text, p_token text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  v_check jsonb;
+  v_session public.till_sessions%rowtype;
+begin
+  perform public.assert_shop_owner(p_shop_id);
+  v_check := public.owner_pin_check(p_shop_id, p_pin);
+  if v_check ->> 'status' <> 'ok' then
+    perform public.owner_pin_audit_failure(p_shop_id, 'leave_counter_mode', v_check);
+    return v_check;
+  end if;
+  if p_token is not null and p_token ~ '^[0-9a-f]{64}$' then
+    update public.till_sessions t
+    set closed_at = pg_catalog.now()
+    where t.token_hash = pg_catalog.sha256(pg_catalog.convert_to('covi-till:' || p_token, 'UTF8'))
+      and t.shop_id = p_shop_id and t.closed_at is null
+    returning * into v_session;
+    if found then
+      perform public.shop_audit(p_shop_id, 'till_session_closed', v_session.member_id::text,
+        pg_catalog.jsonb_build_object('session_id', v_session.id));
+    end if;
+  end if;
+  -- PIN accepted: close a shared-account cashier profile session atomically as well.
+  if p_token is not null and p_token ~ '^[0-9a-f]{64}
+  return v_check;
+end;
+$function$
+ then
+    update public.shop_cashier_tills
+    set closed_at=now()
+    where shop_id=p_shop_id and opened_by=auth.uid() and closed_at is null
+      and token_hash=pg_catalog.sha256(
+        pg_catalog.convert_to('covi-shared-cashier:'||p_token,'UTF8'));
+  end if;
+  perform public.shop_audit(p_shop_id, 'counter_mode_left', null, '{}'::jsonb);
+  return v_check;
+end;
+$function$;
