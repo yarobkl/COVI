@@ -96,5 +96,4 @@ describe('QR client — types vendus, indépendamment des références et du sto
     fireEvent.click(screen.getByRole('button', { name: 'Retirer la photo' }))
     expect(screen.queryByAltText('Aperçu de la photo du modèle à commander')).toBeNull()
   })
-
 })

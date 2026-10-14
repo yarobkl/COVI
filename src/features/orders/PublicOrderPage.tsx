@@ -329,9 +329,9 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
         <section className="order-guest__reference-photo" aria-label="Photo du modèle recherché">
           <h3>Ajouter une photo du modèle (facultatif)</h3>
           <p className="muted">
-            Vous avez vu un vêtement sur WhatsApp, TikTok ou ailleurs ? Joignez une capture
-            d’écran ou une photo depuis votre téléphone pour montrer le modèle à la boutique.
-            Une photo peut accompagner cette demande.
+            Vous avez vu un vêtement sur WhatsApp, TikTok ou ailleurs ? Joignez une capture d’écran
+            ou une photo depuis votre téléphone pour montrer le modèle à la boutique. Une photo peut
+            accompagner cette demande.
           </p>
           <label htmlFor={`${ids}-reference-photo`}>Capture d’écran ou photo du modèle</label>
           <input
@@ -354,13 +354,21 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
           {photo && (
             <>
               <p role="status">Photo ajoutée à votre demande</p>
-              <img className="order-guest__photo" src={photo} alt="Aperçu de la photo du modèle à commander" />
+              <img
+                className="order-guest__photo"
+                src={photo}
+                alt="Aperçu de la photo du modèle à commander"
+              />
               <Button variant="secondary" onClick={() => setPhoto(null)}>
                 Retirer la photo
               </Button>
             </>
           )}
-          {photoError && <p className="field__error" role="alert">{photoError}</p>}
+          {photoError && (
+            <p className="field__error" role="alert">
+              {photoError}
+            </p>
+          )}
         </section>
 
         {lines.length < 20 && (
