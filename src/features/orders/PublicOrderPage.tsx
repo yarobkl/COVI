@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useId, useState } from 'react'
-import { Button, Notice } from '../../components/ui'
+import { useCallback, useEffect, useState } from 'react'
+import { AmountInput, Button, Field, Notice, Segmented, Stamp } from '../../components/ui'
 import { money } from '../../lib/format'
 import { DEFAULT_ARTICLE_TYPES } from '../../lib/articleTypes'
 import {
@@ -15,6 +15,7 @@ import {
   type PaymentMethod,
   type PublicCatalog,
 } from '../../lib/publicOrders'
+import { GuestSheet } from './GuestSheet'
 import { TurnstileChallenge } from './TurnstileChallenge'
 
 type Line = {
@@ -63,7 +64,6 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
     trackingToken: string
     photoSaved: boolean | null
   } | null>(null)
-  const ids = useId()
 
   const load = useCallback(() => {
     fetchCatalog(token)
@@ -89,12 +89,14 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
 
   if (done)
     return (
-      <main className="order-guest" id="contenu">
-        <section className="order-guest__card">
-          <p className="order-guest__shop">{catalog?.shopName}</p>
-          <h1>Demande envoyée</h1>
+      <GuestSheet shop={catalog?.shopName}>
+        <section className="order-guest__part order-guest__done">
+          <h1 className="section-title">Demande envoyée</h1>
+          <Stamp kind="received" size="lg" drop>
+            Reçue
+          </Stamp>
           <p className="order-guest__ref">
-            Référence <b>{done.reference}</b>
+            Référence <span className="figures">{done.reference}</span>
           </p>
           <Notice tone="calm">
             <p>
@@ -113,14 +115,14 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
             Suivre ma commande {done.reference}
           </a>
         </section>
-      </main>
+      </GuestSheet>
     )
 
   if (loadError)
     return (
-      <main className="order-guest" id="contenu">
-        <section className="order-guest__card">
-          <h1>Commande en ligne</h1>
+      <GuestSheet>
+        <section className="order-guest__part">
+          <h1 className="section-title">Commande en ligne</h1>
           <Notice tone="danger">
             <p>{loadError}</p>
           </Notice>
@@ -134,14 +136,16 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
             Réessayer
           </Button>
         </section>
-      </main>
+      </GuestSheet>
     )
 
   if (!catalog)
     return (
-      <main className="order-guest" id="contenu">
-        <p role="status">Ouverture de la boutique…</p>
-      </main>
+      <GuestSheet>
+        <p className="hand order-guest__loading" role="status">
+          Ouverture de la boutique…
+        </p>
+      </GuestSheet>
     )
 
   // The customer's drop-down is an assortment of article TYPES, not stock references.
@@ -205,161 +209,201 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
     }
   }
 
+  const place = [catalog.neighborhood, catalog.city].filter(Boolean).join(', ')
+
   return (
-    <main className="order-guest" id="contenu">
-      <section className="order-guest__card">
-        <p className="order-guest__shop">
-          {catalog.shopName}
-          {[catalog.neighborhood, catalog.city].filter(Boolean).length > 0 &&
-            ` · ${[catalog.neighborhood, catalog.city].filter(Boolean).join(', ')}`}
-        </p>
-        <h1>Commander</h1>
-        {catalog.message && <p className="order-guest__message">{catalog.message}</p>}
-        {!catalog.ordersOpen && (
-          <Notice tone="danger">
-            <p>Les commandes en ligne sont momentanément fermées. Contactez la boutique.</p>
-          </Notice>
-        )}
-      </section>
+    <GuestSheet shop={catalog.shopName} place={place}>
+      <header className="order-guest__head">
+        <h1 className="section-title">Bon de commande</h1>
+        <p className="hand order-guest__hand">Sans compte, et vous ne payez rien ici.</p>
+      </header>
+      {catalog.message && <p className="order-guest__message hand">{catalog.message}</p>}
+      {!catalog.ordersOpen && (
+        <Notice tone="danger">
+          <p>Les commandes en ligne sont momentanément fermées. Contactez la boutique.</p>
+        </Notice>
+      )}
 
       <form
-        className="order-guest__card"
+        className="order-guest__form"
         onSubmit={(e) => {
           e.preventDefault()
           if (ready) void send()
         }}
       >
-        <h2>Vos articles</h2>
-        {catalog.showCatalog && (
-          <p className="muted">
-            Choisissez ce que vous recherchez, même si la boutique n’en a pas en stock actuellement.
-            Le commerçant confirmera la disponibilité et le prix avant le règlement.
-          </p>
-        )}
-        {lines.map((line, index) => (
-          <fieldset key={line.key} className="order-guest__line">
-            <legend>Article {index + 1}</legend>
-            {free ? (
-              <label>
-                Article souhaité
-                <input
-                  className="input"
-                  value={line.description}
-                  maxLength={120}
-                  placeholder="Ex. robe wax rouge vue dans votre statut"
-                  onChange={(e) => update(line.key, { description: e.target.value })}
-                />
-              </label>
-            ) : (
-              <>
-                <label>
-                  Choisir un article
-                  <select
-                    className="select"
-                    value={line.articleType}
-                    onChange={(e) =>
-                      update(line.key, { articleType: e.target.value, description: '' })
-                    }
-                  >
-                    <option value="">Sélectionner un type d’article…</option>
-                    {articleTypes.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                    <option value={OTHER_ARTICLE}>Autre article</option>
-                  </select>
-                </label>
-                <label>
-                  {line.articleType === OTHER_ARTICLE
-                    ? 'Précisez l’article souhaité'
-                    : 'Précisions : taille, couleur ou modèle (facultatif)'}
-                  <input
-                    className="input"
-                    value={line.description}
-                    maxLength={line.articleType === OTHER_ARTICLE ? 120 : 60}
-                    placeholder={
+        <section className="order-guest__part">
+          <h2 className="section-title">Vos articles</h2>
+          {catalog.showCatalog && (
+            <p className="order-guest__lead">
+              Choisissez ce que vous recherchez, même si la boutique n’en a pas en stock
+              actuellement. Le commerçant confirmera la disponibilité et le prix avant le règlement.
+            </p>
+          )}
+          {lines.map((line, index) => (
+            <fieldset key={line.key} className="order-guest__line">
+              <legend className="order-guest__num hand">Article {index + 1}</legend>
+              {free ? (
+                <Field label="Article souhaité">
+                  {(control) => (
+                    <input
+                      {...control}
+                      className="input"
+                      value={line.description}
+                      maxLength={120}
+                      placeholder="Ex. robe wax rouge vue dans votre statut"
+                      onChange={(e) => update(line.key, { description: e.target.value })}
+                    />
+                  )}
+                </Field>
+              ) : (
+                <>
+                  <Field label="Choisir un article">
+                    {(control) => (
+                      <select
+                        {...control}
+                        className="select"
+                        value={line.articleType}
+                        onChange={(e) =>
+                          update(line.key, { articleType: e.target.value, description: '' })
+                        }
+                      >
+                        <option value="">Sélectionner un type d’article…</option>
+                        {articleTypes.map((type) => (
+                          <option key={type} value={type}>
+                            {type}
+                          </option>
+                        ))}
+                        <option value={OTHER_ARTICLE}>Autre article</option>
+                      </select>
+                    )}
+                  </Field>
+                  <Field
+                    label={
                       line.articleType === OTHER_ARTICLE
-                        ? 'Ex. tenue traditionnelle pour enfant'
-                        : 'Ex. taille L, bleu, vu sur WhatsApp'
+                        ? 'Précisez l’article souhaité'
+                        : 'Précisions : taille, couleur ou modèle'
                     }
-                    onChange={(e) => update(line.key, { description: e.target.value })}
-                  />
-                </label>
-              </>
-            )}
-            <div className="order-guest__row">
-              <label>
-                Quantité
-                <select
-                  className="select"
-                  value={line.quantity}
-                  onChange={(e) => update(line.key, { quantity: Number(e.target.value) })}
+                    optional={line.articleType !== OTHER_ARTICLE}
+                  >
+                    {(control) => (
+                      <input
+                        {...control}
+                        className="input"
+                        value={line.description}
+                        maxLength={line.articleType === OTHER_ARTICLE ? 120 : 60}
+                        placeholder={
+                          line.articleType === OTHER_ARTICLE
+                            ? 'Ex. tenue traditionnelle pour enfant'
+                            : 'Ex. taille L, bleu, vu sur WhatsApp'
+                        }
+                        onChange={(e) => update(line.key, { description: e.target.value })}
+                      />
+                    )}
+                  </Field>
+                </>
+              )}
+              <div className="order-guest__row">
+                <Field label="Quantité">
+                  {(control) => (
+                    <select
+                      {...control}
+                      className="select"
+                      value={line.quantity}
+                      onChange={(e) => update(line.key, { quantity: Number(e.target.value) })}
+                    >
+                      {Array.from({ length: 20 }, (_, i) => i + 1).map((n) => (
+                        <option key={n} value={n}>
+                          {n}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </Field>
+                <Field label="Prix proposé" optional>
+                  {(control) => (
+                    <AmountInput
+                      {...control}
+                      value={line.price}
+                      placeholder="0"
+                      onChange={(e) =>
+                        update(line.key, { price: e.target.value.replace(/\D/g, '').slice(0, 9) })
+                      }
+                    />
+                  )}
+                </Field>
+              </div>
+              {lines.length > 1 && (
+                <Button
+                  variant="ghost"
+                  className="order-guest__remove"
+                  onClick={() => setLines((all) => all.filter((l) => l.key !== line.key))}
                 >
-                  {Array.from({ length: 20 }, (_, i) => i + 1).map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Prix proposé (facultatif)
-                <input
-                  className="input input--amount"
-                  inputMode="numeric"
-                  value={line.price}
-                  placeholder="FCFA"
-                  onChange={(e) =>
-                    update(line.key, { price: e.target.value.replace(/\D/g, '').slice(0, 9) })
-                  }
-                />
-              </label>
-            </div>
-            {lines.length > 1 && (
-              <Button
-                variant="ghost"
-                onClick={() => setLines((all) => all.filter((l) => l.key !== line.key))}
-              >
-                Retirer cet article
-              </Button>
-            )}
-          </fieldset>
-        ))}
-        <section className="order-guest__reference-photo" aria-label="Photo du modèle recherché">
-          <h3>Ajouter une photo du modèle (facultatif)</h3>
-          <p className="muted">
-            Vous avez vu un vêtement sur WhatsApp, TikTok ou ailleurs ? Joignez une capture d’écran
-            ou une photo depuis votre téléphone pour montrer le modèle à la boutique. Une photo peut
-            accompagner cette demande.
+                  Retirer cet article
+                </Button>
+              )}
+            </fieldset>
+          ))}
+          {lines.length < 20 && (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setLines((all) => [...all, emptyLine(nextKey)])
+                setNextKey((k) => k + 1)
+              }}
+            >
+              + Ajouter un autre article
+            </Button>
+          )}
+          {total > 0 && (
+            <p className="order-guest__total">
+              <span>Total indicatif</span>
+              <span className="order-guest__dots" aria-hidden="true" />
+              <b className="figures">{money(total)}</b>
+            </p>
+          )}
+          {total > 0 && <p className="muted">Le prix final est confirmé par la boutique.</p>}
+        </section>
+
+        <section
+          className="order-guest__part order-guest__reference-photo"
+          aria-label="Photo du modèle recherché"
+        >
+          <h2 className="section-title">
+            Photo du modèle <span className="field__optional">(facultatif)</span>
+          </h2>
+          <p className="order-guest__lead">
+            Vu sur WhatsApp, TikTok ou ailleurs ? Joignez une capture d’écran ou une photo pour
+            montrer le modèle à la boutique.
           </p>
-          <label htmlFor={`${ids}-reference-photo`}>Capture d’écran ou photo du modèle</label>
-          <input
-            id={`${ids}-reference-photo`}
-            type="file"
-            accept="image/*"
-            aria-label="Ajouter une capture d’écran ou une photo du modèle"
-            onChange={async (e) => {
-              const file = e.target.files?.[0]
-              setPhotoError('')
-              if (!file) return setPhoto(null)
-              try {
-                setPhoto(await compressReferencePhoto(file))
-              } catch (err) {
-                setPhoto(null)
-                setPhotoError((err as Error).message)
-              }
-            }}
-          />
+          {!photo && (
+            <label className="btn btn--secondary order-guest__upload">
+              <input
+                className="visually-hidden"
+                type="file"
+                accept="image/*"
+                aria-label="Ajouter une capture d’écran ou une photo du modèle"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  setPhotoError('')
+                  if (!file) return setPhoto(null)
+                  try {
+                    setPhoto(await compressReferencePhoto(file))
+                  } catch (err) {
+                    setPhoto(null)
+                    setPhotoError((err as Error).message)
+                  }
+                }}
+              />
+              Ajouter une capture ou une photo
+            </label>
+          )}
           {photo && (
             <>
-              <p role="status">Photo ajoutée à votre demande</p>
-              <img
-                className="order-guest__photo"
-                src={photo}
-                alt="Aperçu de la photo du modèle à commander"
-              />
-              <Button variant="secondary" onClick={() => setPhoto(null)}>
+              <figure className="order-guest__polaroid">
+                <img src={photo} alt="Aperçu de la photo du modèle à commander" />
+                <figcaption className="hand">Photo ajoutée à votre demande</figcaption>
+              </figure>
+              <Button variant="ghost" onClick={() => setPhoto(null)}>
                 Retirer la photo
               </Button>
             </>
@@ -371,131 +415,110 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
           )}
         </section>
 
-        {lines.length < 20 && (
-          <Button
-            variant="secondary"
-            onClick={() => {
-              setLines((all) => [...all, emptyLine(nextKey)])
-              setNextKey((k) => k + 1)
-            }}
-          >
-            Ajouter un autre article à ma demande
+        <section className="order-guest__part">
+          <h2 className="section-title">Vos coordonnées</h2>
+          <Field label="Votre nom">
+            {(control) => (
+              <input
+                {...control}
+                className="input"
+                value={name}
+                maxLength={60}
+                autoComplete="name"
+                onChange={(e) => setName(e.target.value)}
+              />
+            )}
+          </Field>
+          <Field label="Téléphone (WhatsApp de préférence)">
+            {(control) => (
+              <input
+                {...control}
+                className="input"
+                value={phone}
+                inputMode="tel"
+                autoComplete="tel"
+                maxLength={32}
+                placeholder="+242 06 …"
+                onChange={(e) => setPhone(e.target.value)}
+              />
+            )}
+          </Field>
+        </section>
+
+        <section className="order-guest__part">
+          <Segmented
+            legend={<span className="section-title">Réception</span>}
+            options={[
+              { value: 'pickup', label: 'Retrait en boutique' },
+              { value: 'delivery', label: 'Livraison' },
+            ]}
+            value={fulfillment}
+            onChange={setFulfillment}
+          />
+          {fulfillment === 'delivery' && (
+            <Field label="Adresse de livraison (quartier, rue, repère)">
+              {(control) => (
+                <textarea
+                  {...control}
+                  className="input order-guest__textarea"
+                  rows={2}
+                  maxLength={240}
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                />
+              )}
+            </Field>
+          )}
+        </section>
+
+        <section className="order-guest__part">
+          <Segmented
+            legend={<span className="section-title">Règlement</span>}
+            options={paymentMethods.map((m) => ({ value: m, label: paymentMethodLabels[m] }))}
+            value={method}
+            onChange={setMethod}
+          />
+          <p className="order-guest__promise">
+            <mark>Vous ne payez rien sur cette page.</mark> La boutique vous indiquera comment
+            régler et confirmera elle-même la réception de votre règlement.
+          </p>
+          <Field label="Message pour la boutique" optional>
+            {(control) => (
+              <textarea
+                {...control}
+                className="input order-guest__textarea"
+                rows={3}
+                maxLength={500}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            )}
+          </Field>
+        </section>
+
+        <section className="order-guest__part order-guest__send">
+          {catalog.ordersOpen && <TurnstileChallenge onToken={setChallenge} resetKey={resetKey} />}
+          {error && (
+            <Notice tone="danger">
+              <p>{error}</p>
+            </Notice>
+          )}
+          <Button type="submit" variant="primary" block busy={busy} disabled={!ready}>
+            Envoyer ma demande
           </Button>
-        )}
-        {total > 0 && (
-          <p className="order-guest__total">
-            Total indicatif : <b>{money(total)}</b>
-            <br />
-            <span className="muted">Le prix final est confirmé par la boutique.</span>
-          </p>
-        )}
-
-        <h2>Vos coordonnées</h2>
-        <label htmlFor={`${ids}-name`}>Votre nom</label>
-        <input
-          id={`${ids}-name`}
-          className="input"
-          value={name}
-          maxLength={60}
-          autoComplete="name"
-          onChange={(e) => setName(e.target.value)}
-        />
-        <label htmlFor={`${ids}-phone`}>Téléphone (WhatsApp de préférence)</label>
-        <input
-          id={`${ids}-phone`}
-          className="input"
-          value={phone}
-          inputMode="tel"
-          autoComplete="tel"
-          maxLength={32}
-          placeholder="+242 06 …"
-          onChange={(e) => setPhone(e.target.value)}
-        />
-
-        <h2>Réception</h2>
-        <div className="order-guest__choices" role="radiogroup" aria-label="Réception">
-          {(
-            [
-              ['pickup', 'Retrait en boutique'],
-              ['delivery', 'Livraison'],
-            ] as const
-          ).map(([value, label]) => (
-            <label key={value} className="order-guest__choice">
-              <input
-                type="radio"
-                name={`${ids}-fulfillment`}
-                checked={fulfillment === value}
-                onChange={() => setFulfillment(value)}
-              />
-              {label}
-            </label>
-          ))}
-        </div>
-        {fulfillment === 'delivery' && (
-          <>
-            <label htmlFor={`${ids}-address`}>Adresse de livraison (quartier, rue, repère)</label>
-            <textarea
-              id={`${ids}-address`}
-              className="input"
-              rows={2}
-              maxLength={240}
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-            />
-          </>
-        )}
-
-        <h2>Règlement</h2>
-        <div className="order-guest__choices" role="radiogroup" aria-label="Moyen de règlement">
-          {paymentMethods.map((m) => (
-            <label key={m} className="order-guest__choice">
-              <input
-                type="radio"
-                name={`${ids}-payment`}
-                checked={method === m}
-                onChange={() => setMethod(m)}
-              />
-              {paymentMethodLabels[m]}
-            </label>
-          ))}
-        </div>
-        <p className="muted">
-          Vous ne payez rien sur cette page. La boutique vous indiquera comment régler et confirmera
-          elle-même la réception de votre règlement.
-        </p>
-
-        <label htmlFor={`${ids}-note`}>Message pour la boutique (facultatif)</label>
-        <textarea
-          id={`${ids}-note`}
-          className="input"
-          rows={3}
-          maxLength={500}
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-        />
-
-        {catalog.ordersOpen && <TurnstileChallenge onToken={setChallenge} resetKey={resetKey} />}
-        {error && (
-          <Notice tone="danger">
-            <p>{error}</p>
-          </Notice>
-        )}
-        <Button type="submit" variant="primary" block busy={busy} disabled={!ready}>
-          Envoyer ma demande
-        </Button>
-        {!ready && !busy && catalog.ordersOpen && (
-          <p className="muted">
-            {!linesValid
-              ? 'Choisissez au moins un article.'
-              : !name.trim() || !phoneValid
-                ? 'Indiquez votre nom et un numéro de téléphone valide.'
-                : fulfillment === 'delivery' && !address.trim()
-                  ? 'Indiquez l’adresse de livraison.'
-                  : 'Validez la vérification de sécurité ci-dessus.'}
-          </p>
-        )}
+          {!ready && !busy && catalog.ordersOpen && (
+            <p className="order-guest__why">
+              {!linesValid
+                ? 'Choisissez au moins un article.'
+                : !name.trim() || !phoneValid
+                  ? 'Indiquez votre nom et un numéro de téléphone valide.'
+                  : fulfillment === 'delivery' && !address.trim()
+                    ? 'Indiquez l’adresse de livraison.'
+                    : 'Validez la vérification de sécurité ci-dessus.'}
+            </p>
+          )}
+        </section>
       </form>
-      <p className="order-guest__footer muted">Commande gérée avec COVI — Commerce &amp; Vie</p>
-    </main>
+    </GuestSheet>
   )
 }
