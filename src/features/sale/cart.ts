@@ -150,6 +150,8 @@ export type SoldSale = {
   received: number | null
   /** Kept on the device, to be sent when the network comes back. */
   offline: boolean
+  /** Server-assigned UUID of the recorded sale, absent when still offline. */
+  saleId?: string
   at: Date
   /** The cashier who sold, when it is not the owner in their own name. */
   sellerName?: string
