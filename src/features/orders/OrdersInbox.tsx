@@ -255,7 +255,7 @@ function OrderCard({
         <p className="order-card__paid">
           Encaissée le {order.confirmedAt ? dateTime(order.confirmedAt) : ''} ·{' '}
           {order.paidMethod ? paymentMethodLabels[order.paidMethod] : ''}
-          {order.paymentReference ? ` · réf. ${order.paymentReference}` : ''}
+          {order.paymentReference ? ` · Transaction externe : ${order.paymentReference}` : ''}
           {order.cashierName ? ` · caisse de ${order.cashierName}` : ''}
         </p>
       )}
@@ -431,6 +431,7 @@ function ConfirmPaymentDialog({
         orderId: order.id,
         paidMethod: method,
         paymentReference: reference.trim() || null,
+        paymentVerified: verified,
         lines: lines.map((l) => ({
           lineId: l.lineId,
           productId: l.productId,
@@ -526,15 +527,16 @@ function ConfirmPaymentDialog({
           </select>
         </label>
         <label>
-          Référence de l’opération {method === 'cash' ? '(facultatif)' : '(SMS, ticket ou avis)'}
+          Numéro de transaction externe (facultatif)
           <input
             className="input"
             value={reference}
             maxLength={64}
-            placeholder={method === 'mobile_money' ? 'N° de transaction du SMS reçu' : ''}
+            placeholder={method === 'mobile_money' ? 'Référence SMS si disponible' : method === 'card' ? 'Référence du ticket, si disponible' : method === 'bank_transfer' ? 'Référence du virement, si disponible' : 'Aucune référence nécessaire'}
             onChange={(e) => setReference(e.target.value)}
           />
         </label>
+        <p className="muted">La référence COVI sera générée automatiquement après confirmation. Un numéro externe n’est jamais obligatoire et ne prouve pas, à lui seul, que le paiement est reçu.</p>
         <label className="order-confirm__check">
           <input
             type="checkbox"
