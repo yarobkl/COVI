@@ -444,4 +444,3 @@ describe('SalePage — counter mode (till session on the owner’s device)', () 
     expect(rpc.mock.calls[1][1]).toMatchObject({ p_till_session: TOKEN })
   })
 })
-
