@@ -18,6 +18,7 @@ export type NavEntry = { page: PageId; label: string; icon: ComponentType<IconPr
 export const pages: Record<PageId, NavEntry> = {
   accueil: { page: 'accueil', label: 'Accueil', icon: HomeIcon },
   vendre: { page: 'vendre', label: 'Vendre', icon: ReceiptIcon },
+  commandes: { page: 'commandes', label: 'Commandes', icon: BoxIcon },
   stock: { page: 'stock', label: 'Stock', icon: HangerIcon },
   arrivages: { page: 'arrivages', label: 'Arrivages', icon: BoxIcon },
   ventes: { page: 'ventes', label: 'Ventes', icon: NotebookIcon },
@@ -29,6 +30,7 @@ export const pages: Record<PageId, NavEntry> = {
 /** Computer « Sommaire », under the « Nouvelle vente » key (which leads to Vendre). */
 export const sommaire: readonly NavEntry[] = [
   pages.accueil,
+  pages.commandes,
   pages.stock,
   pages.arrivages,
   pages.ventes,
@@ -42,6 +44,7 @@ export const bottomBar: readonly NavEntry[] = [pages.accueil, pages.vendre, page
 
 /** Pages listed in the « Plus » menu on phones. */
 export const morePages: readonly NavEntry[] = [
+  pages.commandes,
   pages.arrivages,
   pages.ventes,
   pages.charges,

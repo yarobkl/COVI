@@ -7,6 +7,7 @@ import { DashboardPage } from '../features/dashboard/DashboardPage'
 import { useProfilePhoto } from '../features/profile/useProfilePhoto'
 import { ExpensesPage } from '../features/expenses/ExpensesPage'
 import { HistoryPage } from '../features/history/HistoryPage'
+import { OrdersPage } from '../features/orders/OrdersPage'
 import { TillSwitch } from '../features/team/TillSwitch'
 import { SettingsPage } from '../features/settings/SettingsPage'
 import { StatisticsPage } from '../features/statistics/StatisticsPage'
@@ -82,7 +83,14 @@ function renderPage(route: Route, { shop, updateShop, onSimulation, ownerId }: P
         </LegacyPage>
       )
     case 'arrivages':
-      return <ArrivalsScreen shopId={shop.id} filter={route.filter} />
+      return (
+        <ArrivalsScreen
+          shopId={shop.id}
+          filter={route.filter === 'qr' ? undefined : route.filter}
+        />
+      )
+    case 'commandes':
+      return <OrdersPage shop={shop} tab={route.filter === 'qr' ? 'qr' : undefined} />
     case 'ventes':
       return (
         <LegacyPage>

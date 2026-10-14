@@ -80,6 +80,7 @@ describe('App shell', () => {
     ).toEqual([
       'Nouvelle vente',
       'Accueil',
+      'Commandes',
       'Stock',
       'Arrivages',
       'Ventes',

@@ -1,0 +1,286 @@
+/* Canal client (QR code, liens WhatsApp / TikTok) : page publique du client, suivi, commandes
+   reçues et « QR & liens ». Mêmes jetons que le reste du cahier ; cibles tactiles ≥ --tap-min. */
+@layer app {
+  /* Page publique ---------------------------------------------------------------------------- */
+  .order-guest {
+    min-height: 100dvh;
+    background: var(--ground);
+    color: var(--ink);
+    padding: var(--space-4) var(--gutter) var(--space-8);
+    display: grid;
+    gap: var(--space-4);
+    align-content: start;
+    justify-items: center;
+  }
+  .order-guest__card {
+    width: min(100%, 36rem);
+    background: var(--sheet);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-4);
+    padding: var(--space-4);
+    display: grid;
+    gap: 0.75rem;
+  }
+  .order-guest__card h1 {
+    margin: 0;
+    font-size: 1.6rem;
+  }
+  .order-guest__card h2 {
+    margin: 0.5rem 0 0;
+    font-size: 1.15rem;
+  }
+  .order-guest__card label {
+    display: grid;
+    gap: 0.25rem;
+    font-weight: 700;
+  }
+  .order-guest__shop {
+    margin: 0;
+    color: var(--ink-soft);
+    font-weight: 700;
+  }
+  .order-guest__message {
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    background: var(--notice-bg);
+    border-radius: var(--radius-2);
+    white-space: pre-line;
+  }
+  .order-guest__line {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-3);
+    padding: 0.75rem;
+    margin: 0;
+    display: grid;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+  .order-guest__line legend {
+    font-weight: 700;
+    padding-inline: 0.25rem;
+  }
+  .order-guest__row {
+    display: grid;
+    grid-template-columns: minmax(5rem, 7rem) 1fr;
+    gap: 0.5rem;
+  }
+  .order-guest__choices {
+    display: grid;
+    gap: 0.5rem;
+  }
+  .order-guest__choice {
+    display: flex !important;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: var(--tap-min, 44px);
+    padding: 0 0.75rem;
+    border: 1px solid var(--line-field);
+    border-radius: var(--radius-3);
+    font-weight: 400 !important;
+  }
+  .order-guest__choice input {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  .order-guest__photo {
+    max-width: 100%;
+    max-height: 14rem;
+    object-fit: contain;
+    border-radius: var(--radius-2);
+  }
+  .order-guest__total {
+    margin: 0;
+  }
+  .order-guest__ref {
+    font-size: 1.3rem;
+    margin: 0;
+  }
+  .order-guest__link {
+    font-weight: 700;
+    word-break: break-all;
+  }
+  .order-guest__summary {
+    margin: 0;
+    padding-left: 1.25rem;
+  }
+  .order-guest__footer {
+    font-size: 0.85rem;
+  }
+  .order-guest__turnstile {
+    min-height: 66px;
+  }
+
+  .order-status {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: var(--radius-pill);
+    background: var(--action-tint);
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+  .order-status--paid {
+    background: var(--success-tint);
+    color: var(--success);
+  }
+  .order-status--rejected {
+    background: var(--danger-tint);
+    color: var(--danger);
+  }
+
+  /* Commandes reçues --------------------------------------------------------------------------- */
+  .orders-page {
+    display: grid;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--gutter);
+  }
+  .orders-inbox,
+  .order-channel {
+    display: grid;
+    gap: 0.75rem;
+    max-width: 48rem;
+  }
+  .orders-inbox h2,
+  .order-channel h2 {
+    margin: 0;
+  }
+  .orders-inbox__head p {
+    margin: 0;
+  }
+  .orders-inbox__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.75rem;
+  }
+  .order-card {
+    background: var(--sheet);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--action);
+    border-radius: var(--radius-3);
+    padding: 0.75rem var(--space-4);
+    display: grid;
+    gap: 0.4rem;
+  }
+  .order-card p {
+    margin: 0;
+  }
+  .order-card--paid {
+    border-left-color: var(--success);
+  }
+  .order-card--rejected {
+    border-left-color: var(--ink-muted);
+    opacity: 0.8;
+  }
+  .order-card--fresh {
+    background: var(--sale-accent-tint);
+  }
+  .order-card__head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  .order-card__lines {
+    margin: 0;
+    padding-left: 1.25rem;
+  }
+  .order-card__warn {
+    color: var(--danger);
+  }
+  .order-card__note {
+    font-style: italic;
+    white-space: pre-line;
+  }
+  .order-card__photo {
+    max-width: min(100%, 18rem);
+    border-radius: var(--radius-2);
+  }
+  .order-card__paid {
+    color: var(--success);
+    font-weight: 700;
+  }
+  .order-card__actions,
+  .order-channel__actions,
+  .order-channel__danger {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .order-confirm {
+    display: grid;
+    gap: 0.75rem;
+  }
+  .order-confirm label {
+    display: grid;
+    gap: 0.25rem;
+  }
+  .order-confirm__line {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-3);
+    padding: 0.5rem 0.75rem;
+    margin: 0;
+    display: grid;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+  .order-confirm__check {
+    display: flex !important;
+    align-items: flex-start;
+    gap: 0.5rem;
+    font-weight: 700;
+  }
+  .order-confirm__check input {
+    width: 1.25rem;
+    height: 1.25rem;
+    flex: none;
+    margin-top: 0.15rem;
+  }
+
+  /* QR & liens ------------------------------------------------------------------------------- */
+  .order-channel__qr {
+    margin: 0;
+    padding: var(--space-4);
+    background: var(--c-white);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-4);
+    display: grid;
+    justify-items: center;
+    gap: 0.5rem;
+    width: fit-content;
+    max-width: 100%;
+    text-align: center;
+  }
+  .order-channel__qr img {
+    width: min(240px, 70vw);
+    height: auto;
+  }
+  .order-channel__url code {
+    word-break: break-all;
+    font-size: 0.85rem;
+  }
+
+  /* Impression : seulement le QR code de la boutique, ou le reçu du client. */
+  @media print {
+    body:has(.order-channel__qr) * {
+      visibility: hidden;
+    }
+    body:has(.order-channel__qr) .order-channel__qr,
+    body:has(.order-channel__qr) .order-channel__qr * {
+      visibility: visible;
+    }
+    .order-channel__qr {
+      position: absolute;
+      inset: 0 auto auto 0;
+      border: none;
+    }
+    .order-guest {
+      background: none;
+    }
+    .order-guest button,
+    .order-guest__turnstile {
+      display: none;
+    }
+  }
+}
