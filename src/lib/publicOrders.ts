@@ -81,6 +81,8 @@ export type PublicCatalog = {
   neighborhood: string | null
   message: string | null
   showCatalog: boolean
+  /** Types sold by the boutique regardless of available inventory. */
+  articleTypes?: string[]
   products: CatalogProduct[]
   ordersOpen: boolean
 }
@@ -214,6 +216,7 @@ export type OrderChannelSettings = {
   token: string
   enabled: boolean
   showCatalog: boolean
+  articleTypes?: string[]
   message: string | null
 }
 
@@ -273,6 +276,15 @@ export const configureOrderChannel = (
       p_enabled: settings.enabled,
       p_show_catalog: settings.showCatalog,
       p_message: settings.message,
+    }),
+  )
+
+/** Edit what the shop usually sells, not its quantities or individual stock items. */
+export const saveOrderArticleTypes = (shopId: string, types: string[]) =>
+  rpc<OrderChannelSettings>(
+    db.rpc('set_public_order_article_types', {
+      p_shop_id: shopId,
+      p_types: types,
     }),
   )
 
