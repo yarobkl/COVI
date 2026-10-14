@@ -36,6 +36,20 @@ select public.set_owner_pin(:'shop','4876');
 select pg_temp.check(
   public.open_shared_cashier_till(:'shop',:'awa','9999')->>'status'='invalid',
   'Invalid cashier PIN rejected');
+-- Even though the management account is shared, its raw JWT cannot sell without PIN.
+do $
+declare v_denied boolean:=false;
+begin
+  begin
+    perform public.record_sale(
+      '10000000-0000-0000-0000-0000000000e1',
+      '30000000-0000-0000-0000-0000000000e1',1,10000,'cash',
+      '40000000-0000-0000-0000-0000000000e9',null);
+  exception when sqlstate '42501' then v_denied:=true;
+  end;
+  if not v_denied then raise exception 'FAIL owner JWT bypassed cashier PIN'; end if;
+end $;
+
 select (public.open_shared_cashier_till(:'shop',:'awa','5937'))->>'token' as awa_token \gset
 select pg_temp.check(char_length(:'awa_token')=64,'Cashier receives an opaque till token');
 
