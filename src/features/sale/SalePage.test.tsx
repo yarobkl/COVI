@@ -171,7 +171,7 @@ describe('SalePage — the cart (phone)', () => {
     fireEvent.click(sheet().getByRole('button', { name: /Valider la vente/ }))
     expect(
       await sheet().findByText(
-        'Pas de réseau : ce panier attend. Il sera enregistré d’un coup dès que le réseau revient. Vous pouvez aussi vendre article par article.',
+        'Pas de réseau : ce panier n’a pas été enregistré. Gardez cet écran ouvert et réessayez dès que la connexion revient ; les articles seront alors vendus ensemble.',
       ),
     ).toBeTruthy()
     expect(rpc).not.toHaveBeenCalled()
