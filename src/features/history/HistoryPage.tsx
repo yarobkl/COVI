@@ -4,6 +4,7 @@ import { useAsyncData } from '../../hooks/useAsyncData'
 import { listSales } from '../../lib/covi'
 import { money, plural } from '../../lib/format'
 import { listShopMembers } from '../../lib/team'
+import { listSharedCashiers } from '../../lib/sharedCashiers'
 import type { SoldItem } from '../../lib/types'
 import { ALL, OWNER, sellerKey, sellerTotals } from './sellerTotals'
 import { SoldRow } from './SoldRow'
@@ -17,6 +18,7 @@ export function HistoryPage({
   mine = false,
   ownerId = null,
   sellerId,
+  cashierProfileId,
 }: {
   shopId: string
   /** Cashier space: title « Mes ventes », no seller filter. */
@@ -28,6 +30,8 @@ export function HistoryPage({
    * read them all, so the filter is done here). Undefined: no filter.
    */
   sellerId?: string
+  /** PIN-only cashier profile under a shared shop login. */
+  cashierProfileId?: string
 }) {
   const load = useCallback(() => listSales(shopId), [shopId])
   const { data: rows, error, retry } = useAsyncData(load)
@@ -38,9 +42,14 @@ export function HistoryPage({
   useEffect(() => {
     if (mine) return
     let active = true
-    listShopMembers(shopId).then(
-      (members) => {
-        if (active) setNames(new Map(members.map((m) => [m.user_id, m.display_name])))
+    Promise.all([listShopMembers(shopId), listSharedCashiers(shopId)]).then(
+      ([members, cashiers]) => {
+        if (active) {
+          setNames(new Map([
+            ...members.map((m): [string, string] => [m.user_id, m.display_name]),
+            ...cashiers.map((c): [string, string] => [`profile:${c.id}`, c.display_name]),
+          ]))
+        }
       },
       () => {},
     )
@@ -60,9 +69,10 @@ export function HistoryPage({
       rows &&
       rows
         .filter((s) => {
+          if (cashierProfileId !== undefined) return s.cashier_profile_id === cashierProfileId
           if (sellerId !== undefined) return s.seller_id === sellerId
           if (seller === ALL) return true
-          return sellerKey(s.seller_id, ownerId) === seller
+          return sellerKey(s.seller_id, ownerId, s.cashier_profile_id) === seller
         })
         .flatMap((s) =>
           (s.sale_items ?? []).map((i) => ({
@@ -72,9 +82,10 @@ export function HistoryPage({
             id: s.id,
             is_test: s.is_test,
             seller_id: s.seller_id,
+            cashier_profile_id: s.cashier_profile_id,
           })),
         ),
-    [rows, seller, ownerId, sellerId],
+    [rows, seller, ownerId, sellerId, cashierProfileId],
   )
   return (
     <>
