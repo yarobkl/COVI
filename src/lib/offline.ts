@@ -77,6 +77,12 @@ let syncInProgress = false,
 const RETRY_BASE_MS = 5000,
   RETRY_MAX_MS = 300000
 export const nextSyncRetryAt = () => retryAt
+/** Retry offline sales after the cashier has successfully unlocked their PIN on the server. */
+export function retrySyncAfterPinUnlock() {
+  resetSyncBackoff()
+  void syncPendingSales()
+}
+
 function resetSyncBackoff() {
   retryDelay = 0
   retryAt = 0
@@ -121,7 +127,7 @@ export async function syncPendingSales() {
       } catch (e) {
         const message = String(errorMessage(e) || 'Erreur de synchronisation'),
           network =
-            /fetch|network|offline|failed to fetch|timeout|jwt|token|unauthorized|401|not authenticated/i.test(
+            /fetch|network|offline|failed to fetch|timeout|jwt|token|unauthorized|401|not authenticated|pin unlock required/i.test(
               message,
             )
         if (network) {
