@@ -108,6 +108,7 @@ export type OrderRequest = {
 
 export type OrderReceipt = {
   receiptNumber: string
+  internalReference: string
   confirmedAt: string
   method: PaymentMethod
   totalXaf: number
@@ -249,6 +250,7 @@ export type InboxOrder = {
   saleId: string | null
   paidMethod: PaymentMethod | null
   paymentReference: string | null
+  internalReference: string | null
   confirmedAt: string | null
   cashierName: string | null
   rejectReason: string | null
@@ -320,15 +322,17 @@ export const confirmOrderPayment = (args: {
   orderId: string
   paidMethod: PaymentMethod
   paymentReference: string | null
+  /** Must be consciously checked in the cashier UI. Never derived from the selected method. */
+  paymentVerified: boolean
   lines: { lineId: string; productId: string; unitPriceXaf: number }[]
   tillToken: string | null
 }) =>
-  rpc<{ status: 'paid'; saleId: string; alreadyConfirmed: boolean }>(
+  rpc<{ status: 'paid'; saleId: string; alreadyConfirmed: boolean; internalReference: string }>(
     db.rpc('confirm_public_order_payment', {
       p_order_id: args.orderId,
       p_paid_method: args.paidMethod,
       p_payment_reference: args.paymentReference,
-      p_payment_verified: true,
+      p_payment_verified: args.paymentVerified,
       p_lines: args.lines,
       p_till_session: args.tillToken,
     }),
