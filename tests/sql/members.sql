@@ -335,28 +335,28 @@ delete from public.member_pin_unlocks where member_id = :'m1';
 :as_c1
 select pg_temp.check(not public.has_shop_permission('10000000-0000-0000-0000-0000000000a1', 'sell'),
   'C1 : PIN défini sans session déverrouillée ne donne pas le droit de vente');
-select pg_temp.expect_msg($select public.record_sale('10000000-0000-0000-0000-0000000000a1',
-  '30000000-0000-0000-0000-0000000000a1', 1, 10000, 'cash', gen_random_uuid())$,
+select pg_temp.expect_msg($sql$select public.record_sale('10000000-0000-0000-0000-0000000000a1',
+  '30000000-0000-0000-0000-0000000000a1', 1, 10000, 'cash', gen_random_uuid())$sql$,
   'PIN unlock required', 'appel RPC direct sans PIN déverrouillé refusé');
-select pg_temp.expect_msg($select public.record_cart_sale('10000000-0000-0000-0000-0000000000a1',
+select pg_temp.expect_msg($sql$select public.record_cart_sale('10000000-0000-0000-0000-0000000000a1',
   '[{"product_id":"30000000-0000-0000-0000-0000000000a1","quantity":1,"sold_unit_price":10000}]',
-  'cash', gen_random_uuid())$, 'PIN unlock required',
+  'cash', gen_random_uuid())$sql$, 'PIN unlock required',
   'panier RPC direct sans déverrouillage refusé');
 select pg_temp.check((public.verify_my_pin('10000000-0000-0000-0000-0000000000a1', '4826'))
   ->> 'status' = 'ok', 'vérification PIN crée une preuve liée à la session JWT');
 select pg_temp.check(public.has_shop_permission('10000000-0000-0000-0000-0000000000a1', 'sell'),
   'C1 : le droit de vente n’est restauré qu’après code PIN correct');
 select set_config('request.jwt.claim.session_id', '00000000-0000-0000-0000-000000009999', true);
-select pg_temp.expect_msg($select public.record_sale('10000000-0000-0000-0000-0000000000a1',
-  '30000000-0000-0000-0000-0000000000a1', 1, 10000, 'cash', gen_random_uuid())$,
+select pg_temp.expect_msg($sql$select public.record_sale('10000000-0000-0000-0000-0000000000a1',
+  '30000000-0000-0000-0000-0000000000a1', 1, 10000, 'cash', gen_random_uuid())$sql$,
   'PIN unlock required', 'un autre JWT du même utilisateur ne réutilise pas le PIN');
 select set_config('request.jwt.claim.session_id', '00000000-0000-0000-0000-0000000000a2', true);
 :as_pg
 update public.member_pin_unlocks set unlocked_until = now() - interval '1 second'
 where member_id = :'m1';
 :as_c1
-select pg_temp.expect_msg($select public.record_sale('10000000-0000-0000-0000-0000000000a1',
-  '30000000-0000-0000-0000-0000000000a1', 1, 10000, 'cash', gen_random_uuid())$,
+select pg_temp.expect_msg($sql$select public.record_sale('10000000-0000-0000-0000-0000000000a1',
+  '30000000-0000-0000-0000-0000000000a1', 1, 10000, 'cash', gen_random_uuid())$sql$,
   'PIN unlock required', 'l’autorisation périmée est refusée côté base');
 select pg_temp.check((public.verify_my_pin('10000000-0000-0000-0000-0000000000a1', '4826'))
   ->> 'status' = 'ok', 'réouverture après expiration autorise à nouveau');
