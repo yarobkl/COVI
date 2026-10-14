@@ -17,7 +17,13 @@ import {
 } from '../../lib/publicOrders'
 import { TurnstileChallenge } from './TurnstileChallenge'
 
-type Line = { key: number; articleType: string; description: string; quantity: number; price: string }
+type Line = {
+  key: number
+  articleType: string
+  description: string
+  quantity: number
+  price: string
+}
 
 const newOperationId = () => crypto.randomUUID()
 const OTHER_ARTICLE = '__covi_other_article__'
@@ -70,8 +76,8 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
   }, [catalog])
 
   const articleTypes = useMemo(
-    () => catalog?.articleTypes?.length ? catalog.articleTypes : [...DEFAULT_ARTICLE_TYPES],
-    [catalog?.articleTypes],
+    () => (catalog?.articleTypes?.length ? catalog.articleTypes : [...DEFAULT_ARTICLE_TYPES]),
+    [catalog],
   )
 
   const update = (key: number, patch: Partial<Line>) =>
@@ -145,8 +151,7 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
     (l) =>
       (free || l.articleType === OTHER_ARTICLE
         ? l.description.trim().length > 0
-        : articleTypes.includes(l.articleType)) &&
-      l.quantity >= 1,
+        : articleTypes.includes(l.articleType)) && l.quantity >= 1,
   )
   const phoneValid = /^\+?[0-9 ().-]{6,32}$/.test(phone.trim())
   const ready =
@@ -168,9 +173,10 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
           quantity: l.quantity,
           ...(proposed ? { proposedUnitPriceXaf: proposed } : {}),
         }
-        const article = free || l.articleType === OTHER_ARTICLE
-          ? l.description.trim()
-          : [l.articleType, l.description.trim()].filter(Boolean).join(' — ')
+        const article =
+          free || l.articleType === OTHER_ARTICLE
+            ? l.description.trim()
+            : [l.articleType, l.description.trim()].filter(Boolean).join(' — ')
         // Product references are allocated by the cashier AFTER checking real stock.
         return { ...base, description: article }
       })
@@ -258,7 +264,9 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
                   >
                     <option value="">Sélectionner un type d’article…</option>
                     {articleTypes.map((type) => (
-                      <option key={type} value={type}>{type}</option>
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
                     ))}
                     <option value={OTHER_ARTICLE}>Autre article</option>
                   </select>
@@ -271,51 +279,52 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
                     className="input"
                     value={line.description}
                     maxLength={line.articleType === OTHER_ARTICLE ? 120 : 60}
-                    placeholder={line.articleType === OTHER_ARTICLE
-                      ? 'Ex. tenue traditionnelle pour enfant'
-                      : 'Ex. taille L, bleu, vu sur WhatsApp'}
+                    placeholder={
+                      line.articleType === OTHER_ARTICLE
+                        ? 'Ex. tenue traditionnelle pour enfant'
+                        : 'Ex. taille L, bleu, vu sur WhatsApp'
+                    }
                     onChange={(e) => update(line.key, { description: e.target.value })}
                   />
                 </label>
               </>
             )}
-              <div className="order-guest__row">
-                <label>
-                  Quantité
-                  <select
-                    className="select"
-                    value={line.quantity}
-                    onChange={(e) => update(line.key, { quantity: Number(e.target.value) })}
-                  >
-                    {Array.from({ length: 20 }, (_, i) => i + 1).map((n) => (
-                      <option key={n} value={n}>
-                        {n}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Prix proposé (facultatif)
-                  <input
-                    className="input input--amount"
-                    inputMode="numeric"
-                    value={line.price}
-                    placeholder="FCFA"
-                    onChange={(e) =>
-                      update(line.key, { price: e.target.value.replace(/\D/g, '').slice(0, 9) })
-                    }
-                  />
-                </label>
-              </div>
-              {lines.length > 1 && (
-                <Button
-                  variant="ghost"
-                  onClick={() => setLines((all) => all.filter((l) => l.key !== line.key))}
+            <div className="order-guest__row">
+              <label>
+                Quantité
+                <select
+                  className="select"
+                  value={line.quantity}
+                  onChange={(e) => update(line.key, { quantity: Number(e.target.value) })}
                 >
-                  Retirer cet article
-                </Button>
-              )}
-            </fieldset>
+                  {Array.from({ length: 20 }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Prix proposé (facultatif)
+                <input
+                  className="input input--amount"
+                  inputMode="numeric"
+                  value={line.price}
+                  placeholder="FCFA"
+                  onChange={(e) =>
+                    update(line.key, { price: e.target.value.replace(/\D/g, '').slice(0, 9) })
+                  }
+                />
+              </label>
+            </div>
+            {lines.length > 1 && (
+              <Button
+                variant="ghost"
+                onClick={() => setLines((all) => all.filter((l) => l.key !== line.key))}
+              >
+                Retirer cet article
+              </Button>
+            )}
           </fieldset>
         ))}
         {lines.length < 20 && (

@@ -27,39 +27,25 @@ beforeEach(() => {
 afterEach(() => cleanup())
 
 describe('QR client — liste des articles et description de remplacement', () => {
-  it('propose une description quand aucun article ne peut être publié', async () => {
+  it('propose les types d’articles même sans stock disponible', async () => {
     vi.mocked(fetchCatalog).mockResolvedValue({ ...base })
     render(<PublicOrderPage token="test-token" channel="qr" />)
-    expect(
-      await screen.findByText(/La boutique n’a pas encore d’articles disponibles/),
-    ).toBeTruthy()
-    expect(screen.getByPlaceholderText('Ex. robe wax rouge vue dans votre statut')).toBeTruthy()
-    expect(screen.queryByRole('combobox', { name: 'Article' })).toBeNull()
+    await screen.findByRole('combobox', { name: 'Choisir un article' })
+    expect(screen.getByRole('option', { name: 'Pantalon' })).toBeTruthy()
+    expect(screen.getByRole('option', { name: 'Autre article' })).toBeTruthy()
   })
 
-  it('laisse choisir un article connu OU décrire un autre article', async () => {
-    vi.mocked(fetchCatalog).mockResolvedValue({
-      ...base,
-      products: [
-        {
-          id: 'product-1',
-          name: 'Chemise',
-          category: 'Vêtements',
-          brand: null,
-          size: 'L',
-          priceXaf: 10000,
-          maxQuantity: 2,
-        },
-      ],
-    })
+  it('laisse choisir un type de la boutique OU décrire un autre article', async () => {
+    vi.mocked(fetchCatalog).mockResolvedValue({ ...base, articleTypes: ['Chemise', 'Robe'] })
     render(<PublicOrderPage token="test-token" channel="social" />)
-    const select = await screen.findByRole('combobox', { name: 'Article' })
-    expect(screen.getByRole('option', { name: /Chemise/ })).toBeTruthy()
+    const select = await screen.findByRole('combobox', { name: 'Choisir un article' })
+    expect(screen.getByRole('option', { name: 'Chemise' })).toBeTruthy()
+    expect(screen.queryByRole('option', { name: 'Pantalon' })).toBeNull()
     fireEvent.change(select, { target: { value: '__covi_other_article__' } })
-    expect(screen.getByPlaceholderText('Ex. chemise vue sur WhatsApp ou TikTok')).toBeTruthy()
-    fireEvent.change(select, { target: { value: 'product-1' } })
+    expect(screen.getByPlaceholderText('Ex. tenue traditionnelle pour enfant')).toBeTruthy()
+    fireEvent.change(select, { target: { value: 'Chemise' } })
     await waitFor(() =>
-      expect(screen.queryByPlaceholderText('Ex. chemise vue sur WhatsApp ou TikTok')).toBeNull(),
+      expect(screen.getByPlaceholderText('Ex. taille L, bleu, vu sur WhatsApp')).toBeTruthy(),
     )
   })
 
