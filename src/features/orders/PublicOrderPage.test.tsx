@@ -1,11 +1,12 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fetchCatalog, type PublicCatalog } from '../../lib/publicOrders'
+import { compressReferencePhoto, fetchCatalog, type PublicCatalog } from '../../lib/publicOrders'
 import { PublicOrderPage } from './PublicOrderPage'
 
 vi.mock('../../lib/publicOrders', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../lib/publicOrders')>()),
   fetchCatalog: vi.fn(),
+  compressReferencePhoto: vi.fn(),
 }))
 vi.mock('./TurnstileChallenge', () => ({
   TurnstileChallenge: () => <span>Vérification anti-robot</span>,
@@ -24,6 +25,7 @@ const base: PublicCatalog = {
 
 beforeEach(() => {
   vi.mocked(fetchCatalog).mockReset()
+  vi.mocked(compressReferencePhoto).mockReset()
 })
 afterEach(() => cleanup())
 
@@ -79,4 +81,20 @@ describe('QR client — types vendus, indépendamment des références et du sto
     ).toBeTruthy()
     expect(screen.queryByRole('combobox', { name: 'Choisir un article' })).toBeNull()
   })
+  it('permet de joindre une capture du modèle juste après les articles et de la retirer', async () => {
+    vi.mocked(fetchCatalog).mockResolvedValue({ ...base })
+    vi.mocked(compressReferencePhoto).mockResolvedValue('data:image/jpeg;base64,/9j/2Q==')
+    render(<PublicOrderPage token="test-token" channel="qr" />)
+    await screen.findByRole('combobox', { name: 'Choisir un article' })
+    const upload = screen.getByLabelText('Ajouter une capture d’écran ou une photo du modèle')
+    const section = screen.getByRole('region', { name: 'Photo du modèle recherché' })
+    expect(section.contains(upload)).toBe(true)
+    const file = new File(['fake image'], 'capture-whatsapp.png', { type: 'image/png' })
+    fireEvent.change(upload, { target: { files: [file] } })
+    await waitFor(() => expect(compressReferencePhoto).toHaveBeenCalledWith(file))
+    expect(await screen.findByAltText('Aperçu de la photo du modèle à commander')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Retirer la photo' }))
+    expect(screen.queryByAltText('Aperçu de la photo du modèle à commander')).toBeNull()
+  })
+
 })
