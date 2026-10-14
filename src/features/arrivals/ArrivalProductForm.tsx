@@ -37,10 +37,6 @@ export function ArrivalProductForm({
         />
       </label>
       <label>
-        Photo
-        <input name="image" type="file" accept="image/jpeg,image/png,image/webp" />
-      </label>
-      <label>
         Catégorie
         <ChoiceField
           name="category"
