@@ -157,7 +157,7 @@ export function SharedCashiersPanel({ shopId }: { shopId: string }) {
             required
           />
         </label>
-        <Button variant="primary" disabled={busy} submit>
+        <Button variant="primary" disabled={busy} type="submit">
           {busy ? 'Enregistrement…' : 'Créer le caissier'}
         </Button>
       </form>
