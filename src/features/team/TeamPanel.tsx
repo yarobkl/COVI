@@ -340,9 +340,9 @@ export function TeamPanel({ shopId, shopName }: { shopId: string; shopName: stri
       )}
 
       <p className="muted">
-        Pour passer ce téléphone à un caissier, ouvrez Vendre puis « Passer la caisse ».
-        Vous serez déconnecté et le caissier ouvrira sa session personnelle. Un simple
-        code PIN sur la session du responsable ne protège pas ses accès.
+        Pour passer ce téléphone à un caissier, ouvrez Vendre puis « Passer la caisse ». Vous serez
+        déconnecté et le caissier ouvrira sa session personnelle. Un simple code PIN sur la session
+        du responsable ne protège pas ses accès.
       </p>
 
       <h3>Inviter un caissier</h3>
