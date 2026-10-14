@@ -326,6 +326,43 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
             )}
           </fieldset>
         ))}
+        <section className="order-guest__reference-photo" aria-label="Photo du modèle recherché">
+          <h3>Ajouter une photo du modèle (facultatif)</h3>
+          <p className="muted">
+            Vous avez vu un vêtement sur WhatsApp, TikTok ou ailleurs ? Joignez une capture
+            d’écran ou une photo depuis votre téléphone pour montrer le modèle à la boutique.
+            Une photo peut accompagner cette demande.
+          </p>
+          <label htmlFor={`${ids}-reference-photo`}>Capture d’écran ou photo du modèle</label>
+          <input
+            id={`${ids}-reference-photo`}
+            type="file"
+            accept="image/*"
+            aria-label="Ajouter une capture d’écran ou une photo du modèle"
+            onChange={async (e) => {
+              const file = e.target.files?.[0]
+              setPhotoError('')
+              if (!file) return setPhoto(null)
+              try {
+                setPhoto(await compressReferencePhoto(file))
+              } catch (err) {
+                setPhoto(null)
+                setPhotoError((err as Error).message)
+              }
+            }}
+          />
+          {photo && (
+            <>
+              <p role="status">Photo ajoutée à votre demande</p>
+              <img className="order-guest__photo" src={photo} alt="Aperçu de la photo du modèle à commander" />
+              <Button variant="secondary" onClick={() => setPhoto(null)}>
+                Retirer la photo
+              </Button>
+            </>
+          )}
+          {photoError && <p className="field__error" role="alert">{photoError}</p>}
+        </section>
+
         {lines.length < 20 && (
           <Button
             variant="secondary"
@@ -344,29 +381,6 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
             <span className="muted">Le prix final est confirmé par la boutique.</span>
           </p>
         )}
-
-        <h2>Photo de l’article (facultatif)</h2>
-        <p className="muted">
-          Capture d’un statut WhatsApp ou d’un live TikTok, pour aider la boutique.
-        </p>
-        <input
-          type="file"
-          accept="image/*"
-          aria-label="Photo de référence"
-          onChange={async (e) => {
-            const file = e.target.files?.[0]
-            setPhotoError('')
-            if (!file) return setPhoto(null)
-            try {
-              setPhoto(await compressReferencePhoto(file))
-            } catch (err) {
-              setPhoto(null)
-              setPhotoError((err as Error).message)
-            }
-          }}
-        />
-        {photo && <img className="order-guest__photo" src={photo} alt="Photo jointe" />}
-        {photoError && <p className="field__error">{photoError}</p>}
 
         <h2>Vos coordonnées</h2>
         <label htmlFor={`${ids}-name`}>Votre nom</label>
