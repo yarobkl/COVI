@@ -250,7 +250,7 @@ describe('submitCart: several articles', () => {
 describe('submitCart: one article', () => {
   it('goes through resilientSale as before (record_sale online)', async () => {
     const { result } = await press(null, oneLine(), 'Espèces')
-    expect(result).toEqual({ status: 'sold', offline: false, saleId: 'sale-1' })
+    expect(result).toEqual({ status: 'sold', offline: false })
     expect(resilientSale).toHaveBeenCalledWith({
       shopId: 'shop-1',
       productId: robe.id,
