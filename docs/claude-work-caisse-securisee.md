@@ -1,5 +1,7 @@
 # COVI — Passage à Claude / ChatGPT Work : caisse sécurisée
 
+> **IMPORTANT — CHANGEMENT DE DÉCISION PRODUIT DU 14/10/2026 :** le propriétaire ne veut **PAS** être obligé de se déconnecter pour passer la caisse. Le basculement responsable → caissier → caissier → responsable doit se faire **par PIN impératif, sans déconnexion visible**, et avec une isolation réelle des privilèges côté serveur (pas un simple overlay React). Voir [décision produit PIN sans déconnexion](./decision-produit-passage-caisse-pin-sans-deconnexion.md). Le parcours actuel par déconnexion est seulement un repli sûr temporaire, **pas la fonctionnalité finale demandée**. Ne pas rétablir le JWT propriétaire dans le navigateur du caissier.
+
 Dernière vérification : 14 octobre 2026. **Lire les données réelles et le CI courant avant toute action.**
 Ce document est un relais exécutable, pas une autorisation de déployer.
 
