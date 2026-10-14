@@ -2,6 +2,17 @@ import { useId, useState } from 'react'
 import { Button, Dialog, Notice } from '../../components/ui'
 import { useSyncState } from '../sync/useSyncState'
 
+const HANDOFF_EXPLANATION = [
+  'Vous allez vous déconnecter.',
+  'Le caissier se connectera avec son propre compte COVI, puis saisira son code PIN personnel.',
+  'Vos accès de responsable ne restent pas ouverts sur cet appareil.',
+].join(' ')
+const INVITE_EXPLANATION = [
+  'Pas encore de compte caissier ?',
+  'Depuis Ma boutique, rubrique Équipe, créez d’abord son invitation.',
+  'Vous pouvez utiliser le même téléphone ou ordinateur.',
+].join(' ')
+
 /**
  * Hand the SAME physical device to a cashier WITHOUT sharing the owner's Supabase JWT.
  * The cashier signs in with a distinct account and unlocks their own PIN.
@@ -43,21 +54,11 @@ export function TillSwitch({ onHandoff }: { onHandoff: () => Promise<void> }) {
           <h2 className="dialog__title" id={titleId}>
             Passer la caisse à un employé
           </h2>
-          <p>
-            Vous allez vous déconnecter. Le caissier se connectera avec son propre compte COVI,
-            puis saisira son code PIN personnel. Vos accès de responsable ne restent pas ouverts
-            sur cet appareil.
-          </p>
-          <p className="muted">
-            Pas encore de compte caissier ? Depuis Ma boutique, rubrique Équipe, créez d’abord
-            son invitation. Vous pouvez utiliser le même téléphone ou ordinateur.
-          </p>
+          <p>{HANDOFF_EXPLANATION}</p>
+          <p className="muted">{INVITE_EXPLANATION}</p>
           {pending > 0 && (
             <Notice tone="danger">
-              <p>
-                {pending} vente(s) sont encore en attente de synchronisation. Ne changez pas de
-                compte avant leur envoi.
-              </p>
+              <p>{pending} vente(s) en attente de synchronisation. Ne changez pas de compte.</p>
             </Notice>
           )}
           {error && (
