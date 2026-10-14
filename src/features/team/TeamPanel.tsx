@@ -354,9 +354,9 @@ export function TeamPanel({ shopId, shopName }: { shopId: string; shopName: stri
       )}
 
       <p className="muted">
-        Pour passer ce téléphone à un caissier, ouvrez Vendre puis « Passer la caisse ». Vous serez
-        déconnecté et le caissier ouvrira sa session personnelle. Un simple code PIN sur la session
-        du responsable ne protège pas ses accès.
+        Le compte de gestion de la boutique est partagé. Pour passer en caisse, ouvrez Vendre,
+        sélectionnez un employé et demandez son code PIN personnel. Pas de déconnexion entre
+        les caissiers. Le PIN identifie les ventes et applique la remise autorisée.
       </p>
 
       <h3>Inviter un caissier</h3>
