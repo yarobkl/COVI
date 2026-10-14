@@ -3,7 +3,8 @@
 #
 # Sur une base PostgreSQL vierge : crée les stubs Supabase (tests/sql/bootstrap.sql), applique
 # toutes les migrations de supabase/migrations dans l'ordre, puis exécute chaque test
-# tests/sql/*.sql (hors bootstrap.sql). Le moindre échec arrête le script avec un code non nul.
+# tests/sql/*.sql (hors bootstrap.sql) et chaque script tests/sql/*.sh (hors run.sh : tests à
+# plusieurs sessions psql, ex. concurrence). Le moindre échec rend un code non nul.
 #
 # Usage :
 #   tests/sql/run.sh                 # serveur désigné par PGHOST/PGPORT/PGUSER/PGPASSWORD
@@ -66,6 +67,20 @@ for test in "$here"/*.sql; do
   [[ "$name" == "bootstrap.sql" ]] && continue
   echo "-- $name"
   if psql_db -At -f "$test"; then
+    echo "   PASS $name"
+  else
+    echo "   FAIL $name"
+    failed=1
+  fi
+done
+
+# Tests à plusieurs sessions (concurrence) : scripts tests/sql/*.sh hors run.sh.
+export COVI_TEST_DB="$db"
+for test in "$here"/*.sh; do
+  name="$(basename "$test")"
+  [[ "$name" == "run.sh" ]] && continue
+  echo "-- $name"
+  if bash "$test"; then
     echo "   PASS $name"
   else
     echo "   FAIL $name"

@@ -29,6 +29,10 @@ modifie que les lignes de sa boutique. Depuis la migration `20261010090000_serve
   toute lecture. Elle contrôle quantité, prix, moyen de paiement, stock, pièce unique, puis crée
   la vente, sa ligne et décrémente le stock dans la même transaction. Idempotente via
   `p_client_operation_id` (verrou consultatif par boutique et opération).
+- **Panier multi-articles : RPC `record_cart_sale`** (migration `20261010100000_record_cart_sale`),
+  mêmes garanties que `record_sale` pour 1 à 50 lignes en une seule vente, tout ou rien, produits
+  verrouillés dans l’ordre des id. Contrat client (format, idempotence, erreurs) :
+  [`docs/contrat-panier.md`](contrat-panier.md).
 - `sales` et `sale_items` sont en **lecture seule** pour `authenticated` (droits INSERT / UPDATE /
   DELETE retirés, politiques RLS réduites à `SELECT`). L’historique ne peut plus être modifié ni
   effacé depuis le client.
@@ -70,6 +74,7 @@ renvoient une table renvoient alors zéro ligne.
 | Fonction                                                                                                                                                  | Résultat                                                                               |
 | --------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | `record_sale(p_shop_id uuid, p_product_id uuid, p_quantity integer, p_sold_unit_price numeric, p_payment_method text, p_client_operation_id uuid) → uuid` | Enregistre une vente (id de la vente ; même id si l’opération a déjà été enregistrée). |
+| `record_cart_sale(p_shop_id uuid, p_items jsonb, p_payment_method text, p_client_operation_id uuid) → uuid`                                               | Enregistre un panier (1 à 50 lignes) en une vente ; voir `docs/contrat-panier.md`.     |
 | `create_my_shop(p_name text, p_city text default null, p_country text default 'Congo', p_currency text default 'XAF') → shops`                            | Crée (ou retrouve) la boutique de l’utilisateur.                                       |
 | `shop_dashboard(p_shop_id uuid, p_tz, p_include_test, p_at) → jsonb`                                                                                      | Tableau de bord du jour et du mois en cours (détail ci-dessous).                       |
 | `shop_monthly_sales(p_shop_id uuid, p_months integer default 3, p_tz, p_include_test, p_at) → jsonb`                                                      | Ventes des `p_months` mois civils complets précédant le mois en cours.                 |
@@ -149,7 +154,8 @@ Le banc `tests/sql/run.sh` part d’une base PostgreSQL vierge : il crée les st
 minimaux (`tests/sql/bootstrap.sql` : rôles `anon` / `authenticated` / `service_role`, schéma
 `auth` avec `auth.users` et `auth.uid()`, schéma `storage` avec `buckets`, `objects` et
 `foldername()`), applique toutes les migrations dans l’ordre, puis exécute chaque
-`tests/sql/*.sql`. Chaque test travaille dans une transaction annulée.
+`tests/sql/*.sql` (transaction annulée) et chaque script `tests/sql/*.sh` hors `run.sh` (tests à
+plusieurs sessions, qui suppriment leurs données à la fin).
 
 ```bash
 # Cluster PostgreSQL 16 jetable (initdb), détruit à la fin :
@@ -160,11 +166,13 @@ docker run -d --name covi-pg -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres
 PGHOST=localhost PGUSER=postgres PGPASSWORD=postgres tests/sql/run.sh
 ```
 
-| Test               | Couvre                                                                                                                                     |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `three_months.sql` | Scénario de trois mois : 143 ventes par l’RPC, idempotence, stock, refus, charges, isolation RLS.                                          |
-| `security.sql`     | Écritures directes refusées, `record_sale` sur la boutique d’un autre, stock non modifiable, inter-boutiques, cycle des arrivages, `anon`. |
-| `aggregates.sql`   | Agrégats du scénario trois mois (494 000 / 986 000 / 854 000 FCFA…), répartition des coûts, fuseau horaire, `is_test`.                     |
+| Test                  | Couvre                                                                                                                                             |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `three_months.sql`    | Scénario de trois mois : 143 ventes par l’RPC, idempotence, stock, refus, charges, isolation RLS.                                                  |
+| `security.sql`        | Écritures directes refusées, `record_sale` sur la boutique d’un autre, stock non modifiable, inter-boutiques, cycle des arrivages, `anon`.         |
+| `cart.sql`            | `record_cart_sale` : panier, total, stocks, idempotence, tout ou rien, pièce unique, doublon, autre boutique, non-propriétaire, test/réel, format. |
+| `cart_concurrency.sh` | Deux sessions psql : dernière pièce (un seul panier passe), même clé en parallèle, ordre inverse sans interblocage.                                |
+| `aggregates.sql`      | Agrégats du scénario trois mois (494 000 / 986 000 / 854 000 FCFA…), répartition des coûts, fuseau horaire, `is_test`.                             |
 
 La CI (job `test-db` de `.github/workflows/windows.yml`) lance le même script sur un service
 `postgres:16` à chaque pull request vers `main`. Ne jamais pointer le script vers la production.
