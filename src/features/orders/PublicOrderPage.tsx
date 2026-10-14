@@ -347,7 +347,7 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
               setNextKey((k) => k + 1)
             }}
           >
-            Ajouter un article
+            Ajouter un autre article à ma demande
           </Button>
         )}
         {total > 0 && (
