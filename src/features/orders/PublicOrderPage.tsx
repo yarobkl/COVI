@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { Button, Notice } from '../../components/ui'
 import { money } from '../../lib/format'
+import { DEFAULT_ARTICLE_TYPES } from '../../lib/articleTypes'
 import {
   compressReferencePhoto,
   fetchCatalog,
@@ -8,7 +9,6 @@ import {
   paymentMethods,
   submitOrder,
   trackingLink,
-  type CatalogProduct,
   type Fulfillment,
   type OrderChannel,
   type OrderLineInput,
@@ -17,22 +17,17 @@ import {
 } from '../../lib/publicOrders'
 import { TurnstileChallenge } from './TurnstileChallenge'
 
-type Line = { key: number; productId: string; description: string; quantity: number; price: string }
+type Line = { key: number; articleType: string; description: string; quantity: number; price: string }
 
 const newOperationId = () => crypto.randomUUID()
 const OTHER_ARTICLE = '__covi_other_article__'
 const emptyLine = (key: number): Line => ({
   key,
-  productId: '',
+  articleType: '',
   description: '',
   quantity: 1,
   price: '',
 })
-
-function productLabel(p: CatalogProduct) {
-  const details = [p.brand, p.size ? `taille ${p.size}` : null].filter(Boolean).join(' · ')
-  return `${p.name}${details ? ` (${details})` : ''} — ${money(p.priceXaf)}`
-}
 
 /**
  * Page ouverte par le QR code ou le lien WhatsApp / TikTok d'une boutique. Le client n'a pas de
@@ -74,22 +69,16 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
     document.title = catalog ? `Commander — ${catalog.shopName}` : 'Commander — COVI'
   }, [catalog])
 
-  const byId = useMemo(() => new Map((catalog?.products ?? []).map((p) => [p.id, p])), [catalog])
-  const categories = useMemo(() => {
-    const groups = new Map<string, CatalogProduct[]>()
-    for (const p of catalog?.products ?? []) {
-      const key = p.category?.trim() || 'Autres articles'
-      groups.set(key, [...(groups.get(key) ?? []), p])
-    }
-    return [...groups.entries()]
-  }, [catalog])
+  const articleTypes = useMemo(
+    () => catalog?.articleTypes?.length ? catalog.articleTypes : [...DEFAULT_ARTICLE_TYPES],
+    [catalog?.articleTypes],
+  )
 
   const update = (key: number, patch: Partial<Line>) =>
     setLines((all) => all.map((l) => (l.key === key ? { ...l, ...patch } : l)))
 
   const total = lines.reduce((sum, l) => {
-    const p = byId.get(l.productId)
-    const price = l.price ? Number(l.price) : (p?.priceXaf ?? 0)
+    const price = Number(l.price || 0)
     return sum + (Number.isFinite(price) ? price * l.quantity : 0)
   }, 0)
 
@@ -150,13 +139,14 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
       </main>
     )
 
-  // Never trap clients in an empty dropdown when the boutique has no publishable stock.
-  const free = !catalog.showCatalog || catalog.products.length === 0
+  // The customer's drop-down is an assortment of article TYPES, not stock references.
+  const free = !catalog.showCatalog
   const linesValid = lines.every(
     (l) =>
-      (free || l.productId === OTHER_ARTICLE
+      (free || l.articleType === OTHER_ARTICLE
         ? l.description.trim().length > 0
-        : Boolean(l.productId) && byId.has(l.productId)) && l.quantity >= 1,
+        : articleTypes.includes(l.articleType)) &&
+      l.quantity >= 1,
   )
   const phoneValid = /^\+?[0-9 ().-]{6,32}$/.test(phone.trim())
   const ready =
@@ -178,9 +168,11 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
           quantity: l.quantity,
           ...(proposed ? { proposedUnitPriceXaf: proposed } : {}),
         }
-        return free || l.productId === OTHER_ARTICLE
-          ? { ...base, description: l.description.trim() }
-          : { ...base, productId: l.productId }
+        const article = free || l.articleType === OTHER_ARTICLE
+          ? l.description.trim()
+          : [l.articleType, l.description.trim()].filter(Boolean).join(' — ')
+        // Product references are allocated by the cashier AFTER checking real stock.
+        return { ...base, description: article }
       })
       const result = await submitOrder({
         token,
@@ -233,73 +225,60 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
         }}
       >
         <h2>Vos articles</h2>
-        {catalog.showCatalog && catalog.products.length === 0 && (
-          <Notice tone="calm">
-            <p>
-              La boutique n’a pas encore d’articles disponibles dans le catalogue public. Décrivez
-              l’article que vous avez vu sur WhatsApp ou TikTok : le vendeur vérifiera sa
-              disponibilité avant tout règlement.
-            </p>
-            <Button variant="secondary" onClick={() => load()}>
-              Actualiser les articles
-            </Button>
-          </Notice>
+        {catalog.showCatalog && (
+          <p className="muted">
+            Choisissez ce que vous recherchez, même si la boutique n’en a pas en stock actuellement.
+            Le commerçant confirmera la disponibilité et le prix avant le règlement.
+          </p>
         )}
-        {lines.map((line, index) => {
-          const product = byId.get(line.productId)
-          const max = product?.maxQuantity ?? 20
-          return (
-            <fieldset key={line.key} className="order-guest__line">
-              <legend>Article {index + 1}</legend>
-              {free ? (
+        {lines.map((line, index) => (
+          <fieldset key={line.key} className="order-guest__line">
+            <legend>Article {index + 1}</legend>
+            {free ? (
+              <label>
+                Article souhaité
+                <input
+                  className="input"
+                  value={line.description}
+                  maxLength={120}
+                  placeholder="Ex. robe wax rouge vue dans votre statut"
+                  onChange={(e) => update(line.key, { description: e.target.value })}
+                />
+              </label>
+            ) : (
+              <>
                 <label>
-                  Article souhaité
-                  <input
-                    className="input"
-                    value={line.description}
-                    maxLength={120}
-                    placeholder="Ex. robe wax rouge vue dans votre statut"
-                    onChange={(e) => update(line.key, { description: e.target.value })}
-                  />
-                </label>
-              ) : (
-                <label>
-                  Article
+                  Choisir un article
                   <select
                     className="select"
-                    value={line.productId}
-                    onChange={(e) => update(line.key, { productId: e.target.value, quantity: 1 })}
+                    value={line.articleType}
+                    onChange={(e) =>
+                      update(line.key, { articleType: e.target.value, description: '' })
+                    }
                   >
-                    <option value="">Choisir un article…</option>
-                    <option value={OTHER_ARTICLE}>Autre article — décrire ma demande</option>
-                    {categories.map(([category, products]) => (
-                      <optgroup key={category} label={category}>
-                        {products.map((p) => (
-                          <option
-                            key={p.id}
-                            value={p.id}
-                            disabled={lines.some((l) => l.key !== line.key && l.productId === p.id)}
-                          >
-                            {productLabel(p)}
-                          </option>
-                        ))}
-                      </optgroup>
+                    <option value="">Sélectionner un type d’article…</option>
+                    {articleTypes.map((type) => (
+                      <option key={type} value={type}>{type}</option>
                     ))}
+                    <option value={OTHER_ARTICLE}>Autre article</option>
                   </select>
                 </label>
-              )}
-              {!free && line.productId === OTHER_ARTICLE && (
                 <label>
-                  Décrivez l’article souhaité
+                  {line.articleType === OTHER_ARTICLE
+                    ? 'Précisez l’article souhaité'
+                    : 'Précisions : taille, couleur ou modèle (facultatif)'}
                   <input
                     className="input"
                     value={line.description}
-                    maxLength={120}
-                    placeholder="Ex. chemise vue sur WhatsApp ou TikTok"
+                    maxLength={line.articleType === OTHER_ARTICLE ? 120 : 60}
+                    placeholder={line.articleType === OTHER_ARTICLE
+                      ? 'Ex. tenue traditionnelle pour enfant'
+                      : 'Ex. taille L, bleu, vu sur WhatsApp'}
                     onChange={(e) => update(line.key, { description: e.target.value })}
                   />
                 </label>
-              )}
+              </>
+            )}
               <div className="order-guest__row">
                 <label>
                   Quantité
@@ -308,7 +287,7 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
                     value={line.quantity}
                     onChange={(e) => update(line.key, { quantity: Number(e.target.value) })}
                   >
-                    {Array.from({ length: Math.max(1, max) }, (_, i) => i + 1).map((n) => (
+                    {Array.from({ length: 20 }, (_, i) => i + 1).map((n) => (
                       <option key={n} value={n}>
                         {n}
                       </option>
@@ -321,7 +300,7 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
                     className="input input--amount"
                     inputMode="numeric"
                     value={line.price}
-                    placeholder={product ? String(product.priceXaf) : 'FCFA'}
+                    placeholder="FCFA"
                     onChange={(e) =>
                       update(line.key, { price: e.target.value.replace(/\D/g, '').slice(0, 9) })
                     }
@@ -337,8 +316,8 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
                 </Button>
               )}
             </fieldset>
-          )
-        })}
+          </fieldset>
+        ))}
         {lines.length < 20 && (
           <Button
             variant="secondary"
