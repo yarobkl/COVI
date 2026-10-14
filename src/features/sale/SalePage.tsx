@@ -30,6 +30,7 @@ import {
   type SoldSale,
 } from './cart'
 import type { CartOperation, FrozenCart } from './cartSubmit'
+import { clearUncertainCart, recoverUncertainCart, saveUncertainCart } from './cartRecovery'
 import { EMPTY_CART_TEXT, SaleForm, type SaleSeller } from './SaleForm'
 import { SaleTile } from './SaleTile'
 import { matchesSearch } from './saleMath'
@@ -89,9 +90,9 @@ export function SalePage({
   const [sheetOpen, setSheetOpen] = useState(false)
   // One operation id per cart, reused on every retry of the same cart; a new one after a sale.
   const [operation, setOperation] = useState<CartOperation | null>(null)
-  // Sent without an answer: frozen until the server answers or the seller abandons it. Kept as
-  // long as the page is mounted (the phone sheet can close and open again).
-  const [frozen, setFrozen] = useState<FrozenCart | null>(null)
+  // A request may already have recorded the sale when the reply was lost.
+  // Restore its operation id after a page refresh instead of risking a duplicate sale.
+  const [frozen, setFrozen] = useState<FrozenCart | null>(() => recoverUncertainCart(userId, shopId))
   const [said, setSaid] = useState('')
   const [done, setDone] = useState<SoldSale | null>(null)
   const [sales, setSales] = useState(0)
@@ -164,6 +165,7 @@ export function SalePage({
   }
 
   const sold = (sale: SoldSale) => {
+    clearUncertainCart(userId, shopId)
     setDone(sale)
     setCart([])
     setOperation(null)
@@ -197,8 +199,13 @@ export function SalePage({
       operation={operation}
       onOperation={setOperation}
       frozen={frozen}
-      onFreeze={setFrozen}
+      onFreeze={(value) => {
+        if (value) saveUncertainCart(userId, shopId, value)
+        else clearUncertainCart(userId, shopId)
+        setFrozen(value)
+      }}
       onAbandon={() => {
+        clearUncertainCart(userId, shopId)
         setFrozen(null)
         setCart([])
         setOperation(null)
