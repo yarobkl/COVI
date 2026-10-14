@@ -118,7 +118,7 @@ export async function listSales(shopId: string): Promise<Sale[]> {
   const { data, error } = await supabase
     .from('sales')
     .select(
-      'id,sold_at,payment_method,total_amount,is_test,seller_id,sale_items(quantity,initial_unit_price,sold_unit_price,products(name,brand,arrival_id,image_path,arrivals(code,kind)))',
+      'id,sold_at,payment_method,total_amount,is_test,seller_id,cashier_profile_id,sale_items(quantity,initial_unit_price,sold_unit_price,products(name,brand,arrival_id,image_path,arrivals(code,kind)))',
     )
     .eq('shop_id', shopId)
     .order('sold_at', { ascending: false })
