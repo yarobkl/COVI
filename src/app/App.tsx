@@ -7,7 +7,7 @@ import { DashboardPage } from '../features/dashboard/DashboardPage'
 import { useProfilePhoto } from '../features/profile/useProfilePhoto'
 import { ExpensesPage } from '../features/expenses/ExpensesPage'
 import { HistoryPage } from '../features/history/HistoryPage'
-import { SalePage } from '../features/sale/SalePage'
+import { TillSwitch } from '../features/team/TillSwitch'
 import { SettingsPage } from '../features/settings/SettingsPage'
 import { StatisticsPage } from '../features/statistics/StatisticsPage'
 import { StockPage } from '../features/stock/StockPage'
@@ -70,21 +70,13 @@ function ArrivalsScreen({ shopId, filter }: { shopId: string; filter?: ArrivalFi
 
 function renderPage(
   route: Route,
-  { shop, userId, updateShop, onSimulation, ownerId, signOut }: PageContext,
+  { shop, updateShop, onSimulation, ownerId }: PageContext,
 ) {
   switch (route.page) {
     case 'accueil':
       return <DashboardPage shop={shop} onSimulation={onSimulation} />
     case 'vendre':
-      return (
-        <SalePage
-          userId={userId}
-          shopId={shop.id}
-          shopName={shop.name}
-          owner
-          onCashierHandoff={signOut}
-        />
-      )
+      return <TillSwitch shopId={shop.id} />
     case 'stock':
       return (
         <LegacyPage>
