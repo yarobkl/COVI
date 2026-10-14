@@ -65,13 +65,13 @@ begin
 end $$;
 
 \set as_pg 'reset role;'
-\set as_oa 'reset role; do $$begin perform set_config(''request.jwt.claim.sub'', ''00000000-0000-0000-0000-0000000000a1'', true); end$$; set local role authenticated;'
-\set as_ob 'reset role; do $$begin perform set_config(''request.jwt.claim.sub'', ''00000000-0000-0000-0000-0000000000b1'', true); end$$; set local role authenticated;'
-\set as_c1 'reset role; do $$begin perform set_config(''request.jwt.claim.sub'', ''00000000-0000-0000-0000-0000000000a2'', true); end$$; set local role authenticated;'
-\set as_c2 'reset role; do $$begin perform set_config(''request.jwt.claim.sub'', ''00000000-0000-0000-0000-0000000000a3'', true); end$$; set local role authenticated;'
-\set as_c3 'reset role; do $$begin perform set_config(''request.jwt.claim.sub'', ''00000000-0000-0000-0000-0000000000a4'', true); end$$; set local role authenticated;'
-\set as_cb 'reset role; do $$begin perform set_config(''request.jwt.claim.sub'', ''00000000-0000-0000-0000-0000000000b2'', true); end$$; set local role authenticated;'
-\set as_x 'reset role; do $$begin perform set_config(''request.jwt.claim.sub'', ''00000000-0000-0000-0000-0000000000ff'', true); end$$; set local role authenticated;'
+\set as_oa 'reset role; do $$begin perform set_config(''request.jwt.claim.sub'', ''00000000-0000-0000-0000-0000000000a1'', true); perform set_config(''request.jwt.claim.session_id'', ''00000000-0000-0000-0000-0000000000a1'', true); end$$; set local role authenticated;'
+\set as_ob 'reset role; do $$begin perform set_config(''request.jwt.claim.sub'', ''00000000-0000-0000-0000-0000000000b1'', true); perform set_config(''request.jwt.claim.session_id'', ''00000000-0000-0000-0000-0000000000b1'', true); end$$; set local role authenticated;'
+\set as_c1 'reset role; do $$begin perform set_config(''request.jwt.claim.sub'', ''00000000-0000-0000-0000-0000000000a2'', true); perform set_config(''request.jwt.claim.session_id'', ''00000000-0000-0000-0000-0000000000a2'', true); end$$; set local role authenticated;'
+\set as_c2 'reset role; do $$begin perform set_config(''request.jwt.claim.sub'', ''00000000-0000-0000-0000-0000000000a3'', true); perform set_config(''request.jwt.claim.session_id'', ''00000000-0000-0000-0000-0000000000a3'', true); end$$; set local role authenticated;'
+\set as_c3 'reset role; do $$begin perform set_config(''request.jwt.claim.sub'', ''00000000-0000-0000-0000-0000000000a4'', true); perform set_config(''request.jwt.claim.session_id'', ''00000000-0000-0000-0000-0000000000a4'', true); end$$; set local role authenticated;'
+\set as_cb 'reset role; do $$begin perform set_config(''request.jwt.claim.sub'', ''00000000-0000-0000-0000-0000000000b2'', true); perform set_config(''request.jwt.claim.session_id'', ''00000000-0000-0000-0000-0000000000b2'', true); end$$; set local role authenticated;'
+\set as_x 'reset role; do $$begin perform set_config(''request.jwt.claim.sub'', ''00000000-0000-0000-0000-0000000000ff'', true); perform set_config(''request.jwt.claim.session_id'', ''00000000-0000-0000-0000-0000000000ff'', true); end$$; set local role authenticated;'
 \set as_anon 'reset role; do $$begin perform set_config(''request.jwt.claim.sub'', '''', true); end$$; set local role anon;'
 
 -- Fixtures --------------------------------------------------------------------------------------
@@ -329,7 +329,38 @@ from unnest(array['123', '1234567', '12a4', ' 4826', null]) pin;
 select pg_temp.check((public.set_my_pin('10000000-0000-0000-0000-0000000000a1', '4826'))
   ->> 'status' = 'ok', 'C1 choisit son PIN');
 select pg_temp.check(public.has_shop_permission('10000000-0000-0000-0000-0000000000a1', 'sell'),
-  'C1 avec PIN : peut vendre');
+  'C1 avec PIN : session JWT déverrouillée après création du code');
+:as_pg
+delete from public.member_pin_unlocks where member_id = :'m1';
+:as_c1
+select pg_temp.check(not public.has_shop_permission('10000000-0000-0000-0000-0000000000a1', 'sell'),
+  'C1 : PIN défini sans session déverrouillée ne donne pas le droit de vente');
+select pg_temp.expect_msg($select public.record_sale('10000000-0000-0000-0000-0000000000a1',
+  '30000000-0000-0000-0000-0000000000a1', 1, 10000, 'cash', gen_random_uuid())$,
+  'PIN unlock required', 'appel RPC direct sans PIN déverrouillé refusé');
+select pg_temp.expect_msg($select public.record_cart_sale('10000000-0000-0000-0000-0000000000a1',
+  '[{"product_id":"30000000-0000-0000-0000-0000000000a1","quantity":1,"sold_unit_price":10000}]',
+  'cash', gen_random_uuid())$, 'PIN unlock required',
+  'panier RPC direct sans déverrouillage refusé');
+select pg_temp.check((public.verify_my_pin('10000000-0000-0000-0000-0000000000a1', '4826'))
+  ->> 'status' = 'ok', 'vérification PIN crée une preuve liée à la session JWT');
+select pg_temp.check(public.has_shop_permission('10000000-0000-0000-0000-0000000000a1', 'sell'),
+  'C1 : le droit de vente n’est restauré qu’après code PIN correct');
+select set_config('request.jwt.claim.session_id', '00000000-0000-0000-0000-000000009999', true);
+select pg_temp.expect_msg($select public.record_sale('10000000-0000-0000-0000-0000000000a1',
+  '30000000-0000-0000-0000-0000000000a1', 1, 10000, 'cash', gen_random_uuid())$,
+  'PIN unlock required', 'un autre JWT du même utilisateur ne réutilise pas le PIN');
+select set_config('request.jwt.claim.session_id', '00000000-0000-0000-0000-0000000000a2', true);
+:as_pg
+update public.member_pin_unlocks set unlocked_until = now() - interval '1 second'
+where member_id = :'m1';
+:as_c1
+select pg_temp.expect_msg($select public.record_sale('10000000-0000-0000-0000-0000000000a1',
+  '30000000-0000-0000-0000-0000000000a1', 1, 10000, 'cash', gen_random_uuid())$,
+  'PIN unlock required', 'l’autorisation périmée est refusée côté base');
+select pg_temp.check((public.verify_my_pin('10000000-0000-0000-0000-0000000000a1', '4826'))
+  ->> 'status' = 'ok', 'réouverture après expiration autorise à nouveau');
+
 select pg_temp.expect_error($$select * from public.member_pins$$, '42501',
   'C1 ne lit pas la table des PIN');
 :as_pg
