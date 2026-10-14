@@ -179,13 +179,15 @@ Menaces couvertes :
 
 Limites connues :
 
-- **Appareil partagé = compte du propriétaire ouvert.** Le cas (b) attribue les ventes au
-  caissier. Il ne protège pas les écrans du propriétaire : quelqu’un qui a l’appareil en main peut
-  revenir à « Vous (responsable) » et ouvrir Stock ou Bilan. Pour un caissier en qui l’on n’a pas
-  confiance, utilisez le cas (a), avec son téléphone et son compte. Voir « Travail restant ».
+- **Appareil partagé = compte du propriétaire ouvert.** Le code du responsable protège
+  désormais le retour aux écrans de gestion dans l'interface. **Mais le JWT Supabase présent
+  dans le navigateur reste celui du propriétaire : un utilisateur technique disposant de
+  cet appareil peut appeler les fonctions administrateur directement.** Ce n'est donc pas
+  une isolation des droits côté serveur. Pour un caissier non administrateur, utilisez
+  impérativement son compte Supabase individuel (cas a).
 - Un PIN de 4 à 6 chiffres reste un **second facteur local**. Le premier facteur est le compte
-  Supabase (e-mail et mot de passe) du caissier. Activez la protection contre les mots de passe
-  compromis dans Supabase Auth.
+  Supabase (e-mail et mot de passe) du caissier. Vérifiez la disponibilité de la protection
+  contre les mots de passe compromis dans Supabase Auth, sans souscrire d'option payante.
 - Les PIN passent en argument des RPC (HTTPS). Ne journalisez pas le corps des requêtes
   PostgREST. Gardez `log_statement` à `none` ou `ddl` (valeurs par défaut de Supabase).
 
