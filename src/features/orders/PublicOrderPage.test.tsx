@@ -70,7 +70,9 @@ describe('QR client — liste des articles et description de remplacement', () =
       products: [],
     })
     render(<PublicOrderPage token="test-token" channel="qr" />)
-    expect(await screen.findByPlaceholderText('Ex. robe wax rouge vue dans votre statut')).toBeTruthy()
+    expect(
+      await screen.findByPlaceholderText('Ex. robe wax rouge vue dans votre statut'),
+    ).toBeTruthy()
     expect(screen.queryByText(/La boutique n’a pas encore d’articles disponibles/)).toBeNull()
   })
 })
