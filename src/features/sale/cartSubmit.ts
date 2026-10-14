@@ -237,7 +237,11 @@ export async function submitCart({
         soldUnitPrice: line.price,
         paymentLabel,
       })
-      return { status: 'sold', offline: result.offline }
+      return {
+        status: 'sold',
+        offline: result.offline,
+        ...(result.saleId ? { saleId: result.saleId } : {}),
+      }
     } catch (e) {
       return {
         status: 'refused',
