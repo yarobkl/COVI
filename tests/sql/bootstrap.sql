@@ -83,3 +83,19 @@ begin
 end
 $$;
 grant execute on function storage.foldername(text) to anon, authenticated, service_role;
+
+-- Même définition que Supabase : extension du fichier (dernier segment, après le dernier point).
+-- Utilisée par les politiques des photos de profil (migration 20261013045706).
+create or replace function storage.extension(name text) returns text
+language plpgsql immutable
+as $$
+declare
+  _parts text[];
+  _filename text;
+begin
+  select string_to_array(name, '/') into _parts;
+  select _parts[array_length(_parts, 1)] into _filename;
+  return reverse(split_part(reverse(_filename), '.', 1));
+end
+$$;
+grant execute on function storage.extension(text) to anon, authenticated, service_role;
