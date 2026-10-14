@@ -4,7 +4,9 @@ import {
   createMemberInvite,
   listMemberInvites,
   listShopMembers,
+  ownerPinStatus,
   ownerResetMemberPin,
+  resetOwnerPin,
   revokeMemberInvite,
   setMemberActive,
   setMemberPermissions,
@@ -14,6 +16,113 @@ import {
   type TeamMember,
 } from '../../lib/team'
 import { inviteMessage, inviteTime as time } from '../../lib/teamRules'
+import { OwnerPinSetup } from './OwnerPinScreens'
+
+/**
+ * « Votre code de responsable » : asked to leave the counter mode of a shared device. Choose it,
+ * change it (current code asked), or erase it when forgotten (the owner is in the full app,
+ * hence already recognised: by this code or by the account password).
+ */
+function OwnerPinCard({ shopId }: { shopId: string }) {
+  const [pinSet, setPinSet] = useState<boolean | null>(null)
+  const [editing, setEditing] = useState<'set' | 'change' | null>(null)
+  const [confirmForget, setConfirmForget] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState('')
+  const titleId = useId()
+
+  useEffect(() => {
+    let active = true
+    ownerPinStatus(shopId).then(
+      (s) => active && setPinSet(s.pin_set),
+      () => active && setPinSet(null),
+    )
+    return () => {
+      active = false
+    }
+  }, [shopId])
+
+  const forget = async () => {
+    setBusy(true)
+    try {
+      await resetOwnerPin(shopId)
+      setPinSet(false)
+      setConfirmForget(false)
+      setEditing('set')
+      setMessage('')
+    } catch (e) {
+      setMessage(teamErrorMessage(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (editing)
+    return (
+      <div className="team-owner-pin">
+        <OwnerPinSetup
+          shopId={shopId}
+          askCurrent={editing === 'change'}
+          onDone={() => {
+            setPinSet(true)
+            setEditing(null)
+            setMessage('✓ Code de responsable enregistré.')
+          }}
+          onCancel={() => setEditing(null)}
+        />
+      </div>
+    )
+
+  return (
+    <div className="team-owner-pin">
+      <h3>Votre code de responsable</h3>
+      <p className="muted">
+        Sur un téléphone partagé, il est demandé pour quitter le comptoir et revenir à toute
+        l’application. Ne le donnez à aucun caissier.
+      </p>
+      {pinSet === false && (
+        <p>Pas encore choisi : il sera demandé au premier changement de caissier.</p>
+      )}
+      {message && <p role="status">{message}</p>}
+      <div className="team-member__actions">
+        {pinSet === false && (
+          <Button variant="secondary" onClick={() => setEditing('set')}>
+            Choisir mon code
+          </Button>
+        )}
+        {pinSet && (
+          <>
+            <Button variant="secondary" onClick={() => setEditing('change')}>
+              Changer mon code
+            </Button>
+            <Button variant="ghost" onClick={() => setConfirmForget(true)}>
+              J’ai oublié mon code
+            </Button>
+          </>
+        )}
+      </div>
+      <Dialog open={confirmForget} onClose={() => setConfirmForget(false)} labelledBy={titleId}>
+        <div className="dialog__body">
+          <h2 className="dialog__title" id={titleId}>
+            Effacer votre code de responsable ?
+          </h2>
+          <p className="dialog__text">
+            Les caisses ouvertes sur un téléphone partagé seront fermées. Vous choisirez tout de
+            suite un nouveau code.
+          </p>
+          <div className="dialog__actions">
+            <Button variant="secondary" onClick={() => setConfirmForget(false)} autoFocus>
+              Annuler
+            </Button>
+            <Button variant="danger" solid busy={busy} onClick={() => void forget()}>
+              Effacer et choisir un nouveau code
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+    </div>
+  )
+}
 
 function InviteForm({
   shopId,
@@ -338,6 +447,8 @@ export function TeamPanel({ shopId, shopName }: { shopId: string; shopName: stri
           </ul>
         </>
       )}
+
+      <OwnerPinCard shopId={shopId} />
 
       <h3>Inviter un caissier</h3>
       {created ? (

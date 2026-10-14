@@ -57,6 +57,22 @@ export function pinResultMessage(result: PinResult): string {
   }
 }
 
+/** What to say after a refused OWNER PIN (leaving counter mode, changing it). */
+export function ownerPinResultMessage(result: PinResult): string {
+  switch (result.status) {
+    case 'ok':
+      return ''
+    case 'invalid':
+      return result.attempts_left > 1
+        ? `Code du responsable incorrect. Encore ${result.attempts_left} essais.`
+        : 'Code du responsable incorrect. Dernier essai avant le blocage.'
+    case 'locked':
+      return 'Trop d’essais. Le code du responsable est bloqué 15 minutes.'
+    case 'not_set':
+      return 'Le responsable n’a pas encore choisi son code.'
+  }
+}
+
 const messageOf = (error: unknown) =>
   String((error as { message?: unknown } | null | undefined)?.message ?? error ?? '')
 
@@ -64,6 +80,10 @@ const messageOf = (error: unknown) =>
 export function teamErrorMessage(error: unknown): string {
   const m = messageOf(error).toLowerCase()
   if (m.includes('invalid pin format')) return 'Le code PIN compte 4 à 6 chiffres.'
+  if (m.includes('owner pin required'))
+    return 'Choisissez d’abord votre code de responsable : il sera demandé pour quitter le comptoir.'
+  if (m.includes('till session invalid'))
+    return 'La caisse de ce caissier est fermée ou a expiré. Choisissez à nouveau qui tient la caisse.'
   if (m.includes('pin too simple'))
     return 'Ce code est trop facile à deviner. Choisissez-en un autre.'
   if (m.includes('owner cannot join own shop'))

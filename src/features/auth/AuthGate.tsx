@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../../lib/supabase'
 import { listenForDesktopOAuth } from '../../lib/desktopAuth'
+import { clearCounterMode } from '../../lib/counterMode'
 import { closeTillSession, myMemberShops, type MemberShop } from '../../lib/team'
 import { clearTillSession, peekTillSession } from '../../lib/tillSession'
 import type { Shop } from '../../lib/types'
@@ -66,8 +67,12 @@ export function AuthGate({
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, s) => {
-      // The till token of a shared device never outlives the owner's session.
-      if (event === 'SIGNED_OUT') clearTillSession()
+      // The till token of a shared device never outlives the owner's session. The counter mode
+      // ends too: coming back asks for the account password.
+      if (event === 'SIGNED_OUT') {
+        clearTillSession()
+        clearCounterMode()
+      }
       setSession(s)
     })
     return () => subscription.unsubscribe()

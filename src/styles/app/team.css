@@ -152,6 +152,38 @@
     list-style: none;
   }
 
+  /* Mode comptoir (appareil partagé du responsable) ----------------------------------------- */
+  .counter {
+    min-height: 100dvh;
+    background: var(--paper);
+  }
+  .counter > .pin-screen__shop {
+    padding: var(--space-4) var(--gutter) 0;
+    text-align: center;
+  }
+  .counter-pick {
+    align-content: start;
+  }
+  .counter-pick .till-switch__list {
+    width: min(100%, 22rem);
+  }
+  .pin-screen__help {
+    max-width: 22rem;
+    font-size: var(--step--1);
+    text-align: center;
+  }
+  .owner-pin {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-3);
+  }
+  .team-owner-pin {
+    display: grid;
+    gap: var(--space-3);
+    padding-block: var(--space-4);
+    border-block: 1px solid var(--line);
+  }
+
   /* Équipe (Ma boutique) ------------------------------------------------------------------- */
   .team {
     display: grid;

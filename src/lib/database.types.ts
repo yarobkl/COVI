@@ -497,6 +497,21 @@ export type Database = {
         Returns: Json
       }
       close_till_session: { Args: { p_shop_id: string; p_token: string }; Returns: boolean }
+      owner_pin_status: { Args: { p_shop_id: string }; Returns: Json }
+      set_owner_pin: {
+        Args: { p_shop_id: string; p_new_pin: string; p_current_pin?: string }
+        Returns: Json
+      }
+      reset_owner_pin: { Args: { p_shop_id: string }; Returns: boolean }
+      verify_owner_pin: { Args: { p_shop_id: string; p_pin: string }; Returns: Json }
+      leave_counter_mode: {
+        Args: { p_shop_id: string; p_pin: string; p_token?: string }
+        Returns: Json
+      }
+      unlock_till_session: {
+        Args: { p_shop_id: string; p_token: string; p_pin: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

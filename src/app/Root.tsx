@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState } from 'react'
 import '../styles/index.css'
 import { AuthGate } from '../features/auth/AuthGate'
+import { CounterGate } from '../features/team/CounterGate'
 import { App } from './App'
 import { LegacyPage } from './LegacyPage'
 
@@ -32,12 +33,15 @@ export function Root() {
   return (
     <AuthGate onSimulation={() => setSimulation(true)}>
       {(shop, signOut, updateShop) => (
-        <App
-          shop={shop}
-          signOut={signOut}
-          updateShop={updateShop}
-          onSimulation={() => setSimulation(true)}
-        />
+        // Shared device in counter mode: the owner's pages stay closed until the owner's code.
+        <CounterGate shop={shop} signOut={signOut}>
+          <App
+            shop={shop}
+            signOut={signOut}
+            updateShop={updateShop}
+            onSimulation={() => setSimulation(true)}
+          />
+        </CounterGate>
       )}
     </AuthGate>
   )

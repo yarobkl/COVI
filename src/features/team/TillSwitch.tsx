@@ -1,25 +1,30 @@
 import { useEffect, useId, useState } from 'react'
 import { Button, Dialog, Notice } from '../../components/ui'
+import { enterCounterMode } from '../../lib/counterMode'
 import {
-  closeTillSession,
   listShopMembers,
   openTillSession,
+  ownerPinStatus,
   pinResultMessage,
   teamErrorMessage,
   type TeamMember,
 } from '../../lib/team'
-import { clearTillSession, setTillSession } from '../../lib/tillSession'
+import { setTillSession } from '../../lib/tillSession'
+import { OwnerPinSetup } from './OwnerPinScreens'
 import { PinPad } from './PinPad'
-import { useTillSession } from './useTillSession'
+
+type Step = 'loading' | 'owner-pin' | 'list'
 
 /**
- * Shared counter device signed in as the OWNER: « Caissier : Awa · Changer ». Picking a cashier
- * asks for THEIR PIN (open_till_session); the sales then go in their name, within their maximum
- * discount. « Vous (responsable) » closes the till session.
+ * Shared counter device signed in as the OWNER: « Caissier : Vous (responsable) · Changer ».
+ * The owner first chooses their own code (once), asked later to leave the counter. Picking a
+ * cashier asks for THEIR PIN (open_till_session); the device then switches to counter mode
+ * (CounterGate): sales in the cashier's name, within their maximum discount, and the owner's
+ * pages closed until the owner's code.
  */
 export function TillSwitch({ shopId }: { shopId: string }) {
-  const session = useTillSession(shopId)
   const [open, setOpen] = useState(false)
+  const [step, setStep] = useState<Step>('loading')
   const [members, setMembers] = useState<TeamMember[] | null>(null)
   const [loadError, setLoadError] = useState('')
   const [picked, setPicked] = useState<TeamMember | null>(null)
@@ -30,11 +35,18 @@ export function TillSwitch({ shopId }: { shopId: string }) {
   useEffect(() => {
     if (!open) return
     let active = true
+    ownerPinStatus(shopId).then(
+      (status) => active && setStep(status.pin_set ? 'list' : 'owner-pin'),
+      (e) => {
+        if (!active) return
+        setLoadError(teamErrorMessage(e))
+        setStep('list')
+      },
+    )
     listShopMembers(shopId).then(
       (rows) => {
         if (!active) return
         setMembers(rows.filter((m) => m.active))
-        setLoadError('')
       },
       (e) => active && setLoadError(teamErrorMessage(e)),
     )
@@ -47,13 +59,8 @@ export function TillSwitch({ shopId }: { shopId: string }) {
     setOpen(false)
     setPicked(null)
     setError('')
-  }
-
-  const backToOwner = async () => {
-    const previous = session
-    clearTillSession()
-    close()
-    if (previous) await closeTillSession(shopId, previous.token).catch(() => false)
+    setLoadError('')
+    setStep('loading')
   }
 
   const unlock = async (member: TeamMember, pin: string) => {
@@ -62,11 +69,16 @@ export function TillSwitch({ shopId }: { shopId: string }) {
     try {
       const result = await openTillSession(shopId, member.id, pin)
       if ('refused' in result) return setError(pinResultMessage(result.refused))
-      const previous = session
       setTillSession(result.session)
+      enterCounterMode(shopId)
       close()
-      if (previous) await closeTillSession(shopId, previous.token).catch(() => false)
     } catch (e) {
+      // The owner's code was erased meanwhile (another device): choose it again.
+      if (/owner pin required/i.test(String((e as { message?: unknown })?.message ?? ''))) {
+        setPicked(null)
+        setStep('owner-pin')
+        return
+      }
       setError(teamErrorMessage(e))
     } finally {
       setBusy(false)
@@ -76,17 +88,28 @@ export function TillSwitch({ shopId }: { shopId: string }) {
   return (
     <div className="till-switch">
       <p className="till-switch__who">
-        Caissier : <b>{session ? session.displayName : 'Vous (responsable)'}</b>
-        {session && session.maxDiscountPct > 0 && (
-          <span className="muted"> · remise max {session.maxDiscountPct} %</span>
-        )}
+        Caissier : <b>Vous (responsable)</b>
       </p>
       <Button variant="secondary" onClick={() => setOpen(true)} aria-haspopup="dialog">
         Changer
       </Button>
       <Dialog open={open} onClose={close} labelledBy={titleId} sheet>
         <div className="dialog__body till-switch__dialog">
-          {picked ? (
+          {step === 'loading' ? (
+            <>
+              <h2 className="dialog__title" id={titleId}>
+                Qui tient la caisse ?
+              </h2>
+              <p className="muted">Chargement…</p>
+            </>
+          ) : step === 'owner-pin' ? (
+            <>
+              <h2 className="visually-hidden" id={titleId}>
+                Votre code de responsable
+              </h2>
+              <OwnerPinSetup shopId={shopId} onDone={() => setStep('list')} onCancel={close} />
+            </>
+          ) : picked ? (
             <>
               <h2 className="visually-hidden" id={titleId}>
                 Changer de caissier
@@ -108,17 +131,16 @@ export function TillSwitch({ shopId }: { shopId: string }) {
               <h2 className="dialog__title" id={titleId}>
                 Qui tient la caisse ?
               </h2>
+              <p className="muted">
+                L’appareil passe en mode comptoir : seulement Vendre et les ventes du caissier.
+                Votre code de responsable sera demandé pour revenir.
+              </p>
               {loadError && (
                 <Notice tone="danger">
                   <p>{loadError}</p>
                 </Notice>
               )}
               <ul className="till-switch__list">
-                <li>
-                  <Button variant="secondary" size="lg" block onClick={() => void backToOwner()}>
-                    Vous (responsable)
-                  </Button>
-                </li>
                 {members === null && !loadError && <li className="muted">Chargement…</li>}
                 {members?.map((m) => (
                   <li key={m.id}>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '../../components/ui'
 import { LegacyPage } from '../../app/LegacyPage'
 import type { MemberShop } from '../../lib/team'
@@ -7,9 +7,9 @@ import { SalePage } from '../sale/SalePage'
 import { NetStatus } from '../sync/NetStatus'
 import { useSyncState } from '../sync/useSyncState'
 import { PinLockScreen, PinSetupScreen } from './PinScreens'
+import { useInactivityLock } from './useInactivityLock'
 
-/** The till locks itself after this much time without a touch or a key (5 minutes). */
-export const INACTIVITY_MS = 5 * 60 * 1000
+export { INACTIVITY_MS } from './useInactivityLock'
 
 type Page = 'vendre' | 'ventes'
 type Gate = 'locked' | 'setup' | 'change' | 'open'
@@ -37,23 +37,9 @@ export function CashierApp({
   const [gate, setGate] = useState<Gate>(needsPin ? 'setup' : 'locked')
   const [page, setPage] = useState<Page>('vendre')
   const sync = useSyncState()
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   // Inactivity lock: any touch, click or key restarts the 5 minutes.
-  useEffect(() => {
-    if (gate !== 'open') return
-    const restart = () => {
-      if (timer.current) clearTimeout(timer.current)
-      timer.current = setTimeout(() => setGate('locked'), INACTIVITY_MS)
-    }
-    restart()
-    const events = ['pointerdown', 'keydown', 'touchstart'] as const
-    events.forEach((e) => window.addEventListener(e, restart, { passive: true }))
-    return () => {
-      if (timer.current) clearTimeout(timer.current)
-      events.forEach((e) => window.removeEventListener(e, restart))
-    }
-  }, [gate])
+  useInactivityLock(gate === 'open', () => setGate('locked'))
 
   const leave = () => void signOut()
 

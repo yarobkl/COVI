@@ -6,6 +6,7 @@ import type { PinResult } from './teamRules'
 
 export {
   belowMinimumMessage,
+  ownerPinResultMessage,
   minUnitPrice,
   minutesUntil,
   pinProblem,
@@ -67,6 +68,10 @@ export type TillSession = {
   maxDiscountPct: number
   token: string
   expiresAt: string
+  /** The cashier's account (sales.seller_id): « ses ventes » at the counter. */
+  sellerId?: string
+  /** The cashier may see every sale of the shop (otherwise only theirs). */
+  canViewShopSales?: boolean
 }
 
 export type RedeemResult =
@@ -166,8 +171,10 @@ export async function openTillSession(
         token: string
         expires_at: string
         member_id: string
+        user_id?: string
         display_name: string
         max_discount_pct: number
+        can_view_shop_sales?: boolean
       }
   >(supabase.rpc('open_till_session', { p_shop_id: shopId, p_member_id: memberId, p_pin: pin }))
   if (r.status !== 'ok') return { refused: r }
@@ -179,9 +186,56 @@ export async function openTillSession(
       maxDiscountPct: num(r.max_discount_pct),
       token: r.token,
       expiresAt: r.expires_at,
+      sellerId: r.user_id,
+      canViewShopSales: Boolean(r.can_view_shop_sales),
     },
   }
 }
 
 export const closeTillSession = (shopId: string, token: string) =>
   rpc<boolean>(supabase.rpc('close_till_session', { p_shop_id: shopId, p_token: token }))
+
+// Code du responsable et mode comptoir (migration 20261014090200_owner_pin) ---------------------
+
+/** Owner PIN state (never the PIN): set or not, locked until when. */
+export type OwnerPinStatus = { pin_set: boolean; locked_until: string | null }
+
+export const ownerPinStatus = (shopId: string) =>
+  rpc<OwnerPinStatus | null>(supabase.rpc('owner_pin_status', { p_shop_id: shopId })).then(
+    (r): OwnerPinStatus => ({
+      pin_set: Boolean(r?.pin_set),
+      locked_until: r?.locked_until ?? null,
+    }),
+  )
+
+export const setOwnerPin = (shopId: string, newPin: string, currentPin?: string) =>
+  rpc<PinResult>(
+    supabase.rpc('set_owner_pin', {
+      p_shop_id: shopId,
+      p_new_pin: newPin,
+      ...(currentPin ? { p_current_pin: currentPin } : {}),
+    }),
+  )
+
+/** Forgotten owner PIN: erased (open till sessions closed), a new one is chosen right after. */
+export const resetOwnerPin = (shopId: string) =>
+  rpc<boolean>(supabase.rpc('reset_owner_pin', { p_shop_id: shopId }))
+
+/**
+ * Leaves counter mode: the server checks the OWNER's PIN, then closes the till session `token`.
+ * Only `{ status: 'ok' }` gives the full application back.
+ */
+export const leaveCounterMode = (shopId: string, pin: string, token?: string) =>
+  rpc<PinResult>(
+    supabase.rpc('leave_counter_mode', {
+      p_shop_id: shopId,
+      p_pin: pin,
+      ...(token ? { p_token: token } : {}),
+    }),
+  )
+
+/** Reopens a till locked after inactivity, with the PIN of the cashier of the session. */
+export const unlockTillSession = (shopId: string, token: string, pin: string) =>
+  rpc<PinResult>(
+    supabase.rpc('unlock_till_session', { p_shop_id: shopId, p_token: token, p_pin: pin }),
+  )

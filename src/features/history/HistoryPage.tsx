@@ -16,12 +16,18 @@ export function HistoryPage({
   shopId,
   mine = false,
   ownerId = null,
+  sellerId,
 }: {
   shopId: string
   /** Cashier space: title « Mes ventes », no seller filter. */
   mine?: boolean
   /** Owner's user id, to group their sales and the sales recorded before the team. */
   ownerId?: string | null
+  /**
+   * Counter mode on the owner's device: only the sales of this cashier (the owner's session can
+   * read them all, so the filter is done here). Undefined: no filter.
+   */
+  sellerId?: string
 }) {
   const load = useCallback(() => listSales(shopId), [shopId])
   const { data: rows, error, retry } = useAsyncData(load)
@@ -54,6 +60,7 @@ export function HistoryPage({
       rows &&
       rows
         .filter((s) => {
+          if (sellerId !== undefined) return s.seller_id === sellerId
           if (seller === ALL) return true
           return sellerKey(s.seller_id, ownerId) === seller
         })
@@ -67,7 +74,7 @@ export function HistoryPage({
             seller_id: s.seller_id,
           })),
         ),
-    [rows, seller, ownerId],
+    [rows, seller, ownerId, sellerId],
   )
   return (
     <>
