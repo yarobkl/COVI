@@ -124,7 +124,9 @@ export function ExpensesPage({ shopId }: { shopId: string }) {
       </section>
       {show && (
         <ExpenseForm
+          key={editing?.id ?? 'new'}
           editing={editing}
+          usedLabels={rows.map((item) => ({ category: item.category, label: item.label ?? '' }))}
           today={today()}
           busy={busy}
           onSubmit={save}
