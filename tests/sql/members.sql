@@ -611,6 +611,12 @@ select pg_temp.check((select count(*) = 3 and bool_and(pin_set)
   'OA voit son équipe (3 membres, PIN définis)');
 select pg_temp.check((select count(*) from public.shop_members) = 3,
   'OA lit la table shop_members de sa boutique seulement');
+-- Le mode comptoir exige le code du responsable (migration 20261014090200, tests/sql/owner_pin.sql).
+select pg_temp.expect_msg(format('select public.open_till_session(%L, %L, %L)',
+    '10000000-0000-0000-0000-0000000000a1', :'m1', '5937'), 'Owner PIN required',
+  'session de caisse refusée tant que le responsable n''a pas de code');
+select pg_temp.check((public.set_owner_pin('10000000-0000-0000-0000-0000000000a1', '7391'))
+  ->> 'status' = 'ok', 'OA choisit son code de responsable');
 select pg_temp.check((public.open_till_session('10000000-0000-0000-0000-0000000000a1', :'m1', '0000'))
   ->> 'status' = 'invalid', 'session de caisse : mauvais PIN refusé');
 :as_pg
