@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { PlusIcon } from '../../components/icons'
-import { addProduct } from '../../lib/covi'
+import { addProduct, listProducts } from '../../lib/covi'
 import { localDay } from '../../lib/dates'
 import {
   arrivalProfitability,
@@ -9,7 +9,7 @@ import {
   updateArrival,
   type ArrivalProfit,
 } from '../../lib/operations'
-import type { Arrival } from '../../lib/types'
+import type { Arrival, Product } from '../../lib/types'
 import { ArrivalCard } from './ArrivalCard'
 import { ArrivalForm } from './ArrivalForm'
 import { ArrivalProductForm } from './ArrivalProductForm'
@@ -26,6 +26,7 @@ const errorMessage = (e: unknown) => (e as Error).message
 /** Arrivals (all, supplier orders only or balloons only) with their lifecycle and products. */
 export function ArrivalsPage({ shopId, kind }: { shopId: string; kind?: Arrival['kind'] }) {
   const [rows, setRows] = useState<Arrival[]>([])
+  const [products, setProducts] = useState<Product[]>([])
   const [profit, setProfit] = useState<ArrivalProfit[]>([])
   const [show, setShow] = useState(false)
   const [arrivalKind, setArrivalKind] = useState<Arrival['kind']>(kind ?? 'supplier_order')
@@ -40,6 +41,7 @@ export function ArrivalsPage({ shopId, kind }: { shopId: string; kind?: Arrival[
     void arrivalProfitability(shopId)
       .then((x) => setProfit(kind ? x.filter((a) => a.kind === kind) : x))
       .catch((e) => setMsg(errorMessage(e)))
+    void listProducts(shopId, false, true).then(setProducts, () => {})
   }, [shopId, kind])
   useEffect(() => {
     load()
@@ -111,6 +113,7 @@ export function ArrivalsPage({ shopId, kind }: { shopId: string; kind?: Arrival[
         <ArrivalForm
           kind={kind}
           arrivalKind={arrivalKind}
+          suppliers={[...new Set(rows.map((a) => a.supplier_name).filter((s): s is string => Boolean(s)))]}
           onArrivalKindChange={setArrivalKind}
           busy={busy}
           onSubmit={save}
@@ -140,6 +143,7 @@ export function ArrivalsPage({ shopId, kind }: { shopId: string; kind?: Arrival[
       {addTo && (
         <ArrivalProductForm
           arrival={addTo}
+          products={products}
           onSubmit={saveProduct}
           onCancel={() => setAddTo(null)}
         />
