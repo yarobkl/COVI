@@ -64,12 +64,16 @@
 
   /* Initiales de la personne (ou de la boutique) : ouvre le menu « Ma boutique ». */
   .avatar {
+    position: relative;
     flex: none;
     display: grid;
     place-items: center;
+    box-sizing: border-box;
     width: var(--tap-min);
     height: var(--tap-min);
+    padding: 0;
     margin-inline-start: auto;
+    overflow: hidden;
     border: var(--border-field) solid var(--action);
     border-radius: 50%;
     background: var(--sheet);
@@ -82,11 +86,14 @@
     transition: background-color var(--dur-fast) var(--ease-out);
   }
   .avatar img {
+    position: absolute;
+    inset: 0;
     display: block;
     width: 100%;
     height: 100%;
-    border-radius: 50%;
+    border-radius: inherit;
     object-fit: cover;
+    object-position: center;
   }
   .avatar:hover {
     background: var(--action-tint);
@@ -137,6 +144,7 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: center;
   }
   .profile-photo__details {
     flex: 1 1 220px;
