@@ -69,7 +69,12 @@ export function TillSwitch({ onHandoff }: { onHandoff: () => Promise<void> }) {
             <Button variant="secondary" disabled={busy} onClick={() => setOpen(false)}>
               Annuler
             </Button>
-            <Button variant="primary" busy={busy} disabled={pending > 0 || busy} onClick={() => void handoff()}>
+            <Button
+              variant="primary"
+              busy={busy}
+              disabled={pending > 0 || busy}
+              onClick={() => void handoff()}
+            >
               Déconnecter le responsable
             </Button>
           </div>
