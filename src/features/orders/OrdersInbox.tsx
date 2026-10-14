@@ -257,6 +257,9 @@ function OrderCard({
           {order.paidMethod ? paymentMethodLabels[order.paidMethod] : ''}
           {order.paymentReference ? ` · Transaction externe : ${order.paymentReference}` : ''}
           {order.cashierName ? ` · caisse de ${order.cashierName}` : ''}
+          {order.internalReference && (
+            <span> · Référence COVI : <b>{order.internalReference}</b></span>
+          )}
         </p>
       )}
       {order.status === 'rejected' && order.rejectReason && (
@@ -343,9 +346,9 @@ function RejectDialog({
 
 /**
  * Confirmation du règlement réellement reçu. Le caissier vérifie chaque article et son prix, le
- * moyen de règlement effectif, note la référence de l'opération (SMS Mobile Money, ticket carte,
- * avis de virement) et coche la vérification. Sans session de caisse ouverte, le PIN d'un caissier
- * est demandé ici même.
+ * moyen de règlement effectif et confirme explicitement sa réception. La référence du prestataire
+ * est facultative ; COVI génère sa propre référence après l'encaissement.
+ * Sans session de caisse ouverte, le PIN d'un caissier est demandé ici même.
  */
 function ConfirmPaymentDialog({
   shopId,
