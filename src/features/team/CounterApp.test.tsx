@@ -57,7 +57,7 @@ describe('Retiring unsafe owner-JWT shared counter sessions', () => {
     expect(signOut).not.toHaveBeenCalled()
   })
 
-  it('automatically signs out a legacy till; never mounts owner pages or cashier sales', async () => {
+  it('signs out legacy tills without revealing owner pages', async () => {
     setTillSession(legacy)
     const signOut = vi.fn().mockResolvedValue(undefined)
     renderGate(signOut)
@@ -74,7 +74,10 @@ describe('Retiring unsafe owner-JWT shared counter sessions', () => {
     renderGate(signOut)
     expect(screen.queryByRole('link', { name: 'Stock du responsable' })).toBeNull()
     expect(screen.getByText(/1 vente\(s\) en attente/)).toBeTruthy()
-    expect((screen.getByRole('button', { name: 'Réessayer la déconnexion' }) as HTMLButtonElement).disabled).toBe(true)
+    expect(
+      (screen.getByRole('button', { name: 'Réessayer la déconnexion' }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true)
     expect(signOut).not.toHaveBeenCalled()
   })
 
@@ -85,7 +88,9 @@ describe('Retiring unsafe owner-JWT shared counter sessions', () => {
       .mockRejectedValueOnce(new Error('offline'))
       .mockResolvedValueOnce(undefined)
     renderGate(signOut)
-    await waitFor(() => expect(screen.getByText(/La déconnexion du responsable a échoué/)).toBeTruthy())
+    await waitFor(() =>
+      expect(screen.getByText(/La déconnexion du responsable a échoué/)).toBeTruthy(),
+    )
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Réessayer la déconnexion' }))
     })
