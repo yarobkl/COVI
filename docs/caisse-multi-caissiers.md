@@ -22,6 +22,19 @@ Ces migrations ne détruisent rien. Elles créent des tables, des fonctions et d
 ajoutent une seule colonne nullable (`sales.seller_id`). Les ventes existantes ne changent pas.
 Les politiques propriétaires existantes restent en place.
 
+Deux migrations complémentaires viennent ensuite, dans cet ordre :
+
+- `20261014090200_owner_pin.sql` : code personnel du responsable pour entrer et sortir du
+  mode comptoir sur un appareil partagé.
+- `20261014090300_cashier_pin_unlock.sql` : preuve de PIN côté serveur, liée au
+  `session_id` signé dans le JWT Supabase et valable cinq minutes depuis la dernière vente ou
+  vérification. `record_sale` et `record_cart_sale` refusent les appels directs si cette preuve
+  manque ou a expiré (`PIN unlock required`). Changer un PIN ou désactiver le caissier révoque
+  toutes les anciennes preuves.
+
+La présence d'un PIN dans `member_pins` ne suffit donc **plus** à autoriser une vente.
+Le compte Supabase personnel du caissier reste requis.
+
 ## Architecture
 
 ```
@@ -237,6 +250,11 @@ ambigu (pas de PGRST203). Le front actuel continue de marcher sans changement.
 
 ## Hors connexion
 
+En cas de vente d'un caissier sur son propre compte, si le serveur renvoie
+`PIN unlock required` à la synchronisation, la vente reste dans la file. L'ouverture
+correcte du PIN relance l'envoi ; aucune vente en attente n'est supprimée à cause de
+l'expiration du code.
+
 - **Cas (a), caissier sur son compte.** La file hors connexion actuelle (`src/lib/offline.ts`)
   marche telle quelle. Elle rejoue avec le compte du caissier, donc `seller_id` est le bon.
   L’écran applique le prix minimal avant de mettre la vente en file. Une vente en file peut quand
@@ -259,20 +277,13 @@ ambigu (pas de PGRST203). Le front actuel continue de marcher sans changement.
 
 Production : projet `bmbwmwgfzrijglzcgjut`. **Rien n’a été appliqué** par ce travail.
 
-1. **Migrations hors d’ordre.** Les migrations de #6 et #11 sont datées `20261010…`, alors que
-   la production est déjà à `20261013084611`. `supabase db push` refuse par défaut une migration
-   plus ancienne que la dernière appliquée. Deux options :
-   - renommer `20261010090000`, `20261010090100` et `20261010100000` après `20261013084611`. Par
-     exemple `20261013090000_server_side_sensitive_writes.sql`, `…090100_shop_aggregates.sql` et
-     `…100000_record_cart_sale.sql`, en gardant leur ordre relatif. Les migrations `20261014…` de
-     la caisse restent après. C’est l’option recommandée : l’historique reste linéaire ;
-   - ou `supabase db push --include-all`, qui applique les migrations manquantes même si elles
-     sont plus anciennes.
-
-   Dans les deux cas, faites **d’abord un essai à blanc** sur une branche Supabase (copie du
-   schéma de production) : `supabase db push --dry-run`, puis l’application réelle sur la
-   branche, puis `tests/sql/run.sh` en local sur le même ordre de fichiers.
-
+1. **Ordre des migrations.** Les anciennes migrations de #6 et #11 ont déjà été
+   renumérotées en `20261013...`. Les tests SQL vérifient que les vingt migrations de
+   production forment le préfixe exact de l'historique et que la caisse arrive après.
+   Tester **toutes** les migrations de cette PR dans un PostgreSQL jetable avec
+   `tests/sql/run.sh --tmp-cluster`. Ne pas employer ce script sur une base réelle.
+   Les migrations de production ne doivent être appliquées qu'après revue des droits d'accès,
+   des commandes DDL et des procédures de repli.
 2. **pgcrypto.** Vérifiez qu’il est dans le schéma `extensions`, ce qui est la norme Supabase :
    `select extnamespace::regnamespace from pg_extension where extname = 'pgcrypto'`. La migration
    `20261014090050` l’installe là s’il est absent. S’il est ailleurs, elle échoue avant toute
@@ -303,19 +314,30 @@ Production : projet `bmbwmwgfzrijglzcgjut`. **Rien n’a été appliqué** par c
   `sales.seller_id` peut rester : la colonne est nullable et ignorée par l’ancien code. Exportez
   `shop_audit_log` avant de le supprimer.
 
-## Travail restant
+## État réel et limites avant publication
 
-- **Mode comptoir verrouillé** sur l’appareil partagé : exiger le mot de passe ou un code du
-  responsable pour revenir à « Vous (responsable) » et aux écrans de gestion.
-- **File hors connexion avec session de caisse** (changement d’`offline.ts` décrit plus haut).
-- **Panier multi-articles au nom d’un caissier.** La base l’accepte déjà
-  (`record_cart_sale(…, p_till_session)`). L’écran Vendre ne vend encore qu’un article à la fois.
-- **Écran des mouvements de stock** (hors de ce périmètre).
-- **Passerelle QR publique** (idée de #22), à reprendre à part, sans les défauts relevés dans
-  l’audit.
-- **Protection contre les mots de passe compromis** à activer dans Supabase Auth (réglage, pas
-  une migration).
-- Journal d’équipe visible dans l’application (pour l’instant lisible en SQL ou par l’API).
+- **Terminé dans cette branche :** interface multi-caissiers, invitations, PIN des caissiers,
+  code du responsable, panier multi-articles avec vente atomique, suivi des vendeurs,
+  prix minimal imposé par le serveur, et vérification PIN en base par session JWT.
+- **Hors connexion, compte caissier individuel :** les ventes à une ligne restent en attente
+  et **ne sont pas rejetées** lorsque le déverrouillage du PIN a expiré. Après la saisie
+  correcte du PIN, `retrySyncAfterPinUnlock` relance leur synchronisation avec leur UUID initial.
+- **Hors connexion, panier multi-articles :** conservé à l'écran si le réseau manque. Après une
+  réponse réseau incertaine, la session du navigateur conserve le même UUID pour un nouvel essai.
+  Il n'existe pas encore de file persistante IndexedDB pour les paniers complets.
+- **Appareil partagé du propriétaire : limite de sécurité importante.** Le PIN du responsable
+  verrouille les écrans de l'application mais ne change pas les privilèges du JWT du propriétaire
+  dans le navigateur. Ce dispositif n'offre pas la même isolation qu'un caissier connecté sur
+  **son propre compte Supabase**. Ne pas confier une session propriétaire à un employé non fiable.
+- **À isoler du chantier de caisse :** passerelle QR publique et demandes clients issues de
+  WhatsApp, Instagram ou TikTok ; écran détaillé des mouvements de stock ; éventuel journal
+  d'équipe visible dans l'application.
+- **Supabase Auth :** le conseiller de sécurité signale une protection contre les mots de passe
+  compromis désactivée. La disponibilité de ce réglage dépend de l'offre Supabase ;
+  **ne pas engager de frais ni modifier l'abonnement sans autorisation**.
+- **Production :** les migrations multi-caissiers n'ont pas été appliquées. Cette PR reste en
+  brouillon et ne doit pas être fusionnée tant que le mode appareil partagé n'est pas clarifié et
+  qu'un essai fonctionnel isolé de bout en bout n'est pas validé.
 
 ## Tests
 
