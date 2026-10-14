@@ -10,6 +10,9 @@ import { SalePage } from './SalePage'
 vi.mock('../../lib/covi', () => ({ listProducts: vi.fn() }))
 vi.mock('../../lib/operations', () => ({ listArrivals: vi.fn(), todaySales: vi.fn() }))
 vi.mock('../../lib/offline', () => ({ resilientSale: vi.fn() }))
+vi.mock('../sync/useSyncState', () => ({
+  useSyncState: () => ({ online: true, pending: 0, rejected: 0 }),
+}))
 vi.mock('../../lib/supabase', () => ({
   supabase: { auth: { getSession: vi.fn() }, rpc: vi.fn() },
 }))
