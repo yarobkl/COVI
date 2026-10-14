@@ -288,6 +288,11 @@ begin
     return;
   end if;
   if v_is_owner then
+    -- Shared management users cannot bypass employee PIN by calling RPC directly.
+    -- Existing shops without cashier profiles retain the original owner sale path.
+    if exists(select 1 from public.shop_cashier_profiles c where c.shop_id=p_shop_id) then
+      raise exception 'Cashier PIN required' using errcode='42501';
+    end if;
     seller_id := v_uid;
     max_discount_pct := null;
     return;
