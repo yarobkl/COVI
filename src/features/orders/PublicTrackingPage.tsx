@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Button, Notice } from '../../components/ui'
+import { Button, Notice, Stamp, Ticket, TicketLine } from '../../components/ui'
 import { money } from '../../lib/format'
 import {
   fetchOrderStatus,
@@ -7,6 +7,7 @@ import {
   statusLabels,
   type PublicOrderStatus,
 } from '../../lib/publicOrders'
+import { GuestSheet } from './GuestSheet'
 
 const dateTime = (iso: string) =>
   new Date(iso).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })
@@ -40,9 +41,9 @@ export function PublicTrackingPage({ trackingToken }: { trackingToken: string })
 
   if (!order)
     return (
-      <main className="order-guest" id="contenu">
-        <section className="order-guest__card">
-          <h1>Suivi de commande</h1>
+      <GuestSheet>
+        <section className="order-guest__part">
+          <h1 className="section-title">Suivi de commande</h1>
           {error ? (
             <>
               <Notice tone="danger">
@@ -53,22 +54,25 @@ export function PublicTrackingPage({ trackingToken }: { trackingToken: string })
               </Button>
             </>
           ) : (
-            <p role="status">Chargement…</p>
+            <p className="hand order-guest__loading" role="status">
+              Chargement…
+            </p>
           )}
         </section>
-      </main>
+      </GuestSheet>
     )
 
   const receipt = order.receipt
   return (
-    <main className="order-guest" id="contenu">
-      <section className="order-guest__card">
-        <p className="order-guest__shop">{order.shopName}</p>
-        <h1>Commande {order.reference}</h1>
+    <GuestSheet shop={order.shopName}>
+      <section className="order-guest__part">
+        <h1 className="section-title">
+          Commande <span className="figures">{order.reference}</span>
+        </h1>
         <p className={`order-status order-status--${order.status}`}>{statusLabels[order.status]}</p>
         {order.status === 'rejected' && order.rejectReason && <p>Motif : {order.rejectReason}</p>}
         {order.status !== 'paid' && order.status !== 'rejected' && (
-          <p className="muted">
+          <p className="order-guest__lead">
             Règlement choisi : {paymentMethodLabels[order.paymentMethod]}. Il n’est considéré comme
             reçu que lorsque la boutique l’a confirmé.
           </p>
@@ -78,7 +82,9 @@ export function PublicTrackingPage({ trackingToken }: { trackingToken: string })
             {order.lines.map((l, i) => (
               <li key={i}>
                 {l.quantity} × {l.label}
-                {l.unitPriceXaf != null && ` — ${money(l.unitPriceXaf)}`}
+                {l.unitPriceXaf != null && (
+                  <span className="figures"> — {money(l.unitPriceXaf)}</span>
+                )}
               </li>
             ))}
           </ul>
@@ -87,30 +93,39 @@ export function PublicTrackingPage({ trackingToken }: { trackingToken: string })
       </section>
 
       {receipt && (
-        <section className="order-guest__card order-receipt" aria-label="Reçu">
-          <h2>Reçu n° {receipt.receiptNumber}</h2>
-          <p>
-            {order.shopName} · {dateTime(receipt.confirmedAt)}
-          </p>
-          <ul className="order-guest__summary">
-            {receipt.lines.map((l, i) => (
-              <li key={i}>
-                {l.quantity} × {l.label} — {money(l.unitPriceXaf * l.quantity)}
-              </li>
-            ))}
-          </ul>
-          <p className="order-guest__total">
-            Total réglé : <b>{money(receipt.totalXaf)}</b>
-          </p>
-          <p>
-            Règlement : {paymentMethodLabels[receipt.method]}, confirmé par la boutique
-            {receipt.cashierName ? ` (caisse de ${receipt.cashierName})` : ''}.
-          </p>
+        <section className="order-guest__part order-receipt" aria-label="Reçu">
+          <h2 className="section-title">Votre reçu</h2>
+          <div className="order-receipt__paper">
+            <Ticket
+              tilt
+              head={`Reçu n° ${receipt.receiptNumber}`}
+              sub={`${order.shopName} · ${dateTime(receipt.confirmedAt)}`}
+            >
+              {receipt.lines.map((l, i) => (
+                <TicketLine
+                  key={i}
+                  left={`${l.quantity} × ${l.label}`}
+                  right={money(l.unitPriceXaf * l.quantity)}
+                />
+              ))}
+              <hr className="ticket__cut" />
+              <TicketLine
+                className="ticket__total"
+                left="Total réglé"
+                right={money(receipt.totalXaf)}
+              />
+              <p className="ticket__sub">
+                {paymentMethodLabels[receipt.method]}, confirmé par la boutique
+                {receipt.cashierName ? ` (caisse de ${receipt.cashierName})` : ''}.
+              </p>
+            </Ticket>
+            <Stamp kind="paid">Payé</Stamp>
+          </div>
           <Button variant="secondary" onClick={() => window.print()}>
             Imprimer le reçu
           </Button>
         </section>
       )}
-    </main>
+    </GuestSheet>
   )
 }
