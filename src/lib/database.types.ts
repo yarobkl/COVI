@@ -191,6 +191,7 @@ export type Database = {
           is_test: boolean
           payment_method: string
           shop_id: string
+          seller_id: string | null
           sold_at: string
           total_amount: number
         }
@@ -200,6 +201,7 @@ export type Database = {
           is_test?: boolean
           payment_method: string
           shop_id: string
+          seller_id?: string | null
           sold_at?: string
           total_amount?: number
         }
@@ -209,6 +211,7 @@ export type Database = {
           is_test?: boolean
           payment_method?: string
           shop_id?: string
+          seller_id?: string | null
           sold_at?: string
           total_amount?: number
         }
@@ -407,9 +410,93 @@ export type Database = {
           p_quantity: number
           p_shop_id: string
           p_sold_unit_price: number
+          p_till_session?: string
         }
         Returns: string
       }
+      record_cart_sale: {
+        Args: {
+          p_client_operation_id: string
+          p_items: Json
+          p_payment_method: string
+          p_shop_id: string
+          p_till_session?: string
+        }
+        Returns: string
+      }
+      create_member_invite: {
+        Args: {
+          p_shop_id: string
+          p_display_name: string
+          p_can_view_shop_sales?: boolean
+          p_max_discount_pct?: number
+        }
+        Returns: Json
+      }
+      list_member_invites: {
+        Args: { p_shop_id: string }
+        Returns: {
+          id: string
+          display_name: string
+          can_view_shop_sales: boolean
+          max_discount_pct: number
+          created_at: string
+          expires_at: string
+        }[]
+      }
+      revoke_member_invite: { Args: { p_invite_id: string }; Returns: boolean }
+      redeem_member_invite: { Args: { p_code: string }; Returns: Json }
+      list_shop_members: {
+        Args: { p_shop_id: string }
+        Returns: {
+          id: string
+          user_id: string
+          display_name: string
+          role: string
+          active: boolean
+          can_view_shop_sales: boolean
+          max_discount_pct: number
+          created_at: string
+          updated_at: string
+          deactivated_at: string | null
+          pin_set: boolean
+          pin_must_change: boolean
+          pin_locked_until: string | null
+        }[]
+      }
+      set_member_active: { Args: { p_member_id: string; p_active: boolean }; Returns: Json }
+      set_member_permissions: {
+        Args: { p_member_id: string; p_can_view_shop_sales: boolean; p_max_discount_pct: number }
+        Returns: Json
+      }
+      owner_reset_member_pin: { Args: { p_member_id: string }; Returns: Json }
+      my_member_shops: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          member_id: string
+          shop_id: string
+          shop_name: string
+          shop_city: string | null
+          shop_country: string | null
+          shop_currency: string
+          display_name: string
+          role: string
+          can_view_shop_sales: boolean
+          max_discount_pct: number
+          pin_set: boolean
+          pin_must_change: boolean
+        }[]
+      }
+      set_my_pin: {
+        Args: { p_shop_id: string; p_new_pin: string; p_current_pin?: string }
+        Returns: Json
+      }
+      verify_my_pin: { Args: { p_shop_id: string; p_pin: string }; Returns: Json }
+      open_till_session: {
+        Args: { p_shop_id: string; p_member_id: string; p_pin: string }
+        Returns: Json
+      }
+      close_till_session: { Args: { p_shop_id: string; p_token: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

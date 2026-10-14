@@ -14,10 +14,13 @@ export function CreateShopForm({
   message,
   onMessage,
   onCreated,
+  onJoin,
 }: {
   message: string
   onMessage: (message: string) => void
   onCreated: (shop: Shop) => void
+  /** « J’ai un code de caissier » : opens the join page instead of creating a shop. */
+  onJoin?: () => void
 }) {
   const [name, setName] = useState('')
   const [city, setCity] = useState('')
@@ -76,7 +79,19 @@ export function CreateShopForm({
     <AuthPage
       title="Comment s’appelle votre boutique ?"
       lead="Ce nom s’affichera en haut de l’écran. Vous pourrez le changer plus tard."
-      aside={preview}
+      aside={
+        <>
+          {preview}
+          {onJoin && (
+            <div className="auth__join">
+              <p>Vous travaillez dans la boutique de quelqu’un ?</p>
+              <Button variant="secondary" size="lg" block onClick={onJoin}>
+                J’ai un code de caissier
+              </Button>
+            </div>
+          )}
+        </>
+      }
     >
       <form className="auth__form" onSubmit={createShop}>
         <Field label="Nom de la boutique">

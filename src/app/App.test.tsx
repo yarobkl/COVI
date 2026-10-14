@@ -27,6 +27,7 @@ vi.mock('../features/statistics/StatisticsPage', () => ({
   StatisticsPage: () => <p>page:statistics</p>,
 }))
 vi.mock('../features/settings/SettingsPage', () => ({ SettingsPage: () => <p>page:settings</p> }))
+vi.mock('../features/team/TeamPanel', () => ({ TeamPanel: () => <p>page:team</p> }))
 vi.mock('../features/auth/useCurrentUser', () => ({ useCurrentUser: () => null }))
 
 const shop: Shop = {

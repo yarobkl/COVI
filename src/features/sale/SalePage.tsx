@@ -16,7 +16,9 @@ import { plural } from '../../lib/format'
 import { listArrivals, todaySales } from '../../lib/operations'
 import type { Product } from '../../lib/types'
 import { SaleDone } from './SaleDone'
-import { SaleForm, type SoldSale } from './SaleForm'
+import { TillSwitch } from '../team/TillSwitch'
+import { useTillSession } from '../team/useTillSession'
+import { SaleForm, type SaleSeller, type SoldSale } from './SaleForm'
 import { SaleTile } from './SaleTile'
 import { matchesSearch } from './saleMath'
 
@@ -27,8 +29,26 @@ type Today = { count: number; total: number } | null
  * validate — one article per sale, as the server records it. Phone: the sale opens in a sheet;
  * computer: beside the articles.
  */
-export function SalePage({ shopId, shopName }: { shopId: string; shopName: string }) {
+export function SalePage({
+  shopId,
+  shopName,
+  seller,
+  owner = false,
+}: {
+  shopId: string
+  shopName: string
+  /** Cashier on their own account (personal device): their maximum discount applies. */
+  seller?: SaleSeller
+  /** Owner's device: « Caissier : … · Changer » to sell in a cashier's name. */
+  owner?: boolean
+}) {
   const desktop = useMediaQuery(DESKTOP)
+  const till = useTillSession(shopId)
+  const effectiveSeller: SaleSeller | undefined =
+    seller ??
+    (owner && till
+      ? { name: till.displayName, maxDiscountPct: till.maxDiscountPct, tillToken: till.token }
+      : undefined)
   const [products, setProducts] = useState<Product[] | null>(null)
   const [loadFailed, setLoadFailed] = useState(false)
   const [codes, setCodes] = useState<Map<string, string>>(new Map())
@@ -94,7 +114,8 @@ export function SalePage({ shopId, shopName }: { shopId: string; shopName: strin
 
   const form = selected && (
     <SaleForm
-      key={selected.id}
+      key={`${selected.id}:${effectiveSeller?.tillToken ?? effectiveSeller?.name ?? 'owner'}`}
+      seller={effectiveSeller}
       shopId={shopId}
       product={selected}
       arrivalCode={codeOf(selected)}
@@ -121,6 +142,7 @@ export function SalePage({ shopId, shopName }: { shopId: string; shopName: strin
             </p>
           )}
         </div>
+        {owner && <TillSwitch shopId={shopId} />}
       </header>
 
       <div className="sale-layout">

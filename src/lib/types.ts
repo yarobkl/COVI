@@ -35,7 +35,8 @@ export type SaleLine = Pick<
 /** A sale as listed in the history (`listSales`). */
 export type Sale = Pick<
   Tables<'sales'>,
-  'id' | 'sold_at' | 'payment_method' | 'total_amount' | 'is_test'
+  'id' | 'sold_at' | 'payment_method' | 'total_amount' | 'is_test' | 'seller_id'
 > & { sale_items: SaleLine[] }
 /** A sale line flattened with its sale's id, date, payment method and test flag. */
-export type SoldItem = SaleLine & Pick<Sale, 'id' | 'sold_at' | 'payment_method' | 'is_test'>
+export type SoldItem = SaleLine &
+  Pick<Sale, 'id' | 'sold_at' | 'payment_method' | 'is_test' | 'seller_id'>

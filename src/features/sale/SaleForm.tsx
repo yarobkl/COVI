@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import {
   CardIcon,
   CashIcon,
@@ -22,7 +22,9 @@ import {
   type SegmentedOption,
 } from '../../components/ui'
 import { fcfa, money, parseAmount } from '../../lib/format'
+import { recordTillSale } from '../../lib/covi'
 import { resilientSale } from '../../lib/offline'
+import { belowMinimumMessage, minUnitPrice } from '../../lib/teamRules'
 import type { Product } from '../../lib/types'
 import { saleErrorMessage } from './saleErrors'
 import { cashChange, cashSuggestions, discountOf, isFarBelow } from './saleMath'
@@ -51,6 +53,13 @@ const payments: readonly SegmentedOption<string>[] = [
 type Mode = 'form' | 'price' | 'check'
 
 /**
+ * Who sells, when it is not the owner in their own name: a cashier on their own account, or the
+ * cashier of a till session on the owner's shared device (`tillToken`). Their maximum discount
+ * sets the lowest price allowed (checked again by the server).
+ */
+export type SaleSeller = { name: string; maxDiscountPct: number; tillToken?: string }
+
+/**
  * « La vente » for one article: how many, the price agreed with the customer (price pad), how
  * she pays, the change for cash, then « Valider la vente · 18 000 ».
  */
@@ -61,6 +70,7 @@ export function SaleForm({
   keyboard,
   onBack,
   onSold,
+  seller,
 }: {
   shopId: string
   product: Product
@@ -70,6 +80,8 @@ export function SaleForm({
   /** Back to the articles (phone sheet). */
   onBack?: () => void
   onSold: (sale: SoldSale) => void
+  /** A cashier sells (own account or till session): minimum price applies. */
+  seller?: SaleSeller
 }) {
   const displayed = Number(product.initial_sale_price)
   const available = Math.max(1, Number(product.quantity_on_hand))
@@ -82,8 +94,12 @@ export function SaleForm({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const titleId = useId()
+  // One operation id per sale shown: a retry after a network error does not sell twice.
+  const operationId = useRef(crypto.randomUUID())
+  const minimum = seller ? minUnitPrice(displayed, seller.maxDiscountPct) : null
 
   const unitPrice = price ?? 0
+  const belowMinimum = minimum !== null && price !== null && price < minimum
   const total = unitPrice * quantity
   const discount = discountOf(displayed, unitPrice, quantity)
   const cash = payment === 'Espèces'
@@ -92,22 +108,45 @@ export function SaleForm({
   // The validate button says why it waits.
   const blockedLabel = !price
     ? 'Indiquez le prix auquel vous vendez'
-    : !payment
-      ? 'Choisissez comment la cliente paie'
-      : ''
+    : belowMinimum
+      ? 'Prix sous le minimum autorisé'
+      : !payment
+        ? 'Choisissez comment la cliente paie'
+        : ''
 
   async function submit() {
-    if (!price || !payment) return
+    if (!price || !payment || belowMinimum) return
     setBusy(true)
     setError('')
     try {
-      const result = await resilientSale({
-        shopId,
-        productId: product.id,
-        quantity,
-        soldUnitPrice: price,
-        paymentLabel: payment,
-      })
+      let result: { offline: boolean }
+      if (seller?.tillToken) {
+        // Till session: online only (the offline queue would lose who sold).
+        if (!navigator.onLine) {
+          setError(
+            'Pas de réseau. Une vente au nom d’un caissier sur cet appareil a besoin du réseau. Réessayez dès qu’il revient.',
+          )
+          return
+        }
+        await recordTillSale(
+          shopId,
+          product.id,
+          quantity,
+          price,
+          payment,
+          seller.tillToken,
+          operationId.current,
+        )
+        result = { offline: false }
+      } else {
+        result = await resilientSale({
+          shopId,
+          productId: product.id,
+          quantity,
+          soldUnitPrice: price,
+          paymentLabel: payment,
+        })
+      }
       navigator.vibrate?.(12)
       onSold({
         product,
@@ -119,7 +158,7 @@ export function SaleForm({
         at: new Date(),
       })
     } catch (e) {
-      setError(saleErrorMessage(e, { remaining: Number(product.quantity_on_hand) }))
+      setError(saleErrorMessage(e, { remaining: Number(product.quantity_on_hand), minimum }))
       setMode('form')
     } finally {
       setBusy(false)
@@ -307,6 +346,12 @@ export function SaleForm({
                 'Tapez la somme reçue : la monnaie se calcule toute seule.'}
             </p>
           </div>
+        )}
+
+        {belowMinimum && minimum !== null && (
+          <Notice tone="danger" title="Prix trop bas.">
+            <p>{belowMinimumMessage(minimum)}</p>
+          </Notice>
         )}
 
         {error && (

@@ -12,6 +12,7 @@ import { SettingsPage } from '../features/settings/SettingsPage'
 import { StatisticsPage } from '../features/statistics/StatisticsPage'
 import { StockPage } from '../features/stock/StockPage'
 import { NetStatus } from '../features/sync/NetStatus'
+import { TeamPanel } from '../features/team/TeamPanel'
 import { useSyncState } from '../features/sync/useSyncState'
 import { plural } from '../lib/format'
 import type { Shop } from '../lib/types'
@@ -26,6 +27,8 @@ type PageContext = {
   updateShop: (shop: Shop) => void
   navigate: (route: Route) => void
   onSimulation: () => void
+  /** Owner's user id: groups their own sales in « Ventes par caissier ». */
+  ownerId: string | null
 }
 
 /** « Tous · Commandes · Ballons »: filters of Arrivages (each one keeps its own state). */
@@ -62,12 +65,12 @@ function ArrivalsScreen({ shopId, filter }: { shopId: string; filter?: ArrivalFi
   )
 }
 
-function renderPage(route: Route, { shop, updateShop, onSimulation }: PageContext) {
+function renderPage(route: Route, { shop, updateShop, onSimulation, ownerId }: PageContext) {
   switch (route.page) {
     case 'accueil':
       return <DashboardPage shop={shop} onSimulation={onSimulation} />
     case 'vendre':
-      return <SalePage shopId={shop.id} shopName={shop.name} />
+      return <SalePage shopId={shop.id} shopName={shop.name} owner />
     case 'stock':
       return (
         <LegacyPage>
@@ -79,7 +82,7 @@ function renderPage(route: Route, { shop, updateShop, onSimulation }: PageContex
     case 'ventes':
       return (
         <LegacyPage>
-          <HistoryPage shopId={shop.id} />
+          <HistoryPage shopId={shop.id} ownerId={ownerId} />
         </LegacyPage>
       )
     case 'charges':
@@ -96,9 +99,12 @@ function renderPage(route: Route, { shop, updateShop, onSimulation }: PageContex
       )
     case 'boutique':
       return (
-        <LegacyPage>
-          <SettingsPage shopId={shop.id} onShopUpdated={updateShop} />
-        </LegacyPage>
+        <>
+          <LegacyPage>
+            <SettingsPage shopId={shop.id} onShopUpdated={updateShop} />
+          </LegacyPage>
+          <TeamPanel shopId={shop.id} shopName={shop.name} />
+        </>
       )
   }
 }
@@ -226,7 +232,7 @@ export function App({
     setMenuOpen(false)
     setSignOutOpen(true)
   }
-  const ctx: PageContext = { shop, updateShop, navigate, onSimulation }
+  const ctx: PageContext = { shop, updateShop, navigate, onSimulation, ownerId: user?.id ?? null }
 
   return (
     <div className="shell">
