@@ -58,9 +58,9 @@ export function recoverUncertainCart(userId: string, shopId: string): FrozenCart
       !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
         saved.frozen.operation.id,
       ) ||
-      (saved.frozen.tillSession !== undefined &&
-        typeof saved.frozen.tillSession !== 'string')
-    ) return null
+      (saved.frozen.tillSession !== undefined && typeof saved.frozen.tillSession !== 'string')
+    )
+      return null
 
     for (const line of saved.frozen.lines) {
       if (
@@ -71,11 +71,14 @@ export function recoverUncertainCart(userId: string, shopId: string): FrozenCart
         line.quantity < 1 ||
         !Number.isFinite(line.price) ||
         line.price <= 0
-      ) return null
+      )
+        return null
     }
 
     // An operation id is valid only for the exact lines and payment originally sent.
-    if (saved.frozen.operation.signature !== cartSignature(saved.frozen.lines, saved.frozen.payment))
+    if (
+      saved.frozen.operation.signature !== cartSignature(saved.frozen.lines, saved.frozen.payment)
+    )
       return null
     return saved.frozen
   } catch {

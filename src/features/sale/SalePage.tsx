@@ -92,7 +92,9 @@ export function SalePage({
   const [operation, setOperation] = useState<CartOperation | null>(null)
   // A request may already have recorded the sale when the reply was lost.
   // Restore its operation id after a page refresh instead of risking a duplicate sale.
-  const [frozen, setFrozen] = useState<FrozenCart | null>(() => recoverUncertainCart(userId, shopId))
+  const [frozen, setFrozen] = useState<FrozenCart | null>(() =>
+    recoverUncertainCart(userId, shopId),
+  )
   const [said, setSaid] = useState('')
   const [done, setDone] = useState<SoldSale | null>(null)
   const [sales, setSales] = useState(0)

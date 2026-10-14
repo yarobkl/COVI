@@ -52,7 +52,9 @@ describe('recovery of a cart sent without a server response', () => {
   })
 
   it('does not persist signed product images', () => {
-    const lines: Cart = [{ product: { ...product, image_url: 'signed-url' }, quantity: 1, price: 10000 }]
+    const lines: Cart = [
+      { product: { ...product, image_url: 'signed-url' }, quantity: 1, price: 10000 },
+    ]
     expect(saveUncertainCart('user-1', 'shop-1', uncertain(lines))).toBe(true)
     const saved = JSON.stringify(sessionStorage)
     const restored = recoverUncertainCart('user-1', 'shop-1')
