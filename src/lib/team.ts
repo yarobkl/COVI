@@ -239,3 +239,66 @@ export const unlockTillSession = (shopId: string, token: string, pin: string) =>
   rpc<PinResult>(
     supabase.rpc('unlock_till_session', { p_shop_id: shopId, p_token: token, p_pin: pin }),
   )
+
+
+// Shared device — signed Supabase Auth session locked server-side (migration counter_session_rls).
+// No local flag or till token can unlock owner permissions without the owner's PIN.
+export type CounterState = {
+  active: boolean
+  shop_id?: string
+  member_id?: string | null
+}
+export type CounterMember = {
+  id: string
+  display_name: string
+  pin_set: boolean
+}
+export const counterStatus = (shopId: string) =>
+  rpc<CounterState>(supabase.rpc('counter_status', { p_shop_id: shopId }))
+export const counterStart = (shopId: string) =>
+  rpc<CounterState>(supabase.rpc('counter_start', { p_shop_id: shopId }))
+export const counterMembers = (shopId: string) =>
+  rpc<CounterMember[]>(supabase.rpc('counter_members', { p_shop_id: shopId }))
+export async function counterChooseCashier(
+  shopId: string,
+  memberId: string,
+  pin: string,
+): Promise<{ session: TillSession } | { refused: PinResult }> {
+  const result = await rpc<{
+    status: PinResult['status']
+    token?: string
+    session_id?: string
+    expires_at?: string
+    member_id?: string
+    user_id?: string
+    display_name?: string
+    max_discount_pct?: number
+    can_view_shop_sales?: boolean
+    attempts_left?: number
+    retry_after?: string
+  }>(
+    supabase.rpc('counter_choose_cashier', {
+      p_shop_id: shopId,
+      p_member_id: memberId,
+      p_pin: pin,
+    }),
+  )
+  if (result.status !== 'ok') return { refused: result as PinResult }
+  if (!result.token || !result.expires_at || !result.member_id || !result.user_id) {
+    throw new Error('Session de caisse incomplète.')
+  }
+  return {
+    session: {
+      shopId,
+      memberId: result.member_id,
+      displayName: result.display_name ?? '',
+      maxDiscountPct: Number(result.max_discount_pct ?? 0),
+      token: result.token,
+      expiresAt: result.expires_at,
+      sellerId: result.user_id,
+      canViewShopSales: Boolean(result.can_view_shop_sales),
+    },
+  }
+}
+export const counterLeave = (shopId: string, pin: string) =>
+  rpc<PinResult>(supabase.rpc('counter_leave', { p_shop_id: shopId, p_pin: pin }))
