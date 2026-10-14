@@ -26,8 +26,8 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub',:'owner',true);
 select (public.configure_public_order_channel(:'shop',true,true,null))->>'token' as token \gset
 select pg_temp.check(
-  'Pantalon'=any((select article_types from public.public_order_channels where shop_id=:'shop'))
-  and 'Chemise'=any((select article_types from public.public_order_channels where shop_id=:'shop')),
+  (public.get_public_order_channel(:'shop')->'articleTypes') ? 'Pantalon'
+  and (public.get_public_order_channel(:'shop')->'articleTypes') ? 'Chemise',
   'Assortiment par défaut, même sans stock');
 -- Under ordinary authentication the table remains private.
 select pg_temp.check(not has_table_privilege('authenticated','public.public_order_channels','select'),
