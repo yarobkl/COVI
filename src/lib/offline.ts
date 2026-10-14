@@ -183,7 +183,7 @@ export async function resilientSale(input: {
   if (!navigator.onLine) return queue()
   try {
     const { recordSale } = await import('./covi')
-    await recordSale(
+    const saleId = await recordSale(
       input.shopId,
       input.productId,
       input.quantity,
@@ -191,7 +191,7 @@ export async function resilientSale(input: {
       input.paymentLabel,
       operationId,
     )
-    return { offline: false }
+    return { offline: false, saleId }
   } catch (e) {
     const network = /fetch|network|offline|failed to fetch/i.test(String(errorMessage(e) || e))
     if (!network) throw e
