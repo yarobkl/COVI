@@ -59,6 +59,6 @@ select pg_temp.check(public.leave_counter_mode(:'shop','0000',:'bema_token')->>'
   'Wrong owner PIN refuses return');
 select pg_temp.check(public.leave_counter_mode(:'shop','4876',:'bema_token')->>'status'='ok',
   'Correct owner PIN allows return');
-select pg_temp.check(public.shared_cashier_from_till(:'shop',:'bema_token') is null,
+select pg_temp.check(public.close_shared_cashier_till(:'shop',:'bema_token') is false,
   'Manager PIN closes cashier till on return');
 rollback;
