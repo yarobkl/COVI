@@ -1,4 +1,5 @@
 import type { FormEvent } from 'react'
+import { ChoiceField } from '../../components/ui/ChoiceField'
 import { arrivalCountrySuggestions } from '../../lib/countries'
 import { localDay } from '../../lib/dates'
 import type { Arrival } from '../../lib/types'
@@ -7,6 +8,7 @@ import type { Arrival } from '../../lib/types'
 export function ArrivalForm({
   kind,
   arrivalKind,
+  suppliers,
   onArrivalKindChange,
   busy,
   onSubmit,
@@ -14,6 +16,7 @@ export function ArrivalForm({
   /** Kind imposed by the page ("Mes commandes" / "Mes ballons"); chosen in the form otherwise. */
   kind?: Arrival['kind']
   arrivalKind: Arrival['kind']
+  suppliers: string[]
   onArrivalKindChange: (kind: Arrival['kind']) => void
   busy: boolean
   onSubmit: (e: FormEvent<HTMLFormElement>) => void
@@ -35,20 +38,27 @@ export function ArrivalForm({
       )}
       <label>
         Pays d'origine
-        <input name="country" list="covi-countries" required placeholder="Rechercher un pays…" />
-        <datalist id="covi-countries">
+        <select name="country" required defaultValue="">
+          <option value="">Choisir un pays</option>
           {arrivalCountrySuggestions.map((c) => (
             <option key={c.name} value={c.name}>
               {c.flag} {c.name}
             </option>
           ))}
-        </datalist>
+        </select>
       </label>
       {arrivalKind === 'supplier_order' && (
         <>
           <label>
             Fournisseur
-            <input name="supplier" placeholder="Nom du fournisseur" required />
+            <ChoiceField
+              name="supplier"
+              choices={suppliers}
+              required
+              prompt="Choisir un fournisseur"
+              otherLabel="Ajouter un nouveau fournisseur"
+              customPlaceholder="Nom du nouveau fournisseur"
+            />
           </label>
           <label>
             Date de commande
