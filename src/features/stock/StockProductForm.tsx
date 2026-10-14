@@ -18,7 +18,13 @@ export function StockProductForm({
     <form className="card formgrid" onSubmit={onSubmit}>
       <label>
         Produit
-        <ChoiceField name="name" choices={choices.names} required prompt="Choisir un article" otherLabel="Créer un nouvel article" />
+        <ChoiceField
+          name="name"
+          choices={choices.names}
+          required
+          prompt="Choisir un article"
+          otherLabel="Créer un nouvel article"
+        />
       </label>
       <label>
         Photo
@@ -37,15 +43,30 @@ export function StockProductForm({
       </label>
       <label>
         Catégorie
-        <ChoiceField name="category" choices={choices.categories} prompt="Choisir une catégorie" otherLabel="Nouvelle catégorie" />
+        <ChoiceField
+          name="category"
+          choices={choices.categories}
+          prompt="Choisir une catégorie"
+          otherLabel="Nouvelle catégorie"
+        />
       </label>
       <label>
         Marque
-        <ChoiceField name="brand" choices={choices.brands} prompt="Choisir une marque" otherLabel="Nouvelle marque" />
+        <ChoiceField
+          name="brand"
+          choices={choices.brands}
+          prompt="Choisir une marque"
+          otherLabel="Nouvelle marque"
+        />
       </label>
       <label>
         Taille
-        <ChoiceField name="size" choices={choices.sizes} prompt="Choisir une taille" otherLabel="Autre taille" />
+        <ChoiceField
+          name="size"
+          choices={choices.sizes}
+          prompt="Choisir une taille"
+          otherLabel="Autre taille"
+        />
       </label>
       <label>
         Prix de vente initial
