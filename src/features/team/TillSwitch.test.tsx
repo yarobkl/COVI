@@ -36,7 +36,7 @@ describe('Secure cashier handoff on a shared device', () => {
     const onHandoff = vi.fn().mockResolvedValue(undefined)
     render(<TillSwitch onHandoff={onHandoff} />)
     fireEvent.click(screen.getByRole('button', { name: 'Passer la caisse' }))
-    expect(screen.getByText(/2 vente\(s\) sont encore en attente/)).toBeTruthy()
+    expect(screen.getByText(/2 vente\(s\) en attente de synchronisation/)).toBeTruthy()
     const handoff = screen.getByRole('button', { name: 'Déconnecter le responsable' })
     expect((handoff as HTMLButtonElement).disabled).toBe(true)
     fireEvent.click(handoff)
