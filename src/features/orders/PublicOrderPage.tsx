@@ -20,6 +20,7 @@ import { TurnstileChallenge } from './TurnstileChallenge'
 type Line = { key: number; productId: string; description: string; quantity: number; price: string }
 
 const newOperationId = () => crypto.randomUUID()
+const OTHER_ARTICLE = '__covi_other_article__'
 const emptyLine = (key: number): Line => ({
   key,
   productId: '',
@@ -149,9 +150,13 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
       </main>
     )
 
-  const free = !catalog.showCatalog
+  // Never trap clients in an empty dropdown when the boutique has no publishable stock.
+  const free = !catalog.showCatalog || catalog.products.length === 0
   const linesValid = lines.every(
-    (l) => (free ? l.description.trim().length > 0 : Boolean(l.productId)) && l.quantity >= 1,
+    (l) =>
+      (free || l.productId === OTHER_ARTICLE
+        ? l.description.trim().length > 0
+        : Boolean(l.productId) && byId.has(l.productId)) && l.quantity >= 1,
   )
   const phoneValid = /^\+?[0-9 ().-]{6,32}$/.test(phone.trim())
   const ready =
@@ -173,7 +178,7 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
           quantity: l.quantity,
           ...(proposed ? { proposedUnitPriceXaf: proposed } : {}),
         }
-        return free
+        return free || l.productId === OTHER_ARTICLE
           ? { ...base, description: l.description.trim() }
           : { ...base, productId: l.productId }
       })
@@ -228,8 +233,17 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
         }}
       >
         <h2>Vos articles</h2>
-        {!free && catalog.products.length === 0 && (
-          <p className="muted">Aucun article n’est disponible en ligne pour le moment.</p>
+        {catalog.showCatalog && catalog.products.length === 0 && (
+          <Notice tone="calm">
+            <p>
+              La boutique n’a pas encore d’articles disponibles dans le catalogue public.
+              Décrivez l’article que vous avez vu sur WhatsApp ou TikTok : le vendeur vérifiera
+              sa disponibilité avant tout règlement.
+            </p>
+            <Button variant="secondary" onClick={() => load()}>
+              Actualiser les articles
+            </Button>
+          </Notice>
         )}
         {lines.map((line, index) => {
           const product = byId.get(line.productId)
@@ -257,6 +271,7 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
                     onChange={(e) => update(line.key, { productId: e.target.value, quantity: 1 })}
                   >
                     <option value="">Choisir un article…</option>
+                    <option value={OTHER_ARTICLE}>Autre article — décrire ma demande</option>
                     {categories.map(([category, products]) => (
                       <optgroup key={category} label={category}>
                         {products.map((p) => (
@@ -271,6 +286,18 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
                       </optgroup>
                     ))}
                   </select>
+                </label>
+              )}
+              {!free && line.productId === OTHER_ARTICLE && (
+                <label>
+                  Décrivez l’article souhaité
+                  <input
+                    className="input"
+                    value={line.description}
+                    maxLength={120}
+                    placeholder="Ex. chemise vue sur WhatsApp ou TikTok"
+                    onChange={(e) => update(line.key, { description: e.target.value })}
+                  />
                 </label>
               )}
               <div className="order-guest__row">
