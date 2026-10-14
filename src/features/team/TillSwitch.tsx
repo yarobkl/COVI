@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Button, Notice } from '../../components/ui'
 import { enterCounterMode } from '../../lib/counterMode'
 import { listShopMembers, ownerPinStatus, teamErrorMessage } from '../../lib/team'
+import { listSharedCashiers } from '../../lib/sharedCashiers'
 import { OwnerPinSetup } from './OwnerPinScreens'
 import { useSyncState } from '../sync/useSyncState'
 
@@ -24,10 +25,14 @@ export function TillSwitch({ shopId }: { shopId: string }) {
     setBusy(true)
     setError('')
     try {
-      const [owner, members] = await Promise.all([ownerPinStatus(shopId), listShopMembers(shopId)])
-      if (!members.some((member) => member.active && member.pin_set && !member.pin_must_change)) {
+      const [owner, members, profiles] = await Promise.all([
+        ownerPinStatus(shopId),
+        listShopMembers(shopId),
+        listSharedCashiers(shopId),
+      ])
+      if (!profiles.some((profile) => profile.active) && !members.some((m) => m.active && m.pin_set && !m.pin_must_change)) {
         setError(
-          'Aucun caissier prêt. Invitez un employé dans Ma boutique → Équipe et demandez-lui de créer son PIN personnel.',
+          'Aucun caissier prêt. Ouvrez Ma boutique → Équipe et créez un caissier avec son PIN.',
         )
         return
       }
