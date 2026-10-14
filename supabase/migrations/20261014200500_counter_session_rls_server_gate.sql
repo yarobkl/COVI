@@ -247,8 +247,11 @@ begin
     return;
   end if;
   if p_till_session is not null then
-    -- Legacy owner till tokens cannot be used without an active server lock.
-    raise exception 'Counter session lock required' using errcode='42501';
+    if not v_owner then raise exception 'Till session invalid' using errcode='42501'; end if;
+    v_member:=public.till_session_member(p_shop_id,p_till_session);
+    seller_id:=v_member.user_id;
+    max_discount_pct:=v_member.max_discount_pct;
+    return;
   end if;
   if v_owner then
     seller_id:=v_uid; max_discount_pct:=null; return;
