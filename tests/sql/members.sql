@@ -409,9 +409,11 @@ select pg_temp.expect_msg(format('select public.owner_reset_member_pin(%L)', :'m
 :as_oa
 select pg_temp.expect_error($$select * from public.member_pins$$, '42501',
   'le propriétaire ne lit pas la table des PIN');
+-- Never inspect a full row for a short PIN substring: a random UUID could coincidentally
+-- contain those digits. Check instead that the RPC schema exposes no sensitive keys.
 select pg_temp.check(not exists (
     select 1 from public.list_shop_members('10000000-0000-0000-0000-0000000000a1') l
-    where l::text like '%$2%' or l::text like '%7391%'),
+    where to_jsonb(l) ?| array['pin', 'pin_hash', 'token_hash', 'password', 'secret']),
   'list_shop_members : ni PIN ni empreinte');
 select pg_temp.check((select pin_set from public.list_shop_members(
     '10000000-0000-0000-0000-0000000000a1') where id = :'m1'), 'list_shop_members : C1 a un PIN');
