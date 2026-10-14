@@ -315,7 +315,6 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
                   Retirer cet article
                 </Button>
               )}
-            </fieldset>
           </fieldset>
         ))}
         {lines.length < 20 && (
