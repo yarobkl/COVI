@@ -27,7 +27,7 @@ select pg_temp.check(not has_function_privilege('anon','public.create_shared_cas
 
 select public.create_shared_cashier(:'shop','Awa','5937',10,false)->>'id' as awa \gset
 select public.create_shared_cashier(:'shop','Bema','7391',0,false)->>'id' as bema \gset
-select pg_temp.check((select count(*) from public.shop_cashier_profiles where shop_id=:'shop')=2,
+select pg_temp.check(pg_catalog.jsonb_array_length(public.list_shared_cashiers(:'shop'))=2,
   'Two PIN-only cashiers created');
 select pg_temp.check(public.list_shared_cashiers(:'shop')::text !~ '5937|7391|pin_hash',
   'PIN secrets not exposed in list');
