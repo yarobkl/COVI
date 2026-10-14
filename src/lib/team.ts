@@ -64,6 +64,8 @@ export type CreatedInvite = PendingInvite & { invite_id: string; code: string }
 export type TillSession = {
   shopId: string
   memberId: string
+  /** Set for shared-account cashier profiles without an individual login. */
+  cashierProfileId?: string
   displayName: string
   maxDiscountPct: number
   token: string
