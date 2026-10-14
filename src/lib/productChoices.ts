@@ -1,7 +1,8 @@
 import type { Product } from './types'
 
 /** Suggested choices; every saved value from this boutique stays available. */
-// prettier-ignore — curated list: one value per line is easier to maintain.
+// Keep each option on its own line for future shop categories.
+// prettier-ignore
 const DEFAULT_NAMES = `
 Jean
 T-shirt
@@ -19,7 +20,8 @@ Sandales
 Sac
 Accessoire
 `.trim().split('\n')
-// prettier-ignore — curated list: one value per line is easier to maintain.
+// Keep each option on its own line for future shop categories.
+// prettier-ignore
 const DEFAULT_CATEGORIES = `
 Jeans
 T-shirts
@@ -39,7 +41,8 @@ Accessoires
 Enfants
 Autres vêtements
 `.trim().split('\n')
-// prettier-ignore — curated list: one value per line is easier to maintain.
+// Keep each option on its own line for future shop categories.
+// prettier-ignore
 const DEFAULT_SIZES = `
 Taille unique
 XS
