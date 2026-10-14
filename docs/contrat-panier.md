@@ -2,7 +2,7 @@
 
 Destinataires : l’écran Vendre et la file hors connexion. Ce document est le contrat entre le
 client et la base. La fonction vient de la migration
-`supabase/migrations/20261010100000_record_cart_sale.sql`, étendue pour la caisse multi-caissiers
+`supabase/migrations/20261013100200_record_cart_sale.sql`, étendue pour la caisse multi-caissiers
 par `supabase/migrations/20261014090100_member_sales.sql` (voir `docs/caisse-multi-caissiers.md`).
 Les tests sont dans `tests/sql/cart.sql`, `tests/sql/cart_concurrency.sh`, `tests/sql/members.sql`
 et `tests/sql/members_concurrency.sh`.

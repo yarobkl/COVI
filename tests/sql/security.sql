@@ -1,4 +1,4 @@
--- Règles de sécurité des écritures (migration 20261010090000_server_side_sensitive_writes).
+-- Règles de sécurité des écritures (migration 20261013100000_server_side_sensitive_writes).
 -- Tout se passe dans une transaction annulée à la fin : la base de test reste vierge.
 \set ON_ERROR_STOP 1
 begin;

@@ -1,7 +1,7 @@
 -- Vente multi-articles (panier) : record_cart_sale.
 --
 -- Une vente = un panier de 1 à 50 lignes, enregistré en une seule transaction (tout ou rien).
--- Mêmes garanties que record_sale (migration 20261010090000_server_side_sensitive_writes) :
+-- Mêmes garanties que record_sale (migration 20261013100000_server_side_sensitive_writes) :
 --   - SECURITY DEFINER, search_path vide, objets qualifiés ;
 --   - propriétaire de la boutique vérifié explicitement (auth.uid()) AVANT toute lecture ;
 --   - idempotence par (shop_id, client_operation_id), sérialisée par le même verrou consultatif

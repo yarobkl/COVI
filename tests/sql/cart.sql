@@ -1,4 +1,4 @@
--- Vente multi-articles : record_cart_sale (migration 20261010100000_record_cart_sale).
+-- Vente multi-articles : record_cart_sale (migration 20261013100200_record_cart_sale).
 -- Transaction annulée à la fin : la base de test reste vierge.
 -- La concurrence (deux sessions) est testée à part : tests/sql/cart_concurrency.sh.
 \set ON_ERROR_STOP 1

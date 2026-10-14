@@ -1,4 +1,4 @@
--- Agrégats calculés en base (migration 20261010090100_shop_aggregates) sur le scénario
+-- Agrégats calculés en base (migration 20261013100100_shop_aggregates) sur le scénario
 -- « trois mois » de three_months.sql : 143 ventes de juillet à septembre 2026.
 -- Tout se passe dans une transaction annulée à la fin : la base de test reste vierge.
 \set ON_ERROR_STOP 1

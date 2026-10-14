@@ -54,8 +54,34 @@ psql -X -q -v ON_ERROR_STOP=1 -d postgres -c "set client_min_messages = warning"
 echo "== Stubs Supabase"
 psql_db -f "$here/bootstrap.sql" >/dev/null
 
-echo "== Migrations"
-for migration in "$root"/supabase/migrations/*.sql; do
+echo "== Migrations (ordre des noms de fichiers, comme la production)"
+# Ordre binaire (LC_ALL=C) : le même que `supabase db push`, quelle que soit la locale.
+mapfile -t migrations < <(cd "$root/supabase/migrations" && LC_ALL=C ls -1 -- *.sql)
+previous=""
+for name in "${migrations[@]}"; do
+  version="${name%%_*}"
+  if [[ ! "$version" =~ ^[0-9]{14}$ ]]; then
+    echo "   version de migration invalide : $name" >&2
+    exit 1
+  fi
+  if [[ -n "$previous" && ! "$version" > "$previous" ]]; then
+    echo "   deux migrations avec la même version : $name" >&2
+    exit 1
+  fi
+  previous="$version"
+done
+# Les migrations déjà en production forment le début de la liste ; les nouvelles viennent après.
+mapfile -t applied < <(grep -E '^[0-9]{14}$' "$here/production_migrations.txt")
+for i in "${!applied[@]}"; do
+  if [[ "${migrations[$i]%%_*}" != "${applied[$i]}" ]]; then
+    echo "   ordre différent de la production au rang $((i + 1)) :" \
+      "${migrations[$i]:-(absente)} au lieu de ${applied[$i]}" >&2
+    exit 1
+  fi
+done
+echo "   ${#applied[@]} migrations déjà en production, $((${#migrations[@]} - ${#applied[@]})) nouvelles"
+for name in "${migrations[@]}"; do
+  migration="$root/supabase/migrations/$name"
   echo "   $(basename "$migration")"
   PGOPTIONS="-c client_min_messages=warning" psql_db -1 -f "$migration" >/dev/null
 done

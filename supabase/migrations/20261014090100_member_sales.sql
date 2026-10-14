@@ -232,7 +232,7 @@ end;
 $function$;
 
 -- 5. record_cart_sale ---------------------------------------------------------------------------
--- Corps identique à 20261010100000_record_cart_sale.sql, sauf : autorisation par assert_can_sell
+-- Corps identique à 20261013100200_record_cart_sale.sql, sauf : autorisation par assert_can_sell
 -- (propriétaire ou membre actif), vendeur résolu par sale_seller après le contrôle
 -- d'idempotence, prix minimal par ligne pour un vendeur membre (après le contrôle de stock, dans
 -- l'ordre du panier), seller_id renseigné. Contrat : docs/contrat-panier.md.

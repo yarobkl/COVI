@@ -28,14 +28,14 @@ dossier par boutique (`<shop_id>/…`), accessible au seul propriétaire.
 ## Règles de sécurité
 
 Toutes les tables ont la RLS activée : un utilisateur connecté (`authenticated`) ne voit et ne
-modifie que les lignes de sa boutique. Depuis la migration `20261010090000_server_side_sensitive_writes` :
+modifie que les lignes de sa boutique. Depuis la migration `20261013100000_server_side_sensitive_writes` :
 
 - **Ventes : écriture uniquement par l’RPC `record_sale`.** La fonction est `SECURITY DEFINER`
   (`search_path` vide) et vérifie explicitement que `p_shop_id` appartient à `auth.uid()` avant
   toute lecture. Elle contrôle quantité, prix, moyen de paiement, stock, pièce unique, puis crée
   la vente, sa ligne et décrémente le stock dans la même transaction. Idempotente via
   `p_client_operation_id` (verrou consultatif par boutique et opération).
-- **Panier multi-articles : RPC `record_cart_sale`** (migration `20261010100000_record_cart_sale`),
+- **Panier multi-articles : RPC `record_cart_sale`** (migration `20261013100200_record_cart_sale`),
   mêmes garanties que `record_sale` pour 1 à 50 lignes en une seule vente, tout ou rien, produits
   verrouillés dans l’ordre des id. Contrat client (format, idempotence, erreurs) :
   [`docs/contrat-panier.md`](contrat-panier.md).
