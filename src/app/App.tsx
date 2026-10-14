@@ -31,6 +31,7 @@ type PageContext = {
   onSimulation: () => void
   /** Owner's user id: groups their own sales in « Ventes par caissier ». */
   ownerId: string | null
+  signOut: () => Promise<void>
 }
 
 /** « Tous · Commandes · Ballons »: filters of Arrivages (each one keeps its own state). */
@@ -69,13 +70,21 @@ function ArrivalsScreen({ shopId, filter }: { shopId: string; filter?: ArrivalFi
 
 function renderPage(
   route: Route,
-  { shop, userId, updateShop, onSimulation, ownerId }: PageContext,
+  { shop, userId, updateShop, onSimulation, ownerId, signOut }: PageContext,
 ) {
   switch (route.page) {
     case 'accueil':
       return <DashboardPage shop={shop} onSimulation={onSimulation} />
     case 'vendre':
-      return <SalePage userId={userId} shopId={shop.id} shopName={shop.name} owner />
+      return (
+        <SalePage
+          userId={userId}
+          shopId={shop.id}
+          shopName={shop.name}
+          owner
+          onCashierHandoff={signOut}
+        />
+      )
     case 'stock':
       return (
         <LegacyPage>
@@ -247,6 +256,7 @@ export function App({
     navigate,
     onSimulation,
     ownerId: user?.id ?? userId,
+    signOut,
   }
 
   return (
