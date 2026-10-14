@@ -198,6 +198,7 @@ export function SaleForm({
           payment: sent.payment,
           received: sent.payment === 'Espèces' ? received : null,
           offline: result.offline,
+          saleId: result.saleId,
           at: new Date(),
           sellerName: seller?.name,
         })
