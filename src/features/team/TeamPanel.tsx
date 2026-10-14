@@ -354,9 +354,7 @@ export function TeamPanel({ shopId, shopName }: { shopId: string; shopName: stri
       )}
 
       <p className="muted">
-        Le compte de gestion de la boutique est partagé. Pour passer en caisse, ouvrez Vendre,
-        sélectionnez un employé et demandez son code PIN personnel. Pas de déconnexion entre
-        les caissiers. Le PIN identifie les ventes et applique la remise autorisée.
+        Le compte de gestion est partagé. Chaque caissier utilise son propre PIN pour vendre.
       </p>
 
       <h3>Inviter un caissier</h3>
