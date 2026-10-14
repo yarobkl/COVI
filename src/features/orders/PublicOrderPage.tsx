@@ -236,9 +236,9 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
         {catalog.showCatalog && catalog.products.length === 0 && (
           <Notice tone="calm">
             <p>
-              La boutique n’a pas encore d’articles disponibles dans le catalogue public.
-              Décrivez l’article que vous avez vu sur WhatsApp ou TikTok : le vendeur vérifiera
-              sa disponibilité avant tout règlement.
+              La boutique n’a pas encore d’articles disponibles dans le catalogue public. Décrivez
+              l’article que vous avez vu sur WhatsApp ou TikTok : le vendeur vérifiera sa
+              disponibilité avant tout règlement.
             </p>
             <Button variant="secondary" onClick={() => load()}>
               Actualiser les articles
