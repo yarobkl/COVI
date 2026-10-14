@@ -4,6 +4,7 @@ import { Button, ButtonLink, Notice, Stamp, Ticket, TicketLine } from '../../com
 import { ticketClock, ticketDay } from '../../lib/dates'
 import { fcfa, money, paidWith, plural } from '../../lib/format'
 import { soldTotal, type SoldLine, type SoldSale } from './cart'
+import { saleOperationReference } from '../../lib/operationReference'
 
 /** What is left of the article after this sale, said simply. */
 function leftAfter(line: SoldLine) {
@@ -42,6 +43,7 @@ export function SaleDone({
   )
   const change = sale.received !== null && sale.received > total ? sale.received - total : null
   const how = paidWith(sale.payment)
+  const operationReference = saleOperationReference(sale.saleId)
 
   return (
     <div className="sale-done">
@@ -86,6 +88,7 @@ export function SaleDone({
             <TicketLine className="ticket__total" left="TOTAL" right={fcfa(total)} />
             <p className="ticket__note ticket__note--flush">Payé {how}</p>
             {sale.sellerName && <p className="ticket__note">Caissier : {sale.sellerName}</p>}
+            {operationReference && <p className="ticket__note">Référence COVI : {operationReference}</p>}
           </Ticket>
         </div>
         <div className="sale-done__mark" aria-hidden="true">
