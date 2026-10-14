@@ -124,8 +124,8 @@ export function OrderChannelPanel({ shopId, shopName }: { shopId: string; shopNa
       <div className="card" aria-label="Types d’articles vendus">
         <h3>Les articles que vend cette boutique</h3>
         <p className="muted">
-          Le client pourra choisir parmi ces types même lorsque le stock est à zéro.
-          Ajoutez ou retirez des types selon votre activité.
+          Le client pourra choisir parmi ces types même lorsque le stock est à zéro. Ajoutez ou
+          retirez des types selon votre activité.
         </p>
         <div className="order-channel__actions">
           {articleTypes.map((type) => (
@@ -150,11 +150,18 @@ export function OrderChannelPanel({ shopId, shopName }: { shopId: string; shopNa
             <option value="">Choisir un type d’article…</option>
             {DEFAULT_ARTICLE_TYPES.filter(
               (type) => !articleTypes.some((item) => item.toLowerCase() === type.toLowerCase()),
-            ).map((type) => <option key={type} value={type}>{type}</option>)}
+            ).map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
           </select>
         </label>
-        <Button variant="secondary" disabled={!suggestedType || busy}
-          onClick={() => addArticleType(suggestedType)}>
+        <Button
+          variant="secondary"
+          disabled={!suggestedType || busy}
+          onClick={() => addArticleType(suggestedType)}
+        >
           Ajouter à la liste
         </Button>
         <label>
@@ -167,8 +174,11 @@ export function OrderChannelPanel({ shopId, shopName }: { shopId: string; shopNa
             onChange={(event) => setCustomType(event.target.value)}
           />
         </label>
-        <Button variant="secondary" disabled={!customType.trim() || busy}
-          onClick={() => addArticleType(customType)}>
+        <Button
+          variant="secondary"
+          disabled={!customType.trim() || busy}
+          onClick={() => addArticleType(customType)}
+        >
           Ajouter ce type
         </Button>
         <p className="muted">Enregistrez ensuite les réglages pour publier cette liste.</p>

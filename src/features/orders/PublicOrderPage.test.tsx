@@ -43,15 +43,17 @@ describe('QR client — types vendus, indépendamment des références et du sto
     vi.mocked(fetchCatalog).mockResolvedValue({
       ...base,
       articleTypes: ['Boubou', 'Pagne'],
-      products: [{
-        id: 'sku-1',
-        name: 'Chaussure unique',
-        category: 'Chaussures',
-        brand: null,
-        size: null,
-        priceXaf: 12000,
-        maxQuantity: 1,
-      }],
+      products: [
+        {
+          id: 'sku-1',
+          name: 'Chaussure unique',
+          category: 'Chaussures',
+          brand: null,
+          size: null,
+          priceXaf: 12000,
+          maxQuantity: 1,
+        },
+      ],
     })
     render(<PublicOrderPage token="test-token" channel="social" />)
     const select = await screen.findByRole('combobox', { name: 'Choisir un article' })
