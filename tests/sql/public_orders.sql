@@ -274,7 +274,7 @@ select set_config('request.jwt.claim.sub', :'owner', true);
 select id as second_line_id from public.public_order_lines where order_id=:'second_paid_order' \gset
 \set second_lines '[{"lineId":"' :second_line_id '","productId":"' :jean '","unitPriceXaf":10000}]'
 select pg_temp.fails(format(
-  $select public.confirm_public_order_payment(%L,'mobile_money',null,false,%L,%L)$,
+  $$select public.confirm_public_order_payment(%L,'mobile_money',null,false,%L,%L)$$,
   :'second_paid_order',:'second_lines',:'till'),
   'Numéro externe facultatif mais refus sans vérification effective');
 select pg_temp.check(
