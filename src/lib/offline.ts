@@ -170,7 +170,7 @@ export async function resilientSale(input: {
   quantity: number
   soldUnitPrice: number
   paymentLabel: string
-}) {
+}): Promise<{ offline: boolean; saleId?: string }> {
   const operationId = crypto.randomUUID(),
     userId = activeUser,
     queue = () => {
