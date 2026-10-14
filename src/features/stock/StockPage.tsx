@@ -15,6 +15,7 @@ export function StockPage({ shopId }: { shopId: string }) {
   const [show, setShow] = useState(false)
   const [msg, setMsg] = useState('')
   const [query, setQuery] = useState('')
+  const [selectedProductId, setSelectedProductId] = useState('')
   const load = useCallback(
     () =>
       listProducts(shopId, false, true)
@@ -61,8 +62,10 @@ export function StockPage({ shopId }: { shopId: string }) {
     }
   }
   const q = query.toLowerCase()
-  const visible = p.filter((v) =>
-    (v.name + ' ' + (v.brand ?? '') + ' ' + (v.category ?? '')).toLowerCase().includes(q),
+  const visible = p.filter(
+    (v) =>
+      (!selectedProductId || v.id === selectedProductId) &&
+      (v.name + ' ' + (v.brand ?? '') + ' ' + (v.category ?? '')).toLowerCase().includes(q),
   )
   const cacheDate = stockCacheDate(shopId)
   return (
@@ -85,6 +88,20 @@ export function StockPage({ shopId }: { shopId: string }) {
       {show && <StockProductForm arrivals={arrivals} products={p} onSubmit={save} />}
       {msg && <p className="successmsg">{msg}</p>}
       <section className="card">
+        <label>
+          Choisir un article du stock
+          <select
+            value={selectedProductId}
+            onChange={(event) => setSelectedProductId(event.target.value)}
+          >
+            <option value="">Tous les articles</option>
+            {p.map((product) => (
+              <option value={product.id} key={product.id}>
+                {product.name} · {product.category || 'Sans catégorie'}
+              </option>
+            ))}
+          </select>
+        </label>
         <div className="search">
           <SearchIcon />
           <input
