@@ -1,21 +1,29 @@
-import type { FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
+import { ChoiceField } from '../../components/ui/ChoiceField'
 import type { Expense } from '../../lib/types'
 import { expenseCategories } from './expenseCategories'
 
 /** Creates an expense, or edits `editing` when set. */
 export function ExpenseForm({
   editing,
+  usedLabels,
   today,
   busy,
   onSubmit,
   onCancel,
 }: {
   editing: Expense | null
+  usedLabels: { category: string; label: string }[]
   today: string
   busy: boolean
   onSubmit: (e: FormEvent<HTMLFormElement>) => void
   onCancel: () => void
 }) {
+  const [category, setCategory] = useState(editing?.category || 'Loyer')
+  const suggestions = [
+    category,
+    ...usedLabels.filter((item) => item.category === category).map((item) => item.label),
+  ]
   return (
     <form className="card formgrid" onSubmit={onSubmit}>
       <div className="span2">
@@ -23,7 +31,7 @@ export function ExpenseForm({
       </div>
       <label>
         Catégorie
-        <select name="category" defaultValue={editing?.category || 'Loyer'}>
+        <select name="category" value={category} onChange={(e) => setCategory(e.target.value)}>
           {expenseCategories.map((x) => (
             <option key={x}>{x}</option>
           ))}
@@ -31,7 +39,15 @@ export function ExpenseForm({
       </label>
       <label>
         Libellé
-        <input name="label" defaultValue={editing?.label || ''} />
+        <ChoiceField
+          key={category}
+          name="label"
+          choices={suggestions}
+          defaultValue={category === editing?.category ? editing?.label : ''}
+          prompt="Choisir un libellé (facultatif)"
+          otherLabel="Ajouter un libellé"
+          customPlaceholder="Nouveau libellé"
+        />
       </label>
       <label>
         Montant
