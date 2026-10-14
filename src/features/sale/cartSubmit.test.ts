@@ -82,7 +82,7 @@ async function press(previous: CartOperation | null, lines: Cart, payment = 'Mob
 describe('submitCart: several articles', () => {
   it('calls record_cart_sale with the shop, the exact lines, the payment code and the key', async () => {
     const { op, result } = await press(null, twoLines())
-    expect(result).toEqual({ status: 'sold', offline: false })
+    expect(result).toEqual({ status: 'sold', offline: false, saleId: 'sale-1' })
     expect(rpc).toHaveBeenCalledTimes(1)
     expect(rpc).toHaveBeenCalledWith('record_cart_sale', {
       p_shop_id: 'shop-1',
@@ -181,7 +181,7 @@ describe('submitCart: several articles', () => {
     expect(first.result).toEqual({ status: 'refused', message: NO_SESSION_TEXT })
     const second = await press(first.op, lines)
     expect(second.op.id).toBe(first.op.id)
-    expect(second.result).toEqual({ status: 'sold', offline: false })
+    expect(second.result).toEqual({ status: 'sold', offline: false, saleId: 'sale-1' })
   })
 
   it('no signed-in account: nothing is sent', async () => {
@@ -250,7 +250,7 @@ describe('submitCart: several articles', () => {
 describe('submitCart: one article', () => {
   it('goes through resilientSale as before (record_sale online)', async () => {
     const { result } = await press(null, oneLine(), 'Espèces')
-    expect(result).toEqual({ status: 'sold', offline: false })
+    expect(result).toEqual({ status: 'sold', offline: false, saleId: 'sale-1' })
     expect(resilientSale).toHaveBeenCalledWith({
       shopId: 'shop-1',
       productId: robe.id,
@@ -298,7 +298,7 @@ async function pressTill(previous: CartOperation | null, lines: Cart, payment = 
 describe('submitCart: in the name of a till-session cashier (counter mode)', () => {
   it('several articles: record_cart_sale with p_till_session and the cart key', async () => {
     const { op, result } = await pressTill(null, twoLines())
-    expect(result).toEqual({ status: 'sold', offline: false })
+    expect(result).toEqual({ status: 'sold', offline: false, saleId: 'sale-1' })
     expect(rpc).toHaveBeenCalledWith('record_cart_sale', {
       p_shop_id: 'shop-1',
       p_items: [
@@ -314,7 +314,7 @@ describe('submitCart: in the name of a till-session cashier (counter mode)', () 
 
   it('one article: record_sale with p_till_session, never the offline queue', async () => {
     const { op, result } = await pressTill(null, oneLine())
-    expect(result).toEqual({ status: 'sold', offline: false })
+    expect(result).toEqual({ status: 'sold', offline: false, saleId: 'sale-1' })
     expect(rpc).toHaveBeenCalledWith('record_sale', {
       p_shop_id: 'shop-1',
       p_product_id: robe.id,
