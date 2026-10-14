@@ -257,10 +257,15 @@ export async function submitCart({
     return { status: 'offline', message: tillSession ? TILL_OFFLINE_TEXT : CART_WAITING_TEXT }
   try {
     const items = toCartItems(lines)
-    const saleId = tillSession && items.length === 1
-      ? await recordTillLine(shopId, items[0], paymentLabel, operationId, tillSession)
-      : await recordCartSale(shopId, items, paymentLabel, operationId, tillSession)
-    return { status: 'sold', offline: false, saleId: typeof saleId === 'string' ? saleId : undefined }
+    const saleId =
+      tillSession && items.length === 1
+        ? await recordTillLine(shopId, items[0], paymentLabel, operationId, tillSession)
+        : await recordCartSale(shopId, items, paymentLabel, operationId, tillSession)
+    return {
+      status: 'sold',
+      offline: false,
+      saleId: typeof saleId === 'string' ? saleId : undefined,
+    }
   } catch (e) {
     if (isUncertain(e)) return { status: 'uncertain', message: CART_UNCERTAIN_TEXT }
     // Answered by the database (SQLSTATE) or refused by PostgREST: nothing was recorded.
