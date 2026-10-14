@@ -21,6 +21,38 @@ describe('ChoiceField — choisir sans retaper', () => {
     expect(screen.queryByPlaceholderText('Saisir une nouvelle valeur')).toBeNull()
   })
 
+  it('keeps the saved choice when editing an existing record', () => {
+    const view = render(
+      <form aria-label="Modification">
+        <label>
+          Taille
+          <ChoiceField name="size" choices={['S', 'M', 'L']} defaultValue="M" />
+        </label>
+      </form>,
+    )
+    expect((screen.getByRole('combobox', { name: 'Taille' }) as HTMLSelectElement).value).toBe(
+      'M',
+    )
+    expect(new FormData(view.container.querySelector('form')!).get('size')).toBe('M')
+  })
+
+  it('preserves an older custom value when editing', () => {
+    const view = render(
+      <form aria-label="Modification">
+        <label>
+          Libellé
+          <ChoiceField name="label" choices={['Loyer']} defaultValue="Entretien vitrine" />
+        </label>
+      </form>,
+    )
+    expect((screen.getByRole('textbox', { name: 'Saisir une nouvelle valeur' }) as HTMLInputElement).value).toBe(
+      'Entretien vitrine',
+    )
+    expect(new FormData(view.container.querySelector('form')!).getAll('label')).toEqual([
+      'Entretien vitrine',
+    ])
+  })
+
   it('offers a new value only when choosing Autre', () => {
     const view = render(
       <form aria-label="Marque">
