@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { listenForDesktopOAuth } from '../../lib/desktopAuth'
 import { clearCounterMode } from '../../lib/counterMode'
 import { closeTillSession, myMemberShops, type MemberShop } from '../../lib/team'
+import { closeSharedCashierTill } from '../../lib/sharedCashiers'
 import { clearTillSession, peekTillSession } from '../../lib/tillSession'
 import type { Shop } from '../../lib/types'
 import { CashierApp } from '../team/CashierApp'
@@ -16,7 +17,10 @@ import { LoginForm, type AuthMode } from './LoginForm'
 async function signOutEverywhere() {
   const till = peekTillSession()
   clearTillSession()
-  if (till) await closeTillSession(till.shopId, till.token).catch(() => false)
+  if (till) {
+    const close = till.cashierProfileId ? closeSharedCashierTill : closeTillSession
+    await close(till.shopId, till.token).catch(() => false)
+  }
   const { error } = await supabase.auth.signOut()
   if (error) throw error
 }
