@@ -40,7 +40,7 @@ export const CART_UNCERTAIN_TEXT =
 
 export type CartSubmitResult =
   /** Recorded (`offline`: a single article kept on the device, sent when the network is back). */
-  | { status: 'sold'; offline: boolean }
+  | { status: 'sold'; offline: boolean; saleId?: string }
   /** Not sent (no network before the call): nothing exists on the server, the cart stays editable. */
   | { status: 'offline'; message: string }
   /**
@@ -257,10 +257,10 @@ export async function submitCart({
     return { status: 'offline', message: tillSession ? TILL_OFFLINE_TEXT : CART_WAITING_TEXT }
   try {
     const items = toCartItems(lines)
-    if (tillSession && items.length === 1)
-      await recordTillLine(shopId, items[0], paymentLabel, operationId, tillSession)
-    else await recordCartSale(shopId, items, paymentLabel, operationId, tillSession)
-    return { status: 'sold', offline: false }
+    const saleId = tillSession && items.length === 1
+      ? await recordTillLine(shopId, items[0], paymentLabel, operationId, tillSession)
+      : await recordCartSale(shopId, items, paymentLabel, operationId, tillSession)
+    return { status: 'sold', offline: false, saleId: typeof saleId === 'string' ? saleId : undefined }
   } catch (e) {
     if (isUncertain(e)) return { status: 'uncertain', message: CART_UNCERTAIN_TEXT }
     // Answered by the database (SQLSTATE) or refused by PostgREST: nothing was recorded.
