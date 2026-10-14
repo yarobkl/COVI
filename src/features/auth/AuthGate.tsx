@@ -17,7 +17,8 @@ async function signOutEverywhere() {
   const till = peekTillSession()
   clearTillSession()
   if (till) await closeTillSession(till.shopId, till.token).catch(() => false)
-  await supabase.auth.signOut()
+  const { error } = await supabase.auth.signOut()
+  if (error) throw error
 }
 
 /**
