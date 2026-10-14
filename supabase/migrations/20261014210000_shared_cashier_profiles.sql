@@ -305,7 +305,7 @@ begin
   seller_id := v_uid;
   max_discount_pct := v_member.max_discount_pct;
 end;
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION public.record_sale(p_shop_id uuid, p_product_id uuid, p_quantity integer, p_sold_unit_price numeric, p_payment_method text, p_client_operation_id uuid, p_till_session text DEFAULT NULL::text)
  RETURNS uuid
@@ -368,7 +368,7 @@ begin
   where id = p_product_id;
   return v_sale_id;
 end;
-$function$
+$function$;
 
 CREATE OR REPLACE FUNCTION public.record_cart_sale(p_shop_id uuid, p_items jsonb, p_payment_method text, p_client_operation_id uuid, p_till_session text DEFAULT NULL::text)
  RETURNS uuid
@@ -551,5 +551,4 @@ begin
 
   return v_sale_id;
 end;
-$function$
-
+$function$;
