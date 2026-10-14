@@ -28,7 +28,7 @@ import { saleErrorMessage } from './saleErrors'
 
 /** Said when a cart of several articles cannot leave (no network before sending). */
 export const CART_WAITING_TEXT =
-  'Pas de réseau : ce panier attend. Il sera enregistré d’un coup dès que le réseau revient. Vous pouvez aussi vendre article par article.'
+  'Pas de réseau : ce panier n’a pas été enregistré. Gardez cet écran ouvert et réessayez dès que la connexion revient ; les articles seront alors vendus ensemble.'
 
 /** Said when a sale in a till-session cashier's name cannot leave (no network). */
 export const TILL_OFFLINE_TEXT =
