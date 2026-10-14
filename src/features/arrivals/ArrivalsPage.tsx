@@ -113,7 +113,9 @@ export function ArrivalsPage({ shopId, kind }: { shopId: string; kind?: Arrival[
         <ArrivalForm
           kind={kind}
           arrivalKind={arrivalKind}
-          suppliers={[...new Set(rows.map((a) => a.supplier_name).filter((s): s is string => Boolean(s)))]}
+          suppliers={[
+            ...new Set(rows.map((a) => a.supplier_name).filter((s): s is string => Boolean(s))),
+          ]}
           onArrivalKindChange={setArrivalKind}
           busy={busy}
           onSubmit={save}
