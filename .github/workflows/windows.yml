@@ -2,7 +2,8 @@ name: COVI Windows
 on:
   workflow_dispatch:
   pull_request:
-    branches: [main]
+    # Aussi les PR vers la branche publiée en production sur Vercel.
+    branches: [main, claude/caisse-multi-caissiers]
   push:
     branches: [main]
     paths:
