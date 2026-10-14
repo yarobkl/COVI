@@ -65,18 +65,22 @@ function CashierPicker({
       ([registered, shared]) => {
         if (!active) return
         setMembers([
-          ...shared.filter((m) => m.active).map((m) => ({
-            id: m.id,
-            display_name: m.display_name,
-            pin_set: m.pin_set,
-            profile: true,
-          })),
-          ...registered.filter((m) => m.active).map((m) => ({
-            id: m.id,
-            display_name: m.display_name,
-            pin_set: m.pin_set,
-            profile: false,
-          })),
+          ...shared
+            .filter((m) => m.active)
+            .map((m) => ({
+              id: m.id,
+              display_name: m.display_name,
+              pin_set: m.pin_set,
+              profile: true,
+            })),
+          ...registered
+            .filter((m) => m.active)
+            .map((m) => ({
+              id: m.id,
+              display_name: m.display_name,
+              pin_set: m.pin_set,
+              profile: false,
+            })),
         ])
         setLoadError('')
       },
@@ -368,7 +372,9 @@ export function CounterApp({
                 shopId={shop.id}
                 mine
                 // A session kept from an older version has no seller id: show nothing rather than all.
-                sellerId={ownSalesOnly && !session.cashierProfileId ? (session.sellerId ?? '') : undefined}
+                sellerId={
+                  ownSalesOnly && !session.cashierProfileId ? (session.sellerId ?? '') : undefined
+                }
                 cashierProfileId={ownSalesOnly ? session.cashierProfileId : undefined}
               />
             </LegacyPage>

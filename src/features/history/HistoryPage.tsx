@@ -45,10 +45,12 @@ export function HistoryPage({
     Promise.all([listShopMembers(shopId), listSharedCashiers(shopId)]).then(
       ([members, cashiers]) => {
         if (active) {
-          setNames(new Map([
-            ...members.map((m): [string, string] => [m.user_id, m.display_name]),
-            ...cashiers.map((c): [string, string] => [`profile:${c.id}`, c.display_name]),
-          ]))
+          setNames(
+            new Map([
+              ...members.map((m): [string, string] => [m.user_id, m.display_name]),
+              ...cashiers.map((c): [string, string] => [`profile:${c.id}`, c.display_name]),
+            ]),
+          )
         }
       },
       () => {},

@@ -12,7 +12,12 @@ export const sellerKey = (
   sellerId: string | null,
   ownerId: string | null,
   cashierProfileId?: string | null,
-) => cashierProfileId ? `profile:${cashierProfileId}` : !sellerId || sellerId === ownerId ? OWNER : sellerId
+) =>
+  cashierProfileId
+    ? `profile:${cashierProfileId}`
+    : !sellerId || sellerId === ownerId
+      ? OWNER
+      : sellerId
 
 /**
  * Sales per seller: the owner (their own sales and sales recorded before the team existed) and

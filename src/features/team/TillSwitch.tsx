@@ -30,7 +30,10 @@ export function TillSwitch({ shopId }: { shopId: string }) {
         listShopMembers(shopId),
         listSharedCashiers(shopId),
       ])
-      if (!profiles.some((profile) => profile.active) && !members.some((m) => m.active && m.pin_set && !m.pin_must_change)) {
+      if (
+        !profiles.some((profile) => profile.active) &&
+        !members.some((m) => m.active && m.pin_set && !m.pin_must_change)
+      ) {
         setError(
           'Aucun caissier prêt. Ouvrez Ma boutique → Équipe et créez un caissier avec son PIN.',
         )

@@ -29,10 +29,16 @@ export function SharedCashiersPanel({ shopId }: { shopId: string }) {
   useEffect(() => {
     let active = true
     void listSharedCashiers(shopId).then(
-      (rows) => { if (active) setCashiers(rows) },
-      (err) => { if (active) setError(teamErrorMessage(err)) },
+      (rows) => {
+        if (active) setCashiers(rows)
+      },
+      (err) => {
+        if (active) setError(teamErrorMessage(err))
+      },
     )
-    return () => { active = false }
+    return () => {
+      active = false
+    }
   }, [shopId])
 
   const create = async (event: FormEvent<HTMLFormElement>) => {
@@ -76,8 +82,8 @@ export function SharedCashiersPanel({ shopId }: { shopId: string }) {
     <section className="card team">
       <h3>Caissiers de cette boutique</h3>
       <p className="muted">
-        Le compte de gestion est commun. Chaque employé choisit son propre code PIN
-        pour encaisser et retrouver ses ventes.
+        Le compte de gestion est commun. Chaque employé choisit son propre code PIN pour encaisser
+        et retrouver ses ventes.
       </p>
       {cashiers === null && !error && <p>Chargement des caissiers…</p>}
       {cashiers?.length === 0 && <p>Aucun caissier pour le moment.</p>}
@@ -118,7 +124,11 @@ export function SharedCashiersPanel({ shopId }: { shopId: string }) {
         <label>
           Remise maximale autorisée
           <select value={discount} onChange={(event) => setDiscount(Number(event.target.value))}>
-            {discounts.map((value) => <option key={value} value={value}>{value} %</option>)}
+            {discounts.map((value) => (
+              <option key={value} value={value}>
+                {value} %
+              </option>
+            ))}
           </select>
         </label>
         <label>
@@ -151,8 +161,16 @@ export function SharedCashiersPanel({ shopId }: { shopId: string }) {
           {busy ? 'Enregistrement…' : 'Créer le caissier'}
         </Button>
       </form>
-      {error && <Notice tone="danger"><p>{error}</p></Notice>}
-      {message && <Notice tone="success"><p>{message}</p></Notice>}
+      {error && (
+        <Notice tone="danger">
+          <p>{error}</p>
+        </Notice>
+      )}
+      {message && (
+        <Notice tone="success">
+          <p>{message}</p>
+        </Notice>
+      )}
     </section>
   )
 }

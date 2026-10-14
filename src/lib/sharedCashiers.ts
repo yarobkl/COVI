@@ -39,10 +39,12 @@ export const createSharedCashier = (
   )
 
 export const setSharedCashierActive = (cashierId: string, active: boolean) =>
-  rpc<boolean>(supabase.rpc('set_shared_cashier_active', {
-    p_cashier_id: cashierId,
-    p_active: active,
-  }))
+  rpc<boolean>(
+    supabase.rpc('set_shared_cashier_active', {
+      p_cashier_id: cashierId,
+      p_active: active,
+    }),
+  )
 
 export async function openSharedCashierTill(
   shopId: string,
@@ -60,11 +62,13 @@ export async function openSharedCashierTill(
       max_discount_pct?: number
       can_view_shop_sales?: boolean
     }
-  >(supabase.rpc('open_shared_cashier_till', {
-    p_shop_id: shopId,
-    p_cashier_id: cashierId,
-    p_pin: pin,
-  }))
+  >(
+    supabase.rpc('open_shared_cashier_till', {
+      p_shop_id: shopId,
+      p_cashier_id: cashierId,
+      p_pin: pin,
+    }),
+  )
   if (result.status !== 'ok') return { refused: result }
   if (!result.token || !result.expires_at) throw new Error('Session de caisse incomplète.')
   return {
@@ -83,14 +87,18 @@ export async function openSharedCashierTill(
 }
 
 export const unlockSharedCashierTill = (shopId: string, token: string, pin: string) =>
-  rpc<PinResult>(supabase.rpc('unlock_shared_cashier_till', {
-    p_shop_id: shopId,
-    p_token: token,
-    p_pin: pin,
-  }))
+  rpc<PinResult>(
+    supabase.rpc('unlock_shared_cashier_till', {
+      p_shop_id: shopId,
+      p_token: token,
+      p_pin: pin,
+    }),
+  )
 
 export const closeSharedCashierTill = (shopId: string, token: string) =>
-  rpc<boolean>(supabase.rpc('close_shared_cashier_till', {
-    p_shop_id: shopId,
-    p_token: token,
-  }))
+  rpc<boolean>(
+    supabase.rpc('close_shared_cashier_till', {
+      p_shop_id: shopId,
+      p_token: token,
+    }),
+  )
