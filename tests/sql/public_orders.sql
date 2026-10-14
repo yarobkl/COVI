@@ -224,7 +224,8 @@ select (:'confirmed'::jsonb ->> 'saleId') as sale_id \gset
 select pg_temp.check(
   (:'confirmed'::jsonb ->> 'internalReference') =
     (select operation_reference from public.sales where id = :'sale_id')
-  and (:'confirmed'::jsonb ->> 'internalReference') ~ '^COVI-[0-9A-F]{32}
+  and (:'confirmed'::jsonb ->> 'internalReference') ~ '^COVI-[0-9A-F]{32}$',
+  'Référence COVI créée uniquement à la confirmation, unique, issue de la vente réelle');
 select pg_temp.check(
   (select status = 'paid' and paid_method = 'mobile_money' and payment_reference = 'MP241014.1234'
      and cashier_profile_id = :'cashier' and sale_id = :'sale_id'
