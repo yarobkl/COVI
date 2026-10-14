@@ -13,6 +13,7 @@ import { StatisticsPage } from '../features/statistics/StatisticsPage'
 import { StockPage } from '../features/stock/StockPage'
 import { NetStatus } from '../features/sync/NetStatus'
 import { TeamPanel } from '../features/team/TeamPanel'
+import { SharedCashiersPanel } from '../features/team/SharedCashiersPanel'
 import { useSyncState } from '../features/sync/useSyncState'
 import { plural } from '../lib/format'
 import type { Shop } from '../lib/types'
@@ -106,6 +107,7 @@ function renderPage(route: Route, { shop, updateShop, onSimulation, ownerId }: P
           <LegacyPage>
             <SettingsPage shopId={shop.id} onShopUpdated={updateShop} />
           </LegacyPage>
+          <SharedCashiersPanel shopId={shop.id} />
           <TeamPanel shopId={shop.id} shopName={shop.name} />
         </>
       )
