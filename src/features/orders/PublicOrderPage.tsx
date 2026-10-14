@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import { Button, Notice } from '../../components/ui'
 import { money } from '../../lib/format'
 import { DEFAULT_ARTICLE_TYPES } from '../../lib/articleTypes'
@@ -75,10 +75,9 @@ export function PublicOrderPage({ token, channel }: { token: string; channel: Or
     document.title = catalog ? `Commander — ${catalog.shopName}` : 'Commander — COVI'
   }, [catalog])
 
-  const articleTypes = useMemo(
-    () => (catalog?.articleTypes?.length ? catalog.articleTypes : [...DEFAULT_ARTICLE_TYPES]),
-    [catalog?.articleTypes],
-  )
+  const articleTypes = catalog?.articleTypes?.length
+    ? catalog.articleTypes
+    : [...DEFAULT_ARTICLE_TYPES]
 
   const update = (key: number, patch: Partial<Line>) =>
     setLines((all) => all.map((l) => (l.key === key ? { ...l, ...patch } : l)))
