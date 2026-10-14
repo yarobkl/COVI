@@ -27,8 +27,9 @@ import { OwnerPinPrompt } from './OwnerPinScreens'
 import { PinPad } from './PinPad'
 import { useInactivityLock } from './useInactivityLock'
 import { useTillSession } from './useTillSession'
+import { OrdersInbox } from '../orders/OrdersInbox'
 
-type Page = 'vendre' | 'ventes'
+type Page = 'vendre' | 'commandes' | 'ventes'
 /** open: selling; locked: 5 minutes without activity; pick: who holds the till; leave: owner PIN. */
 type View = 'open' | 'locked' | 'pick' | 'leave'
 type CashierChoice = {
@@ -337,6 +338,7 @@ export function CounterApp({
           {(
             [
               ['vendre', 'Vendre'],
+              ['commandes', 'Commandes'],
               ['ventes', ownSalesOnly ? 'Ses ventes' : 'Ventes'],
             ] as const
           ).map(([id, label]) => (
@@ -366,6 +368,7 @@ export function CounterApp({
               paused={Boolean(screen) || page !== 'vendre'}
             />
           </div>
+          {page === 'commandes' && <OrdersInbox shopId={shop.id} till={session} />}
           {page === 'ventes' && (
             <LegacyPage>
               <HistoryPage

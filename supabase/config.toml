@@ -1,0 +1,4 @@
+# Canal client : fonction publique au niveau HTTP. La passerelle contrôle elle-même l'origine,
+# Turnstile, les quotas et chaque champ (voir supabase/functions/public-checkout).
+[functions.public-checkout]
+verify_jwt = false

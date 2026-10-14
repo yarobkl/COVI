@@ -3,3 +3,6 @@ node_modules/
 package-lock.json
 src-tauri/
 supabase/
+
+# Bibliothèque MIT non modifiée : ne pas reformater.
+src/vendor/
