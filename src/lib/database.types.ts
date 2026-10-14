@@ -186,6 +186,7 @@ export type Database = {
       }
       sales: {
         Row: {
+          cashier_profile_id: string | null
           client_operation_id: string | null
           id: string
           is_test: boolean
@@ -196,6 +197,7 @@ export type Database = {
           total_amount: number
         }
         Insert: {
+          cashier_profile_id?: string | null
           client_operation_id?: string | null
           id?: string
           is_test?: boolean
@@ -206,6 +208,7 @@ export type Database = {
           total_amount?: number
         }
         Update: {
+          cashier_profile_id?: string | null
           client_operation_id?: string | null
           id?: string
           is_test?: boolean
@@ -511,6 +514,33 @@ export type Database = {
       unlock_till_session: {
         Args: { p_shop_id: string; p_token: string; p_pin: string }
         Returns: Json
+      }
+      list_shared_cashiers: { Args: { p_shop_id: string }; Returns: Json }
+      create_shared_cashier: {
+        Args: {
+          p_shop_id: string
+          p_display_name: string
+          p_pin: string
+          p_max_discount_pct?: number
+          p_can_view_shop_sales?: boolean
+        }
+        Returns: Json
+      }
+      set_shared_cashier_active: {
+        Args: { p_cashier_id: string; p_active: boolean }
+        Returns: boolean
+      }
+      open_shared_cashier_till: {
+        Args: { p_shop_id: string; p_cashier_id: string; p_pin: string }
+        Returns: Json
+      }
+      unlock_shared_cashier_till: {
+        Args: { p_shop_id: string; p_token: string; p_pin: string }
+        Returns: Json
+      }
+      close_shared_cashier_till: {
+        Args: { p_shop_id: string; p_token: string }
+        Returns: boolean
       }
     }
     Enums: {
