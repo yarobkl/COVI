@@ -443,10 +443,21 @@ describe('SalePage — counter mode (till session on the owner’s device)', () 
 })
 
 describe('SalePage — owner’s full app', () => {
-  it('shows « Caissier : Vous (responsable) · Changer »', async () => {
-    render(<SalePage userId="u-owner" shopId="shop-1" shopName="Chez Mado" owner />)
+  it('offers a safe handoff by logout, not PIN-only owner-JWT delegation', async () => {
+    const onCashierHandoff = vi.fn().mockResolvedValue(undefined)
+    render(
+      <SalePage
+        userId="u-owner"
+        shopId="shop-1"
+        shopName="Chez Mado"
+        owner
+        onCashierHandoff={onCashierHandoff}
+      />,
+    )
     await screen.findByText('Robe wax')
     expect(screen.getByText('Vous (responsable)')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Changer' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Passer la caisse' }))
+    expect(screen.getByText(/son propre compte COVI/)).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Changer' })).toBeNull()
   })
 })
