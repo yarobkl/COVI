@@ -30,9 +30,8 @@ describe('ChoiceField — choisir sans retaper', () => {
         </label>
       </form>,
     )
-    expect((screen.getByRole('combobox', { name: 'Taille' }) as HTMLSelectElement).value).toBe(
-      'M',
-    )
+    const select = screen.getByRole('combobox', { name: 'Taille' }) as HTMLSelectElement
+    expect(select.value).toBe('M')
     expect(new FormData(view.container.querySelector('form')!).get('size')).toBe('M')
   })
 
@@ -45,9 +44,8 @@ describe('ChoiceField — choisir sans retaper', () => {
         </label>
       </form>,
     )
-    expect((screen.getByRole('textbox', { name: 'Saisir une nouvelle valeur' }) as HTMLInputElement).value).toBe(
-      'Entretien vitrine',
-    )
+    const custom = screen.getByPlaceholderText('Saisir une nouvelle valeur') as HTMLInputElement
+    expect(custom.value).toBe('Entretien vitrine')
     expect(new FormData(view.container.querySelector('form')!).getAll('label')).toEqual([
       'Entretien vitrine',
     ])
