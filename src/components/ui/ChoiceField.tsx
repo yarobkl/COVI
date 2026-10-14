@@ -10,6 +10,7 @@ export function ChoiceField({
   prompt = 'Choisir dans la liste',
   otherLabel = 'Autre / Ajouter une valeur',
   customPlaceholder = 'Saisir une nouvelle valeur',
+  defaultValue = '',
 }: {
   name: string
   choices: readonly string[]
@@ -17,9 +18,12 @@ export function ChoiceField({
   prompt?: string
   otherLabel?: string
   customPlaceholder?: string
+  defaultValue?: string
 }) {
-  const [chosen, setChosen] = useState('')
   const unique = [...new Set(choices.map((value) => value.trim()).filter(Boolean))]
+  const [chosen, setChosen] = useState(() =>
+    defaultValue ? (unique.includes(defaultValue) ? defaultValue : CUSTOM) : '',
+  )
   const custom = chosen === CUSTOM
 
   return (
@@ -45,6 +49,7 @@ export function ChoiceField({
           placeholder={customPlaceholder}
           aria-label={customPlaceholder}
           autoComplete="off"
+          defaultValue={chosen === CUSTOM ? defaultValue : ''}
         />
       )}
     </>
