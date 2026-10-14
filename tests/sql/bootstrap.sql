@@ -25,6 +25,13 @@ alter default privileges in schema public grant all on tables to anon, authentic
 alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
 alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
 
+-- Extensions : comme sur Supabase, pgcrypto vit dans le schéma `extensions` (la migration
+-- 20261005234321 fait `create extension if not exists pgcrypto`, sans effet si elle est déjà là).
+-- Les fonctions PIN (20261014090050) appellent extensions.crypt / extensions.gen_salt.
+create schema if not exists extensions;
+grant usage on schema extensions to anon, authenticated, service_role;
+create extension if not exists pgcrypto with schema extensions;
+
 -- Schéma auth : seule la table des utilisateurs (clé étrangère de shops.owner_id) et auth.uid().
 create schema if not exists auth;
 grant usage on schema auth to anon, authenticated, service_role;

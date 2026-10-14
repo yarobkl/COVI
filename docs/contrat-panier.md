@@ -2,11 +2,13 @@
 
 Destinataires : l’écran Vendre et la file hors connexion. Ce document est le contrat entre le
 client et la base. La fonction vient de la migration
-`supabase/migrations/20261010100000_record_cart_sale.sql`. Les tests sont dans `tests/sql/cart.sql`
-et `tests/sql/cart_concurrency.sh`.
+`supabase/migrations/20261010100000_record_cart_sale.sql`, étendue pour la caisse multi-caissiers
+par `supabase/migrations/20261014090100_member_sales.sql` (voir `docs/caisse-multi-caissiers.md`).
+Les tests sont dans `tests/sql/cart.sql`, `tests/sql/cart_concurrency.sh`, `tests/sql/members.sql`
+et `tests/sql/members_concurrency.sh`.
 
-`record_sale` (vente d’un seul article) ne change pas. Les deux fonctions partagent la même clé
-d’idempotence (voir plus bas).
+`record_sale` (vente d’un seul article) suit les mêmes règles d’autorisation et de vendeur. Les
+deux fonctions partagent la même clé d’idempotence (voir plus bas).
 
 ## Signature
 
@@ -15,13 +17,29 @@ public.record_cart_sale(
   p_shop_id             uuid,   -- boutique de l'utilisateur connecté
   p_items               jsonb,  -- lignes du panier (format ci-dessous)
   p_payment_method      text,   -- 'cash' | 'mobile_money' | 'card' | 'bank_transfer' | 'other'
-  p_client_operation_id uuid    -- clé d'idempotence du panier, générée par le client
+  p_client_operation_id uuid,   -- clé d'idempotence du panier, générée par le client
+  p_till_session        text    -- FACULTATIF (défaut NULL) : jeton de open_till_session
+    default null
 ) returns uuid                  -- id de la vente (public.sales.id)
 ```
 
 - Exécutable par le rôle `authenticated` seulement : il faut une session Supabase (JWT
   utilisateur). `anon` et `service_role` n’y ont pas accès.
-- `SECURITY DEFINER`. La fonction vérifie elle-même que `p_shop_id` appartient à `auth.uid()`.
+- `SECURITY DEFINER`. La fonction vérifie elle-même que `auth.uid()` est le **propriétaire** de
+  `p_shop_id` ou un **membre actif** (caissier) de cette boutique.
+- **Vendeur** (`sales.seller_id`) :
+  - sans `p_till_session` : l’utilisateur connecté. Un caissier doit avoir défini son code PIN
+    (sinon `PIN required`) ;
+  - avec `p_till_session` (appareil partagé connecté au compte du propriétaire) : l’appelant doit
+    être le propriétaire et le jeton valide pour cette boutique ; la vente est attribuée au
+    caissier de la session.
+- **Prix minimal** quand le vendeur est un caissier : pour chaque ligne,
+  `sold_unit_price ≥ min(initial_sale_price, round(initial_sale_price × (1 − max_discount_pct / 100)))`,
+  où `max_discount_pct` est la remise maximale du caissier fixée par le propriétaire (0 % par
+  défaut : prix affiché obligatoire). Le propriétaire qui vend en son nom n’a pas de minimum.
+- Les appels existants (sans `p_till_session`) ne changent pas. Appelez avec des paramètres
+  **nommés** ; l’ancienne signature à 4 paramètres a été remplacée (pas de surcharge, donc pas
+  d’ambiguïté PostgREST).
 - Tout ou rien : en cas d’erreur sur une ligne, rien n’est écrit (ni vente, ni ligne, ni stock).
 
 ## Format de `p_items`
@@ -83,7 +101,9 @@ diagnostic. Ne le comparez pas.
 | `message`                                  | SQLSTATE (`code`) | Cause                                                                                                                                                      | Nature                                                                                                    |
 | ------------------------------------------ | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | `Authentication required`                  | `42501`           | Pas de session (JWT absent ou expiré).                                                                                                                     | Réessayable après reconnexion                                                                             |
-| `Shop not found`                           | `42501`           | La boutique n’existe pas ou n’appartient pas à l’utilisateur connecté.                                                                                     | Définitive. Exception : si un autre compte est connecté, réessayer une fois reconnecté avec le bon compte |
+| `Shop not found`                           | `42501`           | La boutique n’existe pas, ou l’utilisateur connecté n’en est ni le propriétaire ni un caissier actif (caissier désactivé compris).                         | Définitive. Exception : si un autre compte est connecté, réessayer une fois reconnecté avec le bon compte |
+| `PIN required`                             | `42501`           | Caissier sans code PIN défini (jamais choisi, ou réinitialisé par le propriétaire).                                                                        | Réessayable après que le caissier a choisi son PIN                                                        |
+| `Till session invalid`                     | `42501`           | `p_till_session` inconnu, d’une autre boutique, fermé, expiré (12 h), caissier désactivé ou PIN réinitialisé ; ou appelant qui n’est pas le propriétaire.  | Définitive pour ce jeton : rouvrir une session (« Changer de caissier ») puis rejouer                     |
 | `Sale operation id is required`            | `P0001`           | `p_client_operation_id` nul.                                                                                                                               | Définitive (bug client)                                                                                   |
 | `Invalid payment method`                   | `P0001`           | Moyen de paiement hors liste.                                                                                                                              | Définitive (bug client)                                                                                   |
 | `Cart items must be a JSON array`          | `P0001`           | `p_items` nul ou pas un tableau.                                                                                                                           | Définitive (bug client)                                                                                   |
@@ -96,6 +116,7 @@ diagnostic. Ne le comparez pas.
 | `Product unavailable`                      | `P0001`           | Produit inexistant, d’une autre boutique, déjà vendu (`sold`) ou archivé. C’est aussi l’erreur de la pièce unique vendue entre-temps par une autre caisse. | Définitive                                                                                                |
 | `Unique piece quantity must be 1`          | `P0001`           | Pièce unique demandée en quantité ≠ 1.                                                                                                                     | Définitive                                                                                                |
 | `Insufficient stock`                       | `P0001`           | Stock du produit < quantité demandée.                                                                                                                      | Définitive                                                                                                |
+| `Price below allowed minimum`              | `P0001`           | Vendeur caissier : prix d’une ligne sous le minimum autorisé. `DETAIL` : `item N: product_id …, minimum_price=9000`.                                       | Définitive (corriger le prix ou demander au responsable)                                                  |
 | `Cannot mix test and real products`        | `P0001`           | Le panier contient des produits de test et des produits réels.                                                                                             | Définitive                                                                                                |
 
 Erreurs hors de la fonction, toutes **réessayables** avec la même clé :
@@ -110,15 +131,17 @@ Erreurs hors de la fonction, toutes **réessayables** avec la même clé :
 Si plusieurs lignes sont invalides, seule la première erreur est signalée. Les contrôles se font
 dans cet ordre :
 
-1. session et boutique ;
+1. session et boutique (propriétaire ou caissier actif) ;
 2. clé et moyen de paiement ;
 3. format du panier, ligne par ligne (y compris les doublons et le total) ;
-4. état des produits, ligne par ligne dans l’ordre du panier : disponibilité, puis pièce unique,
-   puis stock ;
-5. mélange test/réel.
+4. vendeur : session de caisse (`Till session invalid`) ou PIN du caissier (`PIN required`) ;
+5. état des produits, ligne par ligne dans l’ordre du panier : disponibilité, puis pièce unique,
+   puis stock, puis prix minimal ;
+6. mélange test/réel.
 
 Un panier déjà enregistré (même clé) renvoie son id **avant** l’étape 4. Un rejeu ne peut donc
-pas échouer pour « stock insuffisant » à cause de sa propre vente.
+pas échouer pour « stock insuffisant » à cause de sa propre vente, ni parce que la session de
+caisse a été fermée entre-temps.
 
 ## Concurrence
 
@@ -146,12 +169,14 @@ export async function recordCartSale(
   lines: CartLine[],
   paymentMethod: PaymentMethod,
   clientOperationId: string, // généré UNE fois à la validation du panier, conservé dans la file
+  tillSession?: string, // jeton de session de caisse (appareil partagé), sinon absent
 ): Promise<{ saleId: string } | { error: string; retryable: boolean; details?: string }> {
   const { data, error } = await supabase.rpc('record_cart_sale', {
     p_shop_id: shopId,
     p_items: lines, // tableau JS : supabase-js l'envoie en JSON
     p_payment_method: paymentMethod,
     p_client_operation_id: clientOperationId,
+    ...(tillSession ? { p_till_session: tillSession } : {}),
   })
   if (!error) return { saleId: data as string }
   // Pas de code renvoyé par la base (réseau, fetch échoué) : on rejoue plus tard, même clé.

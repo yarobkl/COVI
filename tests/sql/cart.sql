@@ -55,17 +55,17 @@ update public.products set status = 'archived' where id = '30000000-0000-0000-00
 -- Déclaration et droits --------------------------------------------------------------------------
 select pg_temp.check((select p.prosecdef and p.proconfig = array['search_path=""']
                       from pg_proc p
-                      where p.oid = 'public.record_cart_sale(uuid,jsonb,text,uuid)'::regprocedure),
+                      where p.oid = 'public.record_cart_sale(uuid,jsonb,text,uuid,text)'::regprocedure),
   'record_cart_sale : SECURITY DEFINER, search_path vide');
 select pg_temp.check(
-  has_function_privilege('authenticated', 'public.record_cart_sale(uuid,jsonb,text,uuid)', 'execute')
-  and not has_function_privilege('anon', 'public.record_cart_sale(uuid,jsonb,text,uuid)', 'execute')
-  and not has_function_privilege('service_role', 'public.record_cart_sale(uuid,jsonb,text,uuid)', 'execute')
+  has_function_privilege('authenticated', 'public.record_cart_sale(uuid,jsonb,text,uuid,text)', 'execute')
+  and not has_function_privilege('anon', 'public.record_cart_sale(uuid,jsonb,text,uuid,text)', 'execute')
+  and not has_function_privilege('service_role', 'public.record_cart_sale(uuid,jsonb,text,uuid,text)', 'execute')
   and not exists (select 1 from information_schema.routine_privileges
                   where specific_name like 'record_cart_sale%' and grantee = 'PUBLIC'),
   'record_cart_sale : EXECUTE pour authenticated uniquement');
 select pg_temp.check(
-  has_function_privilege('authenticated', 'public.record_sale(uuid,uuid,integer,numeric,text,uuid)', 'execute'),
+  has_function_privilege('authenticated', 'public.record_sale(uuid,uuid,integer,numeric,text,uuid,text)', 'execute'),
   'record_sale toujours disponible');
 
 -- Sans session --------------------------------------------------------------------------------

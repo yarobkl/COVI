@@ -70,11 +70,11 @@ select pg_temp.check(not has_table_privilege('authenticated', 'public.products',
   and not has_table_privilege('anon', 'public.shops', 'select'),
   'anon sans accès aux tables, pas de TRUNCATE pour authenticated');
 select pg_temp.check((select p.prosecdef and p.proconfig = array['search_path=""']
-                      from pg_proc p where p.oid = 'public.record_sale(uuid,uuid,integer,numeric,text,uuid)'::regprocedure),
+                      from pg_proc p where p.oid = 'public.record_sale(uuid,uuid,integer,numeric,text,uuid,text)'::regprocedure),
   'record_sale : SECURITY DEFINER, search_path vide');
 select pg_temp.check(
-  has_function_privilege('authenticated', 'public.record_sale(uuid,uuid,integer,numeric,text,uuid)', 'execute')
-  and not has_function_privilege('anon', 'public.record_sale(uuid,uuid,integer,numeric,text,uuid)', 'execute')
+  has_function_privilege('authenticated', 'public.record_sale(uuid,uuid,integer,numeric,text,uuid,text)', 'execute')
+  and not has_function_privilege('anon', 'public.record_sale(uuid,uuid,integer,numeric,text,uuid,text)', 'execute')
   and not has_function_privilege('anon', 'public.shop_dashboard(uuid,text,boolean,timestamptz)', 'execute')
   and not has_function_privilege('authenticated', 'public.touch_updated_at()', 'execute')
   and not has_function_privilege('anon', 'public.touch_updated_at()', 'execute'),

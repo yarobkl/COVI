@@ -1,4 +1,4 @@
--- Caisse multi-caissiers (2/2) : ventes par caissier et lecture limitée pour les membres.
+-- Caisse multi-caissiers (3/3) : ventes par caissier et lecture limitée pour les membres.
 --
 --   1. sales.seller_id (nullable, ventes existantes inchangées) : qui a encaissé ;
 --   2. lecture pour les membres ACTIFS, jamais d'écriture directe :
@@ -8,9 +8,18 @@
 --          can_view_shop_sales ;
 --        - arrivals, shop_expenses, shops : inchangés (propriétaire seul). Le membre obtient
 --          nom/ville de la boutique par my_member_shops() ;
---   3. record_sale et record_cart_sale : propriétaire OU membre actif ; seller_id = auth.uid() ;
---      prix plancher pour un membre (remise maximale max_discount_pct) ; signatures,
---      idempotence, verrous, messages et comportement is_test inchangés.
+--   3. record_sale et record_cart_sale : propriétaire OU membre actif AYANT un PIN ; nouveau
+--      paramètre final facultatif p_till_session (jeton de open_till_session, propriétaire
+--      seulement) qui attribue la vente au caissier de la session ; seller_id renseigné ;
+--      prix minimal pour un vendeur membre :
+--        round(initial_sale_price × (1 − max_discount_pct / 100)), plafonné au prix affiché ;
+--      le propriétaire qui vend en son nom n'a pas de minimum. Idempotence, verrous, messages
+--      existants et comportement is_test inchangés.
+--
+-- Les anciennes signatures (sans p_till_session) sont SUPPRIMÉES puis recréées avec le paramètre
+-- en plus : garder les deux surcharges rendrait l'appel PostgREST sans p_till_session ambigu
+-- (PGRST203). Les appels existants (paramètres nommés, sans p_till_session) résolvent vers la
+-- nouvelle fonction grâce au défaut NULL : même comportement pour le propriétaire.
 --
 -- Migration non destructive et idempotente.
 
@@ -32,7 +41,8 @@ drop policy if exists sales_member_select on public.sales;
 create policy sales_member_select on public.sales for select to authenticated
   using (
     shop_id in (select public.member_shop_ids('view_shop_sales'))
-    or (seller_id = (select auth.uid()) and shop_id in (select public.member_shop_ids('sell')))
+    or (seller_id = (select auth.uid())
+        and shop_id in (select public.member_shop_ids('view_own_sales')))
   );
 
 drop policy if exists sale_items_member_select on public.sale_items;
@@ -42,7 +52,7 @@ create policy sale_items_member_select on public.sale_items for select to authen
     where v.id = sale_id
       and (v.shop_id in (select public.member_shop_ids('view_shop_sales'))
            or (v.seller_id = (select auth.uid())
-               and v.shop_id in (select public.member_shop_ids('sell'))))
+               and v.shop_id in (select public.member_shop_ids('view_own_sales'))))
   ));
 
 -- Photos des produits : lecture seule pour les membres actifs (le dossier = id de la boutique).
@@ -55,10 +65,10 @@ create policy "COVI members read product images" on storage.objects for select t
   );
 
 -- 3. Autorisation de vente commune ---------------------------------------------------------------
--- Renvoie la remise maximale de l'appelant sur la boutique : NULL pour le propriétaire (aucune
--- limite), max_discount_pct pour un membre actif. Lève 42501 sinon.
+-- Étape 1, AVANT toute lecture : session, puis propriétaire ou membre actif. Renvoie true pour le
+-- propriétaire. Lève 'Authentication required' / 'Shop not found' (42501).
 create or replace function public.assert_can_sell(p_shop_id uuid)
-returns numeric
+returns boolean
 language plpgsql
 stable
 security definer
@@ -66,7 +76,6 @@ set search_path to ''
 as $function$
 declare
   v_uid uuid := auth.uid();
-  v_pct numeric;
 begin
   if v_uid is null then
     raise exception 'Authentication required' using errcode = '42501';
@@ -75,20 +84,67 @@ begin
     raise exception 'Shop not found' using errcode = '42501';
   end if;
   if exists (select 1 from public.shops s where s.id = p_shop_id and s.owner_id = v_uid) then
-    return null;
+    return true;
   end if;
-  select m.max_discount_pct into v_pct
-  from public.shop_members m
-  where m.shop_id = p_shop_id and m.user_id = v_uid and m.active;
-  if not found then
-    raise exception 'Shop not found' using errcode = '42501';
+  if exists (select 1 from public.shop_members m
+             where m.shop_id = p_shop_id and m.user_id = v_uid and m.active) then
+    return false;
   end if;
-  return v_pct;
+  raise exception 'Shop not found' using errcode = '42501';
 end;
 $function$;
 
--- Prix unitaire minimal autorisé : prix affiché moins la remise maximale, arrondi au FCFA
--- supérieur (jamais au-dessus du prix affiché). NULL (propriétaire) = pas de minimum.
+-- Étape 2, APRÈS le contrôle d'idempotence (un rejeu d'une vente déjà enregistrée renvoie son
+-- id même si la session de caisse a été fermée entre-temps) : qui vend, avec quelle remise
+-- maximale (NULL = pas de minimum).
+--   - p_till_session donné : l'appelant doit être le propriétaire (sinon 'Till session invalid')
+--     et le jeton valide pour cette boutique → vendeur = membre de la session ;
+--   - sinon propriétaire → vendeur = lui-même, sans minimum ;
+--   - sinon membre actif : PIN défini obligatoire ('PIN required', 42501).
+create or replace function public.sale_seller(
+  p_shop_id uuid,
+  p_till_session text,
+  out seller_id uuid,
+  out max_discount_pct numeric
+)
+language plpgsql
+stable
+security definer
+set search_path to ''
+as $function$
+declare
+  v_uid uuid := auth.uid();
+  v_is_owner boolean;
+  v_member public.shop_members%rowtype;
+begin
+  v_is_owner := exists (
+    select 1 from public.shops s where s.id = p_shop_id and s.owner_id = v_uid);
+  if p_till_session is not null then
+    if not v_is_owner then
+      raise exception 'Till session invalid' using errcode = '42501';
+    end if;
+    v_member := public.till_session_member(p_shop_id, p_till_session);
+    seller_id := v_member.user_id;
+    max_discount_pct := v_member.max_discount_pct;
+    return;
+  end if;
+  if v_is_owner then
+    seller_id := v_uid;
+    max_discount_pct := null;
+    return;
+  end if;
+  v_member := public.assert_active_member(p_shop_id);
+  if not exists (select 1 from public.member_pins p
+                 where p.member_id = v_member.id and p.pin_hash is not null) then
+    raise exception 'PIN required' using errcode = '42501';
+  end if;
+  seller_id := v_uid;
+  max_discount_pct := v_member.max_discount_pct;
+end;
+$function$;
+
+-- Prix unitaire minimal autorisé : prix affiché moins la remise maximale, arrondi au FCFA le
+-- plus proche, jamais au-dessus du prix affiché. NULL (propriétaire) = pas de minimum.
 create or replace function public.min_unit_price(p_initial_price numeric, p_max_discount_pct numeric)
 returns numeric
 language sql
@@ -97,9 +153,12 @@ set search_path to ''
 as $function$
   select case when p_max_discount_pct is null then null
     else least(p_initial_price,
-               pg_catalog.ceil(p_initial_price * (100 - p_max_discount_pct) / 100))
+               pg_catalog.round(p_initial_price * (1 - p_max_discount_pct / 100)))
   end
 $function$;
+
+drop function if exists public.record_sale(uuid, uuid, integer, numeric, text, uuid);
+drop function if exists public.record_cart_sale(uuid, jsonb, text, uuid);
 
 -- 4. record_sale --------------------------------------------------------------------------------
 create or replace function public.record_sale(
@@ -108,7 +167,8 @@ create or replace function public.record_sale(
   p_quantity integer,
   p_sold_unit_price numeric,
   p_payment_method text,
-  p_client_operation_id uuid
+  p_client_operation_id uuid,
+  p_till_session text default null
 )
 returns uuid
 language plpgsql
@@ -116,14 +176,13 @@ security definer
 set search_path to ''
 as $function$
 declare
-  v_uid uuid := auth.uid();
-  v_max_discount numeric;
+  v_seller record;
   v_min_price numeric;
   v_product public.products%rowtype;
   v_sale_id uuid;
 begin
   -- Propriétaire ou membre actif (lève 'Authentication required' / 'Shop not found').
-  v_max_discount := public.assert_can_sell(p_shop_id);
+  perform public.assert_can_sell(p_shop_id);
   if p_quantity is null or p_quantity <= 0 then raise exception 'Quantity must be positive'; end if;
   if p_sold_unit_price is null or p_sold_unit_price < 0 then
     raise exception 'Sold price cannot be negative';
@@ -140,6 +199,8 @@ begin
   from public.sales s
   where s.shop_id = p_shop_id and s.client_operation_id = p_client_operation_id;
   if v_sale_id is not null then return v_sale_id; end if;
+  -- Vendeur : session de caisse, propriétaire, ou membre avec PIN.
+  select * into v_seller from public.sale_seller(p_shop_id, p_till_session);
   select * into v_product
   from public.products p
   where p.id = p_product_id and p.shop_id = p_shop_id and p.status = 'active'
@@ -149,7 +210,7 @@ begin
     raise exception 'Unique piece quantity must be 1';
   end if;
   if v_product.quantity_on_hand < p_quantity then raise exception 'Insufficient stock'; end if;
-  v_min_price := public.min_unit_price(v_product.initial_sale_price, v_max_discount);
+  v_min_price := public.min_unit_price(v_product.initial_sale_price, v_seller.max_discount_pct);
   if v_min_price is not null and p_sold_unit_price < v_min_price then
     raise exception 'Price below allowed minimum'
       using detail = pg_catalog.format('item 0: product_id %s, minimum_price=%s',
@@ -158,7 +219,7 @@ begin
   insert into public.sales(shop_id, payment_method, total_amount, client_operation_id, is_test,
                            seller_id)
     values (p_shop_id, p_payment_method, p_sold_unit_price * p_quantity, p_client_operation_id,
-            v_product.is_test, v_uid)
+            v_product.is_test, v_seller.seller_id)
     returning id into v_sale_id;
   insert into public.sale_items(sale_id, product_id, quantity, initial_unit_price, sold_unit_price)
     values (v_sale_id, p_product_id, p_quantity, v_product.initial_sale_price, p_sold_unit_price);
@@ -172,13 +233,15 @@ $function$;
 
 -- 5. record_cart_sale ---------------------------------------------------------------------------
 -- Corps identique à 20261010100000_record_cart_sale.sql, sauf : autorisation par assert_can_sell
--- (propriétaire ou membre actif), prix minimal par ligne pour un membre (après le contrôle de
--- stock, dans l'ordre du panier), seller_id = auth.uid(). Contrat : docs/contrat-panier.md.
+-- (propriétaire ou membre actif), vendeur résolu par sale_seller après le contrôle
+-- d'idempotence, prix minimal par ligne pour un vendeur membre (après le contrôle de stock, dans
+-- l'ordre du panier), seller_id renseigné. Contrat : docs/contrat-panier.md.
 create or replace function public.record_cart_sale(
   p_shop_id uuid,
   p_items jsonb,
   p_payment_method text,
-  p_client_operation_id uuid
+  p_client_operation_id uuid,
+  p_till_session text default null
 )
 returns uuid
 language plpgsql
@@ -190,8 +253,7 @@ declare
   c_max_total constant numeric := 999999999999.99;
   c_uuid_re constant text :=
     '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$';
-  v_uid uuid := auth.uid();
-  v_max_discount numeric;
+  v_seller record;
   v_min_price numeric;
   v_count integer;
   v_item jsonb;
@@ -208,8 +270,7 @@ declare
   v_sale_id uuid;
 begin
   -- Session, propriétaire ou membre actif -----------------------------------------------------
-  -- NULL pour le propriétaire (pas de prix minimal), remise maximale en % pour un membre.
-  v_max_discount := public.assert_can_sell(p_shop_id);
+  perform public.assert_can_sell(p_shop_id);
 
   -- Paramètres de la vente ---------------------------------------------------------------------
   if p_client_operation_id is null then raise exception 'Sale operation id is required'; end if;
@@ -299,6 +360,9 @@ begin
   where s.shop_id = p_shop_id and s.client_operation_id = p_client_operation_id;
   if v_sale_id is not null then return v_sale_id; end if;
 
+  -- Vendeur : session de caisse, propriétaire, ou membre avec PIN ---------------------------------
+  select * into v_seller from public.sale_seller(p_shop_id, p_till_session);
+
   -- Verrouillage des produits dans l'ordre des id (pas d'interblocage entre paniers) -----------
   -- ORDER BY est appliqué avant FOR UPDATE : les lignes sont verrouillées une à une dans cet ordre.
   perform 1
@@ -325,7 +389,7 @@ begin
         using detail = pg_catalog.format('item %s: product_id %s, requested %s, available %s',
                                          i - 1, v_ids[i], v_qtys[i], v_product.quantity_on_hand);
     end if;
-    v_min_price := public.min_unit_price(v_product.initial_sale_price, v_max_discount);
+    v_min_price := public.min_unit_price(v_product.initial_sale_price, v_seller.max_discount_pct);
     if v_min_price is not null and v_prices[i] < v_min_price then
       raise exception 'Price below allowed minimum'
         using detail = pg_catalog.format('item %s: product_id %s, minimum_price=%s',
@@ -341,7 +405,8 @@ begin
   -- Écritures ----------------------------------------------------------------------------------
   insert into public.sales(shop_id, payment_method, total_amount, client_operation_id, is_test,
                            seller_id)
-    values (p_shop_id, p_payment_method, v_total, p_client_operation_id, v_any_test, v_uid)
+    values (p_shop_id, p_payment_method, v_total, p_client_operation_id, v_any_test,
+            v_seller.seller_id)
     returning id into v_sale_id;
 
   insert into public.sale_items(sale_id, product_id, quantity, initial_unit_price, sold_unit_price)
@@ -362,12 +427,13 @@ $function$;
 
 -- 6. Droits EXECUTE -----------------------------------------------------------------------------
 revoke execute on function public.assert_can_sell(uuid) from public, anon, authenticated;
+revoke execute on function public.sale_seller(uuid, text) from public, anon, authenticated;
 revoke execute on function public.min_unit_price(numeric, numeric) from public, anon;
 grant execute on function public.min_unit_price(numeric, numeric) to authenticated;
-revoke execute on function public.record_sale(uuid, uuid, integer, numeric, text, uuid)
+revoke execute on function public.record_sale(uuid, uuid, integer, numeric, text, uuid, text)
   from public, anon;
-grant execute on function public.record_sale(uuid, uuid, integer, numeric, text, uuid)
+grant execute on function public.record_sale(uuid, uuid, integer, numeric, text, uuid, text)
   to authenticated;
-revoke execute on function public.record_cart_sale(uuid, jsonb, text, uuid)
+revoke execute on function public.record_cart_sale(uuid, jsonb, text, uuid, text)
   from public, anon, service_role;
-grant execute on function public.record_cart_sale(uuid, jsonb, text, uuid) to authenticated;
+grant execute on function public.record_cart_sale(uuid, jsonb, text, uuid, text) to authenticated;

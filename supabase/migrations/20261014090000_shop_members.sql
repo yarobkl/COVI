@@ -18,6 +18,10 @@
 -- depuis PostgreSQL 11 : aucune dépendance à pgcrypto ni au schéma `extensions`). Validité 48 h,
 -- usage unique, révocables. Tentatives limitées : 5 échecs par utilisateur sur 15 minutes.
 --
+-- Suite : 20261014090050_member_pins.sql (code PIN personnel, sessions de caisse, fonctions
+-- d'autorisation has_shop_permission, listes de l'équipe) et 20261014090100_member_sales.sql
+-- (ventes par caissier, lecture limitée des membres).
+--
 -- Migration non destructive : uniquement des créations (tables, fonctions, politiques).
 -- Idempotente : `if not exists`, `create or replace`, `drop policy if exists` avant création.
 
@@ -136,30 +140,13 @@ as $function$
   end
 $function$;
 
--- Permissions : 'manage' (propriétaire seul), 'sell' et 'view_products' (propriétaire ou membre
--- actif), 'view_shop_sales' (propriétaire, ou membre actif avec can_view_shop_sales).
--- Une permission inconnue vaut false.
-create or replace function public.has_shop_permission(p_shop_id uuid, p_permission text)
-returns boolean
-language sql
-stable
-security definer
-set search_path to ''
-as $function$
-  select coalesce(
-    exists (select 1 from public.shops s where s.id = p_shop_id and s.owner_id = auth.uid())
-      and p_permission in ('manage', 'sell', 'view_products', 'view_shop_sales')
-    or exists (
-      select 1 from public.shop_members m
-      where m.shop_id = p_shop_id and m.user_id = auth.uid() and m.active
-        and (p_permission in ('sell', 'view_products')
-             or (p_permission = 'view_shop_sales' and m.can_view_shop_sales))
-    ),
-    false)
-$function$;
+-- has_shop_permission(shop, permission) est définie dans 20261014090050_member_pins.sql
+-- (la permission 'sell' d'un membre exige un code PIN défini).
 
 -- Boutiques où l'appelant est MEMBRE ACTIF avec la permission demandée (hors propriétaire :
--- les politiques propriétaires existantes restent en place). Forme ensembliste pour les
+-- les politiques propriétaires existantes restent en place). Permissions : 'view_products' et
+-- 'view_own_sales' (tout membre actif), 'view_shop_sales' (membre actif avec
+-- can_view_shop_sales). Une permission inconnue ne renvoie aucune boutique. Forme ensembliste pour les
 -- politiques : `shop_id in (select public.member_shop_ids('…'))` est évalué une fois par
 -- requête, pas une fois par ligne.
 create or replace function public.member_shop_ids(p_permission text)
@@ -172,7 +159,7 @@ as $function$
   select m.shop_id
   from public.shop_members m
   where m.user_id = auth.uid() and m.active
-    and (p_permission in ('sell', 'view_products')
+    and (p_permission in ('view_products', 'view_own_sales')
          or (p_permission = 'view_shop_sales' and m.can_view_shop_sales))
 $function$;
 
@@ -182,16 +169,15 @@ alter table public.shop_member_invites enable row level security;
 alter table public.shop_member_invite_attempts enable row level security;
 alter table public.shop_audit_log enable row level security;
 
--- shop_members : le propriétaire lit son équipe ; un membre ne lit que SA ligne. Aucune
--- politique d'écriture : les écritures passent par les RPC ci-dessous.
+-- shop_members : le propriétaire seul lit son équipe. Un membre ne lit pas la table : il obtient
+-- SES boutiques et SES permissions par my_member_shops(). Aucune politique d'écriture : les
+-- écritures passent par les RPC ci-dessous.
 drop policy if exists shop_members_owner_select on public.shop_members;
 create policy shop_members_owner_select on public.shop_members for select to authenticated
   using (exists (
     select 1 from public.shops s where s.id = shop_id and s.owner_id = (select auth.uid())
   ));
 drop policy if exists shop_members_self_select on public.shop_members;
-create policy shop_members_self_select on public.shop_members for select to authenticated
-  using (user_id = (select auth.uid()));
 
 -- Journal : propriétaire seul, lecture seule.
 drop policy if exists shop_audit_log_owner_select on public.shop_audit_log;
@@ -391,28 +377,7 @@ begin
 end;
 $function$;
 
--- Équipe de la boutique (propriétaire seul).
-create or replace function public.list_shop_members(p_shop_id uuid)
-returns table (
-  id uuid, user_id uuid, display_name text, role text, active boolean,
-  can_view_shop_sales boolean, max_discount_pct numeric, created_at timestamptz,
-  updated_at timestamptz, deactivated_at timestamptz
-)
-language plpgsql
-stable
-security definer
-set search_path to ''
-as $function$
-begin
-  perform public.assert_shop_owner(p_shop_id);
-  return query
-    select m.id, m.user_id, m.display_name, m.role, m.active, m.can_view_shop_sales,
-           m.max_discount_pct, m.created_at, m.updated_at, m.deactivated_at
-    from public.shop_members m
-    where m.shop_id = p_shop_id
-    order by m.active desc, m.display_name;
-end;
-$function$;
+-- list_shop_members(shop) : voir 20261014090050_member_pins.sql (inclut l'état du PIN).
 
 -- Active ou désactive un membre. L'historique (ventes, journal) est conservé.
 create or replace function public.set_member_active(p_member_id uuid, p_active boolean)
@@ -568,32 +533,7 @@ begin
 end;
 $function$;
 
--- Boutiques où l'appelant est membre ACTIF, avec ses propres permissions. Seules des colonnes
--- sûres de shops sont exposées (pas owner_id, pas de coordonnées GPS).
-create or replace function public.my_member_shops()
-returns table (
-  member_id uuid, shop_id uuid, shop_name text, shop_city text, shop_country text,
-  shop_currency text, display_name text, role text, can_view_shop_sales boolean,
-  max_discount_pct numeric
-)
-language plpgsql
-stable
-security definer
-set search_path to ''
-as $function$
-begin
-  if auth.uid() is null then
-    raise exception 'Authentication required' using errcode = '42501';
-  end if;
-  return query
-    select m.id, s.id, s.name, s.city, s.country, s.currency, m.display_name, m.role,
-           m.can_view_shop_sales, m.max_discount_pct
-    from public.shop_members m
-    join public.shops s on s.id = m.shop_id
-    where m.user_id = auth.uid() and m.active
-    order by s.name;
-end;
-$function$;
+-- my_member_shops() : voir 20261014090050_member_pins.sql (inclut l'état du PIN).
 
 -- 9. Droits EXECUTE ------------------------------------------------------------------------------
 -- Aucun accès anonyme. Les fonctions internes ne sont exécutables par aucun rôle d'API.
@@ -607,28 +547,22 @@ revoke execute on function public.assert_shop_owner(uuid) from public, anon, aut
 -- Les fonctions d'autorisation sont appelées par les politiques RLS avec les droits de
 -- l'utilisateur : authenticated doit pouvoir les exécuter. Elles ne renseignent que sur lui.
 revoke execute on function public.shop_role(uuid) from public, anon;
-revoke execute on function public.has_shop_permission(uuid, text) from public, anon;
 revoke execute on function public.member_shop_ids(text) from public, anon;
 grant execute on function public.shop_role(uuid) to authenticated;
-grant execute on function public.has_shop_permission(uuid, text) to authenticated;
 grant execute on function public.member_shop_ids(text) to authenticated;
 
 revoke execute on function public.create_member_invite(uuid, text, boolean, numeric)
   from public, anon;
 revoke execute on function public.list_member_invites(uuid) from public, anon;
 revoke execute on function public.revoke_member_invite(uuid) from public, anon;
-revoke execute on function public.list_shop_members(uuid) from public, anon;
 revoke execute on function public.set_member_active(uuid, boolean) from public, anon;
 revoke execute on function public.set_member_permissions(uuid, boolean, numeric)
   from public, anon;
 revoke execute on function public.redeem_member_invite(text) from public, anon;
-revoke execute on function public.my_member_shops() from public, anon;
 grant execute on function public.create_member_invite(uuid, text, boolean, numeric)
   to authenticated;
 grant execute on function public.list_member_invites(uuid) to authenticated;
 grant execute on function public.revoke_member_invite(uuid) to authenticated;
-grant execute on function public.list_shop_members(uuid) to authenticated;
 grant execute on function public.set_member_active(uuid, boolean) to authenticated;
 grant execute on function public.set_member_permissions(uuid, boolean, numeric) to authenticated;
 grant execute on function public.redeem_member_invite(text) to authenticated;
-grant execute on function public.my_member_shops() to authenticated;
