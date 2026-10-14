@@ -6,14 +6,20 @@ fichiers sont identiques à ce qui est appliqué en production.
 
 ## Schéma
 
-| Table           | Rôle                                                                                                                                                          |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `shops`         | Le commerce. Un seul par utilisateur (`owner_id` unique, référence `auth.users`), devise `XAF`.                                                               |
-| `arrivals`      | Arrivages : commande fournisseur (`supplier_order`) ou ballon / lot mixte (`balloon`). Coûts, dates, statut `draft → ordered → in_transit → received`.        |
-| `products`      | Articles en stock, rattachés ou non à un arrivage. `quantity_on_hand`, `is_unique_piece`, statut `active` / `sold` / `archived`, photo privée (`image_path`). |
-| `sales`         | Une vente : boutique, moyen de paiement, montant total, date (`sold_at`), clé d’idempotence `client_operation_id` (file hors connexion).                      |
-| `sale_items`    | Lignes d’une vente : produit, quantité, prix initial et prix réellement vendu.                                                                                |
-| `shop_expenses` | Charges de fonctionnement (loyer, salaires…), séparées du coût des arrivages.                                                                                 |
+| Table                         | Rôle                                                                                                                                                          |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `shops`                       | Le commerce. Un seul par utilisateur (`owner_id` unique, référence `auth.users`), devise `XAF`.                                                               |
+| `arrivals`                    | Arrivages : commande fournisseur (`supplier_order`) ou ballon / lot mixte (`balloon`). Coûts, dates, statut `draft → ordered → in_transit → received`.        |
+| `products`                    | Articles en stock, rattachés ou non à un arrivage. `quantity_on_hand`, `is_unique_piece`, statut `active` / `sold` / `archived`, photo privée (`image_path`). |
+| `sales`                       | Une vente : boutique, moyen de paiement, montant total, date (`sold_at`), clé d’idempotence `client_operation_id` (file hors connexion).                      |
+| `sale_items`                  | Lignes d’une vente : produit, quantité, prix initial et prix réellement vendu.                                                                                |
+| `shop_expenses`               | Charges de fonctionnement (loyer, salaires…), séparées du coût des arrivages.                                                                                 |
+| `shop_members`                | Caissiers d’une boutique (compte Supabase propre, actif ou non, remise maximale, « voit toutes les ventes »).                                                 |
+| `shop_member_invites`         | Codes d’invitation à usage unique (empreinte SHA-256 seulement, 48 h, révocables).                                                                            |
+| `shop_member_invite_attempts` | Essais de code d’invitation (verrou 5 échecs / 15 min par utilisateur).                                                                                       |
+| `member_pins`                 | Code PIN personnel des caissiers (bcrypt), compteur d’échecs, verrou, changement imposé. Aucun accès direct.                                                  |
+| `till_sessions`               | Sessions de caisse de l’appareil partagé du propriétaire (jeton haché, 12 h). Aucun accès direct.                                                             |
+| `shop_audit_log`              | Journal de l’équipe (invitations, membres, permissions, PIN, sessions de caisse). Lecture : propriétaire.                                                     |
 
 `arrivals`, `products`, `sales` et `shop_expenses` portent un drapeau `is_test` : les données de
 simulation sont exclues des chiffres par défaut. Photos : bucket privé `covi-product-images`, un
@@ -56,6 +62,13 @@ modifie que les lignes de sa boutique. Depuis la migration `20261010090000_serve
 Réglage Auth, hors SQL : activer la **protection contre les mots de passe compromis** (Supabase →
 Authentication → Policies / Password security, vérification HaveIBeenPwned). Il ne se configure
 pas par migration.
+
+### Caisse multi-caissiers (migrations `20261014090000`, `20261014090050`, `20261014090100`)
+
+Caissiers, code PIN personnel, sessions de caisse, ventes par caissier (`sales.seller_id`) et
+lecture limitée des membres (produits et leurs propres ventes, jamais arrivages, charges ni
+coûts) : voir [`docs/caisse-multi-caissiers.md`](caisse-multi-caissiers.md). `record_sale` et
+`record_cart_sale` prennent un dernier paramètre facultatif `p_till_session`.
 
 ## Fonctions
 
@@ -152,8 +165,8 @@ sold_unit_price)`.
 
 Le banc `tests/sql/run.sh` part d’une base PostgreSQL vierge : il crée les stubs Supabase
 minimaux (`tests/sql/bootstrap.sql` : rôles `anon` / `authenticated` / `service_role`, schéma
-`auth` avec `auth.users` et `auth.uid()`, schéma `storage` avec `buckets`, `objects` et
-`foldername()`), applique toutes les migrations dans l’ordre, puis exécute chaque
+`auth` avec `auth.users` et `auth.uid()`, schéma `storage` avec `buckets`, `objects`,
+`foldername()` et `extension()`, pgcrypto dans le schéma `extensions` comme sur Supabase), applique toutes les migrations dans l’ordre, puis exécute chaque
 `tests/sql/*.sql` (transaction annulée) et chaque script `tests/sql/*.sh` hors `run.sh` (tests à
 plusieurs sessions, qui suppriment leurs données à la fin).
 
@@ -166,13 +179,15 @@ docker run -d --name covi-pg -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres
 PGHOST=localhost PGUSER=postgres PGPASSWORD=postgres tests/sql/run.sh
 ```
 
-| Test                  | Couvre                                                                                                                                             |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `three_months.sql`    | Scénario de trois mois : 143 ventes par l’RPC, idempotence, stock, refus, charges, isolation RLS.                                                  |
-| `security.sql`        | Écritures directes refusées, `record_sale` sur la boutique d’un autre, stock non modifiable, inter-boutiques, cycle des arrivages, `anon`.         |
-| `cart.sql`            | `record_cart_sale` : panier, total, stocks, idempotence, tout ou rien, pièce unique, doublon, autre boutique, non-propriétaire, test/réel, format. |
-| `cart_concurrency.sh` | Deux sessions psql : dernière pièce (un seul panier passe), même clé en parallèle, ordre inverse sans interblocage.                                |
-| `aggregates.sql`      | Agrégats du scénario trois mois (494 000 / 986 000 / 854 000 FCFA…), répartition des coûts, fuseau horaire, `is_test`.                             |
+| Test                     | Couvre                                                                                                                                                                                    |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `three_months.sql`       | Scénario de trois mois : 143 ventes par l’RPC, idempotence, stock, refus, charges, isolation RLS.                                                                                         |
+| `security.sql`           | Écritures directes refusées, `record_sale` sur la boutique d’un autre, stock non modifiable, inter-boutiques, cycle des arrivages, `anon`.                                                |
+| `cart.sql`               | `record_cart_sale` : panier, total, stocks, idempotence, tout ou rien, pièce unique, doublon, autre boutique, non-propriétaire, test/réel, format.                                        |
+| `cart_concurrency.sh`    | Deux sessions psql : dernière pièce (un seul panier passe), même clé en parallèle, ordre inverse sans interblocage.                                                                       |
+| `aggregates.sql`         | Agrégats du scénario trois mois (494 000 / 986 000 / 854 000 FCFA…), répartition des coûts, fuseau horaire, `is_test`.                                                                    |
+| `members.sql`            | Caisse multi-caissiers : invitations, PIN (bcrypt, verrou, réinitialisation), sessions de caisse, prix minimal, RLS des membres, écritures directes refusées, isolation, journal, `anon`. |
+| `members_concurrency.sh` | Deux sessions psql : dernière pièce disputée par une caissière (son compte) et une session de caisse du propriétaire.                                                                     |
 
 La CI (job `test-db` de `.github/workflows/windows.yml`) lance le même script sur un service
 `postgres:16` à chaque pull request vers `main`. Ne jamais pointer le script vers la production.
