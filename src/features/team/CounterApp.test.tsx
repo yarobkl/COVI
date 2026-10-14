@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { clearCounterMode, enterCounterMode } from '../../lib/counterMode'
 import type { TillSession } from '../../lib/team'
@@ -6,9 +6,8 @@ import { clearTillSession, setTillSession } from '../../lib/tillSession'
 import type { Shop } from '../../lib/types'
 import { CounterGate } from './CounterGate'
 
-let pending = 0
-vi.mock('../sync/useSyncState', () => ({
-  useSyncState: () => ({ online: true, pending, rejected: 0 }),
+vi.mock('./CounterApp', () => ({
+  CounterApp: () => <p>Caisse par code PIN personnel</p>,
 }))
 
 const shop: Shop = {
@@ -18,7 +17,7 @@ const shop: Shop = {
   country: 'République du Congo',
   currency: 'XAF',
 }
-const legacy: TillSession = {
+const till: TillSession = {
   shopId: 'shop-1',
   memberId: 'm-awa',
   displayName: 'Awa',
@@ -28,17 +27,16 @@ const legacy: TillSession = {
   sellerId: 'u-awa',
   canViewShopSales: false,
 }
-
-function renderGate(signOut: () => Promise<void>) {
-  return render(
-    <CounterGate shop={shop} userId="u-owner" signOut={signOut}>
-      <a href="#/stock">Stock du responsable</a>
+const signOut = vi.fn().mockResolvedValue(undefined)
+const mount = () =>
+  render(
+    <CounterGate shop={shop} userId="u-manager" signOut={signOut}>
+      <a href="#/stock">Gestion du magasin</a>
     </CounterGate>,
   )
-}
 
 beforeEach(() => {
-  pending = 0
+  signOut.mockClear()
   sessionStorage.clear()
   localStorage.clear()
   clearTillSession()
@@ -46,54 +44,29 @@ beforeEach(() => {
 })
 afterEach(() => {
   cleanup()
-  vi.restoreAllMocks()
+  clearTillSession()
+  clearCounterMode()
 })
 
-describe('Retiring unsafe owner-JWT shared counter sessions', () => {
-  it('shows the owner app normally with no legacy counter', () => {
-    const signOut = vi.fn().mockResolvedValue(undefined)
-    renderGate(signOut)
-    expect(screen.getByRole('link', { name: 'Stock du responsable' })).toBeTruthy()
+describe('Shared shop account: PIN cashier selection without signout', () => {
+  it('shows management normally before entering checkout', () => {
+    mount()
+    expect(screen.getByRole('link', { name: 'Gestion du magasin' })).toBeTruthy()
     expect(signOut).not.toHaveBeenCalled()
   })
 
-  it('signs out legacy tills without revealing owner pages', async () => {
-    setTillSession(legacy)
-    const signOut = vi.fn().mockResolvedValue(undefined)
-    renderGate(signOut)
-    expect(screen.queryByRole('link', { name: 'Stock du responsable' })).toBeNull()
-    expect(screen.getByText('Caisse sur appareil partagé')).toBeTruthy()
-    await waitFor(() => expect(signOut).toHaveBeenCalledTimes(1))
-    expect(screen.queryByRole('button', { name: 'Ouvrir sa caisse' })).toBeNull()
-  })
-
-  it('blocks automatic logout while an offline sale needs syncing', () => {
-    pending = 1
+  it('switches to the cashier PIN interface instead of signing out', () => {
     enterCounterMode(shop.id)
-    const signOut = vi.fn().mockResolvedValue(undefined)
-    renderGate(signOut)
-    expect(screen.queryByRole('link', { name: 'Stock du responsable' })).toBeNull()
-    expect(screen.getByText(/1 vente\(s\) en attente/)).toBeTruthy()
-    expect(
-      (screen.getByRole('button', { name: 'Réessayer la déconnexion' }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(true)
+    mount()
+    expect(screen.getByText('Caisse par code PIN personnel')).toBeTruthy()
+    expect(screen.queryByRole('link', { name: 'Gestion du magasin' })).toBeNull()
     expect(signOut).not.toHaveBeenCalled()
   })
 
-  it('allows a safe retry if the first signout fails', async () => {
-    enterCounterMode(shop.id)
-    const signOut = vi
-      .fn()
-      .mockRejectedValueOnce(new Error('offline'))
-      .mockResolvedValueOnce(undefined)
-    renderGate(signOut)
-    await waitFor(() =>
-      expect(screen.getByText(/La déconnexion du responsable a échoué/)).toBeTruthy(),
-    )
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Réessayer la déconnexion' }))
-    })
-    expect(signOut).toHaveBeenCalledTimes(2)
+  it('restores the till after a page refresh without logging out', () => {
+    setTillSession(till)
+    mount()
+    expect(screen.getByText('Caisse par code PIN personnel')).toBeTruthy()
+    expect(signOut).not.toHaveBeenCalled()
   })
 })
