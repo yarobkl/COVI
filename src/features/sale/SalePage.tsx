@@ -15,7 +15,6 @@ import { listProducts } from '../../lib/covi'
 import { fcfa, plural } from '../../lib/format'
 import { listArrivals, todaySales } from '../../lib/operations'
 import type { Product } from '../../lib/types'
-import { TillSwitch } from '../team/TillSwitch'
 import { SaleDone } from './SaleDone'
 import {
   addToCart,
@@ -63,8 +62,6 @@ export function SalePage({
   shopId,
   shopName,
   seller,
-  owner = false,
-  onCashierHandoff,
   paused = false,
 }: {
   /** The signed-in account (AuthGate): a cart is kept and replayed for it only, in its shop. */
@@ -76,9 +73,6 @@ export function SalePage({
    * of the owner's shared device (`tillToken`, counter mode). Their maximum discount applies.
    */
   seller?: SaleSeller
-  /** Owner's full app: offers a secure logout before handing the device to a cashier. */
-  owner?: boolean
-  onCashierHandoff?: () => Promise<void>
   /** Hidden behind a lock screen: the physical keyboard must not type into the price pad. */
   paused?: boolean
 }) {
@@ -237,7 +231,6 @@ export function SalePage({
             </p>
           )}
         </div>
-        {owner && onCashierHandoff && <TillSwitch onHandoff={onCashierHandoff} />}
       </header>
 
       <div className="sale-layout">
