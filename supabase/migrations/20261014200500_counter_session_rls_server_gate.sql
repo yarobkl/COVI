@@ -107,18 +107,42 @@ create policy counter_sales_read on public.sales as restrictive for select
 create policy counter_sale_items_read on public.sale_items as restrictive for select
   to authenticated using (public.counter_sale_item_allowed(sale_id));
 
-create policy counter_arrivals_guard on public.arrivals as restrictive for all
+create policy counter_arrivals_select on public.arrivals as restrictive for select
+  to authenticated using (not public.counter_lock_active());
+create policy counter_arrivals_insert on public.arrivals as restrictive for insert
+  to authenticated with check (not public.counter_lock_active());
+create policy counter_arrivals_update on public.arrivals as restrictive for update
   to authenticated using (not public.counter_lock_active())
   with check (not public.counter_lock_active());
-create policy counter_expenses_guard on public.shop_expenses as restrictive for all
+create policy counter_arrivals_delete on public.arrivals as restrictive for delete
+  to authenticated using (not public.counter_lock_active());
+create policy counter_expenses_select on public.shop_expenses as restrictive for select
+  to authenticated using (not public.counter_lock_active());
+create policy counter_expenses_insert on public.shop_expenses as restrictive for insert
+  to authenticated with check (not public.counter_lock_active());
+create policy counter_expenses_update on public.shop_expenses as restrictive for update
   to authenticated using (not public.counter_lock_active())
   with check (not public.counter_lock_active());
-create policy counter_team_guard on public.shop_members as restrictive for all
+create policy counter_expenses_delete on public.shop_expenses as restrictive for delete
+  to authenticated using (not public.counter_lock_active());
+create policy counter_team_select on public.shop_members as restrictive for select
+  to authenticated using (not public.counter_lock_active());
+create policy counter_team_insert on public.shop_members as restrictive for insert
+  to authenticated with check (not public.counter_lock_active());
+create policy counter_team_update on public.shop_members as restrictive for update
   to authenticated using (not public.counter_lock_active())
   with check (not public.counter_lock_active());
-create policy counter_audit_guard on public.shop_audit_log as restrictive for all
+create policy counter_team_delete on public.shop_members as restrictive for delete
+  to authenticated using (not public.counter_lock_active());
+create policy counter_audit_select on public.shop_audit_log as restrictive for select
+  to authenticated using (not public.counter_lock_active());
+create policy counter_audit_insert on public.shop_audit_log as restrictive for insert
+  to authenticated with check (not public.counter_lock_active());
+create policy counter_audit_update on public.shop_audit_log as restrictive for update
   to authenticated using (not public.counter_lock_active())
   with check (not public.counter_lock_active());
+create policy counter_audit_delete on public.shop_audit_log as restrictive for delete
+  to authenticated using (not public.counter_lock_active());
 
 -- All owner-only SECURITY DEFINER operations must enforce this guard.
 create or replace function public.assert_shop_owner(p_shop_id uuid)
