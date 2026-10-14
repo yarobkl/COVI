@@ -15,6 +15,8 @@ import {
 } from '../../lib/team'
 import { inviteMessage, inviteTime as time } from '../../lib/teamRules'
 
+const DISCOUNT_CHOICES = Array.from({ length: 101 }, (_, percent) => percent)
+
 function InviteForm({
   shopId,
   onCreated,
@@ -61,12 +63,18 @@ function InviteForm({
       </Field>
       <Field label="Remise maximale autorisée (%)" hint="0 % : il vend au prix affiché.">
         {(control) => (
-          <Input
+          <select
             {...control}
-            inputMode="decimal"
+            className="select"
             value={discount}
             onChange={(e) => setDiscount(e.target.value)}
-          />
+          >
+            {DISCOUNT_CHOICES.map((percent) => (
+              <option value={percent} key={percent}>
+                {percent} %
+              </option>
+            ))}
+          </select>
         )}
       </Field>
       <label className="team-check">
@@ -178,12 +186,18 @@ function MemberRow({
         <div className="team-member__rights">
           <Field label="Remise maximale (%)">
             {(control) => (
-              <Input
+              <select
                 {...control}
-                inputMode="decimal"
+                className="select"
                 value={discount}
                 onChange={(e) => setDiscount(e.target.value)}
-              />
+              >
+                {DISCOUNT_CHOICES.map((percent) => (
+                  <option key={percent} value={percent}>
+                    {percent} %
+                  </option>
+                ))}
+              </select>
             )}
           </Field>
           <label className="team-check">
