@@ -1,10 +1,21 @@
-import { money } from '../../lib/format'
+import { Badge, Button, Ledger, LedgerRow, Ruler } from '../../components/ui'
+import { isoDayLabel } from '../../lib/dates'
+import { fcfa, money } from '../../lib/format'
 import type { ArrivalProfit } from '../../lib/operations'
 import type { Arrival } from '../../lib/types'
 import { ArrivalDetail } from './ArrivalDetail'
-import { nextStatusLabel, statusLabel } from './arrivalStatus'
+import { nextStatusLabel } from './arrivalStatus'
 
-/** One arrival: status, lifecycle action, key figures and optional detail. */
+const statusText: Record<string, string> = {
+  received: 'reçu',
+  in_transit: 'en route',
+  ordered: 'commandé',
+  draft: 'brouillon',
+}
+const statusTone = (status: string) =>
+  status === 'received' ? 'success' : status === 'in_transit' ? 'transit' : 'waiting'
+
+/** One arrival written as an entry of the notebook: what, where from, the figures, what to do. */
 export function ArrivalCard({
   arrival: a,
   profit: p,
@@ -22,68 +33,78 @@ export function ArrivalCard({
   onAddProduct: () => void
   onToggleDetail: () => void
 }) {
+  const cost = Number(a.global_cost)
   return (
-    <div className="ordercard">
-      <div>
-        <span className={'pill ' + (a.status === 'received' ? 'green' : 'amber')}>
-          {a.kind === 'balloon' ? 'BALLON' : 'FOURNISSEUR'} · {statusLabel(a.status)}
-        </span>
-        <h3>
-          {a.code} {a.is_test && <em className="test-tag">TEST</em>}
+    <article className="entry" aria-labelledby={`arrival-${a.id}`}>
+      <div className="entry__head">
+        <h3 className="entry__title" id={`arrival-${a.id}`}>
+          {a.code}
           {a.supplier_name ? ' · ' + a.supplier_name : ''}
+          {a.is_test && <span className="test-note">test</span>}
         </h3>
-        <p>
-          {a.origin_country || 'Origine non renseignée'} ·{' '}
-          {a.order_date ? 'Commandé le ' + a.order_date : 'Date de commande à confirmer'}
-          {a.received_date ? ' · Reçu le ' + a.received_date : ''}
-        </p>
-        {a.status !== 'received' && (
-          <button className="outline" disabled={busy} onClick={onAdvance}>
-            {nextStatusLabel[a.status]}
-          </button>
-        )}
+        <Badge tone={statusTone(a.status)}>
+          {a.kind === 'balloon' ? 'Ballon' : 'Fournisseur'} · {statusText[a.status] ?? a.status}
+        </Badge>
       </div>
-      <div className="orderstats">
-        <button
-          className="outline"
+      <p className="entry__meta">
+        {a.origin_country || 'Origine non renseignée'} ·{' '}
+        {a.order_date ? 'commandé le ' + isoDayLabel(a.order_date) : 'date de commande à confirmer'}
+        {a.received_date ? ' · reçu le ' + isoDayLabel(a.received_date) : ''}
+      </p>
+      <Ledger label={`Chiffres de ${a.code}`}>
+        <LedgerRow label="Coût total" value={<span className="figures">{money(cost)}</span>} />
+        {p && (
+          <>
+            <LedgerRow
+              label="Vendus / restants"
+              value={
+                <span className="figures">
+                  {p.sold} / {p.remaining}
+                </span>
+              }
+            />
+            <LedgerRow
+              variant="total"
+              label="Résultat actuel"
+              value={
+                <span className={'figures' + (p.profit < 0 ? ' amount-out' : '')}>
+                  {p.profit >= 0 ? '+ ' : ''}
+                  {money(p.profit)}
+                </span>
+              }
+            />
+          </>
+        )}
+      </Ledger>
+      {p && cost > 0 && (
+        <Ruler
+          value={p.recovery}
+          label={`${fcfa(p.revenue)} FCFA récupérés sur ${fcfa(cost)}, soit ${p.recovery} %`}
+        />
+      )}
+      <div className="row-actions">
+        {a.status !== 'received' && (
+          <Button variant="primary" disabled={busy} onClick={onAdvance}>
+            {nextStatusLabel[a.status]}
+          </Button>
+        )}
+        <Button
+          variant="secondary"
           disabled={a.status !== 'received'}
           title={
             a.status !== 'received'
               ? 'Marquez l’arrivage comme reçu avant d’ajouter les produits'
-              : ''
+              : undefined
           }
           onClick={onAddProduct}
         >
-          Ajouter produit
-        </button>
-        <button className="outline" onClick={onToggleDetail}>
+          {a.status === 'received' ? 'Ajouter un produit' : 'Produits après réception'}
+        </Button>
+        <Button variant="ghost" aria-expanded={expanded} onClick={onToggleDetail}>
           {expanded ? 'Fermer le détail' : 'Voir le détail'}
-        </button>
-        <span>
-          Coût total<b>{money(Number(a.global_cost))}</b>
-        </span>
-        {p ? (
-          <>
-            <span>
-              Vendus / restants
-              <b>
-                {p.sold} / {p.remaining}
-              </b>
-            </span>
-            <span>
-              Récupéré<b>{p.recovery}%</b>
-            </span>
-            <span>
-              Résultat actuel
-              <b>
-                {p.profit >= 0 ? '+ ' : ''}
-                {money(p.profit)}
-              </b>
-            </span>
-          </>
-        ) : null}
+        </Button>
       </div>
       {expanded && <ArrivalDetail arrival={a} detail={p} />}
-    </div>
+    </article>
   )
 }

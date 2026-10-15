@@ -137,7 +137,7 @@ export function OrdersInbox({ shopId, till }: { shopId: string; till?: TillSessi
   return (
     <section className="orders-inbox" aria-label="Commandes reçues">
       <div className="orders-inbox__head">
-        <h2>Commandes reçues</h2>
+        <h2 className="section-title">Commandes reçues</h2>
         <p className="muted" role="status">
           {live ? 'Mises à jour en direct' : 'Actualisation automatique toutes les 15 secondes'}
         </p>

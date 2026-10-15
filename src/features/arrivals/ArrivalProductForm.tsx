@@ -1,4 +1,5 @@
 import type { FormEvent } from 'react'
+import { Button, Sheet } from '../../components/ui'
 import { ChoiceField } from '../../components/ui/ChoiceField'
 import { productChoices } from '../../lib/productChoices'
 import type { Arrival, Product } from '../../lib/types'
@@ -17,66 +18,70 @@ export function ArrivalProductForm({
 }) {
   const choices = productChoices(products)
   return (
-    <form className="card formgrid" onSubmit={onSubmit}>
-      <div className="span2">
-        <small>AJOUT À {arrival.code}</small>
-        <h2>
+    <Sheet aria-label={`Ajout à ${arrival.code}`}>
+      <form className="form-grid" onSubmit={onSubmit}>
+        <h2 className="form-grid__title">
+          <span className="form-grid__kicker">Ajout à {arrival.code}</span>
           {arrival.kind === 'balloon'
             ? 'Nouvelle pièce du ballon'
             : 'Nouvelle référence fournisseur'}
         </h2>
-      </div>
-      <label>
-        Produit
-        <ChoiceField
-          name="name"
-          choices={choices.names}
-          required
-          prompt="Choisir un article"
-          otherLabel="Créer un nouvel article"
-        />
-      </label>
-      <label>
-        Catégorie
-        <ChoiceField
-          name="category"
-          choices={choices.categories}
-          prompt="Choisir une catégorie"
-          otherLabel="Nouvelle catégorie"
-        />
-      </label>
-      <label>
-        Marque
-        <ChoiceField
-          name="brand"
-          choices={choices.brands}
-          prompt="Choisir une marque"
-          otherLabel="Nouvelle marque"
-        />
-      </label>
-      <label>
-        Taille
-        <ChoiceField
-          name="size"
-          choices={choices.sizes}
-          prompt="Choisir une taille"
-          otherLabel="Autre taille"
-        />
-      </label>
-      <label>
-        Prix de vente initial
-        <input name="price" type="number" min="1" required />
-      </label>
-      {arrival.kind === 'supplier_order' && (
         <label>
-          Quantité
-          <input name="quantity" type="number" min="1" defaultValue="1" required />
+          Produit
+          <ChoiceField
+            name="name"
+            choices={choices.names}
+            required
+            prompt="Choisir un article"
+            otherLabel="Créer un nouvel article"
+          />
         </label>
-      )}
-      <button className="primary">Ajouter au stock</button>
-      <button type="button" className="outline" onClick={onCancel}>
-        Annuler
-      </button>
-    </form>
+        <label>
+          Catégorie
+          <ChoiceField
+            name="category"
+            choices={choices.categories}
+            prompt="Choisir une catégorie"
+            otherLabel="Nouvelle catégorie"
+          />
+        </label>
+        <label>
+          Marque
+          <ChoiceField
+            name="brand"
+            choices={choices.brands}
+            prompt="Choisir une marque"
+            otherLabel="Nouvelle marque"
+          />
+        </label>
+        <label>
+          Taille
+          <ChoiceField
+            name="size"
+            choices={choices.sizes}
+            prompt="Choisir une taille"
+            otherLabel="Autre taille"
+          />
+        </label>
+        <label>
+          Prix de vente initial
+          <input name="price" type="number" inputMode="numeric" min="1" required />
+        </label>
+        {arrival.kind === 'supplier_order' && (
+          <label>
+            Quantité
+            <input name="quantity" type="number" min="1" defaultValue="1" required />
+          </label>
+        )}
+        <div className="form-grid__actions">
+          <Button variant="primary" type="submit">
+            Ajouter au stock
+          </Button>
+          <Button variant="ghost" onClick={onCancel}>
+            Annuler
+          </Button>
+        </div>
+      </form>
+    </Sheet>
   )
 }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { LoadError } from '../../components/LoadError'
+import { Ledger, LedgerRow, PageHead, Sheet } from '../../components/ui'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { listSales } from '../../lib/covi'
 import { money, plural } from '../../lib/format'
@@ -90,33 +91,40 @@ export function HistoryPage({
     [rows, seller, ownerId, sellerId, cashierProfileId],
   )
   return (
-    <>
-      <div className="hello">
-        <div>
-          <h1>{mine ? 'Mes ventes' : 'Produits vendus'}</h1>
-          <span>
-            {mine
-              ? 'Les ventes que vous avez encaissées · les lignes TEST sont fictives.'
-              : 'Historique des ventes · les lignes TEST sont fictives.'}
-          </span>
-        </div>
-      </div>
+    <div className="page-stack">
+      <PageHead
+        title={mine ? 'Mes ventes' : 'Produits vendus'}
+        sub={
+          mine
+            ? 'Les ventes que vous avez encaissées ; les ventes de test sont signalées.'
+            : 'Chaque article vendu, le plus récent d’abord ; les ventes de test sont signalées.'
+        }
+      />
       {!mine && hasTeam && totals.length > 0 && (
-        <section className="card seller-totals" aria-labelledby={`${filterId}-title`}>
-          <h2 id={`${filterId}-title`}>Ventes par caissier</h2>
-          <ul>
+        <Sheet aria-labelledby={`${filterId}-title`}>
+          <h2 className="section-title" id={`${filterId}-title`}>
+            Ventes par caissier
+          </h2>
+          <Ledger label="Ventes par caissier">
             {totals.map((t) => (
-              <li key={t.key}>
-                <span>{t.name}</span>
-                <span>
-                  {plural(t.count, 'vente')} · <b>{money(t.total)}</b>
-                </span>
-              </li>
+              <LedgerRow
+                key={t.key}
+                label={t.name}
+                meta={plural(t.count, 'vente')}
+                value={<span className="figures">{money(t.total)}</span>}
+              />
             ))}
-          </ul>
-          <label className="seller-filter" htmlFor={filterId}>
-            Voir les ventes de
-            <select id={filterId} value={seller} onChange={(e) => setSeller(e.target.value)}>
+          </Ledger>
+          <div className="field seller-filter">
+            <label className="field__label" htmlFor={filterId}>
+              Voir les ventes de
+            </label>
+            <select
+              id={filterId}
+              className="select"
+              value={seller}
+              onChange={(e) => setSeller(e.target.value)}
+            >
               <option value={ALL}>Tout le monde</option>
               {totals.map((t) => (
                 <option key={t.key} value={t.key}>
@@ -124,8 +132,8 @@ export function HistoryPage({
                 </option>
               ))}
             </select>
-          </label>
-        </section>
+          </div>
+        </Sheet>
       )}
       {error ? (
         <LoadError
@@ -133,16 +141,20 @@ export function HistoryPage({
           onRetry={retry}
         />
       ) : (
-        <section className="card">
+        <Sheet className="sold-list" aria-label="Ventes">
           {items === null ? (
-            <p>Chargement des ventes…</p>
+            <p className="muted">Chargement des ventes…</p>
           ) : items.length === 0 ? (
-            <p>Aucune vente enregistrée.</p>
+            <p className="muted">Aucune vente enregistrée.</p>
           ) : (
-            items.map((x, i) => <SoldRow key={x.id + i} item={x} />)
+            <Ledger label="Ventes, la plus récente d’abord">
+              {items.map((x, i) => (
+                <SoldRow key={x.id + i} item={x} />
+              ))}
+            </Ledger>
           )}
-        </section>
+        </Sheet>
       )}
-    </>
+    </div>
   )
 }

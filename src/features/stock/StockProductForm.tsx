@@ -1,4 +1,5 @@
 import type { FormEvent } from 'react'
+import { Button, Sheet } from '../../components/ui'
 import { ChoiceField } from '../../components/ui/ChoiceField'
 import { productChoices } from '../../lib/productChoices'
 import type { Arrival, Product } from '../../lib/types'
@@ -15,67 +16,74 @@ export function StockProductForm({
 }) {
   const choices = productChoices(products)
   return (
-    <form className="card formgrid" onSubmit={onSubmit}>
-      <label>
-        Produit
-        <ChoiceField
-          name="name"
-          choices={choices.names}
-          required
-          prompt="Choisir un article"
-          otherLabel="Créer un nouvel article"
-        />
-      </label>
-      <label>
-        Arrivage
-        <select name="arrival">
-          <option value="">Sans arrivage</option>
-          {arrivals.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.code} · {a.kind === 'balloon' ? 'Ballon' : a.supplier_name || 'Commande'}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label>
-        Catégorie
-        <ChoiceField
-          name="category"
-          choices={choices.categories}
-          prompt="Choisir une catégorie"
-          otherLabel="Nouvelle catégorie"
-        />
-      </label>
-      <label>
-        Marque
-        <ChoiceField
-          name="brand"
-          choices={choices.brands}
-          prompt="Choisir une marque"
-          otherLabel="Nouvelle marque"
-        />
-      </label>
-      <label>
-        Taille
-        <ChoiceField
-          name="size"
-          choices={choices.sizes}
-          prompt="Choisir une taille"
-          otherLabel="Autre taille"
-        />
-      </label>
-      <label>
-        Prix de vente initial
-        <input name="price" type="number" min="0" required />
-      </label>
-      <label>
-        Quantité
-        <input name="quantity" type="number" min="1" defaultValue="1" />
-      </label>
-      <label className="span2">
-        <input name="unique" type="checkbox" /> Pièce unique (ballon / lot mixte)
-      </label>
-      <button className="primary span2">Ajouter au stock</button>
-    </form>
+    <Sheet aria-label="Ajouter un produit">
+      <form className="form-grid" onSubmit={onSubmit}>
+        <h2 className="form-grid__title">Ajouter un produit</h2>
+        <label>
+          Produit
+          <ChoiceField
+            name="name"
+            choices={choices.names}
+            required
+            prompt="Choisir un article"
+            otherLabel="Créer un nouvel article"
+          />
+        </label>
+        <label>
+          Arrivage
+          <select name="arrival">
+            <option value="">Sans arrivage</option>
+            {arrivals.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.code} · {a.kind === 'balloon' ? 'Ballon' : a.supplier_name || 'Commande'}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Catégorie
+          <ChoiceField
+            name="category"
+            choices={choices.categories}
+            prompt="Choisir une catégorie"
+            otherLabel="Nouvelle catégorie"
+          />
+        </label>
+        <label>
+          Marque
+          <ChoiceField
+            name="brand"
+            choices={choices.brands}
+            prompt="Choisir une marque"
+            otherLabel="Nouvelle marque"
+          />
+        </label>
+        <label>
+          Taille
+          <ChoiceField
+            name="size"
+            choices={choices.sizes}
+            prompt="Choisir une taille"
+            otherLabel="Autre taille"
+          />
+        </label>
+        <label>
+          Prix de vente initial
+          <input name="price" type="number" inputMode="numeric" min="0" required />
+        </label>
+        <label>
+          Quantité
+          <input name="quantity" type="number" min="1" defaultValue="1" />
+        </label>
+        <label className="form-check form-grid__full">
+          <input name="unique" type="checkbox" /> Pièce unique (ballon / lot mixte)
+        </label>
+        <div className="form-grid__actions">
+          <Button variant="primary" type="submit">
+            Ajouter au stock
+          </Button>
+        </div>
+      </form>
+    </Sheet>
   )
 }

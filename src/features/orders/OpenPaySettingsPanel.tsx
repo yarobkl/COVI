@@ -48,7 +48,9 @@ export function OpenPaySettingsPanel({ shopId }: { shopId: string }) {
 
   return (
     <section className="order-channel" aria-labelledby={`${keyId}-title`}>
-      <h2 id={`${keyId}-title`}>Paiement Mobile Money (OpenPay)</h2>
+      <h2 className="section-title" id={`${keyId}-title`}>
+        Paiement Mobile Money (OpenPay)
+      </h2>
       <p className="muted">
         Demandez le paiement d’une commande directement sur le téléphone du client (MTN MoMo ou
         Airtel Money). L’argent arrive sur le compte OpenPay de votre boutique ; COVI ne le touche

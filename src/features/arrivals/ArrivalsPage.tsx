@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { PlusIcon } from '../../components/icons'
+import { Button, EmptyState, PageHead, PageMessage, Sheet } from '../../components/ui'
 import { addProduct, listProducts } from '../../lib/covi'
 import { localDay } from '../../lib/dates'
 import {
@@ -98,17 +99,16 @@ export function ArrivalsPage({ shopId, kind }: { shopId: string; kind?: Arrival[
     }
   }
   return (
-    <div>
-      <div className="hello">
-        <div>
-          <h1>{kind ? titles[kind] : 'Mes arrivages'}</h1>
-          <span>Suivi des arrivages réels et de la simulation marquée TEST.</span>
-        </div>
-        <button onClick={() => setShow(!show)}>
-          <PlusIcon />
-          Nouvel arrivage
-        </button>
-      </div>
+    <div className="page-stack">
+      <PageHead
+        title={kind ? titles[kind] : 'Mes arrivages'}
+        sub="Commandes fournisseurs et ballons, de la commande à la revente."
+        action={
+          <Button variant="secondary" icon={<PlusIcon />} onClick={() => setShow(!show)}>
+            {show ? 'Fermer' : 'Nouvel arrivage'}
+          </Button>
+        }
+      />
       {show && (
         <ArrivalForm
           kind={kind}
@@ -121,14 +121,22 @@ export function ArrivalsPage({ shopId, kind }: { shopId: string; kind?: Arrival[
           onSubmit={save}
         />
       )}
-      {msg && <p className="successmsg">{msg}</p>}
-      <section className="card">
-        {rows.length === 0 ? (
-          <p>
-            Aucun arrivage enregistré. Créez une commande fournisseur ou un ballon pour commencer.
-          </p>
-        ) : (
-          rows.map((a) => (
+      {msg && <PageMessage>{msg}</PageMessage>}
+      {addTo && (
+        <ArrivalProductForm
+          arrival={addTo}
+          products={products}
+          onSubmit={saveProduct}
+          onCancel={() => setAddTo(null)}
+        />
+      )}
+      {rows.length === 0 ? (
+        <EmptyState title="Aucun arrivage enregistré.">
+          <p>Créez une commande fournisseur ou un ballon pour commencer.</p>
+        </EmptyState>
+      ) : (
+        <Sheet aria-label="Arrivages">
+          {rows.map((a) => (
             <ArrivalCard
               key={a.id}
               arrival={a}
@@ -139,16 +147,8 @@ export function ArrivalsPage({ shopId, kind }: { shopId: string; kind?: Arrival[
               onAddProduct={() => setAddTo(a)}
               onToggleDetail={() => setExpanded(expanded === a.id ? null : a.id)}
             />
-          ))
-        )}
-      </section>
-      {addTo && (
-        <ArrivalProductForm
-          arrival={addTo}
-          products={products}
-          onSubmit={saveProduct}
-          onCancel={() => setAddTo(null)}
-        />
+          ))}
+        </Sheet>
       )}
     </div>
   )

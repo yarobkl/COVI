@@ -221,3 +221,10 @@ export const EyeOffIcon = (p: IconProps) => (
     <circle cx="12" cy="12" r="2.75" />
   </Icon>
 )
+
+/** Notifications: shop counter bell. */
+export const BellIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15ZM10 20.5a2.2 2.2 0 0 0 4 0M12 3.5V5" />
+  </Icon>
+)

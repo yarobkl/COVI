@@ -263,11 +263,15 @@
   .orders-page {
     display: grid;
     gap: var(--space-4);
-    padding: var(--space-4) var(--gutter);
+    min-width: 0;
+  }
+  .orders-page > * {
+    min-width: 0;
   }
   .orders-inbox,
   .order-channel {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 0.75rem;
     max-width: 48rem;
   }

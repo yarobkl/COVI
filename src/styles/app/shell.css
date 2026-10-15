@@ -113,9 +113,6 @@
   }
 
   /* Photo personnelle conservée dans Supabase Storage privé. */
-  .profile-photo {
-    margin-bottom: var(--space-5);
-  }
   .profile-photo h2 {
     margin-bottom: var(--space-3);
   }
@@ -260,10 +257,5 @@
   .page-head__sub {
     margin-top: var(--space-1);
     color: var(--ink-soft);
-  }
-
-  /* Les pages pas encore refaites tiennent dans la feuille. */
-  .legacy {
-    min-width: 0;
   }
 }
