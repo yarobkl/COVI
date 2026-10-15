@@ -206,8 +206,9 @@ select pg_temp.fails(format($$select public.confirm_public_order_payment(%L, 'mo
   :'order_id', format('[{"lineId":"%s","productId":"%s","unitPriceXaf":9500}]', :'line_jean', :'jean'), :'till'),
   'Toutes les lignes doivent être confirmées');
 select pg_temp.fails(format($$select public.confirm_public_order_payment(%L, 'mobile_money', null, true, %L, %L)$$,
-  :'order_id', replace(:'lines_ok', '"unitPriceXaf":9500', '"unitPriceXaf":5000'), :'till'),
-  'Prix sous la remise maximale du caissier refusé');
+  :'order_id', replace(:'lines_ok', format('"productId":"%s","unitPriceXaf":30000', :'piece'),
+                       format('"productId":"%s","unitPriceXaf":14000', :'jean')), :'till'),
+  'Même article du stock à deux prix différents : refus explicite');
 select pg_temp.fails(format($$select public.confirm_public_order_payment(%L, 'mobile_money', null, true, %L, %L)$$,
   :'order_id', replace(:'lines_ok', format('"productId":"%s","unitPriceXaf":15000', :'robe'),
                        format('"productId":"%s","unitPriceXaf":15000', :'foreign')), :'till'),
@@ -298,6 +299,27 @@ select pg_temp.check(
    = (:'second_paid'::jsonb ->> 'internalReference')
  and (select count(*) from public.sales where shop_id=:'shop')=2,
  'Deuxième clic = même référence interne, pas de vente supplémentaire');
+reset role;
+set local role service_role;
+-- Deux lignes du client (« Jean L », « Jean bleu ») rattachées au même article à la caisse :
+-- une seule ligne de vente, quantités additionnées, au lieu de « Duplicate product in cart ».
+select (public.submit_public_order(:'token', 'qr', gen_random_uuid(), 'Bema', '066000000', 'pickup',
+  null, 'cash', null, '[{"description":"Jean L","quantity":1},{"description":"Jean bleu","quantity":1}]'))
+  ->> 'orderId' as merge_order \gset
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', :'owner', true);
+select (select id from public.public_order_lines where order_id=:'merge_order' and position=1) as merge_l1,
+       (select id from public.public_order_lines where order_id=:'merge_order' and position=2) as merge_l2 \gset
+\set merge_lines '[{"lineId":"' :merge_l1 '","productId":"' :jean '","unitPriceXaf":9000},{"lineId":"' :merge_l2 '","productId":"' :jean '","unitPriceXaf":9000}]'
+select (select quantity_on_hand from public.products where id=:'jean') as jean_before \gset
+select public.confirm_public_order_payment(:'merge_order','cash',null,true,:'merge_lines',:'till')
+  ->> 'saleId' as merge_sale \gset
+select pg_temp.check(
+  (select count(*) = 1 and sum(quantity) = 2 and min(sold_unit_price) = 9000
+   from public.sale_items where sale_id = :'merge_sale')
+  and (select quantity_on_hand from public.products where id=:'jean') = :jean_before - 2,
+  'Même article sur deux lignes : une ligne de vente de 2, stock décrémenté de 2');
 reset role;
 set local role service_role;
 

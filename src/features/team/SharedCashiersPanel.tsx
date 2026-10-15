@@ -8,8 +8,6 @@ import {
 } from '../../lib/sharedCashiers'
 import { pinProblem, teamErrorMessage } from '../../lib/teamRules'
 
-const discounts = Array.from({ length: 101 }, (_, percent) => percent)
-
 /**
  * Employees use the ONE shared shop account, but every cashier has their OWN
  * personal PIN. No extra email, password or employee Supabase account required.
@@ -19,7 +17,6 @@ export function SharedCashiersPanel({ shopId }: { shopId: string }) {
   const [name, setName] = useState('')
   const [pin, setPin] = useState('')
   const [confirmation, setConfirmation] = useState('')
-  const [discount, setDiscount] = useState(0)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
@@ -51,11 +48,10 @@ export function SharedCashiersPanel({ shopId }: { shopId: string }) {
     if (pin !== confirmation) return setError('Les deux codes PIN doivent être identiques.')
     setBusy(true)
     try {
-      await createSharedCashier(shopId, name.trim(), pin, discount)
+      await createSharedCashier(shopId, name.trim(), pin, 0)
       setPin('')
       setConfirmation('')
       setName('')
-      setDiscount(0)
       await reload()
       setMessage('Caissier créé. Il peut maintenant ouvrir sa caisse avec son PIN.')
     } catch (err) {
@@ -95,8 +91,6 @@ export function SharedCashiersPanel({ shopId }: { shopId: string }) {
                 <b>{cashier.display_name}</b>
                 {' · '}
                 {cashier.active ? 'Actif' : 'Désactivé'}
-                {' · '}
-                Remise maximale : {cashier.max_discount_pct} %
               </span>
               <Button
                 variant="secondary"
@@ -120,16 +114,6 @@ export function SharedCashiersPanel({ shopId }: { shopId: string }) {
             required
             autoComplete="off"
           />
-        </label>
-        <label>
-          Remise maximale autorisée
-          <select value={discount} onChange={(event) => setDiscount(Number(event.target.value))}>
-            {discounts.map((value) => (
-              <option key={value} value={value}>
-                {value} %
-              </option>
-            ))}
-          </select>
         </label>
         <label>
           Code PIN personnel (4 à 6 chiffres)

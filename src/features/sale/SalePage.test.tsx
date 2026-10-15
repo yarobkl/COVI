@@ -333,26 +333,20 @@ const TOKEN = 'e'.repeat(64)
 const awa = { name: 'Awa', maxDiscountPct: 10 }
 
 describe('SalePage — a cashier sells (maximum discount)', () => {
-  it('blocks a line under the minimum and says it in the shop’s words', async () => {
+  it('no longer blocks a negotiated price: the cashier has no maximum discount', async () => {
     render(<SalePage userId="u-awa" shopId="shop-1" shopName="Chez Mado" seller={awa} />)
     await screen.findByText('Robe wax')
     fireEvent.click(tile('Robe wax'))
     fireEvent.click(tile('Jean slim'))
     fireEvent.click(screen.getByRole('button', { name: /Voir le panier/ }))
-    // Jean slim 15 000 − 10 % = 13 500 minimum; 13 000 is refused on screen.
+    // Jean slim 15 000 lowered to 13 000: allowed, whatever the cashier's former limit.
     fireEvent.click(sheet().getByRole('button', { name: /^Jean slim vendu à/ }))
     fireEvent.click(sheet().getByRole('button', { name: 'Baisser de 1 000 FCFA' }))
     fireEvent.click(sheet().getByRole('button', { name: 'Baisser de 1 000 FCFA' }))
     fireEvent.click(sheet().getByRole('button', { name: 'Garder ce prix' }))
     fireEvent.click(sheet().getByRole('radio', { name: 'Espèces' }))
-    expect(
-      sheet().getByText(
-        /^Ce prix est en dessous du minimum autorisé \(13.500 FCFA\)\. Demandez au responsable\.$/,
-      ),
-    ).toBeTruthy()
-    const blocked = sheet().getByRole('button', { name: 'Prix sous le minimum autorisé' })
-    expect((blocked as HTMLButtonElement).disabled).toBe(true)
-    expect(rpc).not.toHaveBeenCalled()
+    expect(sheet().queryByText(/en dessous du minimum autorisé/)).toBeNull()
+    expect(sheet().queryByRole('button', { name: 'Prix sous le minimum autorisé' })).toBeNull()
   })
 
   it('the server’s refusal under the minimum names the line', async () => {
