@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { PlusIcon, SearchIcon } from '../../components/icons'
+import { LegacyPage } from '../../app/LegacyPage'
+import { PlusIcon } from '../../components/icons'
+import { Field, Ledger, SearchField } from '../../components/ui'
 import { addProduct, listProducts } from '../../lib/covi'
 import { stockCacheDate } from '../../lib/offline'
 import { listArrivals } from '../../lib/operations'
@@ -70,50 +72,59 @@ export function StockPage({ shopId }: { shopId: string }) {
   const cacheDate = stockCacheDate(shopId)
   return (
     <>
-      <div className="hello">
-        <div>
-          <h1>Mon stock</h1>
-          <span>
-            {online
-              ? 'Stock réel et éléments TEST signalés.'
-              : 'Stock hors connexion · dernière copie ' +
-                (cacheDate ? new Date(cacheDate).toLocaleString('fr-FR') : 'locale')}
-          </span>
+      <LegacyPage>
+        <div className="hello">
+          <div>
+            <h1>Mon stock</h1>
+            <span>
+              {online
+                ? 'Stock réel et éléments TEST signalés.'
+                : 'Stock hors connexion · dernière copie ' +
+                  (cacheDate ? new Date(cacheDate).toLocaleString('fr-FR') : 'locale')}
+            </span>
+          </div>
+          <button onClick={() => setShow(!show)}>
+            <PlusIcon />
+            Ajouter un produit
+          </button>
         </div>
-        <button onClick={() => setShow(!show)}>
-          <PlusIcon />
-          Ajouter un produit
-        </button>
-      </div>
-      {show && <StockProductForm arrivals={arrivals} products={p} onSubmit={save} />}
-      {msg && <p className="successmsg">{msg}</p>}
-      <section className="card">
-        <label>
-          Choisir un article du stock
-          <select
-            value={selectedProductId}
-            onChange={(event) => setSelectedProductId(event.target.value)}
-          >
-            <option value="">Tous les articles</option>
-            {p.map((product) => (
-              <option value={product.id} key={product.id}>
-                {product.name} · {product.category || 'Sans catégorie'}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="search">
-          <SearchIcon />
-          <input
-            placeholder="Rechercher…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
+        {show && <StockProductForm arrivals={arrivals} products={p} onSubmit={save} />}
+        {msg && <p className="successmsg">{msg}</p>}
+      </LegacyPage>
+      <section className="stock-list" aria-label="Articles du stock">
+        <Field label="Choisir un article du stock">
+          {(control) => (
+            <select
+              {...control}
+              className="select"
+              value={selectedProductId}
+              onChange={(event) => setSelectedProductId(event.target.value)}
+            >
+              <option value="">Tous les articles</option>
+              {p.map((product) => (
+                <option value={product.id} key={product.id}>
+                  {product.name} · {product.category || 'Sans catégorie'}
+                </option>
+              ))}
+            </select>
+          )}
+        </Field>
+        <SearchField
+          label="Rechercher un article"
+          placeholder="Rechercher…"
+          value={query}
+          onChange={setQuery}
+        />
         {visible.length === 0 ? (
-          <p>Aucun produit disponible. Ajoutez votre premier produit.</p>
+          <p className="stock-list__empty">
+            Aucun produit disponible. Ajoutez votre premier produit.
+          </p>
         ) : (
-          visible.map((x) => <StockRow key={x.id} product={x} />)
+          <Ledger label="Articles du stock">
+            {visible.map((x) => (
+              <StockRow key={x.id} product={x} />
+            ))}
+          </Ledger>
         )}
       </section>
     </>
