@@ -35,6 +35,15 @@ export type NotificationSources = {
   }[]
   testSales: { id: string; sold_at: string; total_amount: number | string }[]
   audit: { id: number; action: string; at: string }[]
+  /** Corrections de stock faites dans « Modifier le produit » (facultatif). */
+  movements?: {
+    id: string
+    product_id: string
+    reason: string
+    quantity_before: number
+    quantity_after: number
+    created_at: string
+  }[]
 }
 
 const DAY = 24 * 60 * 60 * 1000
@@ -122,6 +131,26 @@ export function buildNotifications(src: NotificationSources, now = Date.now()): 
 
   // PIN ratés : regroupés par jour pour ne pas noyer la liste.
   const pinDays = new Map<string, { count: number; at: string; firstId: number }>()
+  // Corrections de stock : pertes, vols et erreurs de comptage (un réassort n'alerte pas).
+  const names = new Map(src.products.map((p) => [p.id, p.name]))
+  const reasonTitle: Record<string, [NotificationKind, string]> = {
+    loss: ['stock', 'Perte déclarée'],
+    theft: ['anomaly', 'Vol déclaré'],
+    count_error: ['stock', 'Stock corrigé'],
+  }
+  for (const m of src.movements ?? []) {
+    const reason = reasonTitle[m.reason]
+    if (!reason || timeOf(m.created_at) < since) continue
+    out.push({
+      id: `move-${m.id}`,
+      kind: reason[0],
+      title: `${reason[1]} : ${names.get(m.product_id) ?? 'un produit'}`,
+      detail: `Stock passé de ${m.quantity_before} à ${m.quantity_after}.`,
+      at: m.created_at,
+      page: 'stock',
+    })
+  }
+
   for (const a of src.audit) {
     if (!a.action.endsWith('pin_failed') || timeOf(a.at) < since) continue
     const day = a.at.slice(0, 10)
@@ -172,7 +201,7 @@ async function rows<T>(query: QueryChain): Promise<T[]> {
 /** Relit tout ce qu'il faut pour la cloche (propriétaire de la boutique). */
 export async function loadNotifications(shopId: string): Promise<ShopNotification[]> {
   const since = new Date(Date.now() - WINDOW_DAYS * DAY).toISOString()
-  const [orders, products, testSales, audit] = await Promise.all([
+  const [orders, products, testSales, audit, movements] = await Promise.all([
     listOrders(shopId, false),
     rows<NotificationSources['products'][number]>(
       db
@@ -201,8 +230,18 @@ export async function loadNotifications(shopId: string): Promise<ShopNotificatio
         .order('at', { ascending: false })
         .limit(500),
     ),
+    // Absente tant que la migration des corrections de stock n'est pas passée : on l'ignore.
+    rows<NonNullable<NotificationSources['movements']>[number]>(
+      db
+        .from('stock_movements')
+        .select('id, product_id, reason, quantity_before, quantity_after, created_at')
+        .eq('shop_id', shopId)
+        .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .limit(100),
+    ).catch(() => []),
   ])
-  return buildNotifications({ orders, products, testSales, audit })
+  return buildNotifications({ orders, products, testSales, audit, movements })
 }
 
 const seenKey = (shopId: string) => `covi:notifications-seen:${shopId}`

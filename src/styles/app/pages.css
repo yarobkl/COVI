@@ -401,3 +401,51 @@
     overflow-wrap: anywhere;
   }
 }
+
+/* « Modifier le produit » : la ligne du stock s'ouvre au toucher, l'écran se lit de haut en bas. */
+@layer app {
+  .ledger__open {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+  }
+  .ledger__row--link .ledger__open::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+  .ledger__row--link:has(.ledger__open:focus-visible) {
+    outline: var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .ledger__open:focus-visible {
+    outline: none;
+  }
+  .product-editor {
+    display: grid;
+    gap: var(--space-4);
+  }
+  .product-editor__part {
+    display: grid;
+    gap: var(--space-3);
+    padding-top: var(--space-4);
+    border-top: 1.5px dashed var(--line-dotted);
+  }
+  .product-editor__part > .btn {
+    justify-self: start;
+  }
+  .product-editor__qty {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-4);
+    font-weight: var(--weight-bold);
+  }
+  .stock-list .segmented__options {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

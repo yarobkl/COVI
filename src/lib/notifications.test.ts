@@ -116,4 +116,45 @@ describe('buildNotifications', () => {
       id: 'pin-2026-10-15-2-2',
     })
   })
+
+  it('reports losses, thefts and count corrections, but not restocks', () => {
+    const list = buildNotifications(
+      {
+        ...empty,
+        products: [product({ id: 'p1', name: 'Robe' })],
+        movements: [
+          {
+            id: 'm1',
+            product_id: 'p1',
+            reason: 'theft',
+            quantity_before: 5,
+            quantity_after: 4,
+            created_at: hoursAgo(1),
+          },
+          {
+            id: 'm2',
+            product_id: 'p1',
+            reason: 'restock',
+            quantity_before: 2,
+            quantity_after: 5,
+            created_at: hoursAgo(2),
+          },
+          {
+            id: 'm3',
+            product_id: 'gone',
+            reason: 'loss',
+            quantity_before: 1,
+            quantity_after: 0,
+            created_at: hoursAgo(3),
+          },
+        ],
+      },
+      now,
+    )
+    expect(list.map((n) => [n.kind, n.title])).toEqual([
+      ['anomaly', 'Vol déclaré : Robe'],
+      ['stock', 'Perte déclarée : un produit'],
+    ])
+    expect(list[0].detail).toBe('Stock passé de 5 à 4.')
+  })
 })
