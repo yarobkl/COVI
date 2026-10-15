@@ -1,5 +1,6 @@
 import { routeHash } from '../../app/routes'
 import type { Shop } from '../../lib/types'
+import { OpenPaySettingsPanel } from './OpenPaySettingsPanel'
 import { OrderChannelPanel } from './OrderChannelPanel'
 import { OrdersInbox } from './OrdersInbox'
 
@@ -25,7 +26,10 @@ export function OrdersPage({ shop, tab }: { shop: Shop; tab?: 'qr' }) {
       </nav>
       <div className="orders-page">
         {tab === 'qr' ? (
-          <OrderChannelPanel shopId={shop.id} shopName={shop.name} />
+          <>
+            <OrderChannelPanel shopId={shop.id} shopName={shop.name} />
+            <OpenPaySettingsPanel shopId={shop.id} />
+          </>
         ) : (
           <OrdersInbox shopId={shop.id} />
         )}
