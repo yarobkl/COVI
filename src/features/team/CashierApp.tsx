@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Button } from '../../components/ui'
-import { LegacyPage } from '../../app/LegacyPage'
 import { retrySyncAfterPinUnlock } from '../../lib/offline'
 import type { MemberShop } from '../../lib/team'
 import { HistoryPage } from '../history/HistoryPage'
@@ -129,11 +128,7 @@ export function CashierApp({
               paused={Boolean(pinScreen) || page !== 'vendre'}
             />
           </div>
-          {page === 'ventes' && (
-            <LegacyPage>
-              <HistoryPage shopId={membership.shop_id} mine />
-            </LegacyPage>
-          )}
+          {page === 'ventes' && <HistoryPage shopId={membership.shop_id} mine />}
         </main>
         <footer className="cashier__foot">
           <Button variant="ghost" onClick={() => setGate('change')}>

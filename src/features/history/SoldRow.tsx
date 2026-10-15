@@ -19,7 +19,7 @@ export function SoldRow({ item: x }: { item: SoldItem }) {
             {x.quantity > 1 && <span className="figures">{x.quantity} × </span>}
             {x.products?.name ?? 'Produit'}
           </span>
-          {x.is_test && <span className="sold-row__test">test</span>}
+          {x.is_test && <span className="test-note">test</span>}
         </>
       }
       meta={[

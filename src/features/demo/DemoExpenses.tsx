@@ -1,33 +1,34 @@
+import { Ledger, LedgerRow, Sheet } from '../../components/ui'
 import { money } from '../../lib/format'
 import { monthlyExpenses } from './demoData'
 
 export function DemoExpenses() {
   return (
-    <section className="card">
-      <h2>Charges de la boutique</h2>
-      <p>Simulation des charges ponctuelles et récurrentes sur la période.</p>
-      <div className="demo-table-wrap">
-        <table className="demo-table">
-          <thead>
-            <tr>
-              <th>Mois</th>
-              <th>Loyer</th>
-              <th>Autres charges</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {monthlyExpenses.map(([month, rent, other, total]) => (
-              <tr key={month}>
-                <td>{month}</td>
-                <td>{money(rent)}</td>
-                <td>{money(other)}</td>
-                <td>{money(total)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
+    <Sheet aria-labelledby="demo-expenses-title">
+      <h2 className="section-title" id="demo-expenses-title">
+        Charges par mois
+      </h2>
+      <p className="muted">Charges ponctuelles et récurrentes de la simulation.</p>
+      {monthlyExpenses.map(([month, rent, other, total]) => (
+        <Ledger key={month} label={`Charges de ${month}`}>
+          <LedgerRow variant="head" label={month} />
+          <LedgerRow
+            variant="sub"
+            label="Loyer"
+            value={<span className="figures amount-out">− {money(rent)}</span>}
+          />
+          <LedgerRow
+            variant="sub"
+            label="Autres charges"
+            value={<span className="figures amount-out">− {money(other)}</span>}
+          />
+          <LedgerRow
+            variant="total"
+            label={`Total ${month}`}
+            value={<span className="figures">{money(total)}</span>}
+          />
+        </Ledger>
+      ))}
+    </Sheet>
   )
 }

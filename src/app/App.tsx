@@ -21,7 +21,6 @@ import { useSyncState } from '../features/sync/useSyncState'
 import { plural } from '../lib/format'
 import type { Shop } from '../lib/types'
 import { initials, ownerName, shortName } from './identity'
-import { LegacyPage } from './LegacyPage'
 import { bottomBar, morePages, pages, sommaire } from './navigation'
 import { routeHash, routeKey, type ArrivalFilter, type PageId, type Route } from './routes'
 import { useHashRoute } from './useHashRoute'
@@ -60,14 +59,12 @@ function ArrivalsScreen({ shopId, filter }: { shopId: string; filter?: ArrivalFi
           </a>
         ))}
       </nav>
-      <LegacyPage>
-        <ArrivalsPage
-          shopId={shopId}
-          kind={
-            filter === 'commandes' ? 'supplier_order' : filter === 'ballons' ? 'balloon' : undefined
-          }
-        />
-      </LegacyPage>
+      <ArrivalsPage
+        shopId={shopId}
+        kind={
+          filter === 'commandes' ? 'supplier_order' : filter === 'ballons' ? 'balloon' : undefined
+        }
+      />
     </>
   )
 }
@@ -90,32 +87,18 @@ function renderPage(route: Route, { shop, updateShop, onSimulation, ownerId }: P
     case 'commandes':
       return <OrdersPage shop={shop} tab={route.filter === 'qr' ? 'qr' : undefined} />
     case 'ventes':
-      return (
-        <LegacyPage>
-          <HistoryPage shopId={shop.id} ownerId={ownerId} />
-        </LegacyPage>
-      )
+      return <HistoryPage shopId={shop.id} ownerId={ownerId} />
     case 'charges':
-      return (
-        <LegacyPage>
-          <ExpensesPage shopId={shop.id} />
-        </LegacyPage>
-      )
+      return <ExpensesPage shopId={shop.id} />
     case 'bilan':
-      return (
-        <LegacyPage>
-          <StatisticsPage shopId={shop.id} />
-        </LegacyPage>
-      )
+      return <StatisticsPage shopId={shop.id} />
     case 'boutique':
       return (
-        <>
-          <LegacyPage>
-            <SettingsPage shopId={shop.id} onShopUpdated={updateShop} />
-          </LegacyPage>
+        <div className="page-stack">
+          <SettingsPage shopId={shop.id} onShopUpdated={updateShop} />
           <SharedCashiersPanel shopId={shop.id} />
           <TeamPanel shopId={shop.id} shopName={shop.name} />
-        </>
+        </div>
       )
   }
 }

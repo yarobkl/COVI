@@ -1,7 +1,8 @@
 import { useCallback } from 'react'
 import { LoadError } from '../../components/LoadError'
+import { Ledger, LedgerRow, PageHead, Sheet, Skeleton } from '../../components/ui'
 import { useAsyncData } from '../../hooks/useAsyncData'
-import { money, plural } from '../../lib/format'
+import { fcfa, money, plural } from '../../lib/format'
 import { liveStatistics } from '../../lib/operations'
 import { ArrivalProfitRow } from './ArrivalProfitRow'
 
@@ -15,51 +16,68 @@ export function StatisticsPage({ shopId }: { shopId: string }) {
         onRetry={retry}
       />
     )
-  if (!d) return <p>Calcul des statistiques…</p>
+  if (!d) return <Skeleton caption="On fait les comptes…" />
   const max = Math.max(1, ...d.days.map((x) => x.amount))
   return (
-    <div>
-      <div className="hello">
-        <div>
-          <h1>Statistiques</h1>
-          <span>Vos performances réelles et les arrivages de simulation identifiés TEST.</span>
-        </div>
-      </div>
-      <div className="grid">
-        <section className="card">
-          <small>VENTES · 3 DERNIERS MOIS COMPLETS · TEST INCLUS ET SIGNALÉ</small>
-          <div className="bars">
+    <div className="page-stack">
+      <PageHead
+        title="Bilan"
+        sub="Vos ventes des trois derniers mois et ce que rapporte chaque arrivage."
+      />
+      <div className="page-pair">
+        <Sheet aria-labelledby="bilan-ventes">
+          <h2 className="section-title" id="bilan-ventes">
+            Ventes par mois
+          </h2>
+          <p className="muted bilan__note">
+            Trois derniers mois complets, ventes de test comprises.
+          </p>
+          <div
+            className="bars"
+            role="img"
+            aria-label={d.days.map((x) => `${x.label} : ${money(x.amount)}`).join(', ')}
+          >
             {d.days.map((x) => (
-              <div className="barcol" key={x.date}>
-                <div className="bar" style={{ height: Math.max(4, (x.amount / max) * 150) }}></div>
-                <span>{x.label}</span>
-                <small>{x.amount ? money(x.amount) : '0'}</small>
+              <div className="bars__col" key={x.date}>
+                <span className="bars__value">{x.amount ? fcfa(x.amount) : '0'}</span>
+                <span
+                  className="bars__bar"
+                  style={{ height: `${Math.max(2, (x.amount / max) * 100)}%` }}
+                />
               </div>
             ))}
           </div>
-        </section>
-        <section className="card">
-          <small>CATÉGORIES VENDUES</small>
+          <div className="bars__labels" aria-hidden="true">
+            {d.days.map((x) => (
+              <span key={x.date}>{x.label}</span>
+            ))}
+          </div>
+        </Sheet>
+        <Sheet aria-labelledby="bilan-categories">
+          <h2 className="section-title" id="bilan-categories">
+            Catégories vendues
+          </h2>
           {d.categories.length === 0 ? (
-            <p>Les catégories apparaîtront après vos premières ventes.</p>
+            <p className="muted">Les catégories apparaîtront après vos premières ventes.</p>
           ) : (
-            d.categories.map(([category, count]) => (
-              <div className="statline" key={category}>
-                <span>{category}</span>
-                <b>{plural(count, 'vendu')}</b>
-              </div>
-            ))
+            <Ledger label="Catégories vendues">
+              {d.categories.map(([category, count]) => (
+                <LedgerRow key={category} label={category} value={plural(count, 'vendu')} />
+              ))}
+            </Ledger>
           )}
-        </section>
+        </Sheet>
       </div>
-      <section className="card">
-        <small>RENTABILITÉ DES ARRIVAGES</small>
+      <Sheet aria-labelledby="bilan-arrivages">
+        <h2 className="section-title" id="bilan-arrivages">
+          Rentabilité des arrivages
+        </h2>
         {d.profit.length === 0 ? (
-          <p>Aucun arrivage à analyser.</p>
+          <p className="muted">Aucun arrivage à analyser.</p>
         ) : (
           d.profit.map((x) => <ArrivalProfitRow key={x.id} arrival={x} />)
         )}
-      </section>
+      </Sheet>
     </div>
   )
 }

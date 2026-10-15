@@ -1,3 +1,4 @@
+import { PageHead } from '../../components/ui'
 import { routeHash } from '../../app/routes'
 import { mobilePaymentsEnabled } from '../../lib/mobilePayments'
 import type { Shop } from '../../lib/types'
@@ -26,6 +27,10 @@ export function OrdersPage({ shop, tab }: { shop: Shop; tab?: 'qr' }) {
         </a>
       </nav>
       <div className="orders-page">
+        <PageHead
+          title="Commandes"
+          sub="Les demandes reçues par le QR, WhatsApp et TikTok, et vos liens à partager."
+        />
         {tab === 'qr' ? (
           <>
             <OrderChannelPanel shopId={shop.id} shopName={shop.name} />

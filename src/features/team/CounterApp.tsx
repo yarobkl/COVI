@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { Button, Notice } from '../../components/ui'
-import { LegacyPage } from '../../app/LegacyPage'
 import { clearCounterMode } from '../../lib/counterMode'
 import {
   closeTillSession,
@@ -369,17 +368,15 @@ export function CounterApp({
           </div>
           {page === 'commandes' && <OrdersInbox shopId={shop.id} till={session} />}
           {page === 'ventes' && (
-            <LegacyPage>
-              <HistoryPage
-                shopId={shop.id}
-                mine
-                // A session kept from an older version has no seller id: show nothing rather than all.
-                sellerId={
-                  ownSalesOnly && !session.cashierProfileId ? (session.sellerId ?? '') : undefined
-                }
-                cashierProfileId={ownSalesOnly ? session.cashierProfileId : undefined}
-              />
-            </LegacyPage>
+            <HistoryPage
+              shopId={shop.id}
+              mine
+              // A session kept from an older version has no seller id: show nothing rather than all.
+              sellerId={
+                ownSalesOnly && !session.cashierProfileId ? (session.sellerId ?? '') : undefined
+              }
+              cashierProfileId={ownSalesOnly ? session.cashierProfileId : undefined}
+            />
           )}
         </main>
         <footer className="cashier__foot">

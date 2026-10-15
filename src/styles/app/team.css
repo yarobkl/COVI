@@ -189,7 +189,6 @@
     display: grid;
     gap: var(--space-4);
     max-width: var(--content-max);
-    margin-block-start: var(--space-6);
   }
   .team-invite,
   .team-member__rights {

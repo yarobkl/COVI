@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, Notice } from '../../components/ui'
+import { Button, Notice, PageHead, Sheet } from '../../components/ui'
 import { enterCounterMode } from '../../lib/counterMode'
 import { listShopMembers, ownerPinStatus, teamErrorMessage } from '../../lib/team'
 import { listSharedCashiers } from '../../lib/sharedCashiers'
@@ -53,7 +53,7 @@ export function TillSwitch({ shopId }: { shopId: string }) {
 
   if (setup) {
     return (
-      <section className="card">
+      <Sheet>
         <OwnerPinSetup
           shopId={shopId}
           onDone={() => {
@@ -62,33 +62,41 @@ export function TillSwitch({ shopId }: { shopId: string }) {
           }}
           onCancel={() => setSetup(false)}
         />
-      </section>
+      </Sheet>
     )
   }
 
   return (
-    <section className="card till-switch">
-      <h2>Passer en caisse</h2>
-      <p>Chaque caissier choisit son prénom et saisit son propre PIN avant de vendre.</p>
-      <p className="muted">La gestion reste connectée. Les ventes portent le nom du caissier.</p>
-      {pending > 0 && (
-        <Notice tone="danger">
-          <p>{pending} vente(s) en attente. Attendez leur synchronisation.</p>
-        </Notice>
-      )}
-      {error && (
-        <Notice tone="danger">
-          <p>{error}</p>
-        </Notice>
-      )}
-      <Button
-        variant="primary"
-        busy={busy}
-        disabled={busy || pending > 0}
-        onClick={() => void openCounter()}
-      >
-        Choisir un caissier
-      </Button>
-    </section>
+    <div className="page-stack">
+      <PageHead
+        title="Vendre"
+        sub="La gestion reste connectée ; chaque vente porte le nom du caissier."
+      />
+      <Sheet className="till-switch" aria-labelledby="till-switch-title">
+        <h2 className="section-title" id="till-switch-title">
+          Passer en caisse
+        </h2>
+        <p>Chaque caissier choisit son prénom et saisit son propre PIN avant de vendre.</p>
+        {pending > 0 && (
+          <Notice tone="danger">
+            <p>{pending} vente(s) en attente. Attendez leur synchronisation.</p>
+          </Notice>
+        )}
+        {error && (
+          <Notice tone="danger">
+            <p>{error}</p>
+          </Notice>
+        )}
+        <Button
+          variant="sale"
+          size="lg"
+          busy={busy}
+          disabled={busy || pending > 0}
+          onClick={() => void openCounter()}
+        >
+          Choisir un caissier
+        </Button>
+      </Sheet>
+    </div>
   )
 }

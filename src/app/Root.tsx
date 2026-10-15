@@ -4,7 +4,6 @@ import { AuthGate } from '../features/auth/AuthGate'
 import { CounterGate } from '../features/team/CounterGate'
 import { parsePublicHash } from '../lib/publicOrders'
 import { App } from './App'
-import { LegacyPage } from './LegacyPage'
 
 // The example shop is only opened on demand: kept out of the first download.
 const DemoMode = lazy(() =>
@@ -61,17 +60,15 @@ export function Root() {
     )
   if (simulation)
     return (
-      <LegacyPage>
-        <Suspense
-          fallback={
-            <p className="authshell" role="status">
-              Ouverture de la boutique d’exemple…
-            </p>
-          }
-        >
-          <DemoMode onExit={() => setSimulation(false)} />
-        </Suspense>
-      </LegacyPage>
+      <Suspense
+        fallback={
+          <p className="authshell" role="status">
+            Ouverture de la boutique d’exemple…
+          </p>
+        }
+      >
+        <DemoMode onExit={() => setSimulation(false)} />
+      </Suspense>
     )
   return (
     <AuthGate onSimulation={() => setSimulation(true)}>

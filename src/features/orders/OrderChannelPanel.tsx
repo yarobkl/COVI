@@ -105,7 +105,7 @@ export function OrderChannelPanel({ shopId, shopName }: { shopId: string; shopNa
 
   return (
     <section className="order-channel" aria-label="QR code et liens de commande">
-      <h2>QR code et liens de commande</h2>
+      <h2 className="section-title">QR code et liens de commande</h2>
       <p className="muted">
         Vos clients scannent le QR code ou ouvrent le lien reçu sur WhatsApp ou TikTok, choisissent
         leurs articles et envoient une demande, sans créer de compte. Les demandes arrivent dans «
@@ -121,7 +121,7 @@ export function OrderChannelPanel({ shopId, shopName }: { shopId: string; shopNa
         />
         Afficher aux clients les types d’articles vendus (indépendamment du stock)
       </label>
-      <div className="card" aria-label="Types d’articles vendus">
+      <div className="sheet order-channel__types" aria-label="Types d’articles vendus">
         <h3>Les articles que vend cette boutique</h3>
         <p className="muted">
           Le client pourra choisir parmi ces types même lorsque le stock est à zéro. Ajoutez ou

@@ -1,117 +1,93 @@
-import { money } from '../../lib/format'
+import { Ledger, LedgerRow, Sheet } from '../../components/ui'
+import { fcfa, money } from '../../lib/format'
 import { arrivals, months } from './demoData'
 
-/** Three-month overview; an arrival opens the "Mes arrivages" page on its detail. */
+/** Three-month overview; an arrival opens the « Arrivages » page on its detail. */
 export function DemoDashboard({ onOpenArrival }: { onOpenArrival: (code: string) => void }) {
   return (
     <>
-      <div className="demo-month-grid">
-        {months.map((m) => (
-          <article className="card" key={m.name}>
-            <span>{m.name} 2026</span>
-            <b>{money(m.sales)}</b>
-            <small>
-              Ventes encaissées · {m.buyers} clients · {m.units} articles
-            </small>
-            <small>{m.stock} produits disponibles en fin de mois</small>
-          </article>
-        ))}
-      </div>
-      <div className="demo-kpis">
-        <article className="kpi">
-          <span>Ventes encaissées</span>
-          <b>{money(2334000)}</b>
-          <small>sur trois mois</small>
-        </article>
-        <article className="kpi">
-          <span>Investissements en arrivages</span>
-          <b>{money(1230000)}</b>
-          <small>3 arrivages reçus</small>
-        </article>
-        <article className="kpi">
-          <span>Charges de la boutique</span>
-          <b>{money(380000)}</b>
-          <small>sur trois mois</small>
-        </article>
-        <article className="kpi">
-          <span>Bénéfice final estimé</span>
-          <b>{money(724000)}</b>
-          <small>pilotage simulé, non comptable</small>
-        </article>
-      </div>
-      <section className="card">
-        <h2>Résultat de pilotage par mois</h2>
-        <div className="demo-table-wrap">
-          <table className="demo-table">
-            <thead>
-              <tr>
-                <th>Mois</th>
-                <th>Ventes</th>
-                <th>Arrivages payés</th>
-                <th>Charges</th>
-                <th>Résultat du mois</th>
-                <th>Stock disponible</th>
-              </tr>
-            </thead>
-            <tbody>
-              {months.map((m) => (
-                <tr key={m.name}>
-                  <td>{m.name} 2026</td>
-                  <td>{money(m.sales)}</td>
-                  <td>{money(m.arrivals)}</td>
-                  <td>{money(m.expenses)}</td>
-                  <td
+      <section className="home-hero" aria-labelledby="demo-hero">
+        <h2 className="home-hero__lead" id="demo-hero">
+          En trois mois, la caisse a reçu
+        </h2>
+        <p className="amount amount--hero">
+          {fcfa(2334000)}
+          <span className="amount__unit">FCFA</span>
+        </p>
+        <p className="home-hero__count">
+          en <strong>105 tickets</strong>, pour 143 articles vendus.
+        </p>
+      </section>
+      <div className="page-pair">
+        <Sheet aria-labelledby="demo-result">
+          <h2 className="section-title" id="demo-result">
+            Résultat de pilotage
+          </h2>
+          {months.map((m) => (
+            <Ledger key={m.name} label={`${m.name} 2026`}>
+              <LedgerRow
+                variant="head"
+                label={`${m.name} 2026`}
+                meta={`${m.buyers} clients · ${m.units} articles · ${m.stock} pièces en stock`}
+                value={<span className="figures">{money(m.sales)}</span>}
+              />
+              <LedgerRow
+                variant="sub"
+                label="Arrivages payés"
+                value={<span className="figures amount-out">− {money(m.arrivals)}</span>}
+              />
+              <LedgerRow
+                variant="sub"
+                label="Charges"
+                value={<span className="figures amount-out">− {money(m.expenses)}</span>}
+              />
+              <LedgerRow
+                variant="total"
+                label="Résultat du mois"
+                value={
+                  <span
                     className={
-                      m.sales - m.arrivals - m.expenses < 0 ? 'demo-negative' : 'demo-profitable'
+                      'figures' + (m.sales - m.arrivals - m.expenses < 0 ? ' amount-out' : '')
                     }
                   >
                     {money(m.sales - m.arrivals - m.expenses)}
-                  </td>
-                  <td>{m.stock} pièces</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr>
-                <th>Total</th>
-                <th>{money(2334000)}</th>
-                <th>{money(1230000)}</th>
-                <th>{money(380000)}</th>
-                <th>{money(724000)}</th>
-                <th>12 pièces</th>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-        <p className="demo-footnote">
-          Calcul de pilotage de trésorerie : ventes encaissées − arrivages payés − charges. Les
-          stocks restants ne sont pas valorisés dans ce résultat. Ce chiffre n’est pas une
-          comptabilité officielle.
-        </p>
-      </section>
-      <section className="card">
-        <h2>Progression des arrivages</h2>
-        <div className="demo-arrivals">
-          {arrivals.map((a) => (
-            <button
-              className="demo-arrival-button"
-              key={a.code}
-              onClick={() => onOpenArrival(a.code)}
-            >
-              <span>
-                <b>{a.code}</b>
-                <small>
-                  {a.origin} · {a.sold} vendus / {a.items}
-                </small>
-              </span>
-              <span>
-                <b>{money(a.revenue - a.cost)}</b>
-                <small>{Math.round((a.revenue / a.cost) * 100)} % récupérés</small>
-              </span>
-            </button>
+                  </span>
+                }
+              />
+            </Ledger>
           ))}
-        </div>
-      </section>
+          <p className="muted demo-footnote">
+            Ventes encaissées − arrivages payés − charges. Les stocks restants ne sont pas valorisés
+            ; ce n’est pas une comptabilité officielle.
+          </p>
+        </Sheet>
+        <Sheet aria-labelledby="demo-arrivals">
+          <h2 className="section-title" id="demo-arrivals">
+            Arrivages
+          </h2>
+          <Ledger label="Arrivages de la simulation">
+            {arrivals.map((a) => (
+              <LedgerRow
+                key={a.code}
+                variant="link"
+                label={
+                  <a
+                    href={`#arrivage-${a.code}`}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      onOpenArrival(a.code)
+                    }}
+                  >
+                    {a.code}
+                  </a>
+                }
+                meta={`${a.origin} · ${a.sold} vendus sur ${a.items} · ${Math.round((a.revenue / a.cost) * 100)} % récupérés`}
+                value={<span className="figures">{money(a.revenue - a.cost)}</span>}
+              />
+            ))}
+          </Ledger>
+        </Sheet>
+      </div>
     </>
   )
 }

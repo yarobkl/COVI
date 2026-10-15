@@ -88,8 +88,10 @@ export function ProfilePhotoEditor() {
   }
 
   return (
-    <section className="card profile-photo" aria-labelledby="profile-photo-title">
-      <h2 id="profile-photo-title">Ma photo de profil</h2>
+    <section className="sheet profile-photo" aria-labelledby="profile-photo-title">
+      <h2 className="section-title" id="profile-photo-title">
+        Ma photo de profil
+      </h2>
       <div className="profile-photo__row">
         <div className="profile-photo__preview">
           {photoUrl ? (

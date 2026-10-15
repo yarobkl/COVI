@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { LegacyPage } from '../../app/LegacyPage'
 import { PlusIcon } from '../../components/icons'
-import { Field, Ledger, SearchField } from '../../components/ui'
+import { Button, Field, Ledger, PageHead, PageMessage, SearchField } from '../../components/ui'
 import { addProduct, listProducts } from '../../lib/covi'
 import { stockCacheDate } from '../../lib/offline'
 import { listArrivals } from '../../lib/operations'
@@ -71,26 +70,23 @@ export function StockPage({ shopId }: { shopId: string }) {
   )
   const cacheDate = stockCacheDate(shopId)
   return (
-    <>
-      <LegacyPage>
-        <div className="hello">
-          <div>
-            <h1>Mon stock</h1>
-            <span>
-              {online
-                ? 'Stock réel et éléments TEST signalés.'
-                : 'Stock hors connexion · dernière copie ' +
-                  (cacheDate ? new Date(cacheDate).toLocaleString('fr-FR') : 'locale')}
-            </span>
-          </div>
-          <button onClick={() => setShow(!show)}>
-            <PlusIcon />
-            Ajouter un produit
-          </button>
-        </div>
-        {show && <StockProductForm arrivals={arrivals} products={p} onSubmit={save} />}
-        {msg && <p className="successmsg">{msg}</p>}
-      </LegacyPage>
+    <div className="page-stack">
+      <PageHead
+        title="Mon stock"
+        sub={
+          online
+            ? 'Stock réel ; les articles de test sont signalés.'
+            : 'Hors connexion · dernière copie du ' +
+              (cacheDate ? new Date(cacheDate).toLocaleString('fr-FR') : 'téléphone')
+        }
+        action={
+          <Button variant="secondary" icon={<PlusIcon />} onClick={() => setShow(!show)}>
+            {show ? 'Fermer' : 'Ajouter un produit'}
+          </Button>
+        }
+      />
+      {show && <StockProductForm arrivals={arrivals} products={p} onSubmit={save} />}
+      {msg && <PageMessage>{msg}</PageMessage>}
       <section className="stock-list" aria-label="Articles du stock">
         <Field label="Choisir un article du stock">
           {(control) => (
@@ -127,6 +123,6 @@ export function StockPage({ shopId }: { shopId: string }) {
           </Ledger>
         )}
       </section>
-    </>
+    </div>
   )
 }

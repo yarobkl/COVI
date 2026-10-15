@@ -57,3 +57,11 @@ export function whenLabel(d: Date, now: Date = new Date()) {
   if (localDay(d) === localDay(yesterday)) return `hier ${clock(d)}`
   return `${shortDay(d)} ${clock(d)}`
 }
+
+/** « 25 sept. 2026 » from an ISO day (2026-09-25), as written in the notebook. */
+export const isoDayLabel = (day: string) =>
+  new Date(day + 'T12:00:00').toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })

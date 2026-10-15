@@ -13,7 +13,7 @@ export function StockRow({ product: x }: { product: Product }) {
       label={
         <>
           <span className="stock-row__name">{x.name}</span>
-          {x.is_test && <span className="stock-row__test">test</span>}
+          {x.is_test && <span className="test-note">test</span>}
         </>
       }
       meta={[x.category, x.brand, x.size, quantity].filter(Boolean).join(' · ')}

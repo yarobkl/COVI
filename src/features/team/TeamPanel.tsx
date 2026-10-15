@@ -248,8 +248,10 @@ export function TeamPanel({ shopId, shopName }: { shopId: string; shopName: stri
   }, [reload])
 
   return (
-    <section className="card team" aria-labelledby={titleId}>
-      <h2 id={titleId}>Équipe</h2>
+    <section className="sheet team" aria-labelledby={titleId}>
+      <h2 className="section-title" id={titleId}>
+        Équipe avec compte
+      </h2>
       <p className="muted">
         Chaque caissier a son propre compte et son propre code PIN. Ses ventes portent son nom. Il
         ne voit ni vos arrivages, ni vos charges, ni vos bénéfices.
@@ -273,7 +275,7 @@ export function TeamPanel({ shopId, shopName }: { shopId: string; shopName: stri
           ))}
         </ul>
       )}
-      {members && members.length === 0 && <p>Pas encore de caissier.</p>}
+      {members && members.length === 0 && <p>Personne n’a encore de compte caissier.</p>}
 
       {invites.length > 0 && (
         <>

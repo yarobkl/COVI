@@ -75,8 +75,10 @@ export function SharedCashiersPanel({ shopId }: { shopId: string }) {
   }
 
   return (
-    <section className="card team">
-      <h3>Caissiers de cette boutique</h3>
+    <section className="sheet team" aria-labelledby="shared-cashiers-title">
+      <h2 className="section-title" id="shared-cashiers-title">
+        Caissiers (code PIN)
+      </h2>
       <p className="muted">
         Le compte de gestion est commun. Chaque employé choisit son propre code PIN pour encaisser
         et retrouver ses ventes.
@@ -84,13 +86,12 @@ export function SharedCashiersPanel({ shopId }: { shopId: string }) {
       {cashiers === null && !error && <p>Chargement des caissiers…</p>}
       {cashiers?.length === 0 && <p>Aucun caissier pour le moment.</p>}
       {cashiers && cashiers.length > 0 && (
-        <ul className="team-members">
+        <ul className="team-invites" aria-label="Caissiers">
           {cashiers.map((cashier) => (
             <li key={cashier.id}>
               <span>
-                <b>{cashier.display_name}</b>
-                {' · '}
-                {cashier.active ? 'Actif' : 'Désactivé'}
+                <b className="team-member__name">{cashier.display_name}</b>{' '}
+                <span className="muted">· {cashier.active ? 'actif' : 'désactivé'}</span>
               </span>
               <Button
                 variant="secondary"
@@ -103,8 +104,8 @@ export function SharedCashiersPanel({ shopId }: { shopId: string }) {
           ))}
         </ul>
       )}
-      <h3>Ajouter un caissier</h3>
-      <form className="formgrid" onSubmit={(event) => void create(event)}>
+      <form className="form-grid" onSubmit={(event) => void create(event)}>
+        <h3 className="form-grid__title">Ajouter un caissier</h3>
         <label>
           Prénom du caissier
           <input
@@ -141,9 +142,11 @@ export function SharedCashiersPanel({ shopId }: { shopId: string }) {
             required
           />
         </label>
-        <Button variant="primary" disabled={busy} type="submit">
-          {busy ? 'Enregistrement…' : 'Créer le caissier'}
-        </Button>
+        <div className="form-grid__actions">
+          <Button variant="primary" busy={busy} busyLabel="Enregistrement…" type="submit">
+            Créer le caissier
+          </Button>
+        </div>
       </form>
       {error && (
         <Notice tone="danger">
