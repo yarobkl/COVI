@@ -35,6 +35,12 @@ export const mobileStatusLabels: Record<MobilePaymentStatus, string> = {
   error: 'Demande refusée',
 }
 
+/**
+ * Paiement Mobile Money direct (OpenPay) : prévu pour la V2, masqué en V1. Le code, la base et la
+ * fonction Edge restent prêts ; VITE_COVI_MOBILE_PAYMENTS=true le réaffiche.
+ */
+export const mobilePaymentsEnabled = import.meta.env.VITE_COVI_MOBILE_PAYMENTS === 'true'
+
 export const openPayUrl =
   import.meta.env.VITE_COVI_OPENPAY_URL || `${supabaseUrl}/functions/v1/openpay`
 
