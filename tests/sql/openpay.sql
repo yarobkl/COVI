@@ -83,8 +83,9 @@ select pg_temp.fails(format($$select public.set_shop_openpay_key(%L, 'opk_live_I
 select pg_temp.fails(format($$select public.request_order_mobile_payment(%L, 'MTN', '242066000000', 10000)$$,
   :'order_id'), 'Une autre boutique ne peut pas demander le paiement');
 reset role;
-select pg_temp.check((select count(*) from vault.secrets) = 1
-  and (select decrypted_secret from vault.decrypted_secrets) = 'opk_live_ABCDEFGH12345678',
+select pg_temp.check((select count(*) from vault.secrets where name like 'covi_openpay%') = 1
+  and (select decrypted_secret from vault.decrypted_secrets where name like 'covi_openpay%')
+    = 'opk_live_ABCDEFGH12345678',
   'Clé stockée dans le coffre (Vault), une seule fois');
 
 -- Demande de paiement -------------------------------------------------------------------------

@@ -449,3 +449,51 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+/* Supprimer mon compte : la feuille, la boîte de confirmation, l'écran « suppression programmée ». */
+@layer app {
+  .account-deletion {
+    display: grid;
+    gap: var(--space-3);
+    border-inline-start: 3px solid var(--danger);
+  }
+  .account-deletion__dialog {
+    display: grid;
+    gap: var(--space-3);
+  }
+  .account-deletion__list {
+    display: grid;
+    gap: var(--space-2);
+    padding-inline-start: var(--space-5);
+  }
+  .deletion-pending {
+    display: grid;
+    gap: var(--space-4);
+  }
+  .deletion-pending__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+}
+
+/* Politique de confidentialité : une page du cahier, lisible d'une traite. */
+@layer app {
+  .privacy {
+    display: grid;
+    gap: var(--space-4);
+    max-width: 44rem;
+  }
+  .privacy__part {
+    display: grid;
+    gap: var(--space-2);
+  }
+  .privacy__part ul {
+    display: grid;
+    gap: var(--space-2);
+    padding-inline-start: var(--space-5);
+  }
+  .privacy__back {
+    margin-top: var(--space-4);
+  }
+}

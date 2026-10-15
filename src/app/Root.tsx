@@ -14,14 +14,21 @@ const DemoMode = lazy(() =>
 const PublicOrderPage = lazy(() =>
   import('../features/orders/PublicOrderPage').then((m) => ({ default: m.PublicOrderPage })),
 )
+const PrivacyPage = lazy(() =>
+  import('../features/legal/PrivacyPage').then((m) => ({ default: m.PrivacyPage })),
+)
 const PublicTrackingPage = lazy(() =>
   import('../features/orders/PublicTrackingPage').then((m) => ({ default: m.PublicTrackingPage })),
 )
 
+/** Pages publiques : commande, suivi et politique de confidentialité (lisible sans compte). */
+const publicRoute = (hash: string) =>
+  /^#\/confidentialite\/?$/.test(hash) ? ({ kind: 'privacy' } as const) : parsePublicHash(hash)
+
 function usePublicRoute() {
-  const [route, setRoute] = useState(() => parsePublicHash(window.location.hash))
+  const [route, setRoute] = useState(() => publicRoute(window.location.hash))
   useEffect(() => {
-    const sync = () => setRoute(parsePublicHash(window.location.hash))
+    const sync = () => setRoute(publicRoute(window.location.hash))
     window.addEventListener('hashchange', sync)
     return () => window.removeEventListener('hashchange', sync)
   }, [])
@@ -34,8 +41,8 @@ document.documentElement.lang = 'fr'
 /** Switches between the simulation (no account needed) and the signed-in application. */
 export function Root() {
   const [simulation, setSimulation] = useState(false)
-  const publicRoute = usePublicRoute()
-  if (publicRoute)
+  const route = usePublicRoute()
+  if (route)
     return (
       <Suspense
         fallback={
@@ -44,17 +51,12 @@ export function Root() {
           </p>
         }
       >
-        {publicRoute.kind === 'order' ? (
-          <PublicOrderPage
-            key={publicRoute.token}
-            token={publicRoute.token}
-            channel={publicRoute.channel}
-          />
+        {route.kind === 'privacy' ? (
+          <PrivacyPage />
+        ) : route.kind === 'order' ? (
+          <PublicOrderPage key={route.token} token={route.token} channel={route.channel} />
         ) : (
-          <PublicTrackingPage
-            key={publicRoute.trackingToken}
-            trackingToken={publicRoute.trackingToken}
-          />
+          <PublicTrackingPage key={route.trackingToken} trackingToken={route.trackingToken} />
         )}
       </Suspense>
     )

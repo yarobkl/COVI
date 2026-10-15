@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
+import { myAccountDeletion, type AccountDeletion } from '../../lib/account'
 import { supabase } from '../../lib/supabase'
+import { DeletionPendingScreen } from '../account/DeletionPendingScreen'
 import { listenForDesktopOAuth } from '../../lib/desktopAuth'
 import { clearCounterMode } from '../../lib/counterMode'
 import { closeTillSession, myMemberShops, type MemberShop } from '../../lib/team'
@@ -50,6 +52,8 @@ export function AuthGate({
   const [message, setMessage] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [memberships, setMemberships] = useState<MemberShop[]>([])
+  // Suppression du compte programmée : seul l'écran d'annulation reste accessible.
+  const [deletion, setDeletion] = useState<AccountDeletion>({ pending: false })
   const [choice, setChoice] = useState<SpaceChoice | null>(null)
   const [joining, setJoining] = useState(false)
   const [membershipsVersion, setMembershipsVersion] = useState(0)
@@ -108,7 +112,10 @@ export function AuthGate({
         .maybeSingle(),
       // Cashier memberships. A failure (old server, network) leaves the owner flow unchanged.
       myMemberShops().catch(() => [] as MemberShop[]),
-    ]).then(([{ data, error }, members]) => {
+      // A failure (server not migrated yet, network) never blocks the application.
+      myAccountDeletion().catch((): AccountDeletion => ({ pending: false })),
+    ]).then(([{ data, error }, members, pendingDeletion]) => {
+      setDeletion(pendingDeletion)
       if (error)
         setMessage('Impossible de charger votre commerce. Vérifiez votre connexion puis réessayez.')
       setShop(data)
@@ -137,6 +144,14 @@ export function AuthGate({
         message={message}
         onMessage={setMessage}
         onSimulation={onSimulation}
+      />
+    )
+  if (deletion.pending)
+    return (
+      <DeletionPendingScreen
+        purgeAfter={deletion.purgeAfter}
+        onCancelled={() => setDeletion({ pending: false })}
+        onSignOut={() => void signOutEverywhere()}
       />
     )
   if (joining)

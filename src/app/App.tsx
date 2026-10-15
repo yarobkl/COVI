@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { MenuIcon, PlusIcon } from '../components/icons'
 import { Button, ButtonLink, cx, Dialog, LabelCard } from '../components/ui'
+import { AccountDeletionPanel } from '../features/account/AccountDeletionPanel'
 import { ArrivalsPage } from '../features/arrivals/ArrivalsPage'
 import { useCurrentUser } from '../features/auth/useCurrentUser'
 import { DashboardPage } from '../features/dashboard/DashboardPage'
@@ -98,6 +99,11 @@ function renderPage(route: Route, { shop, updateShop, onSimulation, ownerId }: P
           <SettingsPage shopId={shop.id} onShopUpdated={updateShop} />
           <SharedCashiersPanel shopId={shop.id} />
           <TeamPanel shopId={shop.id} shopName={shop.name} />
+          <AccountDeletionPanel
+            shopId={shop.id}
+            shopName={shop.name}
+            onScheduled={() => window.location.reload()}
+          />
         </div>
       )
   }

@@ -174,3 +174,20 @@
     }
   }
 }
+
+/* « Continuer avec Apple » : noir, logo blanc (règles de présentation d'Apple). */
+@layer app {
+  .auth__form .btn.auth__apple {
+    --_bg: #000;
+    --_ink: #fff;
+    --_border: #000;
+  }
+  .auth__form .btn.auth__apple:hover {
+    --_bg: #1f1f1f;
+  }
+  .auth__legal {
+    margin-top: var(--space-4);
+    font-size: var(--step--1);
+    text-align: center;
+  }
+}
