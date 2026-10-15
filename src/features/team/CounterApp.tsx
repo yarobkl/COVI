@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Button, Notice } from '../../components/ui'
 import { LegacyPage } from '../../app/LegacyPage'
+import { routeHash } from '../../app/routes'
 import { clearCounterMode } from '../../lib/counterMode'
 import {
   closeTillSession,
@@ -275,6 +276,8 @@ export function CounterApp({
           token={session?.token}
           onLeft={() => {
             clearTillSession()
+            // Back to Accueil, not to « Vendre » (which would offer the till again).
+            window.location.replace(routeHash({ page: 'accueil' }))
             clearCounterMode()
           }}
           onCancel={() => setView(session ? back : 'pick')}
