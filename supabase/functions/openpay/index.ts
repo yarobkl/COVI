@@ -15,7 +15,9 @@ Deno.serve(
     COVI_OPENPAY_ENABLED: Deno.env.get('COVI_OPENPAY_ENABLED') === 'false' ? 'false' : 'true',
     COVI_PUBLIC_ORIGIN: Deno.env.get('COVI_PUBLIC_ORIGIN') || 'https://covi-snowy.vercel.app',
     SUPABASE_URL: Deno.env.get('SUPABASE_URL'),
-    SUPABASE_ANON_KEY: Deno.env.get('SUPABASE_ANON_KEY'),
+    // Clé publique (la même que le site) : seule la session de la boutique donne des droits.
+    SUPABASE_ANON_KEY:
+      Deno.env.get('COVI_PUBLISHABLE_KEY') || 'sb_publishable_DoBPQwskWNP7Wo8sjbWUwA_BrDO4z0m',
     SUPABASE_SERVICE_ROLE_KEY: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     OPENPAY_API_BASE: 'https://api.openpay-cg.com',
   }),
