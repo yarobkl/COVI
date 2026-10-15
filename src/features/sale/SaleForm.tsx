@@ -149,7 +149,9 @@ export function SaleForm({
   const cash = payment === 'Espèces'
   const change = cash ? cashChange(total, received) : { kind: 'none' as const }
   const farBelow = lines.filter((l) => isFarBelow(displayedPrice(l.product), l.price))
-  const maxDiscount = seller ? seller.maxDiscountPct : null
+  // La boutique a supprimé la remise maximale des caissiers : aucun prix minimum par ligne
+  // (le serveur, min_unit_price, n'en impose plus non plus).
+  const maxDiscount = null
   const belowMinimum = linesBelowMinimum(lines, maxDiscount)
   // A message about another cart (changed since) is no longer true: it is not shown.
   const shown = frozen

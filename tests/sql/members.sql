@@ -481,10 +481,10 @@ select pg_temp.expect_msg($$select public.shop_dashboard('10000000-0000-0000-000
 select pg_temp.check((select count(*) from public.sales) = 0,
   'C1 ne voit pas la vente du propriétaire');
 
--- Prix minimal : 10 000 × (1 − 10 %) = 9 000
-select pg_temp.expect_msg($$select public.record_sale('10000000-0000-0000-0000-0000000000a1',
-  '30000000-0000-0000-0000-0000000000a1', 1, 8999, 'cash', gen_random_uuid())$$,
-  'Price below allowed minimum', 'C1 : 8 999 < 9 000 refusé');
+-- Plus de remise maximale (décision de la boutique) : aucun prix minimum, même pour C1 (10 %).
+select pg_temp.check(public.min_unit_price(10000, 10) is null
+  and public.min_unit_price(999.60, 0) is null,
+  'Remise maximale supprimée : aucun prix minimum pour les caissiers');
 select public.record_sale('10000000-0000-0000-0000-0000000000a1',
   '30000000-0000-0000-0000-0000000000a1', 1, 9000, 'mobile_money',
   '40000000-0000-0000-0000-0000000000a1') as c1_sale \gset
@@ -494,11 +494,6 @@ select pg_temp.check((select seller_id = '00000000-0000-0000-0000-0000000000a2'
   and (select quantity_on_hand from public.products
        where id = '30000000-0000-0000-0000-0000000000a1') = 9,
   'C1 : record_sale à 9 000 accepté, seller_id = C1, stock 10 → 9');
-select pg_temp.expect_msg($$select public.record_cart_sale('10000000-0000-0000-0000-0000000000a1',
-  '[{"product_id":"30000000-0000-0000-0000-0000000000a4","quantity":1,"sold_unit_price":5000},
-    {"product_id":"30000000-0000-0000-0000-0000000000a1","quantity":2,"sold_unit_price":8000}]',
-  'cash', gen_random_uuid())$$, 'Price below allowed minimum',
-  'C1 : panier avec une ligne sous le minimum refusé');
 select pg_temp.check((select quantity_on_hand from public.products
                       where id = '30000000-0000-0000-0000-0000000000a4') = 4,
   'panier refusé : aucune ligne écrite (stock PA4 inchangé)');
@@ -592,9 +587,6 @@ select pg_temp.expect_msg($$select public.record_sale('10000000-0000-0000-0000-0
 
 -- C2 (0 %) : prix au centime, minimum = prix affiché
 :as_c2
-select pg_temp.expect_msg($$select public.record_sale('10000000-0000-0000-0000-0000000000a1',
-  '30000000-0000-0000-0000-0000000000a3', 1, 999.59, 'cash', gen_random_uuid())$$,
-  'Price below allowed minimum', 'C2 (0 %) : 999,59 < 999,60 refusé');
 select pg_temp.check(public.record_sale('10000000-0000-0000-0000-0000000000a1',
   '30000000-0000-0000-0000-0000000000a3', 1, 999.60, 'cash', gen_random_uuid()) is not null,
   'C2 (0 %) : prix affiché 999,60 accepté (minimum plafonné au prix affiché)');
@@ -671,10 +663,6 @@ select pg_temp.check((select count(*) from public.till_sessions
   and (select failed_attempts from public.member_pins where member_id = :'m1') = 0,
   'jeton stocké haché seulement, expiration 12 h ; bon PIN remet le compteur à zéro');
 :as_oa
-select pg_temp.expect_msg(format($q$select public.record_sale(%L, %L, 1, 8000, 'cash',
-  gen_random_uuid(), p_till_session => %L)$q$, '10000000-0000-0000-0000-0000000000a1',
-  '30000000-0000-0000-0000-0000000000a1', :'tok1'), 'Price below allowed minimum',
-  'session C1 : le minimum de C1 (9 000) s''applique au propriétaire');
 select public.record_sale('10000000-0000-0000-0000-0000000000a1',
   '30000000-0000-0000-0000-0000000000a1', 1, 9000, 'card', '40000000-0000-0000-0000-0000000000a3',
   p_till_session => :'tok1') as till_sale \gset

@@ -185,6 +185,7 @@ function OrderCard({
   onReject: () => void
 }) {
   const [photo, setPhoto] = useState<string | null>(null)
+  const [photoError, setPhotoError] = useState('')
   const open = order.status === 'new' || order.status === 'accepted'
   const whatsapp = order.customerPhone.replace(/[^0-9]/g, '')
   return (
@@ -242,12 +243,19 @@ function OrderCard({
           ) : (
             <Button
               variant="ghost"
-              onClick={async () =>
-                setPhoto(await referencePhotoUrl(order.referenceImagePath ?? ''))
-              }
+              onClick={async () => {
+                const url = await referencePhotoUrl(order.referenceImagePath ?? '')
+                setPhoto(url)
+                setPhotoError(url ? '' : 'La photo n’a pas pu être ouverte. Réessayez.')
+              }}
             >
               Voir la photo du client
             </Button>
+          )}
+          {photoError && (
+            <span className="field__error" role="alert">
+              {photoError}
+            </span>
           )}
         </p>
       )}

@@ -355,14 +355,14 @@ export function orderErrorMessage(error: unknown): string {
       : ''
   if (message.includes('Cashier PIN required') || message.includes('Till session invalid'))
     return 'Le code PIN d’un caissier est nécessaire pour encaisser.'
-  if (message.includes('Price below allowed minimum'))
-    return 'Prix inférieur à la remise maximale autorisée pour ce caissier.'
   if (message.includes('Insufficient stock'))
     return 'Stock insuffisant pour un article. Vérifiez le stock avant d’encaisser.'
   if (message.includes('Product unavailable'))
     return 'Un article n’est plus disponible (vendu ou archivé).'
+  if (message.includes('Same article at different prices'))
+    return 'Deux lignes sont le même article du stock : mettez-leur le même prix pour les encaisser ensemble.'
   if (message.includes('Duplicate product in cart'))
-    return 'Le même article apparaît deux fois : regroupez les lignes.'
+    return 'Deux lignes sont le même article du stock : mettez-leur le même prix pour les encaisser ensemble.'
   if (message.includes('Every order line must be confirmed'))
     return 'Choisissez l’article du stock pour chaque ligne.'
   if (message.includes('Order already closed')) return 'Cette commande est déjà clôturée.'

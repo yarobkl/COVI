@@ -66,9 +66,6 @@ describe('TeamPanel « Équipe » (owner)', () => {
       render(<TeamPanel shopId="shop-1" shopName="Chez Mama Grâce" />)
     })
     fireEvent.change(screen.getByLabelText('Prénom du caissier'), { target: { value: 'Bema' } })
-    fireEvent.change(screen.getByLabelText(/Remise maximale autorisée/), {
-      target: { value: '5' },
-    })
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Créer un code d’invitation' }))
     })
@@ -76,7 +73,7 @@ describe('TeamPanel « Équipe » (owner)', () => {
       p_shop_id: 'shop-1',
       p_display_name: 'Bema',
       p_can_view_shop_sales: false,
-      p_max_discount_pct: 5,
+      p_max_discount_pct: 0,
     })
     expect(screen.getByText('ABCD-EFGH-JKMN')).toBeTruthy()
     const whatsapp = screen.getByRole('link', { name: 'Envoyer par WhatsApp' })
@@ -86,26 +83,13 @@ describe('TeamPanel « Équipe » (owner)', () => {
     expect(screen.queryByText('ABCD-EFGH-JKMN')).toBeNull()
   })
 
-  it('offers a discount dropdown limited to 0 through 100 %', async () => {
+  it('no longer asks for a maximum discount: cashiers sell at any agreed price', async () => {
     serve()
     await act(async () => {
       render(<TeamPanel shopId="shop-1" shopName="Boutique" />)
     })
-    const discount = screen.getByLabelText(/Remise maximale autorisée/) as HTMLSelectElement
-    expect(discount.tagName).toBe('SELECT')
-    const values = Array.from(discount.options).map((option) => option.value)
-    expect(values).toContain('0')
-    expect(values).toContain('100')
-    expect(values).not.toContain('150')
-    fireEvent.change(screen.getByLabelText('Prénom du caissier'), { target: { value: 'Bema' } })
-    fireEvent.change(discount, { target: { value: '100' } })
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Créer un code d’invitation' }))
-    })
-    expect(rpc).toHaveBeenCalledWith(
-      'create_member_invite',
-      expect.objectContaining({ p_max_discount_pct: 100 }),
-    )
+    expect(screen.queryByLabelText(/Remise maximale/)).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Enregistrer la remise' })).toBeNull()
   })
 
   it('resets a PIN after confirmation', async () => {
@@ -121,19 +105,10 @@ describe('TeamPanel « Équipe » (owner)', () => {
     expect(rpc).toHaveBeenCalledWith('owner_reset_member_pin', { p_member_id: 'm-awa' })
   })
 
-  it('changes the discount and the « voit toutes les ventes » right, and deactivates', async () => {
+  it('changes the « voit toutes les ventes » right, and deactivates', async () => {
     serve()
     await act(async () => {
       render(<TeamPanel shopId="shop-1" shopName="Boutique" />)
-    })
-    fireEvent.change(screen.getByLabelText('Remise maximale (%)'), { target: { value: '15' } })
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Enregistrer la remise' }))
-    })
-    expect(rpc).toHaveBeenCalledWith('set_member_permissions', {
-      p_member_id: 'm-awa',
-      p_can_view_shop_sales: false,
-      p_max_discount_pct: 15,
     })
     await act(async () => {
       fireEvent.click(screen.getByLabelText('Voit toutes les ventes'))

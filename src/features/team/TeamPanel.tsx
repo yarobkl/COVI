@@ -15,8 +15,6 @@ import {
 } from '../../lib/team'
 import { inviteMessage, inviteTime as time } from '../../lib/teamRules'
 
-const DISCOUNT_CHOICES = Array.from({ length: 101 }, (_, percent) => percent)
-
 function InviteForm({
   shopId,
   onCreated,
@@ -25,22 +23,17 @@ function InviteForm({
   onCreated: (i: CreatedInvite) => void
 }) {
   const [name, setName] = useState('')
-  const [discount, setDiscount] = useState('0')
   const [viewAll, setViewAll] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const submit = async (e: FormEvent) => {
     e.preventDefault()
-    const pct = Number(discount.replace(',', '.'))
     if (!name.trim()) return setError('Indiquez le prénom du caissier.')
-    if (!Number.isFinite(pct) || pct < 0 || pct > 100)
-      return setError('La remise maximale va de 0 à 100 %.')
     setBusy(true)
     setError('')
     try {
-      onCreated(await createMemberInvite(shopId, name.trim(), viewAll, pct))
+      onCreated(await createMemberInvite(shopId, name.trim(), viewAll, 0))
       setName('')
-      setDiscount('0')
       setViewAll(false)
     } catch (err) {
       setError(teamErrorMessage(err))
@@ -59,22 +52,6 @@ function InviteForm({
             autoComplete="off"
             onChange={(e) => setName(e.target.value)}
           />
-        )}
-      </Field>
-      <Field label="Remise maximale autorisée (%)" hint="0 % : il vend au prix affiché.">
-        {(control) => (
-          <select
-            {...control}
-            className="select"
-            value={discount}
-            onChange={(e) => setDiscount(e.target.value)}
-          >
-            {DISCOUNT_CHOICES.map((percent) => (
-              <option value={percent} key={percent}>
-                {percent} %
-              </option>
-            ))}
-          </select>
         )}
       </Field>
       <label className="team-check">
@@ -151,7 +128,6 @@ function MemberRow({
   onChanged: () => void
   onError: (message: string) => void
 }) {
-  const [discount, setDiscount] = useState(String(member.max_discount_pct))
   const [busy, setBusy] = useState<string | null>(null)
   const [confirmReset, setConfirmReset] = useState(false)
   const titleId = useId()
@@ -166,7 +142,6 @@ function MemberRow({
       setBusy(null)
     }
   }
-  const pct = Number(discount.replace(',', '.'))
   const pinState = member.pin_locked_until
     ? `Code PIN bloqué jusqu’à ${new Date(member.pin_locked_until).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
     : member.pin_set
@@ -184,22 +159,6 @@ function MemberRow({
       </div>
       {member.active && (
         <div className="team-member__rights">
-          <Field label="Remise maximale (%)">
-            {(control) => (
-              <select
-                {...control}
-                className="select"
-                value={discount}
-                onChange={(e) => setDiscount(e.target.value)}
-              >
-                {DISCOUNT_CHOICES.map((percent) => (
-                  <option key={percent} value={percent}>
-                    {percent} %
-                  </option>
-                ))}
-              </select>
-            )}
-          </Field>
           <label className="team-check">
             <input
               type="checkbox"
@@ -213,20 +172,6 @@ function MemberRow({
             />
             Voit toutes les ventes
           </label>
-          <Button
-            variant="secondary"
-            busy={busy === 'discount'}
-            disabled={
-              !Number.isFinite(pct) || pct < 0 || pct > 100 || pct === member.max_discount_pct
-            }
-            onClick={() =>
-              void run('discount', () =>
-                setMemberPermissions(member.id, member.can_view_shop_sales, pct),
-              )
-            }
-          >
-            Enregistrer la remise
-          </Button>
         </div>
       )}
       <div className="team-member__actions">
@@ -277,8 +222,8 @@ function MemberRow({
 }
 
 /**
- * « Équipe » (owner, in Ma boutique): invite a cashier with a one-time code, set their maximum
- * discount and whether they see every sale, deactivate them, reset their PIN.
+ * « Équipe » (owner, in Ma boutique): invite a cashier with a one-time code, choose
+ * whether they see every sale, deactivate them, reset their PIN.
  */
 export function TeamPanel({ shopId, shopName }: { shopId: string; shopName: string }) {
   const [members, setMembers] = useState<TeamMember[] | null>(null)

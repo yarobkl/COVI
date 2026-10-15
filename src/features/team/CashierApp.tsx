@@ -90,7 +90,6 @@ export function CashierApp({
             <p className="cashier__shop">{membership.shop_name}</p>
             <p className="cashier__who">
               Caisse de <b>{membership.display_name}</b>
-              {membership.max_discount_pct > 0 && ` · remise max ${membership.max_discount_pct} %`}
             </p>
           </div>
           <NetStatus state={sync} shopId={membership.shop_id} />

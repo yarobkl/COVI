@@ -326,7 +326,6 @@ export function CounterApp({
             <p className="cashier__shop">{shop.name} · comptoir</p>
             <p className="cashier__who">
               Caisse de <b>{session.displayName}</b>
-              {session.maxDiscountPct > 0 && ` · remise max ${session.maxDiscountPct} %`}
             </p>
           </div>
           <NetStatus state={sync} shopId={shop.id} />
