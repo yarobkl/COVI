@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { LoadError } from '../../components/LoadError'
+import { Ledger } from '../../components/ui'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { listSales } from '../../lib/covi'
 import { money, plural } from '../../lib/format'
@@ -133,13 +134,17 @@ export function HistoryPage({
           onRetry={retry}
         />
       ) : (
-        <section className="card">
+        <section className="sold-list" aria-label="Ventes">
           {items === null ? (
-            <p>Chargement des ventes…</p>
+            <p className="muted">Chargement des ventes…</p>
           ) : items.length === 0 ? (
-            <p>Aucune vente enregistrée.</p>
+            <p className="muted">Aucune vente enregistrée.</p>
           ) : (
-            items.map((x, i) => <SoldRow key={x.id + i} item={x} />)
+            <Ledger label="Ventes, la plus récente d’abord">
+              {items.map((x, i) => (
+                <SoldRow key={x.id + i} item={x} />
+              ))}
+            </Ledger>
           )}
         </section>
       )}
