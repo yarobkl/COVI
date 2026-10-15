@@ -329,6 +329,31 @@
     max-width: min(100%, 18rem);
     border-radius: var(--radius-2);
   }
+  .order-card__mobile {
+    padding: 0.35rem 0.6rem;
+    border-radius: var(--radius-2);
+    background: var(--notice-bg);
+  }
+  .order-card__mobile--success {
+    background: var(--success-tint);
+    color: var(--success);
+  }
+  .order-card__mobile--failed,
+  .order-card__mobile--cancelled,
+  .order-card__mobile--error {
+    background: var(--danger-tint);
+    color: var(--danger);
+  }
+  .order-channel__steps {
+    margin: 0;
+    padding-left: 1.25rem;
+    display: grid;
+    gap: 0.5rem;
+  }
+  .order-channel__callback {
+    word-break: break-all;
+    font-size: 0.85rem;
+  }
   .order-card__paid {
     color: var(--success);
     font-weight: 700;

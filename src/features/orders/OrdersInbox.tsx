@@ -20,6 +20,18 @@ import {
   openSharedCashierTill,
   type SharedCashier,
 } from '../../lib/sharedCashiers'
+import {
+  getOpenPaySettings,
+  guessProvider,
+  listOrderPayments,
+  mobileStatusLabels,
+  normalizeCongoPhone,
+  providerLabels,
+  refreshMobilePayment,
+  requestMobilePayment,
+  type MobileProvider,
+  type OrderMobilePayment,
+} from '../../lib/mobilePayments'
 import { pinResultMessage, type TillSession } from '../../lib/team'
 import { supabase } from '../../lib/supabase'
 
@@ -45,6 +57,9 @@ export function OrdersInbox({ shopId, till }: { shopId: string; till?: TillSessi
   const [confirming, setConfirming] = useState<InboxOrder | null>(null)
   const [rejecting, setRejecting] = useState<InboxOrder | null>(null)
   const [fresh, setFresh] = useState<Set<string>>(new Set())
+  const [payments, setPayments] = useState<Map<string, OrderMobilePayment>>(new Map())
+  const [mobileReady, setMobileReady] = useState(false)
+  const [requesting, setRequesting] = useState<InboxOrder | null>(null)
   const known = useRef<Set<string> | null>(null)
 
   const load = useCallback(() => {
@@ -60,7 +75,17 @@ export function OrdersInbox({ shopId, till }: { shopId: string; till?: TillSessi
         known.current = ids
       })
       .catch((e) => setError(orderErrorMessage(e)))
+    // Paiements Mobile Money (OpenPay) : facultatifs, jamais bloquants pour les commandes.
+    listOrderPayments(shopId)
+      .then(setPayments)
+      .catch(() => undefined)
   }, [shopId, showClosed])
+
+  useEffect(() => {
+    getOpenPaySettings(shopId)
+      .then((s) => setMobileReady(Boolean(s?.configured && s.enabled)))
+      .catch(() => setMobileReady(false))
+  }, [shopId])
 
   useEffect(() => {
     load()
@@ -69,6 +94,16 @@ export function OrdersInbox({ shopId, till }: { shopId: string; till?: TillSessi
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'public_orders', filter: `shop_id=eq.${shopId}` },
+        () => load(),
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'public_order_payments',
+          filter: `shop_id=eq.${shopId}`,
+        },
         () => load(),
       )
       .subscribe((status) => setLive(status === 'SUBSCRIBED'))
@@ -139,6 +174,17 @@ export function OrdersInbox({ shopId, till }: { shopId: string; till?: TillSessi
             }}
             onConfirm={() => setConfirming(o)}
             onReject={() => setRejecting(o)}
+            payment={payments.get(o.id) ?? null}
+            mobileReady={mobileReady}
+            onRequestMobile={() => setRequesting(o)}
+            onRefreshMobile={async (paymentId) => {
+              try {
+                await refreshMobilePayment(paymentId)
+              } catch (e) {
+                setError((e as Error).message)
+              }
+              load()
+            }}
           />
         ))}
       </ul>
@@ -149,10 +195,21 @@ export function OrdersInbox({ shopId, till }: { shopId: string; till?: TillSessi
         <ConfirmPaymentDialog
           shopId={shopId}
           order={confirming}
+          payment={payments.get(confirming.id) ?? null}
           till={till ?? null}
           onClose={() => setConfirming(null)}
           onDone={() => {
             setConfirming(null)
+            load()
+          }}
+        />
+      )}
+      {requesting && (
+        <MobilePaymentDialog
+          order={requesting}
+          onClose={() => setRequesting(null)}
+          onDone={() => {
+            setRequesting(null)
             load()
           }}
         />
@@ -177,12 +234,20 @@ function OrderCard({
   onAccept,
   onConfirm,
   onReject,
+  payment,
+  mobileReady,
+  onRequestMobile,
+  onRefreshMobile,
 }: {
   order: InboxOrder
   fresh: boolean
   onAccept: () => void
   onConfirm: () => void
   onReject: () => void
+  payment: OrderMobilePayment | null
+  mobileReady: boolean
+  onRequestMobile: () => void
+  onRefreshMobile: (paymentId: string) => void
 }) {
   const [photo, setPhoto] = useState<string | null>(null)
   const [photoError, setPhotoError] = useState('')
@@ -273,6 +338,22 @@ function OrderCard({
           )}
         </p>
       )}
+      {payment && (
+        <p className={`order-card__mobile order-card__mobile--${payment.status}`} role="status">
+          {providerLabels[payment.provider]} · {money(payment.amount)} :{' '}
+          <b>{mobileStatusLabels[payment.status]}</b>
+          {payment.reference ? ` · réf. ${payment.reference}` : ''}
+          {payment.status === 'error' && payment.message ? ` (${payment.message})` : ''}
+          {open && (payment.status === 'pending' || payment.status === 'requested') && (
+            <>
+              {' '}
+              <Button variant="ghost" onClick={() => onRefreshMobile(payment.id)}>
+                Vérifier maintenant
+              </Button>
+            </>
+          )}
+        </p>
+      )}
       {order.status === 'rejected' && order.rejectReason && (
         <p>Motif du refus : {order.rejectReason}</p>
       )}
@@ -283,6 +364,14 @@ function OrderCard({
               Accepter la commande
             </Button>
           )}
+          {mobileReady &&
+            payment?.status !== 'success' &&
+            payment?.status !== 'pending' &&
+            payment?.status !== 'requested' && (
+              <Button variant="secondary" onClick={onRequestMobile}>
+                Demander le paiement Mobile Money
+              </Button>
+            )}
           <Button variant="primary" onClick={onConfirm}>
             Règlement reçu — encaisser
           </Button>
@@ -292,6 +381,115 @@ function OrderCard({
         </div>
       )}
     </li>
+  )
+}
+
+/**
+ * Demande de paiement Mobile Money via OpenPay : le client reçoit une notification sur son téléphone
+ * et valide avec son code secret. Rien n'est encaissé ici ; le paiement ne compte qu'une fois
+ * confirmé par OpenPay, puis la vente est enregistrée en caisse comme d'habitude.
+ */
+function MobilePaymentDialog({
+  order,
+  onClose,
+  onDone,
+}: {
+  order: InboxOrder
+  onClose: () => void
+  onDone: () => void
+}) {
+  const titleId = useId()
+  const [phone, setPhone] = useState(order.customerPhone)
+  const [provider, setProvider] = useState<MobileProvider>(() => guessProvider(order.customerPhone))
+  const [amount, setAmount] = useState(
+    order.requestedTotalXaf > 0 ? String(Math.round(order.requestedTotalXaf)) : '',
+  )
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const normalized = normalizeCongoPhone(phone)
+  const value = Number(amount)
+  const ready = Boolean(normalized) && Number.isSafeInteger(value) && value > 0 && !busy
+  return (
+    <Dialog open onClose={() => !busy && onClose()} labelledBy={titleId} sheet>
+      <div className="dialog__body order-confirm">
+        <h2 className="dialog__title" id={titleId}>
+          Paiement Mobile Money — {order.reference}
+        </h2>
+        <p className="muted">
+          Le client reçoit une demande sur son téléphone et la valide avec son code secret. Le
+          paiement arrive sur le compte OpenPay de la boutique.
+        </p>
+        <label>
+          Numéro Mobile Money du client
+          <input
+            className="input"
+            inputMode="tel"
+            value={phone}
+            maxLength={20}
+            onChange={(e) => {
+              setPhone(e.target.value)
+              setProvider(guessProvider(e.target.value))
+            }}
+          />
+        </label>
+        <label>
+          Opérateur
+          <select
+            className="select"
+            value={provider}
+            onChange={(e) => setProvider(e.target.value as MobileProvider)}
+          >
+            <option value="MTN">{providerLabels.MTN}</option>
+            <option value="AIRTEL">{providerLabels.AIRTEL}</option>
+          </select>
+        </label>
+        <label>
+          Montant à payer (FCFA)
+          <input
+            className="input input--amount"
+            inputMode="numeric"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value.replace(/\D/g, '').slice(0, 8))}
+          />
+        </label>
+        {phone && !normalized && (
+          <p className="field__error">Numéro invalide : 06 XXX XX XX ou 05 XXX XX XX.</p>
+        )}
+        {error && (
+          <Notice tone="danger">
+            <p>{error}</p>
+          </Notice>
+        )}
+        <div className="dialog__actions">
+          <Button variant="secondary" disabled={busy} onClick={onClose}>
+            Annuler
+          </Button>
+          <Button
+            variant="primary"
+            busy={busy}
+            disabled={!ready}
+            onClick={async () => {
+              setBusy(true)
+              setError('')
+              try {
+                await requestMobilePayment({
+                  orderId: order.id,
+                  provider,
+                  phone: normalized ?? '',
+                  amount: value,
+                })
+                onDone()
+              } catch (e) {
+                setError((e as Error).message)
+                setBusy(false)
+              }
+            }}
+          >
+            Envoyer la demande de {value > 0 ? money(value) : 'paiement'}
+          </Button>
+        </div>
+      </div>
+    </Dialog>
   )
 }
 
@@ -364,12 +562,14 @@ function RejectDialog({
 function ConfirmPaymentDialog({
   shopId,
   order,
+  payment,
   till,
   onClose,
   onDone,
 }: {
   shopId: string
   order: InboxOrder
+  payment: OrderMobilePayment | null
   till: TillSession | null
   onClose: () => void
   onDone: () => void
@@ -389,8 +589,11 @@ function ConfirmPaymentDialog({
       quantity: l.quantity,
     })),
   )
-  const [method, setMethod] = useState<PaymentMethod>(order.paymentMethod)
-  const [reference, setReference] = useState('')
+  const paidByMobile = payment?.status === 'success'
+  const [method, setMethod] = useState<PaymentMethod>(
+    paidByMobile ? 'mobile_money' : order.paymentMethod,
+  )
+  const [reference, setReference] = useState(paidByMobile ? (payment?.reference ?? '') : '')
   const [verified, setVerified] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -471,6 +674,14 @@ function ConfirmPaymentDialog({
         <p className="muted">
           {order.customerName} · règlement souhaité : {paymentMethodLabels[order.paymentMethod]}
         </p>
+        {paidByMobile && payment && (
+          <Notice tone="success">
+            <p>
+              OpenPay confirme le paiement de {money(payment.amount)} par{' '}
+              {providerLabels[payment.provider]} (réf. {payment.reference}).
+            </p>
+          </Notice>
+        )}
         {lines.map((l, i) => (
           <fieldset key={l.lineId} className="order-confirm__line">
             <legend>
