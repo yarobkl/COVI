@@ -24,6 +24,7 @@ import {
   getOpenPaySettings,
   guessProvider,
   listOrderPayments,
+  mobilePaymentsEnabled,
   mobileStatusLabels,
   normalizeCongoPhone,
   providerLabels,
@@ -76,12 +77,14 @@ export function OrdersInbox({ shopId, till }: { shopId: string; till?: TillSessi
       })
       .catch((e) => setError(orderErrorMessage(e)))
     // Paiements Mobile Money (OpenPay) : facultatifs, jamais bloquants pour les commandes.
-    listOrderPayments(shopId)
-      .then(setPayments)
-      .catch(() => undefined)
+    if (mobilePaymentsEnabled)
+      listOrderPayments(shopId)
+        .then(setPayments)
+        .catch(() => undefined)
   }, [shopId, showClosed])
 
   useEffect(() => {
+    if (!mobilePaymentsEnabled) return
     getOpenPaySettings(shopId)
       .then((s) => setMobileReady(Boolean(s?.configured && s.enabled)))
       .catch(() => setMobileReady(false))

@@ -1,4 +1,5 @@
 import { routeHash } from '../../app/routes'
+import { mobilePaymentsEnabled } from '../../lib/mobilePayments'
 import type { Shop } from '../../lib/types'
 import { OpenPaySettingsPanel } from './OpenPaySettingsPanel'
 import { OrderChannelPanel } from './OrderChannelPanel'
@@ -28,7 +29,7 @@ export function OrdersPage({ shop, tab }: { shop: Shop; tab?: 'qr' }) {
         {tab === 'qr' ? (
           <>
             <OrderChannelPanel shopId={shop.id} shopName={shop.name} />
-            <OpenPaySettingsPanel shopId={shop.id} />
+            {mobilePaymentsEnabled && <OpenPaySettingsPanel shopId={shop.id} />}
           </>
         ) : (
           <OrdersInbox shopId={shop.id} />

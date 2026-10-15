@@ -5,14 +5,15 @@ import { createOpenPayHandler } from './handler.mjs'
 // sont fournis par Supabase et restent côté serveur.
 //
 // Réglages facultatifs (secrets de la fonction) :
-//   COVI_OPENPAY_ENABLED  « false » coupe immédiatement les paiements Mobile Money (arrêt d'urgence)
+//   COVI_OPENPAY_ENABLED  « true » active les paiements Mobile Money (coupés par défaut en V1)
 //   COVI_PUBLIC_ORIGIN    origines autorisées, séparées par des virgules (défaut : le site officiel)
 //
 // URL de callback à renseigner dans le tableau de bord OpenPay de chaque boutique :
 //   https://<projet>.supabase.co/functions/v1/openpay?action=callback
 Deno.serve(
   createOpenPayHandler({
-    COVI_OPENPAY_ENABLED: Deno.env.get('COVI_OPENPAY_ENABLED') === 'false' ? 'false' : 'true',
+    // V1 : coupé par défaut (paiement direct prévu pour la V2). COVI_OPENPAY_ENABLED=true le rallume.
+    COVI_OPENPAY_ENABLED: Deno.env.get('COVI_OPENPAY_ENABLED') === 'true' ? 'true' : 'false',
     COVI_PUBLIC_ORIGIN: Deno.env.get('COVI_PUBLIC_ORIGIN') || 'https://covi-snowy.vercel.app',
     SUPABASE_URL: Deno.env.get('SUPABASE_URL'),
     // Clé publique (la même que le site) : seule la session de la boutique donne des droits.
