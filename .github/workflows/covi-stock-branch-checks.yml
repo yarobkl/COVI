@@ -32,10 +32,6 @@ jobs:
         run: npm test
       - name: Lint
         run: npm run lint
-      - name: Diagnose Prettier difference in new security test
-        run: |
-          npx prettier tests/public-checkout-gateway.test.mjs > /tmp/covi-test-formatted.mjs
-          diff -u tests/public-checkout-gateway.test.mjs /tmp/covi-test-formatted.mjs || true
 
   postgres-checkout-smoke:
     name: Disposable PostgreSQL checkout tests
