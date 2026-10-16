@@ -343,8 +343,7 @@ describe('isolated QR/social gateway', () => {
     exif.set(original.slice(2), 12)
 
     for (const referenceImage of [
-      'data:image/jpeg;base64,' +
-        btoa(String.fromCharCode(255, 216, 255, 1, 2, 3, 255, 217)),
+      'data:image/jpeg;base64,' + btoa(String.fromCharCode(255, 216, 255, 1, 2, 3, 255, 217)),
       asUri(giant),
       asUri(exif),
     ]) {
