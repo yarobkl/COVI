@@ -43,18 +43,65 @@ function invalidControl(value) {
   return /[\u0000-\u001f\u007f]/.test(value)
 }
 
+/** Parse JPEG headers without decoding the pixels.
+ * Browser canvas re-encodes reference photos; reject untrusted metadata blocks
+ * and decompression-bomb dimensions before uploading with service privileges.
+ * This is intentionally stricter than a generic JPEG decoder.
+ */
+function safeReferenceJpeg(bytes) {
+  const length = bytes.length
+  if (length < 20 || length > 320000 ||
+      bytes[0] !== 0xff || bytes[1] !== 0xd8 ||
+      bytes[length - 2] !== 0xff || bytes[length - 1] !== 0xd9) return false
+
+  let offset = 2
+  let frameSeen = false
+  let scanSeen = false
+  while (offset < length - 2) {
+    if (bytes[offset++] !== 0xff) return false
+    while (offset < length - 2 && bytes[offset] === 0xff) offset++
+    if (offset >= length - 2) return false
+    const marker = bytes[offset++]
+    // Embedded EXIF/XMP, Photoshop/IPTC and JPEG comments may leak location,
+    // capture times or other metadata. We accept only canvas-style JPEG data.
+    if ([0xe1, 0xed, 0xfe].includes(marker)) return false
+    if (marker === 0x00 || marker === 0xd8 || marker === 0xd9 ||
+        marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) return false
+    if (offset + 2 > length - 2) return false
+
+    const segmentLength = bytes[offset] * 256 + bytes[offset + 1]
+    if (segmentLength < 2 || offset + segmentLength > length - 2) return false
+    // Baseline, progressive and other JPEG SOF markers. They contain explicit
+    // height/width independent of compressed byte size.
+    const isFrame = (marker >= 0xc0 && marker <= 0xcf &&
+      ![0xc4, 0xc8, 0xcc].includes(marker))
+    if (isFrame) {
+      if (frameSeen || segmentLength < 8) return false
+      const height = bytes[offset + 3] * 256 + bytes[offset + 4]
+      const width = bytes[offset + 5] * 256 + bytes[offset + 6]
+      if (width < 1 || height < 1 || width > 4096 || height > 4096 ||
+          width * height > 4000000) return false
+      frameSeen = true
+    }
+    if (marker === 0xda) {
+      if (!frameSeen || segmentLength < 6) return false
+      scanSeen = true
+      break
+    }
+    offset += segmentLength
+  }
+  return frameSeen && scanSeen
+}
+
 function decodeReferenceJpeg(value) {
   if (typeof value !== 'string' || value.length > 450000) return null
   const match = /^data:image\/jpeg;base64,([A-Za-z0-9+/]+={0,2})$/.exec(value)
   if (!match) return null
   try {
     const binary = atob(match[1])
-    if (binary.length < 4 || binary.length > 320000) return null
-    const size = binary.length
-    if (binary.charCodeAt(0) !== 255 || binary.charCodeAt(1) !== 216 ||
-      binary.charCodeAt(2) !== 255 || binary.charCodeAt(size - 2) !== 255 ||
-      binary.charCodeAt(size - 1) !== 217) return null
-    return Uint8Array.from(binary, char => char.charCodeAt(0))
+    if (binary.length > 320000) return null
+    const bytes = Uint8Array.from(binary, char => char.charCodeAt(0))
+    return safeReferenceJpeg(bytes) ? bytes : null
   } catch {
     return null
   }
