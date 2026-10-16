@@ -328,8 +328,7 @@ describe('isolated QR/social gateway', () => {
     const { transport } = fakeBackend()
     const gateway = createPublicCheckoutGateway(env, transport)
     const original = Uint8Array.from(atob(validImage.split(',')[1]), (x) => x.charCodeAt(0))
-    const asUri = (bytes) => 'data:image/jpeg;base64,' +
-      btoa(String.fromCharCode(...bytes))
+    const asUri = (bytes) => 'data:image/jpeg;base64,' + btoa(String.fromCharCode(...bytes))
 
     const sof = original.findIndex((v, i) => v === 0xff && original[i + 1] === 0xc0)
     expect(sof).toBeGreaterThan(0)
@@ -344,7 +343,8 @@ describe('isolated QR/social gateway', () => {
     exif.set(original.slice(2), 12)
 
     for (const referenceImage of [
-      'data:image/jpeg;base64,' + btoa(String.fromCharCode(255, 216, 255, 1, 2, 3, 255, 217)),
+      'data:image/jpeg;base64,' +
+        btoa(String.fromCharCode(255, 216, 255, 1, 2, 3, 255, 217)),
       asUri(giant),
       asUri(exif),
     ]) {
