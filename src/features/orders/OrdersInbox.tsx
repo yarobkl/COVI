@@ -13,6 +13,8 @@ import {
   statusLabels,
   type InboxOrder,
   type PaymentMethod,
+  blockOrderCustomer,
+  reportAbuseHref,
 } from '../../lib/publicOrders'
 import {
   closeSharedCashierTill,
@@ -57,6 +59,7 @@ export function OrdersInbox({ shopId, till }: { shopId: string; till?: TillSessi
   const [showClosed, setShowClosed] = useState(false)
   const [confirming, setConfirming] = useState<InboxOrder | null>(null)
   const [rejecting, setRejecting] = useState<InboxOrder | null>(null)
+  const [moderating, setModerating] = useState<InboxOrder | null>(null)
   const [fresh, setFresh] = useState<Set<string>>(new Set())
   const [payments, setPayments] = useState<Map<string, OrderMobilePayment>>(new Map())
   const [mobileReady, setMobileReady] = useState(false)
@@ -177,6 +180,7 @@ export function OrdersInbox({ shopId, till }: { shopId: string; till?: TillSessi
             }}
             onConfirm={() => setConfirming(o)}
             onReject={() => setRejecting(o)}
+            onModerate={() => setModerating(o)}
             payment={payments.get(o.id) ?? null}
             mobileReady={mobileReady}
             onRequestMobile={() => setRequesting(o)}
@@ -217,6 +221,16 @@ export function OrdersInbox({ shopId, till }: { shopId: string; till?: TillSessi
           }}
         />
       )}
+      {moderating && (
+        <ModerationDialog
+          order={moderating}
+          onClose={() => setModerating(null)}
+          onDone={() => {
+            setModerating(null)
+            load()
+          }}
+        />
+      )}
       {rejecting && (
         <RejectDialog
           order={rejecting}
@@ -237,6 +251,7 @@ function OrderCard({
   onAccept,
   onConfirm,
   onReject,
+  onModerate,
   payment,
   mobileReady,
   onRequestMobile,
@@ -247,6 +262,8 @@ function OrderCard({
   onAccept: () => void
   onConfirm: () => void
   onReject: () => void
+  /** Bloquer le client ou signaler un abus (modération des commandes reçues). */
+  onModerate: () => void
   payment: OrderMobilePayment | null
   mobileReady: boolean
   onRequestMobile: () => void
@@ -383,6 +400,11 @@ function OrderCard({
           </Button>
         </div>
       )}
+      <p className="order-card__moderate">
+        <button type="button" className="auth__link" onClick={onModerate}>
+          Bloquer ou signaler ce client
+        </button>
+      </p>
     </li>
   )
 }
@@ -490,6 +512,84 @@ function MobilePaymentDialog({
           >
             Envoyer la demande de {value > 0 ? money(value) : 'paiement'}
           </Button>
+        </div>
+      </div>
+    </Dialog>
+  )
+}
+
+/**
+ * Client abusif : bloquer son numéro (ses prochaines commandes sont refusées, celle-ci aussi si
+ * elle est encore ouverte) ou signaler l'abus à l'équipe COVI par e-mail.
+ */
+function ModerationDialog({
+  order,
+  onClose,
+  onDone,
+}: {
+  order: InboxOrder
+  onClose: () => void
+  onDone: () => void
+}) {
+  const titleId = useId()
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [done, setDone] = useState(false)
+  return (
+    <Dialog open onClose={() => !busy && (done ? onDone() : onClose())} labelledBy={titleId} sheet>
+      <div className="dialog__body order-moderation">
+        <h2 className="dialog__title" id={titleId}>
+          Client de la commande {order.reference}
+        </h2>
+        <p>
+          {order.customerName} · {order.customerPhone}
+        </p>
+        {done ? (
+          <Notice tone="success">
+            <p>
+              Numéro bloqué : ce client ne peut plus envoyer de commande à la boutique. Vous pouvez
+              le débloquer dans Commandes → QR &amp; liens.
+            </p>
+          </Notice>
+        ) : (
+          <p className="muted">
+            Bloquer refuse toutes ses prochaines commandes (et celle-ci si elle est encore ouverte).
+            Le client voit seulement que le lien n’est plus disponible.
+          </p>
+        )}
+        {error && (
+          <Notice tone="danger">
+            <p>{error}</p>
+          </Notice>
+        )}
+        <p>
+          <a href={reportAbuseHref(order.reference)}>Signaler un abus à l’équipe COVI</a>
+        </p>
+        <div className="dialog__actions">
+          <Button variant="secondary" disabled={busy} onClick={done ? onDone : onClose}>
+            {done ? 'Fermer' : 'Annuler'}
+          </Button>
+          {!done && (
+            <Button
+              variant="danger"
+              solid
+              busy={busy}
+              onClick={async () => {
+                setBusy(true)
+                setError('')
+                try {
+                  await blockOrderCustomer(order.id)
+                  setDone(true)
+                } catch (e) {
+                  setError(orderErrorMessage(e))
+                } finally {
+                  setBusy(false)
+                }
+              }}
+            >
+              Bloquer ce client
+            </Button>
+          )}
         </div>
       </div>
     </Dialog>

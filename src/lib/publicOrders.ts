@@ -370,3 +370,30 @@ export function orderErrorMessage(error: unknown): string {
     return 'Impossible de mélanger des articles de test et des articles réels.'
   return 'L’opération n’a pas abouti. Vérifiez la connexion et réessayez.'
 }
+
+// Modération (App Store, règle 1.2) : bloquer le numéro d'un client abusif ---------------------------
+export type BlockedCustomer = {
+  phoneKey: string
+  phone: string
+  name: string | null
+  blockedAt: string
+}
+
+export const blockOrderCustomer = (orderId: string) =>
+  rpc<{ phoneKey: string }>(db.rpc('block_order_customer', { p_order_id: orderId }))
+
+export const listBlockedCustomers = (shopId: string) =>
+  rpc<BlockedCustomer[]>(db.rpc('list_blocked_customers', { p_shop_id: shopId })).then(
+    (rows) => rows ?? [],
+  )
+
+export const unblockCustomer = (shopId: string, phoneKey: string) =>
+  rpc<null>(db.rpc('unblock_customer', { p_shop_id: shopId, p_phone_key: phoneKey }))
+
+/** Signaler un abus à l'équipe COVI : e-mail prérempli avec la référence de la commande. */
+export const reportAbuseHref = (reference: string) =>
+  `mailto:eliebakala@gmail.com?subject=${encodeURIComponent(
+    `Signalement COVI — commande ${reference}`,
+  )}&body=${encodeURIComponent(
+    `Bonjour,\n\nJe signale un contenu abusif dans la commande ${reference} :\n\n`,
+  )}`

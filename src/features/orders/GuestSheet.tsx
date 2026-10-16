@@ -25,7 +25,8 @@ export function GuestSheet({
         )}
         {children}
         <p className="order-guest__footer">
-          Bon tenu avec <b>COVI</b> — le cahier de la boutique.
+          Bon tenu avec <b>COVI</b> — le cahier de la boutique ·{' '}
+          <a href="#/conditions">Conditions</a> · <a href="#/confidentialite">Confidentialité</a>
         </p>
       </main>
     </div>

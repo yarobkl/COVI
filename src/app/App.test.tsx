@@ -87,6 +87,9 @@ describe('App shell', () => {
       'Charges',
       'Bilan',
       'Ma boutique',
+      'Conditions d’utilisation',
+      'Confidentialité',
+      'Aide et contact',
     ])
     expect(
       within(bottom)

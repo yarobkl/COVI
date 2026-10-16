@@ -13,7 +13,7 @@ describe('PrivacyPage', () => {
     expect(screen.getByText('Elie Bakala')).toBeTruthy()
     expect(
       screen.getAllByRole('link', { name: 'eliebakala@gmail.com' })[0].getAttribute('href'),
-    ).toBe('mailto:eliebakala@gmail.com')
+    ).toMatch(/^mailto:eliebakala@gmail\.com/)
     expect(screen.getByText(/serveurs situés à Paris/)).toBeTruthy()
     expect(screen.getByText('Ma boutique → Supprimer mon compte')).toBeTruthy()
   })

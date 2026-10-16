@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { desktopAuthRedirect, isTauriApp, openOAuthInSystemBrowser } from '../../lib/desktopAuth'
 import { AuthPage } from './AuthPage'
 import { authError } from './authErrors'
+import { legalLinks } from '../../lib/legal'
 
 export type AuthMode = 'login' | 'signup'
 
@@ -248,9 +249,19 @@ export function LoginForm({
           {login ? 'Créer un compte' : 'me connecter'}
         </button>
       </p>
-      <p className="auth__legal">
-        <a href="#/confidentialite">Politique de confidentialité</a>
-      </p>
+      {!login && (
+        <p className="auth__legal">
+          En créant un compte, vous acceptez les <a href="#/conditions">conditions d’utilisation</a>{' '}
+          et la <a href="#/confidentialite">politique de confidentialité</a>.
+        </p>
+      )}
+      <nav className="auth__legal" aria-label="Informations légales">
+        {legalLinks.map((l) => (
+          <a key={l.href} href={l.href}>
+            {l.label}
+          </a>
+        ))}
+      </nav>
     </AuthPage>
   )
 }

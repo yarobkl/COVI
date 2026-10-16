@@ -17,13 +17,27 @@ const PublicOrderPage = lazy(() =>
 const PrivacyPage = lazy(() =>
   import('../features/legal/PrivacyPage').then((m) => ({ default: m.PrivacyPage })),
 )
+const TermsPage = lazy(() =>
+  import('../features/legal/TermsPage').then((m) => ({ default: m.TermsPage })),
+)
+const SupportPage = lazy(() =>
+  import('../features/legal/SupportPage').then((m) => ({ default: m.SupportPage })),
+)
 const PublicTrackingPage = lazy(() =>
   import('../features/orders/PublicTrackingPage').then((m) => ({ default: m.PublicTrackingPage })),
 )
 
-/** Pages publiques : commande, suivi et politique de confidentialité (lisible sans compte). */
-const publicRoute = (hash: string) =>
-  /^#\/confidentialite\/?$/.test(hash) ? ({ kind: 'privacy' } as const) : parsePublicHash(hash)
+/** Pages publiques, lisibles sans compte : commande, suivi, confidentialité, conditions, aide. */
+type LegalRoute = { kind: 'privacy' } | { kind: 'terms' } | { kind: 'support' }
+const legalPages: Record<string, LegalRoute> = {
+  confidentialite: { kind: 'privacy' },
+  conditions: { kind: 'terms' },
+  aide: { kind: 'support' },
+}
+const publicRoute = (hash: string) => {
+  const legalPage = /^#\/(confidentialite|conditions|aide)\/?$/.exec(hash)
+  return legalPage ? legalPages[legalPage[1]] : parsePublicHash(hash)
+}
 
 function usePublicRoute() {
   const [route, setRoute] = useState(() => publicRoute(window.location.hash))
@@ -53,6 +67,10 @@ export function Root() {
       >
         {route.kind === 'privacy' ? (
           <PrivacyPage />
+        ) : route.kind === 'terms' ? (
+          <TermsPage />
+        ) : route.kind === 'support' ? (
+          <SupportPage />
         ) : route.kind === 'order' ? (
           <PublicOrderPage key={route.token} token={route.token} channel={route.channel} />
         ) : (

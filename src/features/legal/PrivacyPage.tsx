@@ -1,44 +1,32 @@
-import type { ReactNode } from 'react'
+import { legal, legalMail } from '../../lib/legal'
 import { GuestSheet } from '../orders/GuestSheet'
-
-/** Éditeur et contact affichés publiquement (choisis par le propriétaire de COVI). */
-const privacyContact = { editor: 'Elie Bakala', email: 'eliebakala@gmail.com' }
-const updatedOn = '15 octobre 2026'
-
-function Part({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className="privacy__part">
-      <h2 className="section-title">{title}</h2>
-      {children}
-    </section>
-  )
-}
+import { LegalNav, LegalPart } from './LegalNav'
 
 /**
  * Politique de confidentialité (exigée par l'App Store et le Play Store) : page publique, lisible
  * sans compte, à l'adresse #/confidentialite.
  */
 export function PrivacyPage() {
-  const mail = `mailto:${privacyContact.email}`
+  const mail = legalMail('Mes données COVI')
   return (
     <GuestSheet>
-      <article className="privacy">
+      <article className="legal">
         <h1 className="page-title">Politique de confidentialité</h1>
-        <p className="muted">Mise à jour le {updatedOn}.</p>
+        <p className="muted">Mise à jour le {legal.updatedOn}.</p>
         <p>
           COVI est un cahier de caisse en ligne pour les boutiques : ventes, stock, arrivages,
           charges et commandes des clients. Cette page dit quelles données COVI enregistre,
           pourquoi, où elles sont gardées et comment les faire effacer.
         </p>
 
-        <Part title="Qui est responsable">
+        <LegalPart title="Qui est responsable">
           <p>
-            COVI est édité par <b>{privacyContact.editor}</b>. Pour toute question sur vos données :{' '}
-            <a href={mail}>{privacyContact.email}</a>.
+            COVI est édité par <b>{legal.editor}</b>. Pour toute question sur vos données :{' '}
+            <a href={mail}>{legal.email}</a>.
           </p>
-        </Part>
+        </LegalPart>
 
-        <Part title="Ce que COVI enregistre">
+        <LegalPart title="Ce que COVI enregistre">
           <ul>
             <li>
               <b>Votre compte</b> : adresse e-mail, mot de passe (jamais lisible, même par COVI),
@@ -63,18 +51,18 @@ export function PrivacyPage() {
             COVI n’encaisse pas d’argent : les règlements (espèces, Mobile Money, carte, virement)
             se font entre la boutique et ses clients.
           </p>
-        </Part>
+        </LegalPart>
 
-        <Part title="Pourquoi">
+        <LegalPart title="Pourquoi">
           <p>
             Uniquement pour faire fonctionner votre boutique : enregistrer les ventes, tenir le
             stock, calculer vos chiffres, recevoir et suivre les commandes, et protéger le compte
             (codes PIN, journal).{' '}
             <b>Pas de publicité, pas de revente de données, pas de pistage.</b>
           </p>
-        </Part>
+        </LegalPart>
 
-        <Part title="Où sont gardées les données">
+        <LegalPart title="Où sont gardées les données">
           <ul>
             <li>
               Base de données et photos : <b>Supabase</b>, serveurs situés à Paris (Union
@@ -92,17 +80,17 @@ export function PrivacyPage() {
             </li>
           </ul>
           <p>Ces prestataires ne traitent les données que pour le compte de COVI.</p>
-        </Part>
+        </LegalPart>
 
-        <Part title="Qui peut les voir">
+        <LegalPart title="Qui peut les voir">
           <p>
             Le propriétaire de la boutique voit tout. Un caissier voit seulement ce que le
             propriétaire lui autorise. Un client voit seulement le suivi de sa propre commande.
             Aucune autre boutique ne peut lire vos données.
           </p>
-        </Part>
+        </LegalPart>
 
-        <Part title="Durée et suppression">
+        <LegalPart title="Durée et suppression">
           <p>
             Vos données sont gardées tant que votre compte existe. Vous pouvez supprimer votre
             compte à tout moment dans l’application : <b>Ma boutique → Supprimer mon compte</b>. La
@@ -112,21 +100,18 @@ export function PrivacyPage() {
           </p>
           <p>
             Un client d’une boutique peut demander l’effacement de sa commande à la boutique, ou
-            écrire à <a href={mail}>{privacyContact.email}</a>.
+            écrire à <a href={mail}>{legal.email}</a>.
           </p>
-        </Part>
+        </LegalPart>
 
-        <Part title="Vos droits">
+        <LegalPart title="Vos droits">
           <p>
             Vous pouvez demander à consulter, corriger ou effacer vos données, et poser toute
-            question, en écrivant à <a href={mail}>{privacyContact.email}</a>. Réponse sous 30
-            jours.
+            question, en écrivant à <a href={mail}>{legal.email}</a>. Réponse sous 30 jours.
           </p>
-        </Part>
+        </LegalPart>
 
-        <p className="privacy__back">
-          <a href="#/">← Revenir à COVI</a>
-        </p>
+        <LegalNav current="#/confidentialite" />
       </article>
     </GuestSheet>
   )

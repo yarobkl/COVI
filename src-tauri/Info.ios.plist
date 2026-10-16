@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Ajouté au Info.plist de l'app iPhone/iPad quand Tauri génère le projet iOS (tauri ios init).
+  Apple refuse une app qui demande une autorisation sans dire pourquoi : chaque phrase explique
+  l'usage réel dans COVI.
+-->
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>fr</string>
+  <key>NSCameraUsageDescription</key>
+  <string>COVI utilise l'appareil photo pour photographier vos articles et votre photo de profil.</string>
+  <key>NSPhotoLibraryUsageDescription</key>
+  <string>COVI ouvre vos photos pour ajouter l'image d'un article ou votre photo de profil.</string>
+  <key>NSLocationWhenInUseUsageDescription</key>
+  <string>COVI enregistre la position de votre boutique seulement quand vous appuyez sur « Actualiser ma position ».</string>
+  <!-- Seulement le chiffrement standard (HTTPS) : pas de déclaration d'export à fournir. -->
+  <key>ITSAppUsesNonExemptEncryption</key>
+  <false/>
+</dict>
+</plist>
