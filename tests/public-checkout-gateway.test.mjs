@@ -15,8 +15,8 @@ const operationId = '77770000-0000-4000-8000-000000000001'
 const categoryId = 'aaaaaaaa-0000-4000-8000-000000000001'
 const orderId = 'bbbbbbbb-0000-4000-8000-000000000001'
 const shopId = '11111111-1111-4111-8111-111111111111'
-const validImage =
-  'data:image/jpeg;base64,' + btoa(String.fromCharCode(255, 216, 255, 1, 2, 3, 255, 217))
+// Actual 2×2 canvas-like JPEG, without EXIF. Its SOF/SOS segments are valid.
+const validImage = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAACAAIDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD3+iiigD//2Q=='
 const trackingToken = 'eeeeeeee-0000-4000-8000-000000000001'
 const origin = { Origin: 'https://covi.example' }
 const order = {
@@ -301,6 +301,36 @@ describe('isolated QR/social gateway', () => {
       'data:image/jpeg;base64,AAAA',
       'data:text/html;base64,PHNjcmlwdD4=',
       'data:image/jpeg;base64,' + 'A'.repeat(460000),
+    ]) {
+      const response = await gateway(guestPost({ ...order, referenceImage }))
+      expect(response.status).toBe(400)
+    }
+    expect(transport).not.toHaveBeenCalled()
+  })
+
+  it('refuses JPEG impostors, oversized image dimensions and metadata-bearing files', async () => {
+    const { transport } = fakeBackend()
+    const gateway = createPublicCheckoutGateway(env, transport)
+    const original = Uint8Array.from(atob(validImage.split(',')[1]), (x) => x.charCodeAt(0))
+    const asUri = (bytes) => 'data:image/jpeg;base64,' +
+      btoa(String.fromCharCode(...bytes))
+
+    const sof = original.findIndex((v, i) => v === 0xff && original[i + 1] === 0xc0)
+    expect(sof).toBeGreaterThan(0)
+    const giant = original.slice()
+    // SOF0 width: 4097px, beyond server display limits.
+    giant[sof + 7] = 0x10
+    giant[sof + 8] = 0x01
+
+    const exif = new Uint8Array(original.length + 10)
+    exif.set(original.slice(0, 2))
+    exif.set([0xff, 0xe1, 0, 8, 69, 120, 105, 102, 0, 0], 2)
+    exif.set(original.slice(2), 12)
+
+    for (const referenceImage of [
+      'data:image/jpeg;base64,' + btoa(String.fromCharCode(255, 216, 255, 1, 2, 3, 255, 217)),
+      asUri(giant),
+      asUri(exif),
     ]) {
       const response = await gateway(guestPost({ ...order, referenceImage }))
       expect(response.status).toBe(400)
