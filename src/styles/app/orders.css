@@ -447,3 +447,15 @@
     }
   }
 }
+
+/* Modération : lien discret sous chaque commande, boîte « Bloquer ou signaler ». */
+@layer app {
+  .order-card__moderate {
+    margin-top: var(--space-2);
+    font-size: var(--step--1);
+  }
+  .order-moderation {
+    display: grid;
+    gap: var(--space-3);
+  }
+}

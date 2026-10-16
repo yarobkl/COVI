@@ -14,14 +14,35 @@ const DemoMode = lazy(() =>
 const PublicOrderPage = lazy(() =>
   import('../features/orders/PublicOrderPage').then((m) => ({ default: m.PublicOrderPage })),
 )
+const PrivacyPage = lazy(() =>
+  import('../features/legal/PrivacyPage').then((m) => ({ default: m.PrivacyPage })),
+)
+const TermsPage = lazy(() =>
+  import('../features/legal/TermsPage').then((m) => ({ default: m.TermsPage })),
+)
+const SupportPage = lazy(() =>
+  import('../features/legal/SupportPage').then((m) => ({ default: m.SupportPage })),
+)
 const PublicTrackingPage = lazy(() =>
   import('../features/orders/PublicTrackingPage').then((m) => ({ default: m.PublicTrackingPage })),
 )
 
+/** Pages publiques, lisibles sans compte : commande, suivi, confidentialité, conditions, aide. */
+type LegalRoute = { kind: 'privacy' } | { kind: 'terms' } | { kind: 'support' }
+const legalPages: Record<string, LegalRoute> = {
+  confidentialite: { kind: 'privacy' },
+  conditions: { kind: 'terms' },
+  aide: { kind: 'support' },
+}
+const publicRoute = (hash: string) => {
+  const legalPage = /^#\/(confidentialite|conditions|aide)\/?$/.exec(hash)
+  return legalPage ? legalPages[legalPage[1]] : parsePublicHash(hash)
+}
+
 function usePublicRoute() {
-  const [route, setRoute] = useState(() => parsePublicHash(window.location.hash))
+  const [route, setRoute] = useState(() => publicRoute(window.location.hash))
   useEffect(() => {
-    const sync = () => setRoute(parsePublicHash(window.location.hash))
+    const sync = () => setRoute(publicRoute(window.location.hash))
     window.addEventListener('hashchange', sync)
     return () => window.removeEventListener('hashchange', sync)
   }, [])
@@ -34,8 +55,8 @@ document.documentElement.lang = 'fr'
 /** Switches between the simulation (no account needed) and the signed-in application. */
 export function Root() {
   const [simulation, setSimulation] = useState(false)
-  const publicRoute = usePublicRoute()
-  if (publicRoute)
+  const route = usePublicRoute()
+  if (route)
     return (
       <Suspense
         fallback={
@@ -44,17 +65,16 @@ export function Root() {
           </p>
         }
       >
-        {publicRoute.kind === 'order' ? (
-          <PublicOrderPage
-            key={publicRoute.token}
-            token={publicRoute.token}
-            channel={publicRoute.channel}
-          />
+        {route.kind === 'privacy' ? (
+          <PrivacyPage />
+        ) : route.kind === 'terms' ? (
+          <TermsPage />
+        ) : route.kind === 'support' ? (
+          <SupportPage />
+        ) : route.kind === 'order' ? (
+          <PublicOrderPage key={route.token} token={route.token} channel={route.channel} />
         ) : (
-          <PublicTrackingPage
-            key={publicRoute.trackingToken}
-            trackingToken={publicRoute.trackingToken}
-          />
+          <PublicTrackingPage key={route.trackingToken} trackingToken={route.trackingToken} />
         )}
       </Suspense>
     )

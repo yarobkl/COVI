@@ -3,6 +3,7 @@ import { routeHash } from '../../app/routes'
 import { mobilePaymentsEnabled } from '../../lib/mobilePayments'
 import type { Shop } from '../../lib/types'
 import { OpenPaySettingsPanel } from './OpenPaySettingsPanel'
+import { BlockedCustomersPanel } from './BlockedCustomersPanel'
 import { OrderChannelPanel } from './OrderChannelPanel'
 import { OrdersInbox } from './OrdersInbox'
 
@@ -34,6 +35,7 @@ export function OrdersPage({ shop, tab }: { shop: Shop; tab?: 'qr' }) {
         {tab === 'qr' ? (
           <>
             <OrderChannelPanel shopId={shop.id} shopName={shop.name} />
+            <BlockedCustomersPanel shopId={shop.id} />
             {mobilePaymentsEnabled && <OpenPaySettingsPanel shopId={shop.id} />}
           </>
         ) : (

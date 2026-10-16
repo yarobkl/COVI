@@ -449,3 +449,77 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+/* Supprimer mon compte : la feuille, la boîte de confirmation, l'écran « suppression programmée ». */
+@layer app {
+  .account-deletion {
+    display: grid;
+    gap: var(--space-3);
+    border-inline-start: 3px solid var(--danger);
+  }
+  .account-deletion__dialog {
+    display: grid;
+    gap: var(--space-3);
+  }
+  .account-deletion__list {
+    display: grid;
+    gap: var(--space-2);
+    padding-inline-start: var(--space-5);
+  }
+  .deletion-pending {
+    display: grid;
+    gap: var(--space-4);
+  }
+  .deletion-pending__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+}
+
+/* Politique de confidentialité : une page du cahier, lisible d'une traite. */
+@layer app {
+  .legal {
+    display: grid;
+    gap: var(--space-4);
+    max-width: 44rem;
+  }
+  .legal__part {
+    display: grid;
+    gap: var(--space-2);
+  }
+  .legal__part ul {
+    display: grid;
+    gap: var(--space-2);
+    padding-inline-start: var(--space-5);
+  }
+  .legal__nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-5);
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1.5px dashed var(--line-dotted);
+  }
+  .legal__faq dt {
+    font-weight: var(--weight-bold);
+    margin-top: var(--space-3);
+  }
+  .legal__faq dd {
+    margin: var(--space-1) 0 0;
+  }
+}
+
+/* Liens légaux discrets, en pied du sommaire et du menu « Plus ». */
+@layer app {
+  .legal-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-3);
+    margin-top: var(--space-3);
+    font-size: var(--step--1);
+  }
+  .legal-links a {
+    color: var(--ink-soft);
+  }
+}

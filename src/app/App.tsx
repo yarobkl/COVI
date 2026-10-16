@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { MenuIcon, PlusIcon } from '../components/icons'
 import { Button, ButtonLink, cx, Dialog, LabelCard } from '../components/ui'
+import { AccountDeletionPanel } from '../features/account/AccountDeletionPanel'
 import { ArrivalsPage } from '../features/arrivals/ArrivalsPage'
 import { useCurrentUser } from '../features/auth/useCurrentUser'
 import { DashboardPage } from '../features/dashboard/DashboardPage'
@@ -19,6 +20,7 @@ import { TeamPanel } from '../features/team/TeamPanel'
 import { SharedCashiersPanel } from '../features/team/SharedCashiersPanel'
 import { useSyncState } from '../features/sync/useSyncState'
 import { plural } from '../lib/format'
+import { legalLinks } from '../lib/legal'
 import type { Shop } from '../lib/types'
 import { initials, ownerName, shortName } from './identity'
 import { bottomBar, morePages, pages, sommaire } from './navigation'
@@ -98,9 +100,27 @@ function renderPage(route: Route, { shop, updateShop, onSimulation, ownerId }: P
           <SettingsPage shopId={shop.id} onShopUpdated={updateShop} />
           <SharedCashiersPanel shopId={shop.id} />
           <TeamPanel shopId={shop.id} shopName={shop.name} />
+          <AccountDeletionPanel
+            shopId={shop.id}
+            shopName={shop.name}
+            onScheduled={() => window.location.reload()}
+          />
         </div>
       )
   }
+}
+
+/** Aide, conditions et confidentialité : toujours à portée de main (App Store). */
+function LegalLinks() {
+  return (
+    <nav className="legal-links" aria-label="Informations légales">
+      {legalLinks.map((l) => (
+        <a key={l.href} href={l.href}>
+          {l.label}
+        </a>
+      ))}
+    </nav>
+  )
 }
 
 /** The notebook label: shop name, place and who keeps it. */
@@ -293,6 +313,7 @@ export function App({
           <button type="button" className="btn btn--ghost sommaire__quiet" onClick={askSignOut}>
             Se déconnecter
           </button>
+          <LegalLinks />
         </div>
       </nav>
 
@@ -381,6 +402,7 @@ export function App({
             <Button variant="danger" onClick={askSignOut}>
               Se déconnecter
             </Button>
+            <LegalLinks />
           </div>
         </div>
       </Dialog>

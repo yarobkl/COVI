@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { desktopAuthRedirect, isTauriApp, openOAuthInSystemBrowser } from '../../lib/desktopAuth'
 import { AuthPage } from './AuthPage'
 import { authError } from './authErrors'
+import { legalLinks } from '../../lib/legal'
 
 export type AuthMode = 'login' | 'signup'
 
@@ -35,6 +36,25 @@ function GoogleLogo() {
   )
 }
 
+/** Apple mark, white on the black « Continuer avec Apple » button (Apple's design rules). */
+function AppleLogo() {
+  return (
+    <svg className="auth__social-logo" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path
+        fill="currentColor"
+        d="M16.37 1.43c0 1.14-.5 2.27-1.18 3.08-.74.9-1.99 1.57-2.99 1.57-.12 0-.23-.02-.3-.03-.01-.06-.04-.22-.04-.39 0-1.15.57-2.27 1.21-2.98.8-.94 2.14-1.64 3.25-1.68.03.13.05.28.05.43Zm4.56 15.71c-.03.07-.46 1.58-1.52 3.12-.94 1.34-1.94 2.71-3.43 2.71-1.52 0-1.9-.88-3.63-.88-1.7 0-2.3.91-3.67.91-1.38 0-2.33-1.26-3.43-2.8C3.96 18.38 2.93 15.57 2.93 12.92c0-4.28 2.8-6.55 5.55-6.55 1.45 0 2.68.95 3.6.95.87 0 2.22-1.01 3.9-1.01.61 0 2.89.06 4.38 2.19-.13.09-2.39 1.37-2.39 4.19 0 3.26 2.86 4.42 2.96 4.45Z"
+      />
+    </svg>
+  )
+}
+
+/**
+ * « Continuer avec Apple » : obligatoire sur l'App Store dès que Google ou Facebook sont proposés.
+ * Affiché seulement quand le fournisseur Apple est configuré dans Supabase
+ * (VITE_COVI_APPLE_SIGNIN=true ; voir docs/connexion-apple.md).
+ */
+export const appleSignInEnabled = import.meta.env.VITE_COVI_APPLE_SIGNIN === 'true'
+
 function FacebookLogo() {
   return (
     <svg className="auth__social-logo" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -50,7 +70,7 @@ function FacebookLogo() {
   )
 }
 
-/** E-mail / Google / Facebook sign-in and sign-up. Its state lives in AuthGate so it survives sign-out. */
+/** E-mail / Apple / Google / Facebook sign-in and sign-up. Its state lives in AuthGate so it survives sign-out. */
 export function LoginForm({
   mode,
   onModeChange,
@@ -92,7 +112,7 @@ export function LoginForm({
     }
   }
 
-  async function socialAuth(provider: 'google' | 'facebook') {
+  async function socialAuth(provider: 'google' | 'facebook' | 'apple') {
     if (busy) return
     onMessage('')
     setBusy(true)
@@ -104,6 +124,7 @@ export function LoginForm({
           redirectTo: desktop ? desktopAuthRedirect() : window.location.origin,
           skipBrowserRedirect: desktop,
           ...(provider === 'facebook' ? { scopes: 'email' } : {}),
+          ...(provider === 'apple' ? { scopes: 'name email' } : {}),
         },
       })
       if (error) {
@@ -181,6 +202,19 @@ export function LoginForm({
         <p className="auth__or" aria-hidden="true">
           ou
         </p>
+        {appleSignInEnabled && (
+          <Button
+            variant="secondary"
+            size="lg"
+            block
+            className="auth__apple"
+            disabled={busy}
+            onClick={() => void socialAuth('apple')}
+          >
+            <AppleLogo />
+            Continuer avec Apple
+          </Button>
+        )}
         <Button
           variant="secondary"
           size="lg"
@@ -215,6 +249,19 @@ export function LoginForm({
           {login ? 'Créer un compte' : 'me connecter'}
         </button>
       </p>
+      {!login && (
+        <p className="auth__legal">
+          En créant un compte, vous acceptez les <a href="#/conditions">conditions d’utilisation</a>{' '}
+          et la <a href="#/confidentialite">politique de confidentialité</a>.
+        </p>
+      )}
+      <nav className="auth__legal" aria-label="Informations légales">
+        {legalLinks.map((l) => (
+          <a key={l.href} href={l.href}>
+            {l.label}
+          </a>
+        ))}
+      </nav>
     </AuthPage>
   )
 }
