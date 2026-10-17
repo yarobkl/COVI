@@ -16,6 +16,8 @@ const eventLabels: Record<string, string> = {
   line_cancelled: 'Article annulé (motif enregistré)',
   table_cancelled: 'Table libérée après annulation',
   payment_confirmed: 'Encaissement confirmé',
+  served_issue_reported: 'Incident signalé après service',
+  served_issue_reviewed: 'Incident examiné par le propriétaire',
 }
 const pageSize = 50
 
