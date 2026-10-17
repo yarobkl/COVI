@@ -64,11 +64,13 @@ export function SpaceChooser({
             J’ai un code de caissier
           </Button>
         </li>
-        {onRestaurantJoin && <li>
-          <Button variant="ghost" block onClick={onRestaurantJoin}>
-            J’ai un code d’employé de restaurant
-          </Button>
-        </li>
+        {onRestaurantJoin && (
+          <li>
+            <Button variant="ghost" block onClick={onRestaurantJoin}>
+              J’ai un code d’employé de restaurant
+            </Button>
+          </li>
+        )}
         <li>
           <Button variant="ghost" block onClick={onSignOut}>
             Se déconnecter
