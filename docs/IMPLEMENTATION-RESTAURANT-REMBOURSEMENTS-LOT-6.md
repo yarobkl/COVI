@@ -27,7 +27,7 @@ Il faut afficher ces trois montants séparément dans les futurs bilans, sans le
 - Identité de l'auteur et heure du décaissement enregistrées dans le registre et dans le journal privé du restaurateur.
 - Chiffres `bigint` XAF traités comme chaînes entières dans les réponses JSON de calcul pour éviter les pertes de précision.
 - Aucun accès de lecture aux serveuses, cuisiniers, caissières, invités QR ou établissements tiers.
-- L'interface rappelle sans ambiguïté : *un remboursement à examiner* n'est pas *un remboursement effectué*.
+- L'interface rappelle sans ambiguïté : _un remboursement à examiner_ n'est pas _un remboursement effectué_.
 
 ## Scénarios des tests SQL
 
