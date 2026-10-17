@@ -6,14 +6,16 @@ insert into auth.users(id) values
  ('00000000-0000-0000-0000-0000000000c1'),
  ('00000000-0000-0000-0000-0000000000c2'),
  ('00000000-0000-0000-0000-0000000000c3'),
- ('00000000-0000-0000-0000-0000000000c4');
+ ('00000000-0000-0000-0000-0000000000c4'),
+ ('00000000-0000-0000-0000-0000000000c5');
 insert into public.shops(id,owner_id,name,business_kind) values
  ('10000000-0000-0000-0000-0000000000c1','00000000-0000-0000-0000-0000000000c1','Cuisine A','restaurant'),
  ('10000000-0000-0000-0000-0000000000c4','00000000-0000-0000-0000-0000000000c4','Cuisine B','restaurant');
 insert into public.restaurant_staff_members(shop_id,user_id,display_name,staff_role,created_by)
  values
  ('10000000-0000-0000-0000-0000000000c1','00000000-0000-0000-0000-0000000000c2','Cuisinier A','kitchen','00000000-0000-0000-0000-0000000000c1'),
- ('10000000-0000-0000-0000-0000000000c1','00000000-0000-0000-0000-0000000000c3','Serveuse A','waiter','00000000-0000-0000-0000-0000000000c1');
+ ('10000000-0000-0000-0000-0000000000c1','00000000-0000-0000-0000-0000000000c3','Serveuse A','waiter','00000000-0000-0000-0000-0000000000c1'),
+ ('10000000-0000-0000-0000-0000000000c1','00000000-0000-0000-0000-0000000000c5','Deuxième cuisinier A','kitchen','00000000-0000-0000-0000-0000000000c1');
 insert into public.restaurant_tables(id,shop_id,label,capacity) values
  ('20000000-0000-0000-0000-0000000000c1','10000000-0000-0000-0000-0000000000c1','T-4',4);
 insert into public.restaurant_menu_items(id,shop_id,name,category,kind,price_xaf,drink_stock) values
@@ -73,6 +75,17 @@ begin
   raise exception 'Kitchen A read restaurant B';
  exception when insufficient_privilege then null;end;
 end $cook$;
+reset role;
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000c5',true);
+set local role authenticated;
+do $second_cook$
+declare sh uuid:='10000000-0000-0000-0000-0000000000c1';feed jsonb;
+begin
+ feed:=public.restaurant_kitchen_inbox(sh);
+ if jsonb_array_length(feed->'events')<>1
+   or feed->'events'->0->>'item'<>'Poulet' then
+  raise exception 'Cook B lost a preparation acknowledged by cook A';end if;
+end $second_cook$;
 reset role;
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000c3',true);
 set local role authenticated;
