@@ -26,6 +26,7 @@ export function RestaurantKitchenInbox({ shopId }: { shopId: string }) {
 
   useEffect(() => {
     let live = true
+    maxArrived.current = null
     let inFlight = false
     async function poll() {
       if (!navigator.onLine || inFlight) return
