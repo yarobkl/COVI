@@ -70,7 +70,7 @@ export function readKitchenInbox(raw: unknown): KitchenInbox {
 
 /** Only newly arrived events generate a browser notification; initial backlog is UI only. */
 export function newlyArrivedKitchenCount(previousMax: string | null, inbox: KitchenInbox) {
-  const newest = inbox.events.at(-1)?.id ?? inbox.lastSeenId
+  const newest = inbox.events[inbox.events.length - 1]?.id ?? inbox.lastSeenId
   if (!isKitchenCursor(newest)) return { newest: inbox.lastSeenId, count: 0 }
   if (previousMax === null) return { newest, count: 0 }
   const max = BigInt(previousMax)
