@@ -1,4 +1,13 @@
-import type { ConfirmedCheckoutReceipt } from '../features/checkout/ConfirmedCheckoutTicket'
+/** A server-confirmed checkout or a synced, recorded legacy sale. */
+export type PdfReceiptData = {
+  shopName: string
+  receiptNumber: string
+  confirmedAt: string
+  cashierFirstName?: string | null
+  method: string
+  amountXaf: number
+  lines: ReadonlyArray<{ label: string; quantity: number; lineTotalXaf: number }>
+}
 
 /**
  * Compact, dependency-free PDF receipt. The source is the server-confirmed
@@ -41,10 +50,12 @@ function fcfa(amount: number): string {
   return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(amount) + ' FCFA'
 }
 
-function receiptLines(receipt: ConfirmedCheckoutReceipt): string[] {
-  const names: Record<ConfirmedCheckoutReceipt['method'], string> = {
+function receiptLines(receipt: PdfReceiptData): string[] {
+  const names: Record<string, string> = {
     cash: 'Espèces',
     mobile_money: 'Mobile Money',
+    card: 'Carte',
+    bank_transfer: 'Virement',
     other: 'Autre',
   }
   const lines = [
@@ -62,8 +73,10 @@ function receiptLines(receipt: ConfirmedCheckoutReceipt): string[] {
   lines.push(
     '----------------------------------------',
     'TOTAL : ' + fcfa(receipt.amountXaf),
-    'Paiement : ' + names[receipt.method],
-    'Encaissement confirmé par : ' + receipt.cashierFirstName.slice(0, 60),
+    'Paiement : ' + (names[receipt.method] ?? receipt.method.slice(0, 60)),
+    ...(receipt.cashierFirstName?.trim() ? [
+      'Encaissement confirmé par : ' + receipt.cashierFirstName.trim().slice(0, 60),
+    ] : []),
     '',
     'Reçu émis après confirmation du paiement.',
     'Conservez ce document pour vos archives.',
@@ -72,14 +85,20 @@ function receiptLines(receipt: ConfirmedCheckoutReceipt): string[] {
   return lines
 }
 
-function pdfObjects(receipt: ConfirmedCheckoutReceipt): Uint8Array {
+function pdfObjects(receipt: PdfReceiptData): Uint8Array {
   if (
     !receipt.receiptNumber.trim() ||
     !receipt.shopName.trim() ||
     !Number.isFinite(Date.parse(receipt.confirmedAt)) ||
     !Number.isSafeInteger(receipt.amountXaf) ||
     receipt.amountXaf < 0 ||
-    receipt.lines.length < 1
+    receipt.lines.length < 1 ||
+    receipt.lines.length > 120 ||
+    receipt.lines.some((line) =>
+      !line.label.trim() ||
+      !Number.isSafeInteger(line.quantity) || line.quantity <= 0 ||
+      !Number.isSafeInteger(line.lineTotalXaf) || line.lineTotalXaf < 0
+    )
   ) {
     throw new Error('Reçu confirmé incomplet : export PDF impossible.')
   }
@@ -151,14 +170,14 @@ function pdfObjects(receipt: ConfirmedCheckoutReceipt): Uint8Array {
   return Uint8Array.from(output, (char) => char.charCodeAt(0))
 }
 
-export function makeConfirmedReceiptPdf(receipt: ConfirmedCheckoutReceipt): Blob {
+export function makeConfirmedReceiptPdf(receipt: PdfReceiptData): Blob {
   const bytes = pdfObjects(receipt)
   const buffer = new ArrayBuffer(bytes.length)
   new Uint8Array(buffer).set(bytes)
   return new Blob([buffer], { type: 'application/pdf' })
 }
 
-export function downloadConfirmedReceiptPdf(receipt: ConfirmedCheckoutReceipt): void {
+export function downloadConfirmedReceiptPdf(receipt: PdfReceiptData): void {
   const blob = makeConfirmedReceiptPdf(receipt)
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
