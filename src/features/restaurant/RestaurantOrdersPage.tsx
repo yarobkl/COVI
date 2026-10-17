@@ -142,8 +142,15 @@ export function RestaurantOrdersPage({ shopId }: { shopId: string }) {
     setNotice('')
     try {
       await operation()
-      await refresh()
-      setNotice(success)
+      try {
+        await refresh()
+        setNotice(success)
+      } catch {
+        // The operation was acknowledged by Supabase even though a subsequent
+        // read failed. Never invite the cashier to repeat a possible payment.
+        setNotice('Opération confirmée par le serveur.')
+        setError('Affichage non actualisé : vérifiez l’historique avant toute nouvelle opération.')
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Opération refusée par COVI.')
     } finally {
