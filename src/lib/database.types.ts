@@ -834,6 +834,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      restaurant_issue_group_code: {
+        Args: { p_shop: string; p_session: string }
+        Returns: string
+      }
       restaurant_staff_my_spaces: {
         Args: Record<PropertyKey, never>
         Returns: { shop_id: string; shop_name: string; staff_role: string; display_name: string }[]
