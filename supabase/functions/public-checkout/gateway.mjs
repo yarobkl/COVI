@@ -79,23 +79,61 @@ function cleanText(value, max, { required = false, multiline = false } = {}) {
   return text
 }
 
-/** Photo de référence : JPEG en data URL, 300 Ko au plus, en-tête et fin JPEG vérifiés. */
+/** Photo de référence : JPEG re-encodé par le canvas du navigateur.
+ * Vérifie aussi structure minimale, dimensions et métadonnées avant un upload
+ * avec les privilèges du serveur. Ne décode pas les pixels.
+ */
+function safeReferenceJpeg(bytes) {
+  const length = bytes.length
+  if (length < 20 || length > 300000 ||
+      bytes[0] !== 0xff || bytes[1] !== 0xd8 ||
+      bytes[length - 2] !== 0xff || bytes[length - 1] !== 0xd9) return false
+
+  let offset = 2
+  let frameSeen = false
+  let scanSeen = false
+  while (offset < length - 2) {
+    if (bytes[offset++] !== 0xff) return false
+    while (offset < length - 2 && bytes[offset] === 0xff) offset++
+    if (offset >= length - 2) return false
+    const marker = bytes[offset++]
+    // Metadata: EXIF/XMP, IPTC/Photoshop and comments are never accepted.
+    // Canvas JPEG encoding normally drops these fields.
+    if ([0xe1, 0xed, 0xfe].includes(marker)) return false
+    if (marker === 0x00 || marker === 0xd8 || marker === 0xd9 ||
+        marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) return false
+    if (offset + 2 > length - 2) return false
+    const segmentLength = bytes[offset] * 256 + bytes[offset + 1]
+    if (segmentLength < 2 || offset + segmentLength > length - 2) return false
+    const frame = marker >= 0xc0 && marker <= 0xcf &&
+      ![0xc4, 0xc8, 0xcc].includes(marker)
+    if (frame) {
+      if (frameSeen || segmentLength < 8) return false
+      const height = bytes[offset + 3] * 256 + bytes[offset + 4]
+      const width = bytes[offset + 5] * 256 + bytes[offset + 6]
+      if (height < 1 || width < 1 || height > 4096 || width > 4096 ||
+          height * width > 4000000) return false
+      frameSeen = true
+    }
+    if (marker === 0xda) {
+      if (!frameSeen || segmentLength < 6) return false
+      scanSeen = true
+      break
+    }
+    offset += segmentLength
+  }
+  return frameSeen && scanSeen
+}
+
 export function decodeReferenceJpeg(value) {
   if (typeof value !== 'string' || value.length > 420000) return null
   const match = /^data:image\/jpeg;base64,([A-Za-z0-9+/]+={0,2})$/.exec(value)
   if (!match) return null
   try {
     const binary = atob(match[1])
-    const size = binary.length
-    if (size < 4 || size > 300000) return null
-    if (
-      binary.charCodeAt(0) !== 0xff ||
-      binary.charCodeAt(1) !== 0xd8 ||
-      binary.charCodeAt(size - 2) !== 0xff ||
-      binary.charCodeAt(size - 1) !== 0xd9
-    )
-      return null
-    return Uint8Array.from(binary, (c) => c.charCodeAt(0))
+    if (binary.length > 300000) return null
+    const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0))
+    return safeReferenceJpeg(bytes) ? bytes : null
   } catch {
     return null
   }
@@ -266,7 +304,7 @@ async function storeReference(env, fetchImpl, order, result) {
     },
   )
   // Un nouvel essai ne remplace jamais une photo déjà déposée.
-  return upload.ok || upload.status === 409 || upload.status === 400
+  return upload.ok || upload.status === 409
 }
 
 const CUSTOMER_ERRORS = {
