@@ -1,0 +1,27 @@
+name: Format staff draft (temporary)
+on:
+  push:
+    branches:
+      - feature/covi-restaurant-salon-v1
+permissions:
+  contents: write
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/covi-restaurant-salon-v1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx prettier --write src/features/restaurant/RestaurantStaffPanel.tsx src/features/restaurant/RestaurantStaffApp.tsx src/features/restaurant/RestaurantStaffJoinPage.tsx src/features/auth/AuthGate.tsx src/features/auth/CreateShopForm.tsx src/features/team/SpaceChooser.tsx src/app/App.tsx src/lib/restaurantStaff.ts src/lib/database.types.ts
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/
+          if ! git diff --cached --quiet; then
+            git commit -m "style: formatter le personnel Restaurant"
+            git push origin HEAD:feature/covi-restaurant-salon-v1
+          fi
