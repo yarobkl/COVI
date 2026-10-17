@@ -7,12 +7,20 @@ export const sectorOf = (value: string | null | undefined): Sector =>
   value === 'restaurant' || value === 'salon' ? value : 'retail'
 
 const restaurantPages = [
-  pages.accueil, pages['restaurant-tables'], pages['restaurant-menu'],
-  pages.personnel, pages.charges, pages.boutique,
+  pages.accueil,
+  pages['restaurant-tables'],
+  pages['restaurant-menu'],
+  pages.personnel,
+  pages.charges,
+  pages.boutique,
 ] as const
 const salonPages = [
-  pages.accueil, pages['salon-services'], pages['salon-bookings'],
-  pages.personnel, pages.charges, pages.boutique,
+  pages.accueil,
+  pages['salon-services'],
+  pages['salon-bookings'],
+  pages.personnel,
+  pages.charges,
+  pages.boutique,
 ] as const
 
 export function navigationFor(kind: Sector): {
@@ -21,18 +29,20 @@ export function navigationFor(kind: Sector): {
   morePages: readonly NavEntry[]
   primary: PageId
 } {
-  if (kind === 'restaurant') return {
-    sommaire: restaurantPages,
-    bottomBar: restaurantPages.slice(0,3),
-    morePages: restaurantPages.slice(3),
-    primary: 'restaurant-tables',
-  }
-  if (kind === 'salon') return {
-    sommaire: salonPages,
-    bottomBar: salonPages.slice(0,3),
-    morePages: salonPages.slice(3),
-    primary: 'salon-services',
-  }
+  if (kind === 'restaurant')
+    return {
+      sommaire: restaurantPages,
+      bottomBar: restaurantPages.slice(0, 3),
+      morePages: restaurantPages.slice(3),
+      primary: 'restaurant-tables',
+    }
+  if (kind === 'salon')
+    return {
+      sommaire: salonPages,
+      bottomBar: salonPages.slice(0, 3),
+      morePages: salonPages.slice(3),
+      primary: 'salon-services',
+    }
   return { sommaire, bottomBar, morePages, primary: 'vendre' }
 }
 

@@ -83,7 +83,11 @@ function renderPage(route: Route, { shop, updateShop, onSimulation, ownerId }: P
   if (!availableInSector(sector, route.page)) return <SectorHomePage shop={shop} />
   switch (route.page) {
     case 'accueil':
-      return sector === 'retail' ? <DashboardPage shop={shop} onSimulation={onSimulation} /> : <SectorHomePage shop={shop} />
+      return sector === 'retail' ? (
+        <DashboardPage shop={shop} onSimulation={onSimulation} />
+      ) : (
+        <SectorHomePage shop={shop} />
+      )
     case 'restaurant-tables':
       return <RestaurantTablesPage shopId={shop.id} />
     case 'restaurant-menu':
@@ -146,7 +150,9 @@ function LegalLinks() {
 function ShopLabel({ shop, owner }: { shop: Shop; owner: string | null }) {
   return (
     <LabelCard className="shop-label">
-      <p className="sommaire__shop-kicker">{sectorOf(shop.business_kind) === 'retail' ? 'Cahier de caisse' : 'Cahier de gestion'}</p>
+      <p className="sommaire__shop-kicker">
+        {sectorOf(shop.business_kind) === 'retail' ? 'Cahier de caisse' : 'Cahier de gestion'}
+      </p>
       <p className="sommaire__shop-name">{shop.name}</p>
       {shop.city ? (
         <p className="sommaire__shop-place">{shop.city}</p>
@@ -311,7 +317,11 @@ export function App({
             aria-current={current(visibleNavigation.primary)}
             icon={<PlusIcon />}
           >
-            {sector === 'retail' ? 'Nouvelle vente' : sector === 'restaurant' ? 'Mes tables' : 'Mes prestations'}
+            {sector === 'retail'
+              ? 'Nouvelle vente'
+              : sector === 'restaurant'
+                ? 'Mes tables'
+                : 'Mes prestations'}
           </ButtonLink>
         </div>
         <NotificationBell state={notifications} className="bell--sommaire" withLabel />
@@ -328,9 +338,11 @@ export function App({
         </ul>
         <div className="sommaire__foot">
           <NetStatus state={sync} shopId={shop.id} />
-          {sector === 'retail' && <button type="button" className="btn btn--ghost sommaire__quiet" onClick={onSimulation}>
-            Voir une boutique d’exemple
-          </button>}
+          {sector === 'retail' && (
+            <button type="button" className="btn btn--ghost sommaire__quiet" onClick={onSimulation}>
+              Voir une boutique d’exemple
+            </button>
+          )}
           <button type="button" className="btn btn--ghost sommaire__quiet" onClick={askSignOut}>
             Se déconnecter
           </button>
@@ -380,7 +392,9 @@ export function App({
           className="bottom-nav__item"
           aria-haspopup="dialog"
           aria-expanded={menuOpen}
-          aria-current={visibleNavigation.morePages.some((p) => p.page === route.page) ? 'page' : undefined}
+          aria-current={
+            visibleNavigation.morePages.some((p) => p.page === route.page) ? 'page' : undefined
+          }
           onClick={() => setMenuOpen(true)}
         >
           <MenuIcon />
