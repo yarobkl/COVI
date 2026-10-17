@@ -63,7 +63,7 @@ $sql$, 'owner A cannot create salon C services');
 
 reset role;
 -- Superuser-level update still cannot move an item or reassign a permanent printed QR.
-do $
+do $sqlblock$
 begin
   begin
     update public.restaurant_tables set shop_id='10000000-0000-0000-0000-0000000000c2'
@@ -78,7 +78,7 @@ begin
   exception when check_violation then
     null;
   end;
-end $;
+end $sqlblock$;
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000c2',true);
 set local role authenticated;
 select pg_temp.check(
