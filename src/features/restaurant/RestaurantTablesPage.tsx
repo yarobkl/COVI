@@ -4,10 +4,14 @@ import { supabase } from '../../lib/supabase'
 import type { Tables } from '../../lib/database.types'
 
 type Table = Tables<'restaurant_tables'>
+type Session = Tables<'restaurant_table_sessions'>
 
-/** Owner's room plan; availability will come from actual sessions in the next increment. */
+/** Owner's room plan: status is read from active table sessions, never inferred from appearance. */
 export function RestaurantTablesPage({ shopId }: { shopId: string }) {
   const [rows, setRows] = useState<Table[]>([])
+  const [sessions, setSessions] = useState<Session[]>([])
+  const [statusError, setStatusError] = useState(false)
+  const [syncedAt, setSyncedAt] = useState('')
   const [busy, setBusy] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -16,36 +20,40 @@ export function RestaurantTablesPage({ shopId }: { shopId: string }) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const reload = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('restaurant_tables')
-      .select('*')
-      .eq('shop_id', shopId)
-      .order('label')
-    if (error) throw error
-    setRows(data ?? [])
+    const [tables, active] = await Promise.all([
+      supabase.from('restaurant_tables').select('*').eq('shop_id', shopId).order('label'),
+      supabase.from('restaurant_table_sessions').select('*')
+        .eq('shop_id', shopId).in('status', ['collecting', 'submitted']).limit(1000),
+    ])
+    if (tables.error || active.error) throw new Error('Impossible de synchroniser la salle.')
+    if ((tables.data?.length ?? 0) >= 1000 || (active.data?.length ?? 0) >= 1000)
+      throw new Error('Le plan ne peut pas garantir la liste complète des tables.')
+    setRows(tables.data ?? [])
+    setSessions(active.data ?? [])
+    setSyncedAt(new Date().toLocaleTimeString('fr-FR'))
+    setStatusError(false)
   }, [shopId])
 
   useEffect(() => {
-    let alive = true
-    void supabase
-      .from('restaurant_tables')
-      .select('*')
-      .eq('shop_id', shopId)
-      .order('label')
-      .then(({ data, error }) => {
-        if (!alive) return
-        setLoading(false)
-        if (error) {
+    let mounted = true
+    const sync = async () => {
+      try {
+        await reload()
+        if (mounted) { setIsError(false); setMessage('') }
+      } catch {
+        if (mounted) {
+          setStatusError(true)
           setIsError(true)
-          setMessage(
-            'Plan de salle indisponible. La mise à jour de la base est peut-être en attente.',
-          )
-        } else setRows(data ?? [])
-      })
-    return () => {
-      alive = false
+          setMessage('État de la salle indisponible : aucune table ne sera déclarée libre sans vérification.')
+        }
+      } finally {
+        if (mounted) setLoading(false)
+      }
     }
-  }, [shopId])
+    void sync()
+    const interval = window.setInterval(() => { void sync() }, 10000)
+    return () => { mounted = false; window.clearInterval(interval) }
+  }, [reload])
 
   const selected = rows.find((row) => row.id === selectedId) ?? rows[0] ?? null
 
@@ -134,9 +142,9 @@ export function RestaurantTablesPage({ shopId }: { shopId: string }) {
       />
       <Notice tone="calm">
         <p>
-          La configuration des tables est disponible. Les statuts « occupée », « en préparation » et
-          « payée » seront reliés aux commandes et à la caisse dans l'étape suivante. Aucun état
-          d'occupation n'est inventé.
+          La disponibilité dépend des sessions et de la caisse, jamais d’un clic sur le plan.
+          Actualisation automatique toutes les 10 secondes. Dernière vérification : {syncedAt || 'en attente'}.
+          Si le réseau échoue, les états sont indiqués comme inconnus.
         </p>
       </Notice>
       {showForm && (
@@ -169,16 +177,21 @@ export function RestaurantTablesPage({ shopId }: { shopId: string }) {
         <Sheet aria-label="Plan visuel de la salle">
           <h2 className="section-title">Disposition de vos tables</h2>
           <p className="muted">
-            Touchez une table pour la sélectionner. Il s'agit des emplacements configurés, pas
-            encore des états d'occupation en temps réel.
+            Touchez une table pour la sélectionner. Les occupations proviennent des sessions
+            enregistrées, pas de la capacité ni du nombre de personnes réellement présentes.
           </p>
           <div className="floor-plan" role="group" aria-label="Disposition du restaurant">
-            {rows.map((table) => (
+            {rows.map((table) => {
+              const session = sessions.find((x) => x.table_id === table.id)
+              const state = statusError ? 'État inconnu' : session?.status === 'collecting'
+                ? 'Choix en cours' : session?.status === 'submitted' ? 'Occupée' : 'Libre'
+              return (
               <button
                 type="button"
                 key={table.id}
+                aria-label={`Table ${table.label}, ${state}, ${table.capacity} places`}
                 aria-pressed={selected?.id === table.id}
-                className="floor-plan__table"
+                className={`floor-plan__table${session || statusError ? ' floor-plan__table--occupied' : ''}`}
                 style={{
                   left: `${Math.min(80, table.pos_x)}%`,
                   top: `${Math.min(80, table.pos_y)}%`,
@@ -187,8 +200,10 @@ export function RestaurantTablesPage({ shopId }: { shopId: string }) {
               >
                 Table {table.label}
                 <small>{table.capacity} places</small>
+                <small>{state}</small>
               </button>
-            ))}
+              )
+            })}
           </div>
           {selected && (
             <form key={selected.id} className="form-grid" onSubmit={(e) => void savePlace(e)}>
@@ -237,7 +252,10 @@ export function RestaurantTablesPage({ shopId }: { shopId: string }) {
                     {table.zone} · {table.capacity} places
                   </p>
                 </div>
-                <span className="muted">Capacité configurée</span>
+                <span className="muted">
+                  {statusError ? 'État inconnu' : sessions.some((x) => x.table_id === table.id)
+                    ? 'Occupée' : 'Libre'}
+                </span>
               </li>
             ))}
           </ul>
