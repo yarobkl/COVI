@@ -1,6 +1,18 @@
+self.addEventListener('push', (event) => {
+  event.waitUntil(
+    self.registration.showNotification('COVI — Nouvelle préparation', {
+      body: 'De nouvelles préparations attendent la cuisine.',
+      icon: '/icon-192.png',
+      tag: 'covi-restaurant-kitchen',
+      renotify: false,
+      data: { path: '/' },
+    }),
+  )
+})
 // Dedicated kitchen browser-notification worker.
-// It does not intercept requests and has NO background push subscription.
-// It only handles click-to-focus for user-approved app-generated notices.
+// It never intercepts HTTP requests, and does not store sensitive data.
+// Browser Push triggers a generic visible notification; details are fetched only
+// after the user signs in and opens the private Kitchen screen.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
   event.waitUntil(
