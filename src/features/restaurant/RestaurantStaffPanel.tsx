@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import type { Tables } from '../../lib/database.types'
 import { RestaurantStaffAudit } from './RestaurantStaffAudit'
 import { RestaurantIncidentsPanel } from './RestaurantIncidentsPanel'
+import { RestaurantCashRefundsPanel } from './RestaurantCashRefundsPanel'
 
 type Member = Tables<'restaurant_staff_members'>
 type Pending = { id: string; display_name: string; staff_role: string; expires_at: string }
@@ -275,6 +276,7 @@ export function RestaurantStaffPanel({ shopId }: { shopId: string }) {
         )}
       </Sheet>
       <RestaurantIncidentsPanel shopId={shopId} />
+      <RestaurantCashRefundsPanel shopId={shopId} />
       <RestaurantStaffAudit shopId={shopId} />
     </div>
   )
