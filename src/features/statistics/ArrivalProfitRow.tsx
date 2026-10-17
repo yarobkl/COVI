@@ -27,7 +27,7 @@ export function ArrivalProfitRow({ arrival: x }: { arrival: ArrivalProfit }) {
         />
         <LedgerRow
           variant="total"
-          label="Résultat actuel"
+          label="Ventes moins coût total de l’arrivage"
           value={
             <span className={'figures' + (x.profit < 0 ? ' amount-out' : '')}>
               {x.profit >= 0 ? '+ ' : ''}
@@ -36,6 +36,7 @@ export function ArrivalProfitRow({ arrival: x }: { arrival: ArrivalProfit }) {
           }
         />
       </Ledger>
+      <p className="muted">Ce solde mesure la récupération de l’investissement de cet arrivage, pas le bénéfice net de l’entreprise.</p>
       {x.cost > 0 && (
         <Ruler
           value={x.recovery}
