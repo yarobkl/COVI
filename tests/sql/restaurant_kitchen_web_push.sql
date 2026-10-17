@@ -122,7 +122,7 @@ begin
  if not result then raise exception 'Sent acknowledgement missing';end if;
  if jsonb_array_length(public.restaurant_kitchen_push_claim(25))<>0
  then raise exception 'Already sent event delivered again';end if;
- if (select last_delivered_event_id from public.restaurant_kitchen_push_subscriptions where shop_id=sh)<>1
+ if (select last_delivered_event_id from public.restaurant_kitchen_push_subscriptions where shop_id=sh)<>(item->>'through')::bigint
  then raise exception 'Sent cursor not persisted';end if;
 end $dispatch$;
 reset role;
