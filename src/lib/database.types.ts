@@ -834,6 +834,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      restaurant_cancel_order_line: {
+        Args: { p_shop: string; p_line: string; p_reason: string }
+        Returns: Json
+      }
+      restaurant_cancel_empty_table: {
+        Args: { p_shop: string; p_session: string; p_reason: string }
+        Returns: boolean
+      }
       restaurant_issue_group_code: {
         Args: { p_shop: string; p_session: string }
         Returns: string
