@@ -145,6 +145,15 @@ COVI devient une plateforme de gestion de petites entreprises, tout en préserva
 5. **Paiement complet confirmé** : dans la même transaction serveur que la clôture de l'addition, marquer `table_session=closed_paid`, `table=free`, et invalider tout contexte ou jeton de session client antérieur. **Le QR physique ne change pas** : son identifiant opaque continue de désigner cette table, et le prochain client peut ouvrir une nouvelle session avec son prochain scan.
 6. **Paiement incomplet, refusé, en attente ou non vérifié** : la table reste occupée, le QR public reste verrouillé, et aucun autre client ne peut créer de commande. La caisse peut traiter des paiements partiels si ce mode est prévu, mais seule l'extinction du solde dû libère la table.
 
+### Déclenchement automatique depuis la caisse (règle impérative)
+
+- L'action autorisée **« Valider l'encaissement »** dans la caisse est le **déclencheur unique du déverrouillage automatique**, sous condition que le paiement soit réellement reçu/vérifié et que **le solde de toute la session de table soit nul**, y compris les boissons et plats ajoutés ultérieurement. Valider une seule commande sur une table qui en a plusieurs ne suffit pas.
+- Le serveur traite sous **une même transaction atomique** la confirmation du paiement, le contrôle final du total et des ajouts concurrents, la clôture `closed_paid` de la session et le passage de la table en `free`. Aucun bouton « Débloquer QR » ni action distincte de la serveuse n'est nécessaire.
+- Dès la validation réussie, COVI **émet un événement de mise à jour de la table** : l'écran caisse, la tablette de la serveuse, le PC et le QR public reflètent le nouvel état, via temps réel et relecture fiable côté serveur. Le QR imprimé reste identique, mais l'ancienne session ne peut plus commander.
+- Tant que la validation du paiement est refusée, partielle, sans accusé du serveur ou non vérifiée, le QR reste bloqué côté serveur. Un réseau interrompu ne doit jamais libérer localement la table par simple optimisme de l'interface.
+- Tester la course entre un ajout de boisson et l'encaissement : transaction verrouillée / contrôle de version; soit l'ajout est pris en compte dans le montant à payer, soit il est refusé comme trop tardif. **Aucune commande ne doit être oubliée dans le total** et aucune table ne doit être libérée avec un impayé.
+- Tester deux clics de paiement, reprise après panne réseau, paiement non confirmé et consultation simultanée sur deux tablettes : pas de double encaissement, pas de double clôture, aucun QR public déverrouillé trop tôt.
+
 ### Modèle et contrôles serveur proposés
 
 - `restaurant_tables (id, shop_id, table_number, ...)` : QR permanent unique pour (établissement, table); `table_number` est un libellé humain, pas une clé globale.
