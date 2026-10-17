@@ -182,6 +182,58 @@ COVI devient une plateforme de gestion de petites entreprises, tout en préserva
 
 **État : règle métier confirmée et documentée; aucun verrou de table ni flux de paiement restaurant n'a été développé ou déployé.**
 
+## Restaurant — commande collective sur plusieurs téléphones, places et interventions multi-employés
+
+### Capacité de la table et présence réelle
+
+- Le restaurateur définit ses propres tables (numéro, salle/zone, capacité indicative, statut actif). Exemple : table 04, 4 places.
+- La capacité **n'est pas un quota de commandes ni un seuil bloquant pour la validation** : un seul client peut occuper une table de 4; deux clients aussi. Certains convives peuvent ne rien commander.
+- Le **nombre de clients présents** est une donnée séparée, modifiable par le personnel autorisé et facultativement confirmée par les clients. Ne pas confondre capacité, nombre de téléphones, nombre de participants et nombre de plats.
+- Une personne peut commander pour deux convives sur un téléphone, ou un convive peut commander depuis plusieurs appareils; aucun compte ni téléphone unique n'est imposé au client.
+
+### Session collective et panier partagé
+
+- **Table libre** : le premier visiteur peut afficher le menu. Dès l'ouverture effective du groupe (premier ajout en panier enregistré ou ouverture par le serveur), COVI crée une seule session de table `collecting` et réserve la table à ce groupe.
+- **Collecte des choix** : plusieurs clients scannent le **QR permanent de la même table en parallèle** et rejoignent la même session `collecting`; leurs choix s'enregistrent sans écraser les autres. Chaque appareil reçoit un jeton de participant lié à **cette session précise**, non à une nouvelle table.
+- Un participant peut modifier sa propre sélection tant que le panier collectif n'a pas été envoyé; la somme affichée et l'état « a terminé » se mettent à jour en temps réel. En cas de coupure réseau, expliquer que l'ajout n'est pas synchronisé plutôt que l'afficher comme confirmé.
+- La table affiche le panier commun (quantité, plats, options, total) et, sans demander d'identité civile obligatoire, peut distinguer « choix 1 », « choix 2 » ou des prénoms facultatifs. Les autres clients voient les choix nécessaires au récapitulatif, **jamais** les identifiants ou droits des employés.
+- **Validation du groupe** : les convives peuvent indiquer « J'ai terminé mon choix ». Quand les personnes présentes sont prêtes, un participant coordinateur désigné ou une serveuse autorisée valide **la commande commune entière**. Ne jamais attendre 4 confirmations parce que la table possède 4 places; ne jamais supposer que le nombre de smartphones égale le nombre de convives.
+- À la soumission, vérifier et figer atomiquement tous les choix acceptés et les tarifs en vigueur, affecter la référence `CMD-xxxx`, envoyer les tâches cuisine/bar, passer la session en `submitted/open_bill`, et interdire de nouveaux ajouts publics. Prévoir une confirmation explicite avant envoi, et une clé d'idempotence pour éviter le double envoi.
+- Les participants déjà admis à la session peuvent continuer à consulter le suivi/la note, mais **ne peuvent plus envoyer de nouveaux articles directement** après validation. Pour les ajouts, ils demandent à une serveuse (règle de la caisse maintenue).
+- Le QR imprimé reste permanent. Pendant `collecting`, il accepte des convives rejoignant le groupe existant, **pas la création d'un second groupe**; après `submitted`, il affiche « Table occupée, contactez le personnel » aux nouvelles visites publiques. Un jeton de participant antérieur ne permet jamais d'ouvrir une commande concurrente ni de modifier la note après validation.
+- Pour éviter qu'un tiers ayant une photo du QR rejoigne/perturbe la session, le droit d'ajouter au panier de groupe doit être lié à la session courante (jeton temporaire d'adhésion / contrôle de présence ou validation serveur), expiré à l'encaissement. Ne pas se contenter d'un simple `shop_id` ou `table_id` saisi par le navigateur. Spécifier le mécanisme anti-intrusion lors du prototype sans rendre le scan pénible.
+- Les contraintes de concurrence sont vérifiées côté serveur : transaction / index unique d'une session ouverte par (restaurant, table), identifiants de ligne/participation et mises à jour atomiques ou versionnées. Aucun appareil ne doit écraser le panier d'un autre.
+
+### Modifications par plusieurs serveurs, traçabilité réservée au propriétaire
+
+- Toute serveuse authentifiée et **habilitée dans ce restaurant** peut scanner le QR de la table occupée en mode personnel, ou rechercher la session par table/numéro dans l'historique. Elle ajoute des articles **à l'addition déjà ouverte**.
+- Tous les ajouts, même réalisés par plusieurs serveurs, appartiennent à **la même session / addition** et conservent la référence principale visible `CMD-xxxx`. Chaque ajout génère une opération/ticket complémentaire interne traçable pour la cuisine; les nouveaux articles ne sont pas confondus avec ceux déjà préparés. Le paiement final regroupe tous les ajouts et commandes.
+- Chaque opération possède son auteur vérifié : personne ayant saisi, modifié, annulé, commencé ou terminé une préparation, apporté un plat, servi, et encaissé. Une même commande peut ainsi contenir des lignes gérées par plusieurs serveuses et plusieurs préparateurs.
+- **Seul le propriétaire/admin autorisé** consulte l'historique nominatif complet des intervenants, horodatages, modifications et responsabilités. Les clients ne voient pas les identités des employés; les serveurs et préparateurs ne disposent que des informations opérationnelles nécessaires et de leurs propres actions, sans consulter le journal nominatif complet.
+- Garder distincts : **saisie de commande**, **préparation cuisine/bar**, **service**, **encaissement**. La responsabilité n'est pas attribuée automatiquement à la première personne qui a touché la commande.
+- En cas de suppression/annulation ou de modification d'un article déjà envoyé en cuisine, règles de droits/état et événements correctifs visibles en cuisine : ne jamais remplacer silencieusement la commande ou masquer un article préparé.
+
+### Paiement et réinitialisation à l'encaissement
+
+- Une validation de caisse doit contrôler le **solde de l'ensemble de la session**, y compris les ajouts des serveuses, puis clôturer la session, libérer la table et réautoriser automatiquement le QR pour le prochain groupe dans la même transaction.
+- Aucun code QR n'est régénéré à chaque passage. Après clôture, toutes les autorisations de participants de l'ancien groupe expirent et l'historique des intervenants reste archivé pour l'administrateur.
+- Pendant `collecting`, `submitted`, `preparing`, `served`, ou `payment_pending`, la table n'est **jamais** réattribuée à un autre groupe; seuls les accès déjà admis et les équipes autorisées sont servis selon leurs permissions.
+
+### Scénarios de recette obligatoires
+
+1. Table de 4, 1 seul convive : soumission possible immédiatement sans 3 participants manquants.
+2. Table de 4, 2 convives sur 2 téléphones : chacun ajoute en parallèle, prix et quantités consolidés; soumission commune par participant coordinateur ou serveur.
+3. Table de 4, 4 convives dont un ne choisit rien : validation possible sans plat ou « prêt » obligatoire pour chacun.
+4. Deux téléphones font un ajout simultané au même panier : toutes les lignes subsistent, aucun écrasement.
+5. Deux scans simultanés de table libre : une seule session collective est créée; aucune deuxième addition.
+6. Avant validation, un nouveau participant peut rejoindre le groupe autorisé; après validation, le QR ne laisse plus un nouveau client ouvrir/compléter la note.
+7. La serveuse A ajoute une boisson par scan; la serveuse B ajoute un dessert depuis l'historique; une troisième personne prépare, une quatrième encaisse : une seule addition, traçabilité de chaque intervention visible à l'admin seulement.
+8. Tentative non autorisée de joindre une session avec un ancien lien, avec un QR d'un autre restaurant ou avec des droits d'employé d'un autre établissement : refus serveur.
+9. Dernière boisson disponible commandée simultanément depuis deux appareils : jamais de sur-réservation; correction d'affichage.
+10. Paiement complet final : session clôturée et QR immédiatement disponible pour le groupe suivant; anciens participants ne peuvent plus toucher la nouvelle session.
+
+**Statut : règles de conception ajoutées; pas encore développées, aucun déploiement ni changement SQL en production.**
+
 ## Principe non négociable — QR codes isolés par établissement
 
 **Un QR code = un établissement précis + un usage précis.** Cela concerne la boutique de vêtements, le restaurant et le salon de coiffure, y compris lorsqu'un seul propriétaire possède plusieurs établissements.
