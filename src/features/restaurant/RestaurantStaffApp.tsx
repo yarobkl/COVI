@@ -135,11 +135,15 @@ export function RestaurantStaffApp({
     const valid = readRoom(data)
     if (valid.role !== space.staff_role) throw Error('Autorisation modifiée. Reconnectez-vous.')
     if (space.staff_role === 'kitchen') {
-      const waiting = new Set(valid.lines.filter(l => l.state === 'ordered').map(l => l.id))
+      const waiting = new Set(valid.lines.filter((l) => l.state === 'ordered').map((l) => l.id))
       if (priorKitchenLines.current) {
-        const newlyReceived = [...waiting].filter(id => !priorKitchenLines.current?.has(id)).length
+        const newlyReceived = [...waiting].filter(
+          (id) => !priorKitchenLines.current?.has(id),
+        ).length
         if (newlyReceived > 0) {
-          setKitchenAlert(newlyReceived + ' nouveau(x) article(s) à préparer. Ouvrez les tables en cours.')
+          setKitchenAlert(
+            newlyReceived + ' nouveau(x) article(s) à préparer. Ouvrez les tables en cours.',
+          )
         }
       }
       priorKitchenLines.current = waiting
