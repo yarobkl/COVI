@@ -921,6 +921,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      restaurant_kitchen_inbox: {
+        Args: { p_shop: string }
+        Returns: Json
+      }
+      restaurant_kitchen_acknowledge: {
+        Args: { p_shop: string; p_through: string }
+        Returns: string
+      }
       restaurant_cash_refund_quote: {
         Args: { p_shop: string; p_incident: string }
         Returns: Json
