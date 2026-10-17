@@ -25,7 +25,7 @@ export function AuthPage({
           <BrandMark size={56} />
           <p className="auth__name">COVI</p>
           <p className="auth__tagline">
-            Outils de gestion opérationnelle, financière et humaine de l’entreprise.
+            Outils de gestion opérationnelle, financière et humaine des PME
           </p>
         </LabelCard>
         <div className="auth__grid">
