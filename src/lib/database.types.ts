@@ -8,6 +8,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      restaurant_served_incidents: {
+        Row: {
+          id: string
+          shop_id: string
+          session_id: string
+          line_id: string
+          reported_by: string
+          operation_id: string
+          description: string
+          state: string
+          owner_note: string | null
+          reviewed_by: string | null
+          created_at: string
+          reviewed_at: string | null
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          session_id: string
+          line_id: string
+          reported_by: string
+          operation_id: string
+          description: string
+          state?: string
+          owner_note?: string | null
+          reviewed_by?: string | null
+          created_at?: string
+          reviewed_at?: string | null
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          session_id?: string
+          line_id?: string
+          reported_by?: string
+          operation_id?: string
+          description?: string
+          state?: string
+          owner_note?: string | null
+          reviewed_by?: string | null
+          created_at?: string
+          reviewed_at?: string | null
+        }
+        Relationships: []
+      }
       restaurant_staff_members: {
         Row: {
           id: string
@@ -834,6 +879,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      restaurant_report_served_issue: {
+        Args: { p_shop: string; p_line: string; p_description: string; p_operation_id: string }
+        Returns: Json
+      }
+      restaurant_review_served_issue: {
+        Args: { p_shop: string; p_ticket: string; p_decision: string; p_note: string }
+        Returns: boolean
+      }
       restaurant_cancel_order_line: {
         Args: { p_shop: string; p_line: string; p_reason: string }
         Returns: Json
