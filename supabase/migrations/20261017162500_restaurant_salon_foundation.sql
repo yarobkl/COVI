@@ -126,7 +126,8 @@ begin
 end;
 $$;
 revoke all on function public.get_public_salon_booking(text) from public, anon, authenticated;
-grant execute on function public.get_public_salon_booking(text) to anon, authenticated;
+-- Public access is intentionally disabled until the anti-abuse edge is ready.
+grant execute on function public.get_public_salon_booking(text) to authenticated;
 
 -- Requests are unconfirmed until owner acceptance. No automatic appointment claim.
 -- Anti-abuse: per-phone/day limit & near-identical duplicate rejection; production requires
