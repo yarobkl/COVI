@@ -17,7 +17,7 @@ type RoomLine = {
   itemId: string
   name: string
   quantity: number
-  state: 'draft' | 'ordered' | 'served'
+  state: 'draft' | 'ordered' | 'served' | 'cancelled'
   unitPriceXaf: number | null
 }
 type RoomMenu = {
@@ -77,7 +77,7 @@ function readRoom(data: unknown): Room {
         !uuid(l.itemId) ||
         typeof l.name !== 'string' ||
         !safe(l.quantity) ||
-        !['draft', 'ordered', 'served'].includes(l.state) ||
+        !['draft', 'ordered', 'served', 'cancelled'].includes(l.state) ||
         (l.unitPriceXaf !== null && !safe(l.unitPriceXaf)),
     ) ||
     x.menu.some(
@@ -210,7 +210,7 @@ export function RestaurantStaffApp({
     [room, sessionId],
   )
   const total = current
-    .filter((l) => l.state !== 'draft')
+    .filter((l) => l.state === 'ordered' || l.state === 'served')
     .reduce((n, l) => n + BigInt(l.quantity) * BigInt(l.unitPriceXaf ?? 0), 0n)
   const paid = (room?.payments.filter((p) => p.sessionId === sessionId) ?? []).reduce(
     (n, p) => n + BigInt(p.amountXaf),
@@ -536,7 +536,7 @@ export function RestaurantStaffApp({
                                 {l.quantity} × {l.name}
                               </strong>
                               <p className="muted">
-                                {l.state === 'served' ? 'Servi' : 'À préparer / servir'}
+                                {l.state === 'served' ? 'Servi' : l.state === 'cancelled' ? 'Annulé (non facturé)' : 'À préparer / servir'}
                               </p>
                             </div>
                             {l.state === 'ordered' && (
