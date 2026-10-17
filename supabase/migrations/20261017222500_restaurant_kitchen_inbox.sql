@@ -127,7 +127,9 @@ begin
        and m.active and m.staff_role='kitchen'
    ))
  ) then raise exception 'Access denied' using errcode='42501'; end if;
- if p_through is null or p_through !~ '^[1-9][0-9]{0,18}
+ if p_through is null or p_through !~ '^[1-9][0-9]{0,18}$' then
+  raise exception 'Invalid event cursor';end if;
+ v_cursor:=p_through::bigint;
  select max(id) into v_last from public.restaurant_kitchen_events where shop_id=p_shop;
  if v_last is null or v_cursor>v_last or not exists(
    select 1 from public.restaurant_kitchen_events
@@ -142,22 +144,4 @@ begin
  return v_result::text;
 end; $$;
 revoke all on function public.restaurant_kitchen_acknowledge(uuid,text) from public,anon;
-grant execute on function public.restaurant_kitchen_acknowledge(uuid,bigint) to authenticated;
- then
-  raise exception 'Invalid event cursor';end if;
- v_cursor:=p_through::bigint;
- select max(id) into v_last from public.restaurant_kitchen_events where shop_id=p_shop;
- if v_last is null or p_through>v_last or not exists(
-   select 1 from public.restaurant_kitchen_events
-   where shop_id=p_shop and id=p_through
- ) then raise exception 'Event cursor does not belong to this restaurant';end if;
- insert into public.restaurant_kitchen_receipts(shop_id,user_id,last_seen_id)
- values(p_shop,v_uid,p_through)
- on conflict(shop_id,user_id) do update
- set last_seen_id=greatest(public.restaurant_kitchen_receipts.last_seen_id,excluded.last_seen_id),
- updated_at=now()
- returning last_seen_id into v_result;
- return v_result::text;
-end; $$;
-revoke all on function public.restaurant_kitchen_acknowledge(uuid,bigint) from public,anon;
-grant execute on function public.restaurant_kitchen_acknowledge(uuid,bigint) to authenticated;
+grant execute on function public.restaurant_kitchen_acknowledge(uuid,text) to authenticated;
