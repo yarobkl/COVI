@@ -256,9 +256,9 @@ describe('fichiers JPEG envoyés par un client', () => {
 
   it('rejette les dimensions excessives malgré un petit fichier compressé', () => {
     const huge = bytesForJpeg()
-    // SOF width is at bytes 17-18; 4097 exceeds the configured dimension cap.
-    huge[17] = 0x10
-    huge[18] = 0x01
+    // SOF width is at bytes 15-16; 4097 exceeds the configured dimension cap.
+    huge[15] = 0x10
+    huge[16] = 0x01
     expect(decodeReferenceJpeg(jpegData(huge))).toBeNull()
   })
 })
