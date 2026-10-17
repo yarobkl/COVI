@@ -16,6 +16,9 @@ alter table public.restaurant_group_admissions enable row level security;
 revoke all on public.restaurant_group_admissions from public,anon,authenticated;
 -- Codes are only readable when freshly issued; neither owner queries nor guests see hashes.
 
+alter table public.restaurant_participants
+  add constraint restaurant_participants_shop_id_pair unique (shop_id,id);
+
 -- Guest action limit: per secret for mutations; protects both token theft and accidental retry storms.
 create table public.restaurant_guest_action_limits (
   shop_id uuid not null,
@@ -30,9 +33,6 @@ alter table public.restaurant_guest_action_limits enable row level security;
 revoke all on public.restaurant_guest_action_limits from public,anon,authenticated;
 
 -- Cross-table FK for participant ownership without exposing credentials.
-alter table public.restaurant_participants
-  add constraint restaurant_participants_shop_id_pair unique (shop_id,id);
-
 -- Internal helper: limits <= 40 guest modifications per minute and per participant.
 -- Only service_role and definer functions can call it.
 create function public.restaurant_guest_limit(p_shop uuid,p_participant uuid)
