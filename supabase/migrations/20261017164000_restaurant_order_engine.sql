@@ -373,12 +373,12 @@ begin
  where shop_id=p_shop and session_id=p_session;
  if p_amount>v_total-v_paid then raise exception 'Amount exceeds remaining balance'; end if;
  v_close:=(v_paid+p_amount=v_total);
+ -- At the end of the meal, every ordered item must be marked served.
+ -- This also guarantees that all reserved drinks were posted to real stock movements.
  if v_close and exists(
    select 1 from public.restaurant_session_lines l
-   join public.restaurant_menu_items m on m.id=l.menu_item_id and m.shop_id=l.shop_id
    where l.shop_id=p_shop and l.session_id=p_session and l.status='ordered'
-     and m.kind='drink'
- ) then raise exception 'Serve drinks before closing bill'; end if;
+ ) then raise exception 'Serve all ordered items before closing bill'; end if;
  -- By design only an authorized owner can attest physical cash actually received.
  -- Digital/mobile money must use verified provider callbacks in a later integration.
  insert into public.restaurant_cash_payments(
