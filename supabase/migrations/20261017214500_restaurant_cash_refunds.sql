@@ -75,10 +75,10 @@ begin
  v_possible:=greatest(0,least(v_line_value-v_line_refunds,v_paid-v_all_refunds));
  return jsonb_build_object(
   'incidentId',v_i.id,'orderReference',v_ref,'state',v_i.state,
-  'paidXaf',v_paid,'refundedXaf',v_all_refunds,
-  'linePriceXaf',v_line_value,'lineRefundedXaf',v_line_refunds,
+  'paidXaf',v_paid::text,'refundedXaf',v_all_refunds::text,
+  'linePriceXaf',v_line_value::text,'lineRefundedXaf',v_line_refunds::text,
   'maximumXaf',case when v_state='closed_paid' and v_i.state='requires_refund_review'
-    and v_done is null then v_possible else 0 end,
+    and v_done is null then v_possible::text else '0' end,
   'alreadyRefunded',v_done is not null,'method','cash'
  );
 end; $$;
@@ -118,7 +118,7 @@ begin
   if v_existing.incident_id<>p_incident or v_existing.amount_xaf<>p_amount
    or v_existing.reason<>btrim(p_reason) or v_existing.confirmed_by<>auth.uid()
   then raise exception 'Operation key mismatch';end if;
-  return jsonb_build_object('refundId',v_existing.id,'amountXaf',v_existing.amount_xaf,
+  return jsonb_build_object('refundId',v_existing.id,'amountXaf',v_existing.amount_xaf::text,
    'confirmed',true,'alreadyRecorded',true);
  end if;
  -- Lock ticket while enforcing only one real refund per approved incident.
@@ -157,7 +157,7 @@ begin
   'amountXaf',p_amount,'method','cash','operationId',p_operation_id));
  -- Original receipt and physical stock NEVER change. Refund exists only in
  -- separate cash-out ledger; net cash = cash payments - cash refunds.
- return jsonb_build_object('refundId',v_refund_id,'amountXaf',p_amount,
+ return jsonb_build_object('refundId',v_refund_id,'amountXaf',p_amount::text,
   'confirmed',true,'alreadyRecorded',false);
 end; $$;
 revoke all on function public.restaurant_confirm_cash_refund(uuid,uuid,bigint,text,uuid,boolean)
