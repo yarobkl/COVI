@@ -38,33 +38,40 @@ export function PublicRestaurantTablePage({ token }: { token: string }) {
     }
   }, [token])
 
-  useEffect(() => { void load() }, [load])
+  useEffect(() => {
+    void load()
+  }, [load])
   useEffect(() => {
     document.title = catalog ? `Carte — ${catalog.restaurantName}` : 'Carte Restaurant — COVI'
   }, [catalog])
 
-  const groups = catalog?.menu.reduce<Record<string, RestaurantQrMenuItem[]>>((result,item) => {
-    ;(result[item.category] ??= []).push(item)
-    return result
-  }, {}) ?? {}
+  const groups =
+    catalog?.menu.reduce<Record<string, RestaurantQrMenuItem[]>>((result, item) => {
+      ;(result[item.category] ??= []).push(item)
+      return result
+    }, {}) ?? {}
 
   return (
     <GuestSheet shop={catalog?.restaurantName}>
       <section className="order-guest__part">
         <h1 className="section-title">Carte du restaurant</h1>
-        {loading ? <p role="status">Chargement de la table…</p> : error ? (
+        {loading ? (
+          <p role="status">Chargement de la table…</p>
+        ) : error ? (
           <Notice tone="danger">
             <p>{error}</p>
           </Notice>
         ) : catalog ? (
           <>
-            <p><strong>Table {catalog.tableName}</strong> · {catalog.capacity} places</p>
+            <p>
+              <strong>Table {catalog.tableName}</strong> · {catalog.capacity} places
+            </p>
             <Notice tone="calm">
               <p>{statusLabels[catalog.tableState]}</p>
               <p>
                 La consultation de la carte est disponible. Les commandes collectives depuis
-                plusieurs téléphones seront activées après les tests de sécurité.
-                Pour commander ou ajouter un plat, adressez-vous au personnel.
+                plusieurs téléphones seront activées après les tests de sécurité. Pour commander ou
+                ajouter un plat, adressez-vous au personnel.
               </p>
             </Notice>
             {Object.entries(groups).length === 0 ? (
@@ -74,11 +81,17 @@ export function PublicRestaurantTablePage({ token }: { token: string }) {
                 <section className="order-guest__part" key={category}>
                   <h2 className="section-title">{category}</h2>
                   <ul className="team-invites">
-                    {items.map(item => (
+                    {items.map((item) => (
                       <li key={item.id}>
                         <div>
                           <strong>{item.name}</strong>
-                          <p className="muted">{item.kind === 'drink' ? 'Boisson' : item.kind === 'dessert' ? 'Dessert' : 'Plat'}</p>
+                          <p className="muted">
+                            {item.kind === 'drink'
+                              ? 'Boisson'
+                              : item.kind === 'dessert'
+                                ? 'Dessert'
+                                : 'Plat'}
+                          </p>
                           {!item.available && <p className="muted">Épuisé</p>}
                         </div>
                         <strong>{formatXaf(item.priceXaf)}</strong>

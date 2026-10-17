@@ -16,7 +16,9 @@ const PublicOrderPage = lazy(() =>
   import('../features/orders/PublicOrderPage').then((m) => ({ default: m.PublicOrderPage })),
 )
 const PublicRestaurantTablePage = lazy(() =>
-  import('../features/restaurant/PublicRestaurantTablePage').then((m) => ({ default: m.PublicRestaurantTablePage })),
+  import('../features/restaurant/PublicRestaurantTablePage').then((m) => ({
+    default: m.PublicRestaurantTablePage,
+  })),
 )
 const PrivacyPage = lazy(() =>
   import('../features/legal/PrivacyPage').then((m) => ({ default: m.PrivacyPage })),
@@ -40,7 +42,9 @@ const legalPages: Record<string, LegalRoute> = {
 }
 const publicRoute = (hash: string) => {
   const legalPage = /^#\/(confidentialite|conditions|aide)\/?$/.exec(hash)
-  return legalPage ? legalPages[legalPage[1]] : (parseRestaurantQrHash(hash) ?? parsePublicHash(hash))
+  return legalPage
+    ? legalPages[legalPage[1]]
+    : (parseRestaurantQrHash(hash) ?? parsePublicHash(hash))
 }
 
 function usePublicRoute() {
