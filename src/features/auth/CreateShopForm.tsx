@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Button, Field, Input, LabelCard, Notice } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
+import { BUSINESS_KINDS, businessKindInfo, type BusinessKind } from '../../lib/businessKinds'
 import type { Shop } from '../../lib/types'
 import { OTHER_CITY } from '../../lib/centralAfricaLocations'
 import { OTHER_NEIGHBORHOOD } from '../../lib/neighborhoods'
@@ -20,6 +21,8 @@ export function CreateShopForm({
   onCreated: (shop: Shop) => void
 }) {
   const [name, setName] = useState('')
+  const [businessKind, setBusinessKind] = useState<BusinessKind>('retail')
+  const kindInfo = businessKindInfo(businessKind)
   const [city, setCity] = useState('')
   const [country, setCountry] = useState<string>('République du Congo')
   const [customCity, setCustomCity] = useState('')
@@ -41,7 +44,8 @@ export function CreateShopForm({
     }
     setBusy(true)
     try {
-      const { data, error } = await supabase.rpc('create_my_shop_with_location', {
+      const { data, error } = await supabase.rpc('create_my_business_with_location', {
+        p_business_kind: businessKind,
         p_name: String(f.get('name')).trim(),
         p_city: selectedCity.trim(),
         p_neighborhood: selectedNeighborhood,
@@ -63,7 +67,7 @@ export function CreateShopForm({
     <figure className="auth__preview">
       <LabelCard>
         <p className="sommaire__shop-kicker">Cahier de caisse</p>
-        <p className="sommaire__shop-name">{name.trim() || 'Votre boutique'}</p>
+        <p className="sommaire__shop-name">{name.trim() || kindInfo.preview}</p>
         <p className="sommaire__shop-place">{selectedCity || 'Votre ville'}</p>
       </LabelCard>
       <figcaption className="hand auth__preview-note">
@@ -74,18 +78,33 @@ export function CreateShopForm({
 
   return (
     <AuthPage
-      title="Comment s’appelle votre boutique ?"
-      lead="Ce nom s’affichera en haut de l’écran. Vous pourrez le changer plus tard."
+      title="Parlez-nous de votre activité"
+      lead="Choisissez votre métier et donnez un nom à votre établissement."
       aside={preview}
     >
       <form className="auth__form" onSubmit={createShop}>
-        <Field label="Nom de la boutique">
+        <fieldset>
+          <legend>Que gérez-vous avec COVI ?</legend>
+          {BUSINESS_KINDS.map((kind) => (
+            <label key={kind.value} style={{ display: 'block', marginTop: '0.65rem' }}>
+              <input
+                type="radio"
+                name="business-kind"
+                value={kind.value}
+                checked={businessKind === kind.value}
+                onChange={() => setBusinessKind(kind.value)}
+              />{' '}
+              {kind.label}
+            </label>
+          ))}
+        </fieldset>
+        <Field label={kindInfo.nameLabel}>
           {(control) => (
             <Input
               {...control}
               name="name"
               required
-              placeholder="Ex. Chez Mama Grâce"
+              placeholder={kindInfo.example}
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
@@ -133,7 +152,7 @@ export function CreateShopForm({
           </Notice>
         )}
         <Button variant="primary" size="lg" block type="submit" busy={busy}>
-          Créer ma boutique
+          Créer mon établissement
         </Button>
       </form>
     </AuthPage>
