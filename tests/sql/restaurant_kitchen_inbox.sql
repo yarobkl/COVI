@@ -109,8 +109,10 @@ select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000c4'
 set local role authenticated;
 do $other$
 begin
- if (select count(*) from public.restaurant_kitchen_events)>0 then
-  raise exception 'Other owner can read kitchen outbox directly';end if;
+ begin
+  perform (select count(*) from public.restaurant_kitchen_events);
+  raise exception 'Other owner read direct kitchen event table';
+ exception when insufficient_privilege then null;end;
  begin
   perform public.restaurant_kitchen_acknowledge(
     '10000000-0000-0000-0000-0000000000c1','1');
