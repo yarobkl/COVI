@@ -41,42 +41,71 @@ export function RestaurantOrdersPage({ shopId }: { shopId: string }) {
 
   const refresh = useCallback(async () => {
     const [tablesResponse, sessionsResponse, menuResponse] = await Promise.all([
-      supabase.from('restaurant_tables').select('*')
-        .eq('shop_id', shopId).eq('active', true).order('label').limit(1000),
-      supabase.from('restaurant_table_sessions').select('*')
-        .eq('shop_id', shopId).in('status', ['collecting', 'submitted'])
-        .order('created_at', { ascending: false }).limit(1000),
-      supabase.from('restaurant_menu_items').select('*')
-        .eq('shop_id', shopId).order('name').limit(1000),
+      supabase
+        .from('restaurant_tables')
+        .select('*')
+        .eq('shop_id', shopId)
+        .eq('active', true)
+        .order('label')
+        .limit(1000),
+      supabase
+        .from('restaurant_table_sessions')
+        .select('*')
+        .eq('shop_id', shopId)
+        .in('status', ['collecting', 'submitted'])
+        .order('created_at', { ascending: false })
+        .limit(1000),
+      supabase
+        .from('restaurant_menu_items')
+        .select('*')
+        .eq('shop_id', shopId)
+        .order('name')
+        .limit(1000),
     ])
     if (tablesResponse.error || sessionsResponse.error || menuResponse.error)
       throw new Error('Impossible de lire les tables, les additions ou la carte.')
-    if ((tablesResponse.data?.length ?? 0) >= 1000
-        || (sessionsResponse.data?.length ?? 0) >= 1000
-        || (menuResponse.data?.length ?? 0) >= 1000)
+    if (
+      (tablesResponse.data?.length ?? 0) >= 1000 ||
+      (sessionsResponse.data?.length ?? 0) >= 1000 ||
+      (menuResponse.data?.length ?? 0) >= 1000
+    )
       throw new Error('Liste incomplète : la caisse est bloquée jusqu’à récupération intégrale.')
 
     const active = sessionsResponse.data ?? []
-    const sessionIds = active.map(row => row.id)
+    const sessionIds = active.map((row) => row.id)
     let recentParticipants: Participant[] = []
     let recentLines: Line[] = []
     let recentPayments: Payment[] = []
     if (sessionIds.length) {
       const [participantsResponse, linesResponse, paymentsResponse] = await Promise.all([
-        supabase.from('restaurant_participants').select('*')
-          .eq('shop_id', shopId).in('session_id', sessionIds)
-          .order('created_at', { ascending: true }).limit(1000),
-        supabase.from('restaurant_session_lines').select('*')
-          .eq('shop_id', shopId).in('session_id', sessionIds)
-          .order('created_at', { ascending: true }).limit(1000),
-        supabase.from('restaurant_cash_payments').select('*')
-          .eq('shop_id', shopId).in('session_id', sessionIds).limit(1000),
+        supabase
+          .from('restaurant_participants')
+          .select('*')
+          .eq('shop_id', shopId)
+          .in('session_id', sessionIds)
+          .order('created_at', { ascending: true })
+          .limit(1000),
+        supabase
+          .from('restaurant_session_lines')
+          .select('*')
+          .eq('shop_id', shopId)
+          .in('session_id', sessionIds)
+          .order('created_at', { ascending: true })
+          .limit(1000),
+        supabase
+          .from('restaurant_cash_payments')
+          .select('*')
+          .eq('shop_id', shopId)
+          .in('session_id', sessionIds)
+          .limit(1000),
       ])
       if (participantsResponse.error || linesResponse.error || paymentsResponse.error)
         throw new Error('Impossible de récupérer les lignes et paiements des tables ouvertes.')
-      if ((participantsResponse.data?.length ?? 0)>=1000
-          || (linesResponse.data?.length ?? 0)>=1000
-          || (paymentsResponse.data?.length ?? 0)>=1000)
+      if (
+        (participantsResponse.data?.length ?? 0) >= 1000 ||
+        (linesResponse.data?.length ?? 0) >= 1000 ||
+        (paymentsResponse.data?.length ?? 0) >= 1000
+      )
         throw new Error('Addition incomplète : encaissement bloqué par sécurité.')
       recentParticipants = participantsResponse.data ?? []
       recentLines = linesResponse.data ?? []
@@ -88,7 +117,7 @@ export function RestaurantOrdersPage({ shopId }: { shopId: string }) {
     setLines(recentLines)
     setItems(menuResponse.data ?? [])
     setPayments(recentPayments)
-    setSessionId(old => active.some(row=>row.id===old) ? old : active[0]?.id ?? '')
+    setSessionId((old) => (active.some((row) => row.id === old) ? old : (active[0]?.id ?? '')))
   }, [shopId])
 
   useEffect(() => {
