@@ -22,6 +22,7 @@ vi.mock('../features/arrivals/ArrivalsPage', () => ({
   },
 }))
 vi.mock('../features/expenses/ExpensesPage', () => ({ ExpensesPage: () => <p>page:expenses</p> }))
+vi.mock('../features/staff/EmployeesPage', () => ({ EmployeesPage: () => <p>page:staff</p> }))
 vi.mock('../features/history/HistoryPage', () => ({ HistoryPage: () => <p>page:history</p> }))
 vi.mock('../features/statistics/StatisticsPage', () => ({
   StatisticsPage: () => <p>page:statistics</p>,
@@ -85,6 +86,7 @@ describe('App shell', () => {
       'Arrivages',
       'Ventes',
       'Charges',
+      'Personnel',
       'Bilan',
       'Ma boutique',
       'Conditions d’utilisation',
@@ -137,6 +139,8 @@ describe('App shell', () => {
         .getByRole('navigation', { name: 'Filtrer les arrivages' })
         .querySelector('[aria-current="page"]')?.textContent,
     ).toBe('Tous')
+    await go('#/personnel')
+    expect(screen.getByText('page:staff')).toBeTruthy()
     await go('#/boutique')
     expect(screen.getByText('page:settings')).toBeTruthy()
     expect(document.title).toBe('Ma boutique · COVI')
