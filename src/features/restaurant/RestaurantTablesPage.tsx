@@ -22,8 +22,12 @@ export function RestaurantTablesPage({ shopId }: { shopId: string }) {
   const reload = useCallback(async () => {
     const [tables, active] = await Promise.all([
       supabase.from('restaurant_tables').select('*').eq('shop_id', shopId).order('label'),
-      supabase.from('restaurant_table_sessions').select('*')
-        .eq('shop_id', shopId).in('status', ['collecting', 'submitted']).limit(1000),
+      supabase
+        .from('restaurant_table_sessions')
+        .select('*')
+        .eq('shop_id', shopId)
+        .in('status', ['collecting', 'submitted'])
+        .limit(1000),
     ])
     if (tables.error || active.error) throw new Error('Impossible de synchroniser la salle.')
     if ((tables.data?.length ?? 0) >= 1000 || (active.data?.length ?? 0) >= 1000)
@@ -39,26 +43,41 @@ export function RestaurantTablesPage({ shopId }: { shopId: string }) {
     const sync = async () => {
       try {
         await reload()
-        if (mounted) { setIsError(false); setMessage('') }
+        if (mounted) {
+          setIsError(false)
+          setMessage('')
+        }
       } catch {
         if (mounted) {
           setStatusError(true)
           setIsError(true)
-          setMessage('État de la salle indisponible : aucune table ne sera déclarée libre sans vérification.')
+          setMessage(
+            'État de la salle indisponible : aucune table ne sera déclarée libre sans vérification.',
+          )
         }
       } finally {
         if (mounted) setLoading(false)
       }
     }
     void sync()
-    const interval = window.setInterval(() => { void sync() }, 10000)
-    const channel = supabase.channel(`restaurant-room-${shopId}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'restaurant_table_sessions',
-        filter: `shop_id=eq.${shopId}`,
-      }, () => { void sync() }).subscribe()
+    const interval = window.setInterval(() => {
+      void sync()
+    }, 10000)
+    const channel = supabase
+      .channel(`restaurant-room-${shopId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'restaurant_table_sessions',
+          filter: `shop_id=eq.${shopId}`,
+        },
+        () => {
+          void sync()
+        },
+      )
+      .subscribe()
     return () => {
       mounted = false
       window.clearInterval(interval)
@@ -154,8 +173,8 @@ export function RestaurantTablesPage({ shopId }: { shopId: string }) {
       <Notice tone="calm">
         <p>
           La disponibilité dépend des sessions et de la caisse, jamais d’un clic sur le plan.
-          Actualisation automatique toutes les 10 secondes. Dernière vérification : {syncedAt || 'en attente'}.
-          Si le réseau échoue, les états sont indiqués comme inconnus.
+          Actualisation automatique toutes les 10 secondes. Dernière vérification :{' '}
+          {syncedAt || 'en attente'}. Si le réseau échoue, les états sont indiqués comme inconnus.
         </p>
       </Notice>
       {showForm && (
@@ -194,25 +213,30 @@ export function RestaurantTablesPage({ shopId }: { shopId: string }) {
           <div className="floor-plan" role="group" aria-label="Disposition du restaurant">
             {rows.map((table) => {
               const session = sessions.find((x) => x.table_id === table.id)
-              const state = statusError ? 'État inconnu' : session?.status === 'collecting'
-                ? 'Choix en cours' : session?.status === 'submitted' ? 'Occupée' : 'Libre'
+              const state = statusError
+                ? 'État inconnu'
+                : session?.status === 'collecting'
+                  ? 'Choix en cours'
+                  : session?.status === 'submitted'
+                    ? 'Occupée'
+                    : 'Libre'
               return (
-              <button
-                type="button"
-                key={table.id}
-                aria-label={`Table ${table.label}, ${state}, ${table.capacity} places`}
-                aria-pressed={selected?.id === table.id}
-                className={`floor-plan__table${session || statusError ? ' floor-plan__table--occupied' : ''}`}
-                style={{
-                  left: `${Math.min(80, table.pos_x)}%`,
-                  top: `${Math.min(80, table.pos_y)}%`,
-                }}
-                onClick={() => setSelectedId(table.id)}
-              >
-                Table {table.label}
-                <small>{table.capacity} places</small>
-                <small>{state}</small>
-              </button>
+                <button
+                  type="button"
+                  key={table.id}
+                  aria-label={`Table ${table.label}, ${state}, ${table.capacity} places`}
+                  aria-pressed={selected?.id === table.id}
+                  className={`floor-plan__table${session || statusError ? ' floor-plan__table--occupied' : ''}`}
+                  style={{
+                    left: `${Math.min(80, table.pos_x)}%`,
+                    top: `${Math.min(80, table.pos_y)}%`,
+                  }}
+                  onClick={() => setSelectedId(table.id)}
+                >
+                  Table {table.label}
+                  <small>{table.capacity} places</small>
+                  <small>{state}</small>
+                </button>
               )
             })}
           </div>
@@ -264,8 +288,11 @@ export function RestaurantTablesPage({ shopId }: { shopId: string }) {
                   </p>
                 </div>
                 <span className="muted">
-                  {statusError ? 'État inconnu' : sessions.some((x) => x.table_id === table.id)
-                    ? 'Occupée' : 'Libre'}
+                  {statusError
+                    ? 'État inconnu'
+                    : sessions.some((x) => x.table_id === table.id)
+                      ? 'Occupée'
+                      : 'Libre'}
                 </span>
               </li>
             ))}

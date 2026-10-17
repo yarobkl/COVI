@@ -98,8 +98,12 @@ export function RestaurantMenuPage({ shopId }: { shopId: string }) {
   async function adjustDrinkStock(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!adjustItemId || busy) return
-    if (!Number.isInteger(adjustDelta) || adjustDelta===0 || Math.abs(adjustDelta)>1000000
-        || adjustReason.trim().length<3) {
+    if (
+      !Number.isInteger(adjustDelta) ||
+      adjustDelta === 0 ||
+      Math.abs(adjustDelta) > 1000000 ||
+      adjustReason.trim().length < 3
+    ) {
       setIsError(true)
       setMessage('Indiquez un mouvement non nul et son motif.')
       return
@@ -120,7 +124,9 @@ export function RestaurantMenuPage({ shopId }: { shopId: string }) {
       setMessage('Mouvement de boisson enregistré dans l’historique.')
     } catch {
       setIsError(true)
-      setMessage('Mouvement refusé : le stock ne peut pas être négatif ni inférieur aux quantités réservées.')
+      setMessage(
+        'Mouvement refusé : le stock ne peut pas être négatif ni inférieur aux quantités réservées.',
+      )
     } finally {
       setBusy(false)
     }
@@ -236,7 +242,9 @@ export function RestaurantMenuPage({ shopId }: { shopId: string }) {
               />
             </label>
             <div className="row-actions">
-              <Button variant="primary" type="submit" busy={busy}>Enregistrer le mouvement</Button>
+              <Button variant="primary" type="submit" busy={busy}>
+                Enregistrer le mouvement
+              </Button>
               <Button onClick={() => setAdjustItemId(null)}>Annuler</Button>
             </div>
           </form>
@@ -278,9 +286,9 @@ export function RestaurantMenuPage({ shopId }: { shopId: string }) {
         )}
       </Sheet>
       <p className="muted">
-        Les ajustements sont tracés. Lorsqu’une boisson est réservée pour une commande,
-        son stock disponible est réduit ; son stock réel est débité une seule fois au service.
-        Le QR public reste en préparation.
+        Les ajustements sont tracés. Lorsqu’une boisson est réservée pour une commande, son stock
+        disponible est réduit ; son stock réel est débité une seule fois au service. Le QR public
+        reste en préparation.
       </p>
     </div>
   )
