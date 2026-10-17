@@ -16,11 +16,12 @@ begin
 end $$;
 insert into auth.users(id) values
 ('00000000-0000-0000-0000-0000000000c1'),
-('00000000-0000-0000-0000-0000000000c2');
+('00000000-0000-0000-0000-0000000000c2'),
+('00000000-0000-0000-0000-0000000000c3');
 insert into public.shops(id,owner_id,name,business_kind) values
 ('10000000-0000-0000-0000-0000000000c1','00000000-0000-0000-0000-0000000000c1','Restaurant A','restaurant'),
 ('10000000-0000-0000-0000-0000000000c2','00000000-0000-0000-0000-0000000000c2','Restaurant B','restaurant'),
-('10000000-0000-0000-0000-0000000000c3','00000000-0000-0000-0000-0000000000c1','Salon A','salon');
+('10000000-0000-0000-0000-0000000000c3','00000000-0000-0000-0000-0000000000c3','Salon C','salon');
 select pg_temp.check(
  not has_table_privilege('anon','public.restaurant_tables','select')
  and not has_table_privilege('anon','public.restaurant_menu_items','select')
@@ -38,8 +39,7 @@ insert into public.restaurant_tables(shop_id,label,capacity)
 values('10000000-0000-0000-0000-0000000000c1','04',4);
 insert into public.restaurant_menu_items(shop_id,name,category,kind,price_xaf,drink_stock)
 values('10000000-0000-0000-0000-0000000000c1','Jus maison','Boissons','drink',1000,8);
-insert into public.salon_services(shop_id,name,price_xaf,duration_minutes)
-values('10000000-0000-0000-0000-0000000000c3','Tresses',10000,90);
+-- Salon C is owned by a different account; never writable by Restaurant A.
 select pg_temp.check(
  (select count(*) from public.restaurant_tables where shop_id='10000000-0000-0000-0000-0000000000c1')=1,
  'owner can see his table'
@@ -56,6 +56,11 @@ select pg_temp.check(
  (select count(*) from public.restaurant_tables where shop_id='10000000-0000-0000-0000-0000000000c2')=0,
  'shop B has no exposed rows'
 );
+select pg_temp.expect_denied($
+ insert into public.salon_services(shop_id,name,price_xaf,duration_minutes)
+ values('10000000-0000-0000-0000-0000000000c3','Tresses',10000,90)
+$, 'owner A cannot create salon C services');
+
 reset role;
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000c2',true);
 set local role authenticated;
