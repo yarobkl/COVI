@@ -8,6 +8,201 @@ export type Database = {
   }
   public: {
     Tables: {
+      restaurant_table_sessions: {
+        Row: {
+          id: string
+          shop_id: string
+          table_id: string
+          status: string
+          guest_count: number
+          order_number: number | null
+          order_reference: string | null
+          created_at: string
+          submitted_at: string | null
+          closed_at: string | null
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          table_id: string
+          status?: string
+          guest_count?: number
+          order_number?: number | null
+          order_reference?: string | null
+          created_at?: string
+          submitted_at?: string | null
+          closed_at?: string | null
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          table_id?: string
+          status?: string
+          guest_count?: number
+          order_number?: number | null
+          order_reference?: string | null
+          created_at?: string
+          submitted_at?: string | null
+          closed_at?: string | null
+        }
+        Relationships: []
+      }
+      restaurant_participants: {
+        Row: {
+          id: string
+          shop_id: string
+          session_id: string
+          participant_token: string
+          ready: boolean
+          is_leader: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          session_id: string
+          participant_token?: string
+          ready?: boolean
+          is_leader?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          session_id?: string
+          participant_token?: string
+          ready?: boolean
+          is_leader?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      restaurant_session_lines: {
+        Row: {
+          id: string
+          shop_id: string
+          session_id: string
+          participant_id: string | null
+          menu_item_id: string
+          quantity: number
+          unit_price_xaf: number
+          status: string
+          created_by: string | null
+          created_at: string
+          served_at: string | null
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          session_id: string
+          participant_id?: string | null
+          menu_item_id: string
+          quantity: number
+          unit_price_xaf: number
+          status?: string
+          created_by?: string | null
+          created_at?: string
+          served_at?: string | null
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          session_id?: string
+          participant_id?: string | null
+          menu_item_id?: string
+          quantity?: number
+          unit_price_xaf?: number
+          status?: string
+          created_by?: string | null
+          created_at?: string
+          served_at?: string | null
+        }
+        Relationships: []
+      }
+      restaurant_order_counters: {
+        Row: {
+          shop_id: string
+          next_number: number
+        }
+        Insert: {
+          shop_id: string
+          next_number: number
+        }
+        Update: {
+          shop_id?: string
+          next_number?: number
+        }
+        Relationships: []
+      }
+      restaurant_cash_payments: {
+        Row: {
+          id: string
+          shop_id: string
+          session_id: string
+          operation_id: string
+          amount_xaf: number
+          method: string
+          confirmed_by: string
+          confirmed_at: string
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          session_id: string
+          operation_id: string
+          amount_xaf: number
+          method: string
+          confirmed_by: string
+          confirmed_at?: string
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          session_id?: string
+          operation_id?: string
+          amount_xaf?: number
+          method?: string
+          confirmed_by?: string
+          confirmed_at?: string
+        }
+        Relationships: []
+      }
+      restaurant_drink_movements: {
+        Row: {
+          id: string
+          shop_id: string
+          session_id: string
+          line_id: string
+          menu_item_id: string
+          quantity_delta: number
+          stock_after: number
+          created_by: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          session_id: string
+          line_id: string
+          menu_item_id: string
+          quantity_delta: number
+          stock_after: number
+          created_by: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          session_id?: string
+          line_id?: string
+          menu_item_id?: string
+          quantity_delta?: number
+          stock_after?: number
+          created_by?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       restaurant_tables: {
         Row: {
           id: string
@@ -534,6 +729,38 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      restaurant_open_table: {
+        Args: { p_shop: string; p_table: string; p_guest_count: number }
+        Returns: string
+      }
+      restaurant_add_participant: {
+        Args: { p_shop: string; p_session: string }
+        Returns: string
+      }
+      restaurant_choose_item: {
+        Args: { p_shop: string; p_session: string; p_participant: string; p_item: string; p_quantity: number }
+        Returns: string | null
+      }
+      restaurant_mark_ready: {
+        Args: { p_shop: string; p_session: string; p_participant: string }
+        Returns: boolean
+      }
+      restaurant_submit_group: {
+        Args: { p_shop: string; p_session: string; p_leader: string }
+        Returns: string
+      }
+      restaurant_staff_add_item: {
+        Args: { p_shop: string; p_session: string; p_item: string; p_quantity: number }
+        Returns: string
+      }
+      restaurant_mark_served: {
+        Args: { p_shop: string; p_line: string }
+        Returns: void
+      }
+      restaurant_capture_cash: {
+        Args: { p_shop: string; p_session: string; p_amount: number; p_operation_id: string }
+        Returns: boolean
+      }
       create_my_shop: {
         Args: {
           p_city?: string
