@@ -7,6 +7,7 @@ import { useCurrentUser } from '../features/auth/useCurrentUser'
 import { DashboardPage } from '../features/dashboard/DashboardPage'
 import { useProfilePhoto } from '../features/profile/useProfilePhoto'
 import { ExpensesPage } from '../features/expenses/ExpensesPage'
+import { EmployeesPage } from '../features/staff/EmployeesPage'
 import { HistoryPage } from '../features/history/HistoryPage'
 import { NotificationBell } from '../features/notifications/NotificationBell'
 import { useShopNotifications } from '../features/notifications/useShopNotifications'
@@ -92,6 +93,8 @@ function renderPage(route: Route, { shop, updateShop, onSimulation, ownerId }: P
       return <HistoryPage shopId={shop.id} ownerId={ownerId} />
     case 'charges':
       return <ExpensesPage shopId={shop.id} />
+    case 'personnel':
+      return <EmployeesPage shopId={shop.id} />
     case 'bilan':
       return <StatisticsPage shopId={shop.id} />
     case 'boutique':
