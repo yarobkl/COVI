@@ -58,7 +58,7 @@ export function AuthGate({
     setLoading(true)
     supabase
       .from('shops')
-      .select('id,name,city,country,currency')
+      .select('id,name,city,country,currency,business_kind')
       .limit(1)
       .maybeSingle()
       .then(({ data, error }) => {
