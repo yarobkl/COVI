@@ -27,6 +27,10 @@ export const pages: Record<PageId, NavEntry> = {
   personnel: { page: 'personnel', label: 'Personnel', icon: PeopleIcon },
   bilan: { page: 'bilan', label: 'Bilan', icon: BarsIcon },
   boutique: { page: 'boutique', label: 'Ma boutique', icon: ShopIcon },
+  'restaurant-tables': { page: 'restaurant-tables', label: 'Plan de salle', icon: BoxIcon },
+  'restaurant-menu': { page: 'restaurant-menu', label: 'Carte & boissons', icon: NotebookIcon },
+  'salon-services': { page: 'salon-services', label: 'Prestations', icon: ReceiptIcon },
+  'salon-bookings': { page: 'salon-bookings', label: 'Rendez-vous', icon: NotebookIcon },
 }
 
 /** Computer « Sommaire », under the « Nouvelle vente » key (which leads to Vendre). */
