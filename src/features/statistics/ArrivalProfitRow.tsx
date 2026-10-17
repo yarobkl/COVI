@@ -36,7 +36,10 @@ export function ArrivalProfitRow({ arrival: x }: { arrival: ArrivalProfit }) {
           }
         />
       </Ledger>
-      <p className="muted">Ce solde mesure la récupération de l’investissement de cet arrivage, pas le bénéfice net de l’entreprise.</p>
+      <p className="muted">
+        Ce solde mesure la récupération de l’investissement de cet arrivage, pas le bénéfice net de
+        l’entreprise.
+      </p>
       {x.cost > 0 && (
         <Ruler
           value={x.recovery}

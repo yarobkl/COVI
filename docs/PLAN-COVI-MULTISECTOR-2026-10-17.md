@@ -238,6 +238,7 @@ COVI devient une plateforme de gestion de petites entreprises, tout en préserva
 10. Paiement complet final : session clôturée et QR immédiatement disponible pour le groupe suivant; anciens participants ne peuvent plus toucher la nouvelle session.
 
 **Validation choisie, essais supplémentaires :**
+
 - Deux clients sur table de quatre, chacun prêt : aucun envoi automatique; seul le responsable déclenche la soumission.
 - Client 2 a scanné en premier, mais client 1 termine ses choix en premier : client 1 reçoit « Vous êtes responsable du groupe » et devient seul autorisé à confirmer.
 - Deux participants cliquent simultanément « J'ai terminé mon choix » : un unique responsable est choisi atomiquement, sans double autorisation ni envoi automatique.
