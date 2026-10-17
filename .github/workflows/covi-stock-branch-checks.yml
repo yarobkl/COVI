@@ -63,3 +63,28 @@ jobs:
           PGDATABASE: covi_ci
           PGPASSWORD: postgres
         run: bash tests/run-postgres-checkout.sh
+
+  pdf-receipt-render:
+    name: Render native PDF receipts without external service
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Ensure a PDF parser and rasterizer are available
+        run: command -v pdfinfo && command -v pdftoppm || (sudo apt-get update -qq && sudo apt-get install -y poppler-utils)
+      - name: Generate synthetic standard and long checkout receipts
+        run: node --experimental-strip-types tests/render-receipt-pdf.mjs "$RUNNER_TEMP/covi-pdfs"
+      - name: Parse, extract and rasterize PDFs
+        run: |
+          set -euo pipefail
+          pdfinfo "$RUNNER_TEMP/covi-pdfs/covi-recu-exemple.pdf" | grep -q "Pages: *1"
+          pdfinfo "$RUNNER_TEMP/covi-pdfs/covi-recu-multipage.pdf" | grep -E "Pages: *[2-9]"
+          pdftotext -layout "$RUNNER_TEMP/covi-pdfs/covi-recu-exemple.pdf" - | grep -q "YARO BOUTIQUE"
+          pdftotext -layout "$RUNNER_TEMP/covi-pdfs/covi-recu-exemple.pdf" - | grep -q "COVI-489A49"
+          pdftoppm -f 1 -l 1 -r 110 -png -singlefile \
+            "$RUNNER_TEMP/covi-pdfs/covi-recu-exemple.pdf" \
+            "$RUNNER_TEMP/covi-pdfs/covi-render"
+          test -s "$RUNNER_TEMP/covi-pdfs/covi-render.png"
