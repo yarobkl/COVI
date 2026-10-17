@@ -31,6 +31,8 @@ export function RestaurantOrdersPage({ shopId }: { shopId: string }) {
   const [itemId, setItemId] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [cash, setCash] = useState('')
+  const [joinCode, setJoinCode] = useState('')
+  const [joinCodeSession, setJoinCodeSession] = useState('')
   const [acknowledgedCash, setAcknowledgedCash] = useState(false)
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -189,7 +191,21 @@ export function RestaurantOrdersPage({ shopId }: { shopId: string }) {
         p_guest_count: people,
       })
       setSessionId(id)
+      setJoinCode('')
+      setJoinCodeSession('')
     }, 'Une session a été ouverte pour cette table.')
+  }
+
+  async function issueJoinCode() {
+    if (!activeSession || activeSession.status !== 'collecting') return
+    await run(async () => {
+      const code = await rpc<string>('restaurant_issue_group_code', {
+        p_shop: shopId,
+        p_session: activeSession.id,
+      })
+      setJoinCode(code)
+      setJoinCodeSession(activeSession.id)
+    }, 'Code de groupe temporaire généré. Donnez-le uniquement aux clients présents.')
   }
 
   async function addChoice(event: FormEvent<HTMLFormElement>) {
@@ -328,6 +344,8 @@ export function RestaurantOrdersPage({ shopId }: { shopId: string }) {
                   value={sessionId}
                   onChange={(e) => {
                     setSessionId(e.target.value)
+                    setJoinCode('')
+                    setJoinCodeSession('')
                     setCash('')
                     setAcknowledgedCash(false)
                   }}
@@ -354,6 +372,22 @@ export function RestaurantOrdersPage({ shopId }: { shopId: string }) {
               </p>
               {activeSession.status === 'collecting' && (
                 <>
+                  <h3 className="section-title">Accès QR des clients</h3>
+                  <p className="muted">
+                    Le QR imprimé identifie la table, mais le panier est protégé par un code
+                    de groupe temporaire. Donnez ce code uniquement aux personnes présentes.
+                    Le portail client doit être activé après les tests de sécurité.
+                  </p>
+                  <Button disabled={busy} onClick={() => void issueJoinCode()}>
+                    Générer un code temporaire du groupe
+                  </Button>
+                  {joinCode && joinCodeSession === activeSession.id && (
+                    <Notice tone="calm">
+                      <p>Code à communiquer au groupe : <strong>{joinCode}</strong></p>
+                      <p>Il expire au bout de trois heures ou lors de la clôture de la table.
+                        Un nouveau code invalide le précédent.</p>
+                    </Notice>
+                  )}
                   <h3 className="section-title">Participants</h3>
                   {group.map((p, i) => (
                     <div className="row-actions" key={p.id}>
