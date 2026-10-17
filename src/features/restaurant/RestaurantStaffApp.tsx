@@ -250,7 +250,9 @@ export function RestaurantStaffApp({
     if (!cancelLineId || cancelReason.trim().length < 5) return
     await run(async () => {
       const { error: rpcError } = await supabase.rpc('restaurant_cancel_order_line', {
-        p_shop: shopId, p_line: cancelLineId, p_reason: cancelReason.trim(),
+        p_shop: shopId,
+        p_line: cancelLineId,
+        p_reason: cancelReason.trim(),
       })
       if (rpcError) throw rpcError
       setCancelLineId('')
@@ -261,7 +263,9 @@ export function RestaurantStaffApp({
     if (active?.state !== 'collecting' || cancelReason.trim().length < 5) return
     await run(async () => {
       const { error: rpcError } = await supabase.rpc('restaurant_cancel_empty_table', {
-        p_shop: shopId, p_session: active.id, p_reason: cancelReason.trim(),
+        p_shop: shopId,
+        p_session: active.id,
+        p_reason: cancelReason.trim(),
       })
       if (rpcError) throw rpcError
       setCancelReason('')
@@ -401,13 +405,22 @@ export function RestaurantStaffApp({
                   )}
                   {active?.state === 'collecting' && (
                     <div className="form-grid">
-                      <label>Motif pour libérer une table sans commande
-                        <input minLength={5} maxLength={240} value={cancelReason}
+                      <label>
+                        Motif pour libérer une table sans commande
+                        <input
+                          minLength={5}
+                          maxLength={240}
+                          value={cancelReason}
                           onChange={(e) => setCancelReason(e.target.value)}
-                          placeholder="Ex. Groupe parti avant commande" />
+                          placeholder="Ex. Groupe parti avant commande"
+                        />
                       </label>
-                      <Button disabled={busy || cancelReason.trim().length < 5}
-                        onClick={() => void cancelEmptyTable()}>Libérer la table</Button>
+                      <Button
+                        disabled={busy || cancelReason.trim().length < 5}
+                        onClick={() => void cancelEmptyTable()}
+                      >
+                        Libérer la table
+                      </Button>
                     </div>
                   )}
                   {active?.state === 'submitted' && (
@@ -442,30 +455,49 @@ export function RestaurantStaffApp({
                   )}
                 </Sheet>
               )}
-              {space.staff_role === 'waiter' && active?.state === 'submitted' &&
-                current.some(l => l.state === 'ordered') && (
-                <Sheet>
-                  <h2 className="section-title">Annuler un article non servi</h2>
-                  <form className="form-grid" onSubmit={(e) => void cancelLine(e)}>
-                    <label>Article
-                      <select value={cancelLineId} onChange={(e) => setCancelLineId(e.target.value)}>
-                        <option value="">Choisir une ligne</option>
-                        {current.filter(l => l.state === 'ordered').map(l =>
-                          <option value={l.id} key={l.id}>{l.quantity} × {l.name}</option>)}
-                      </select>
-                    </label>
-                    <label>Motif obligatoire
-                      <input value={cancelReason} minLength={5} maxLength={240} required
-                        onChange={(e) => setCancelReason(e.target.value)}
-                        placeholder="Ex. Article demandé en erreur" />
-                    </label>
-                    <Button type="submit" busy={busy}
-                      disabled={!cancelLineId || cancelReason.trim().length < 5}>
-                      Annuler la ligne
-                    </Button>
-                  </form>
-                </Sheet>
-              )}
+              {space.staff_role === 'waiter' &&
+                active?.state === 'submitted' &&
+                current.some((l) => l.state === 'ordered') && (
+                  <Sheet>
+                    <h2 className="section-title">Annuler un article non servi</h2>
+                    <form className="form-grid" onSubmit={(e) => void cancelLine(e)}>
+                      <label>
+                        Article
+                        <select
+                          value={cancelLineId}
+                          onChange={(e) => setCancelLineId(e.target.value)}
+                        >
+                          <option value="">Choisir une ligne</option>
+                          {current
+                            .filter((l) => l.state === 'ordered')
+                            .map((l) => (
+                              <option value={l.id} key={l.id}>
+                                {l.quantity} × {l.name}
+                              </option>
+                            ))}
+                        </select>
+                      </label>
+                      <label>
+                        Motif obligatoire
+                        <input
+                          value={cancelReason}
+                          minLength={5}
+                          maxLength={240}
+                          required
+                          onChange={(e) => setCancelReason(e.target.value)}
+                          placeholder="Ex. Article demandé en erreur"
+                        />
+                      </label>
+                      <Button
+                        type="submit"
+                        busy={busy}
+                        disabled={!cancelLineId || cancelReason.trim().length < 5}
+                      >
+                        Annuler la ligne
+                      </Button>
+                    </form>
+                  </Sheet>
+                )}
               {(space.staff_role === 'waiter' || space.staff_role === 'kitchen') && (
                 <Sheet>
                   <h2 className="section-title">Préparation et service</h2>

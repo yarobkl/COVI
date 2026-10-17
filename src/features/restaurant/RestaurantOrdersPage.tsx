@@ -252,7 +252,9 @@ export function RestaurantOrdersPage({ shopId }: { shopId: string }) {
     if (!cancelLineId || cancelReason.trim().length < 5) return
     await run(async () => {
       await rpc('restaurant_cancel_order_line', {
-        p_shop: shopId, p_line: cancelLineId, p_reason: cancelReason.trim(),
+        p_shop: shopId,
+        p_line: cancelLineId,
+        p_reason: cancelReason.trim(),
       })
       setCancelLineId('')
       setCancelReason('')
@@ -260,11 +262,13 @@ export function RestaurantOrdersPage({ shopId }: { shopId: string }) {
   }
 
   async function cancelEmptyTable() {
-    if (!activeSession || activeSession.status !== 'collecting' ||
-        cancelReason.trim().length < 5) return
+    if (!activeSession || activeSession.status !== 'collecting' || cancelReason.trim().length < 5)
+      return
     await run(async () => {
       await rpc('restaurant_cancel_empty_table', {
-        p_shop: shopId, p_session: activeSession.id, p_reason: cancelReason.trim(),
+        p_shop: shopId,
+        p_session: activeSession.id,
+        p_reason: cancelReason.trim(),
       })
       setCancelReason('')
       setJoinCode('')
@@ -571,7 +575,7 @@ export function RestaurantOrdersPage({ shopId }: { shopId: string }) {
                     {formatXaf(BigInt(l.quantity) * BigInt(l.unit_price_xaf))} ·{' '}
                     {l.status === 'draft'
                       ? 'Brouillon'
-                       : l.status === 'served'
+                      : l.status === 'served'
                         ? 'Servi'
                         : l.status === 'cancelled'
                           ? 'Annulé (conservé dans l’historique)'
@@ -592,35 +596,69 @@ export function RestaurantOrdersPage({ shopId }: { shopId: string }) {
                   )}
                 </div>
               ))}
-              {activeSession.status === 'submitted' && activeLines.some(l => l.status === 'ordered') && (
-                <form className="form-grid" onSubmit={(e) => void cancelLine(e)}>
-                  <h3 className="section-title">Corriger une commande non servie</h3>
-                  <p className="muted">Un article déjà servi ne peut pas être annulé. Le serveur recalcule le solde et restitue les boissons réservées.</p>
-                  <label>Article à annuler
-                    <select value={cancelLineId} onChange={(e) => setCancelLineId(e.target.value)}>
-                      <option value="">Choisir une ligne</option>
-                      {activeLines.filter(l => l.status === 'ordered').map(l =>
-                        <option value={l.id} key={l.id}>{l.quantity} × {items.find(i => i.id === l.menu_item_id)?.name ?? 'Article'}</option>)}
-                    </select>
-                  </label>
-                  <label>Motif de la correction
-                    <input minLength={5} maxLength={240} required value={cancelReason}
-                      onChange={(e) => setCancelReason(e.target.value)} placeholder="Ex. Client change d’avis" />
-                  </label>
-                  <Button type="submit" disabled={!cancelLineId || cancelReason.trim().length < 5} busy={busy}>
-                    Annuler cette ligne
-                  </Button>
-                </form>
-              )}
+              {activeSession.status === 'submitted' &&
+                activeLines.some((l) => l.status === 'ordered') && (
+                  <form className="form-grid" onSubmit={(e) => void cancelLine(e)}>
+                    <h3 className="section-title">Corriger une commande non servie</h3>
+                    <p className="muted">
+                      Un article déjà servi ne peut pas être annulé. Le serveur recalcule le solde
+                      et restitue les boissons réservées.
+                    </p>
+                    <label>
+                      Article à annuler
+                      <select
+                        value={cancelLineId}
+                        onChange={(e) => setCancelLineId(e.target.value)}
+                      >
+                        <option value="">Choisir une ligne</option>
+                        {activeLines
+                          .filter((l) => l.status === 'ordered')
+                          .map((l) => (
+                            <option value={l.id} key={l.id}>
+                              {l.quantity} ×{' '}
+                              {items.find((i) => i.id === l.menu_item_id)?.name ?? 'Article'}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                    <label>
+                      Motif de la correction
+                      <input
+                        minLength={5}
+                        maxLength={240}
+                        required
+                        value={cancelReason}
+                        onChange={(e) => setCancelReason(e.target.value)}
+                        placeholder="Ex. Client change d’avis"
+                      />
+                    </label>
+                    <Button
+                      type="submit"
+                      disabled={!cancelLineId || cancelReason.trim().length < 5}
+                      busy={busy}
+                    >
+                      Annuler cette ligne
+                    </Button>
+                  </form>
+                )}
               {activeSession.status === 'collecting' && (
                 <div className="form-grid">
-                  <label>Motif pour libérer une table sans commande
-                    <input minLength={5} maxLength={240} value={cancelReason}
+                  <label>
+                    Motif pour libérer une table sans commande
+                    <input
+                      minLength={5}
+                      maxLength={240}
+                      value={cancelReason}
                       onChange={(e) => setCancelReason(e.target.value)}
-                      placeholder="Ex. Groupe parti avant commande" />
+                      placeholder="Ex. Groupe parti avant commande"
+                    />
                   </label>
-                  <Button disabled={busy || cancelReason.trim().length < 5}
-                    onClick={() => void cancelEmptyTable()}>Libérer la table sans commande</Button>
+                  <Button
+                    disabled={busy || cancelReason.trim().length < 5}
+                    onClick={() => void cancelEmptyTable()}
+                  >
+                    Libérer la table sans commande
+                  </Button>
                 </div>
               )}
               {activeSession.status === 'submitted' && (
