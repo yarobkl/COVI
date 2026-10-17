@@ -8,6 +8,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      restaurant_cash_refunds: {
+        Row: {
+          id: string
+          shop_id: string
+          session_id: string
+          line_id: string
+          incident_id: string
+          operation_id: string
+          amount_xaf: number
+          method: string
+          reason: string
+          confirmed_by: string
+          confirmed_at: string
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          session_id: string
+          line_id: string
+          incident_id: string
+          operation_id: string
+          amount_xaf: number
+          method?: string
+          reason: string
+          confirmed_by: string
+          confirmed_at?: string
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          session_id?: string
+          line_id?: string
+          incident_id?: string
+          operation_id?: string
+          amount_xaf?: number
+          method?: string
+          reason?: string
+          confirmed_by?: string
+          confirmed_at?: string
+        }
+        Relationships: []
+      }
       restaurant_served_incidents: {
         Row: {
           id: string
@@ -879,6 +921,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      restaurant_cash_refund_quote: {
+        Args: { p_shop: string; p_incident: string }
+        Returns: Json
+      }
+      restaurant_confirm_cash_refund: {
+        Args: {
+          p_shop: string
+          p_incident: string
+          p_amount: number
+          p_reason: string
+          p_operation_id: string
+          p_cash_handed_over: boolean
+        }
+        Returns: Json
+      }
       restaurant_report_served_issue: {
         Args: { p_shop: string; p_line: string; p_description: string; p_operation_id: string }
         Returns: Json
