@@ -32,8 +32,8 @@ begin
  v_host:=lower(split_part(split_part(p_endpoint,'/',3),':',1));
  return v_host in ('fcm.googleapis.com','updates.push.services.mozilla.com',
   'web.push.apple.com')
-  or v_host ~ '^[a-z0-9-]+\\.push\\.apple\\.com$'
-  or v_host ~ '^[a-z0-9-]+\\.notify\\.windows\\.com$';
+  or v_host ~ '^[a-z0-9-]+[.]push[.]apple[.]com$'
+  or v_host ~ '^[a-z0-9-]+[.]notify[.]windows[.]com$';
 end; $$;
 revoke all on function public.restaurant_push_endpoint_allowed(text) from public,anon,authenticated;
 -- Registered only after explicit browser consent, one shop and one user.
