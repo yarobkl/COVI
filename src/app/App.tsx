@@ -6,6 +6,7 @@ import { useCurrentUser } from '../features/auth/useCurrentUser'
 import { DashboardPage } from '../features/dashboard/DashboardPage'
 import { useProfilePhoto } from '../features/profile/useProfilePhoto'
 import { ExpensesPage } from '../features/expenses/ExpensesPage'
+import { EmployeesPage } from '../features/staff/EmployeesPage'
 import { HistoryPage } from '../features/history/HistoryPage'
 import { SalePage } from '../features/sale/SalePage'
 import { SettingsPage } from '../features/settings/SettingsPage'
@@ -86,6 +87,12 @@ function renderPage(route: Route, { shop, updateShop, onSimulation }: PageContex
       return (
         <LegacyPage>
           <ExpensesPage shopId={shop.id} />
+        </LegacyPage>
+      )
+    case 'personnel':
+      return (
+        <LegacyPage>
+          <EmployeesPage shopId={shop.id} />
         </LegacyPage>
       )
     case 'bilan':
