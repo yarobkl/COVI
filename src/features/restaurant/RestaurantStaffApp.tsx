@@ -118,6 +118,9 @@ export function RestaurantStaffApp({
   const [joiningCode, setJoiningCode] = useState('')
   const [cancelLineId, setCancelLineId] = useState('')
   const [cancelReason, setCancelReason] = useState('')
+  const [incidentLineId, setIncidentLineId] = useState('')
+  const [incidentDescription, setIncidentDescription] = useState('')
+  const incidentOperation = useRef(crypto.randomUUID())
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -287,6 +290,21 @@ export function RestaurantStaffApp({
       setCancelReason('')
       setJoiningCode('')
     }, 'Table libérée avant commande, avec motif conservé.')
+  }
+  async function reportServedIncident(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (!incidentLineId || incidentDescription.trim().length < 12) return
+    await run(async () => {
+      const { data, error: fault } = await supabase.rpc('restaurant_report_served_issue', {
+        p_shop: shopId, p_line: incidentLineId, p_description: incidentDescription.trim(),
+        p_operation_id: incidentOperation.current,
+      })
+      if (fault) throw fault
+      if (!data) throw Error('Signalement non confirmé.')
+      incidentOperation.current = crypto.randomUUID()
+      setIncidentLineId('')
+      setIncidentDescription('')
+    }, 'Incident enregistré pour examen par le propriétaire. Aucun remboursement effectué.')
   }
   async function served(lineId: string) {
     await run(async () => {
@@ -548,6 +566,36 @@ export function RestaurantStaffApp({
                         ))}
                     </ul>
                   )}
+                </Sheet>
+              )}
+              {active?.state === 'submitted' && current.some(l => l.state === 'served') && (
+                <Sheet>
+                  <h2 className="section-title">Signaler un problème après service</h2>
+                  <p className="muted">Un article servi reste dans l’addition. Le propriétaire examinera le signalement avant toute éventuelle décision financière.</p>
+                  <form className="form-grid" onSubmit={e => void reportServedIncident(e)}>
+                    <label>Article déjà servi
+                      <select value={incidentLineId} onChange={e => {
+                        setIncidentLineId(e.target.value)
+                        incidentOperation.current = crypto.randomUUID()
+                      }}>
+                        <option value="">Choisir un article</option>
+                        {current.filter(l => l.state === 'served').map(l =>
+                          <option value={l.id} key={l.id}>{l.quantity} × {l.name}</option>)}
+                      </select>
+                    </label>
+                    <label>Description du problème
+                      <textarea minLength={12} maxLength={500} required
+                        value={incidentDescription} onChange={e => {
+                          setIncidentDescription(e.target.value)
+                          incidentOperation.current = crypto.randomUUID()
+                        }}
+                        placeholder="Ex. Le client signale un plat non conforme après service" />
+                    </label>
+                    <Button type="submit" busy={busy}
+                      disabled={!incidentLineId || incidentDescription.trim().length < 12}>
+                      Signaler au propriétaire
+                    </Button>
+                  </form>
                 </Sheet>
               )}
               {space.staff_role === 'cashier' && (
