@@ -2,6 +2,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   createPublicCheckoutGateway,
+  decodeReferenceJpeg,
   parseOrder,
 } from '../supabase/functions/public-checkout/gateway.mjs'
 
@@ -18,7 +19,17 @@ const productId = 'aaaaaaaa-0000-4000-8000-000000000001'
 const orderId = 'bbbbbbbb-0000-4000-8000-000000000001'
 const shopId = '11111111-1111-4111-8111-111111111111'
 const trackingToken = 'eeeeeeee-0000-4000-8000-000000000001'
-const jpeg = 'data:image/jpeg;base64,' + btoa(String.fromCharCode(255, 216, 255, 1, 2, 3, 255, 217))
+// Minimal 2x2 JPEG-like fixture with an actual SOF frame + SOS scan.
+// This exercises header validation only: pixels are not decoded by the gateway.
+const bytesForJpeg = () =>
+  Uint8Array.from([
+    0xff, 0xd8, 0xff, 0xe0, 0x00, 0x04, 0x00, 0x00, 0xff, 0xc0, 0x00, 0x0b, 0x08, 0x00, 0x02, 0x00,
+    0x02, 0x01, 0x01, 0x11, 0x00, 0xff, 0xda, 0x00, 0x08, 0x01, 0x01, 0x00, 0x00, 0x3f, 0x00, 0x10,
+    0x20, 0x30, 0x40, 0xff, 0xd9,
+  ])
+const jpegData = (bytes) => 'data:image/jpeg;base64,' + btoa(String.fromCharCode(...bytes))
+const jpeg = jpegData(bytesForJpeg())
+
 const origin = { Origin: 'https://covi.example' }
 const order = {
   token,
@@ -40,6 +51,7 @@ function backend({
   captcha = true,
   hostname = 'covi.example',
   submitError = null,
+  uploadStatus = 200,
 } = {}) {
   const calls = []
   const transport = vi.fn(async (url, init) => {
@@ -70,7 +82,7 @@ function backend({
     if (address.endsWith('attach_public_order_reference'))
       return Response.json(`${shopId}/${orderId}/reference.jpg`)
     if (address.includes('/storage/v1/object/covi-order-references/'))
-      return Response.json({ Key: 'x' })
+      return Response.json({ Key: 'x' }, { status: uploadStatus })
     return Response.json({ message: 'unexpected' }, { status: 500 })
   })
   return { calls, transport }
@@ -145,6 +157,16 @@ describe('passerelle publique des commandes', () => {
     )
   })
 
+  it('n’annonce pas une photo sauvée quand le stockage renvoie une erreur HTTP 400', async () => {
+    const { transport } = backend({ uploadStatus: 400 })
+    const result = await createPublicCheckoutGateway(
+      env,
+      transport,
+    )(post({ ...order, referenceImage: jpeg }))
+    expect(result.status).toBe(200)
+    expect((await result.json()).photoSaved).toBe(false)
+  })
+
   it('refuse un anti-robot invalide ou émis pour un autre domaine', async () => {
     for (const options of [{ captcha: false }, { hostname: 'evil.example' }]) {
       const { transport, calls } = backend(options)
@@ -201,5 +223,42 @@ describe('validation des demandes', () => {
     ).toBeNull()
     expect(parseOrder({ ...order, lines: [{ quantity: 1 }] })).toBeNull()
     expect(parseOrder({ ...order, referenceImage: 'data:image/png;base64,AAAA' })).toBeNull()
+  })
+})
+
+describe('fichiers JPEG envoyés par un client', () => {
+  it('accepte une trame JPEG avec dimensions bornées, sans métadonnées', () => {
+    expect(decodeReferenceJpeg(jpeg)).not.toBeNull()
+  })
+
+  it('rejette un faux JPEG avec uniquement les octets de début et de fin', () => {
+    const fake = jpegData(Uint8Array.from([255, 216, 255, 1, 2, 3, 255, 217]))
+    expect(decodeReferenceJpeg(fake)).toBeNull()
+    expect(parseOrder({ ...order, referenceImage: fake })).toBeNull()
+  })
+
+  it('rejette EXIF, IPTC et commentaires qui peuvent exposer des métadonnées', () => {
+    for (const marker of [0xe1, 0xed, 0xfe]) {
+      const source = bytesForJpeg()
+      const malicious = Uint8Array.from([
+        ...source.slice(0, 2),
+        0xff,
+        marker,
+        0x00,
+        0x04,
+        0x00,
+        0x00,
+        ...source.slice(2),
+      ])
+      expect(decodeReferenceJpeg(jpegData(malicious))).toBeNull()
+    }
+  })
+
+  it('rejette les dimensions excessives malgré un petit fichier compressé', () => {
+    const huge = bytesForJpeg()
+    // SOF width is at bytes 15-16; 4097 exceeds the configured dimension cap.
+    huge[15] = 0x10
+    huge[16] = 0x01
+    expect(decodeReferenceJpeg(jpegData(huge))).toBeNull()
   })
 })
