@@ -374,18 +374,22 @@ export function RestaurantOrdersPage({ shopId }: { shopId: string }) {
                 <>
                   <h3 className="section-title">Accès QR des clients</h3>
                   <p className="muted">
-                    Le QR imprimé identifie la table, mais le panier est protégé par un code
-                    de groupe temporaire. Donnez ce code uniquement aux personnes présentes.
-                    Le portail client doit être activé après les tests de sécurité.
+                    Le QR imprimé identifie la table, mais le panier est protégé par un code de
+                    groupe temporaire. Donnez ce code uniquement aux personnes présentes. Le portail
+                    client doit être activé après les tests de sécurité.
                   </p>
                   <Button disabled={busy} onClick={() => void issueJoinCode()}>
                     Générer un code temporaire du groupe
                   </Button>
                   {joinCode && joinCodeSession === activeSession.id && (
                     <Notice tone="calm">
-                      <p>Code à communiquer au groupe : <strong>{joinCode}</strong></p>
-                      <p>Il expire au bout de trois heures ou lors de la clôture de la table.
-                        Un nouveau code invalide le précédent.</p>
+                      <p>
+                        Code à communiquer au groupe : <strong>{joinCode}</strong>
+                      </p>
+                      <p>
+                        Il expire au bout de trois heures ou lors de la clôture de la table. Un
+                        nouveau code invalide le précédent.
+                      </p>
                     </Notice>
                   )}
                   <h3 className="section-title">Participants</h3>

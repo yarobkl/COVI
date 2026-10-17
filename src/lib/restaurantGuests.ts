@@ -1,11 +1,9 @@
 import { supabaseUrl } from './supabase'
 
-export const restaurantGuestEnabled =
-  import.meta.env.VITE_COVI_RESTAURANT_GUEST_ENABLED === 'true'
+export const restaurantGuestEnabled = import.meta.env.VITE_COVI_RESTAURANT_GUEST_ENABLED === 'true'
 
 export const restaurantGuestUrl =
-  import.meta.env.VITE_COVI_RESTAURANT_GUEST_URL ||
-  `${supabaseUrl}/functions/v1/restaurant-guest`
+  import.meta.env.VITE_COVI_RESTAURANT_GUEST_URL || `${supabaseUrl}/functions/v1/restaurant-guest`
 
 export type GuestLine = {
   itemId: string
@@ -69,5 +67,9 @@ export function saveGuestToken(table: string, token: string) {
   window.sessionStorage.setItem(key(table), token)
 }
 export function clearGuestToken(table: string) {
-  try { window.sessionStorage.removeItem(key(table)) } catch { /* private window */ }
+  try {
+    window.sessionStorage.removeItem(key(table))
+  } catch {
+    /* private window */
+  }
 }
