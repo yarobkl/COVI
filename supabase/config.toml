@@ -16,3 +16,8 @@ verify_jwt = false
 # strictement via la fonction Edge, désactivée par défaut jusqu'à validation.
 [functions.restaurant-qr]
 verify_jwt = false
+
+# Paniers collectifs : fonction invitée sécurisée, jamais de JWT direct au client.
+# Elle ne peut fonctionner qu'avec Turnstile, secret HMAC et activation explicite.
+[functions.restaurant-guest]
+verify_jwt = false
