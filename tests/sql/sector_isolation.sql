@@ -62,6 +62,23 @@ select pg_temp.expect_denied($sql$
 $sql$, 'owner A cannot create salon C services');
 
 reset role;
+-- Superuser-level update still cannot move an item or reassign a permanent printed QR.
+do $
+begin
+  begin
+    update public.restaurant_tables set shop_id='10000000-0000-0000-0000-0000000000c2'
+    where shop_id='10000000-0000-0000-0000-0000000000c1';
+    raise exception 'FAIL: cross-shop reassignment unexpectedly succeeded';
+  exception when check_violation then
+    null;
+  end;
+  begin
+    update public.restaurant_tables set qr_token='swapped' where shop_id='10000000-0000-0000-0000-0000000000c1';
+    raise exception 'FAIL: QR reassignment unexpectedly succeeded';
+  exception when check_violation then
+    null;
+  end;
+end $;
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000c2',true);
 set local role authenticated;
 select pg_temp.check(
