@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Button, Notice } from '../../components/ui'
 import { GuestSheet } from '../orders/GuestSheet'
+import { RestaurantGuestBasket } from './RestaurantGuestBasket'
+import { restaurantGuestEnabled } from '../../lib/restaurantGuests'
 import {
   fetchRestaurantQr,
   type RestaurantQrCatalog,
@@ -70,11 +72,12 @@ export function PublicRestaurantTablePage({ token }: { token: string }) {
             <Notice tone="calm">
               <p>{statusLabels[catalog.tableState]}</p>
               <p>
-                La consultation de la carte est disponible. Les commandes collectives depuis
-                plusieurs téléphones seront activées après les tests de sécurité. Pour commander ou
-                ajouter un plat, adressez-vous au personnel.
+                {restaurantGuestEnabled
+                  ? 'Chaque participant rejoint le groupe avec son code temporaire. La commande part uniquement après validation du responsable.'
+                  : 'La consultation de la carte est disponible. La commande collective par QR sera activée après validation des tests de sécurité. Pour commander, adressez-vous au personnel.'}
               </p>
             </Notice>
+            {restaurantGuestEnabled && <RestaurantGuestBasket table={token} catalog={catalog} />}
             {Object.entries(groups).length === 0 ? (
               <p>Aucun article publié par le restaurant pour l’instant.</p>
             ) : (
