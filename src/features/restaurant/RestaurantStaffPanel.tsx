@@ -274,6 +274,6 @@ export function RestaurantStaffPanel({ shopId }: { shopId: string }) {
         )}
       </Sheet>
       <RestaurantStaffAudit shopId={shopId} />
-  </div>
+    </div>
   )
 }

@@ -7,6 +7,7 @@ aucune fusion sans autorisation explicite. Conserver la direction artistique « 
 ## 1 — Restaurant (EN COURS : services, cuisine et caisse)
 
 ### Implémentation déjà livrée en branche
+
 - Tables, menu/boissons, stocks et plan de salle; moteur de commande et sessions de table.
 - Commandes collectives via QR/code de groupe, responsabilité du premier participant ayant terminé et
   confirmation finale uniquement par ce responsable; fonctions d'admission désactivées par défaut.
@@ -25,6 +26,7 @@ aucune fusion sans autorisation explicite. Conserver la direction artistique « 
 - Espace de travail employé depuis son propre compte COVI (service/cuisine/caisse).
 
 ### Critères pour clôturer le chantier 1
+
 - CI migrations, contrôle statique, tests d'interface et tests SQL en vert sur le dernier commit.
 - Tests sur **plusieurs smartphones/tablettes** avec vrais comptes distincts :
   commandes simultanées, réseau coupé, ajout après envoi, double paiement, double clic, refus de
