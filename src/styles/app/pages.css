@@ -523,3 +523,41 @@
     color: var(--ink-soft);
   }
 }
+
+/* Restaurant: disposition des tables. Reuse paper/ink tokens, not a new theme. */
+@layer app {
+  .floor-plan {
+    position: relative;
+    width: 100%;
+    min-height: 22rem;
+    margin-block: var(--space-4);
+    border: var(--border-field) solid var(--action);
+    border-radius: var(--radius-4);
+    background: var(--sheet);
+    overflow: hidden;
+  }
+  .floor-plan__table {
+    position: absolute;
+    min-width: 4.4rem;
+    min-height: 3.9rem;
+    padding: var(--space-2);
+    color: var(--action);
+    border: var(--border-field) solid var(--action);
+    border-radius: var(--radius-4);
+    background: var(--sheet);
+    font-weight: var(--weight-bold);
+    cursor: pointer;
+  }
+  .floor-plan__table small {
+    display: block;
+    font-weight: var(--weight-regular);
+    font-size: var(--step--1);
+  }
+  .floor-plan__table[aria-pressed='true'] {
+    outline: 3px solid var(--action);
+    outline-offset: 2px;
+  }
+  .floor-plan__table:focus-visible {
+    outline: 3px solid var(--action);
+  }
+}
