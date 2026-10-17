@@ -14,6 +14,7 @@ import { useShopNotifications } from '../features/notifications/useShopNotificat
 import { OrdersPage } from '../features/orders/OrdersPage'
 import { RestaurantTablesPage } from '../features/restaurant/RestaurantTablesPage'
 import { RestaurantMenuPage } from '../features/restaurant/RestaurantMenuPage'
+import { RestaurantOrdersPage } from '../features/restaurant/RestaurantOrdersPage'
 import { SalonServicesPage } from '../features/salon/SalonServicesPage'
 import { SalonBookingsPage } from '../features/salon/SalonBookingsPage'
 import { SectorHomePage } from '../features/sectors/SectorHomePage'
@@ -93,6 +94,8 @@ function renderPage(route: Route, { shop, updateShop, onSimulation, ownerId }: P
       ) : (
         <SectorHomePage shop={shop} />
       )
+    case 'restaurant-orders':
+      return <RestaurantOrdersPage shopId={shop.id} />
     case 'restaurant-tables':
       return <RestaurantTablesPage shopId={shop.id} />
     case 'restaurant-menu':
