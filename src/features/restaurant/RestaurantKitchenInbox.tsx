@@ -8,7 +8,9 @@ import {
 } from '../../lib/kitchenInbox'
 import {
   requestKitchenBrowserAlerts,
+  revokeKitchenBrowserAlerts,
   showKitchenBrowserAlert,
+  type KitchenAlertMode,
 } from '../../lib/kitchenBrowserNotifications'
 
 /** Independent kitchen event inbox. Backlog is kept on the server per staff account. */
@@ -17,7 +19,7 @@ export function RestaurantKitchenInbox({ shopId }: { shopId: string }) {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-  const [browserEnabled, setBrowserEnabled] = useState(false)
+  const [browserMode, setBrowserMode] = useState<KitchenAlertMode>('unavailable')
   const maxArrived = useRef<string | null>(null)
   const permissionEnabled = useRef(false)
 
@@ -71,13 +73,15 @@ export function RestaurantKitchenInbox({ shopId }: { shopId: string }) {
 
   async function enableNotifications() {
     setError('')
-    const granted = await requestKitchenBrowserAlerts()
-    permissionEnabled.current = granted
-    setBrowserEnabled(granted)
+    const mode = await requestKitchenBrowserAlerts(shopId)
+    permissionEnabled.current = mode === 'browser'
+    setBrowserMode(mode)
     setMessage(
-      granted
-        ? 'Alertes navigateur autorisées pendant que COVI peut synchroniser les commandes.'
-        : 'Ce navigateur ne permet pas les alertes, ou la permission a été refusée. La liste Cuisine reste disponible.',
+      mode === 'push'
+        ? 'Web Push enregistré pour ce restaurant et cet appareil. La livraison dépend encore de l’activation du serveur d’envoi.'
+        : mode === 'browser'
+          ? 'Alertes locales autorisées pendant que COVI peut synchroniser. Web Push non configuré ou indisponible.'
+          : 'Permission refusée ou navigateur incompatible. La file Cuisine reste disponible.',
     )
   }
   async function markRead() {
@@ -121,12 +125,22 @@ export function RestaurantKitchenInbox({ shopId }: { shopId: string }) {
           <p>{message}</p>
         </Notice>
       )}
-      <Button onClick={() => void enableNotifications()} disabled={browserEnabled}>
-        {browserEnabled ? 'Alertes navigateur autorisées' : 'Autoriser les alertes du navigateur'}
+      <Button onClick={() => void enableNotifications()} disabled={browserMode !== 'unavailable'}>
+        {browserMode === 'push' ? 'Web Push activé sur cet appareil'
+          : browserMode === 'browser' ? 'Alertes locales autorisées'
+          : 'Autoriser les notifications Cuisine'}
       </Button>
+      {browserMode === 'push' && <Button onClick={() => {
+        void revokeKitchenBrowserAlerts(shopId).then(ok => {
+          setBrowserMode('unavailable')
+          setMessage(ok ? 'Notifications désactivées sur cet appareil.'
+            : 'Appareil désabonné, mais serveur non vérifié : contactez le responsable si nécessaire.')
+        })
+      }}>Désactiver sur cet appareil</Button>}
       <p className="muted">
-        Ces alertes sont possibles tant que la page peut fonctionner en arrière-plan. Elles ne
-        garantissent pas une livraison si l’application est complètement fermée.
+        En mode Web Push, les alertes peuvent atteindre une application fermée si le serveur d’envoi
+        est activé et le système autorise les notifications. Sur iPhone, COVI doit être installée
+        sur l’écran d’accueil. La réception n’est jamais garantie sans réseau.
       </p>
       {!inbox ? (
         <p role="status">Vérification des nouvelles commandes…</p>
