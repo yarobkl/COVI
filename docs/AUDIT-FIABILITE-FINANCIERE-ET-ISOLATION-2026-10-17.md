@@ -4,7 +4,7 @@ Date : 17 octobre 2026. Audit partiel, lecture seule de la production Supabase, 
 
 ## Politique non négociable
 
-> COVI — Outils de gestion opérationnelle, financière et humaine de l’entreprise.
+> COVI — Outils de gestion opérationnelle, financière et humaine des PME
 
 La direction artistique « Le Cahier » est conservée. Aucun déploiement, aucune migration SQL, aucune mutation de données réelles pendant cette phase. Un calcul non démontré exact ne doit **jamais** être étiqueté « bénéfice net », « solde en caisse » ou « rémunération payée ».
 
