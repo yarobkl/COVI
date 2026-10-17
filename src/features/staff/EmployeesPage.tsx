@@ -145,8 +145,8 @@ export function EmployeesPage({ shopId }: { shopId: string }) {
           Salaires fixes prévus par mois : <strong>{money(forecast)}</strong>
         </p>
         <p className="muted">
-          Les commissions variables ne sont pas calculées ici. Aucun salaire n’est déclaré payé
-          et aucune dépense n’est enregistrée automatiquement.
+          Les commissions variables ne sont pas calculées ici. Aucun salaire n’est déclaré payé et
+          aucune dépense n’est enregistrée automatiquement.
         </p>
       </Sheet>
       {showForm && (
@@ -159,30 +159,52 @@ export function EmployeesPage({ shopId }: { shopId: string }) {
             </label>
             <label>
               Poste
-              <input name="job_title" minLength={2} maxLength={100} required
-                placeholder="Ex. Vendeuse, serveur, coiffeuse" />
+              <input
+                name="job_title"
+                minLength={2}
+                maxLength={100}
+                required
+                placeholder="Ex. Vendeuse, serveur, coiffeuse"
+              />
             </label>
             <label>
               Rémunération
-              <select value={mode}
-                onChange={(event) => setMode(event.target.value as CompensationMode)}>
+              <select
+                value={mode}
+                onChange={(event) => setMode(event.target.value as CompensationMode)}
+              >
                 {Object.entries(modeLabels).map(([value, label]) => (
-                  <option value={value} key={value}>{label}</option>
+                  <option value={value} key={value}>
+                    {label}
+                  </option>
                 ))}
               </select>
             </label>
             {mode !== 'commission' && (
               <label>
                 Salaire fixe mensuel (FCFA)
-                <input name="monthly_salary" type="number" min="0" step="1"
-                  required defaultValue="0" />
+                <input
+                  name="monthly_salary"
+                  type="number"
+                  min="0"
+                  step="1"
+                  required
+                  defaultValue="0"
+                />
               </label>
             )}
             {mode !== 'fixed' && (
               <label>
                 Commission prévue (%)
-                <input name="commission_percent" type="number" min="0" max="100"
-                  step="0.01" required defaultValue="0" />
+                <input
+                  name="commission_percent"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  required
+                  defaultValue="0"
+                />
               </label>
             )}
             <div className="form-grid__actions">
@@ -209,19 +231,23 @@ export function EmployeesPage({ shopId }: { shopId: string }) {
             {employees.map((employee) => (
               <li key={employee.id}>
                 <div>
-                  <p><strong>{employee.full_name}</strong> — {employee.job_title}
-                    {!employee.active && ' (inactif)'}</p>
+                  <p>
+                    <strong>{employee.full_name}</strong> — {employee.job_title}
+                    {!employee.active && ' (inactif)'}
+                  </p>
                   <p className="muted">
                     {modeLabels[employee.compensation_mode as CompensationMode] ??
                       employee.compensation_mode}
                     {employee.monthly_salary > 0 &&
                       ` · ${money(Number(employee.monthly_salary))} / mois`}
-                    {employee.commission_percent > 0 &&
-                      ` · ${employee.commission_percent} %`}
+                    {employee.commission_percent > 0 && ` · ${employee.commission_percent} %`}
                   </p>
                 </div>
-                <Button variant="secondary" disabled={busy}
-                  onClick={() => void toggleActive(employee)}>
+                <Button
+                  variant="secondary"
+                  disabled={busy}
+                  onClick={() => void toggleActive(employee)}
+                >
                   {employee.active ? 'Désactiver' : 'Réactiver'}
                 </Button>
               </li>
