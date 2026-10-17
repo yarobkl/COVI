@@ -88,18 +88,23 @@ export function SalonBookingsPage({ shopId }: { shopId: string }) {
     if (busy) return
     setBusy(true)
     try {
-      const { error: updateError } = await supabase
-        .from('salon_booking_requests')
-        .update({ status })
-        .eq('id', b.id)
-        .eq('shop_id', shopId)
+      const { error: updateError } = await supabase.rpc('salon_change_booking_status', {
+        p_shop: shopId,
+        p_booking: b.id,
+        p_status: status,
+      })
       if (updateError) throw updateError
       await refresh()
       setError(false)
       setMessage('Rendez-vous mis à jour.')
-    } catch {
+    } catch (e) {
       setError(true)
-      setMessage('Impossible de modifier ce rendez-vous.')
+      const reason = e instanceof Error ? e.message : String(e)
+      setMessage(
+        reason.includes('already confirmed')
+          ? 'Ce créneau est déjà réservé. Proposez une autre heure au client.'
+          : 'Impossible de modifier le rendez-vous. Vérifiez son état et réessayez.',
+      )
     } finally {
       setBusy(false)
     }
