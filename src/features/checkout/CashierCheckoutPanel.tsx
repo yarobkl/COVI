@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
-import { Button, Stamp } from '../../components/ui'
-import { downloadConfirmedReceiptPdf } from '../../lib/receiptPdf'
+import { Stamp } from '../../components/ui'
+import { ReceiptPdfActions } from './ReceiptPdfActions'
 import { CashierPaymentConfirmationForm } from './CashierPaymentConfirmationForm'
 import { ConfirmedCheckoutTicket } from './ConfirmedCheckoutTicket'
 import {
@@ -83,23 +83,15 @@ function CashierCheckoutPanelInstance({
             lines: receipt.lines,
           }}
         />
-        <Button
-          block
-          variant="secondary"
-          onClick={() =>
-            downloadConfirmedReceiptPdf({
-              shopName,
-              receiptNumber: receipt.receiptNumber,
-              confirmedAt: receipt.confirmedAt,
-              cashierFirstName: receipt.cashierFirstName,
-              method: receipt.method,
-              amountXaf: receipt.amountXaf,
-              lines: receipt.lines,
-            })
-          }
-        >
-          Télécharger le reçu PDF
-        </Button>
+        <ReceiptPdfActions receipt={{
+          shopName,
+          receiptNumber: receipt.receiptNumber,
+          confirmedAt: receipt.confirmedAt,
+          cashierFirstName: receipt.cashierFirstName,
+          method: receipt.method,
+          amountXaf: receipt.amountXaf,
+          lines: receipt.lines,
+        }} />
       </section>
     )
   }
