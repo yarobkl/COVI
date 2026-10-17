@@ -11,3 +11,8 @@ verify_jwt = false
 # Purge nocturne des comptes supprimés : appelée par pg_cron avec son propre jeton (Vault).
 [functions.account-purge]
 verify_jwt = false
+
+# Restaurant : QR d'une table, catalogue et statut uniquement. Accès public en lecture,
+# strictement via la fonction Edge, désactivée par défaut jusqu'à validation.
+[functions.restaurant-qr]
+verify_jwt = false
