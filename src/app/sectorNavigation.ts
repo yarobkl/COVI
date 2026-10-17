@@ -8,6 +8,7 @@ export const sectorOf = (value: string | null | undefined): Sector =>
 
 const restaurantPages = [
   pages.accueil,
+  pages['restaurant-orders'],
   pages['restaurant-tables'],
   pages['restaurant-menu'],
   pages.personnel,
@@ -34,7 +35,7 @@ export function navigationFor(kind: Sector): {
       sommaire: restaurantPages,
       bottomBar: restaurantPages.slice(0, 3),
       morePages: restaurantPages.slice(3),
-      primary: 'restaurant-tables',
+      primary: 'restaurant-orders',
     }
   if (kind === 'salon')
     return {
@@ -48,5 +49,5 @@ export function navigationFor(kind: Sector): {
 
 export const availableInSector = (kind: Sector, page: PageId) =>
   kind === 'retail'
-    ? !['restaurant-tables', 'restaurant-menu', 'salon-services', 'salon-bookings'].includes(page)
+    ? !['restaurant-orders', 'restaurant-tables', 'restaurant-menu', 'salon-services', 'salon-bookings'].includes(page)
     : navigationFor(kind).sommaire.some((x) => x.page === page)
