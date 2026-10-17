@@ -8,6 +8,168 @@ export type Database = {
   }
   public: {
     Tables: {
+      restaurant_tables: {
+        Row: {
+          id: string
+          shop_id: string
+          label: string
+          zone: string
+          capacity: number
+          pos_x: number
+          pos_y: number
+          qr_token: string
+          active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          label: string
+          zone?: string
+          capacity?: number
+          pos_x?: number
+          pos_y?: number
+          qr_token?: string
+          active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          label?: string
+          zone?: string
+          capacity?: number
+          pos_x?: number
+          pos_y?: number
+          qr_token?: string
+          active?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      restaurant_menu_items: {
+        Row: {
+          id: string
+          shop_id: string
+          name: string
+          category: string
+          kind: string
+          price_xaf: number
+          available: boolean
+          drink_stock: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          name: string
+          category: string
+          kind: string
+          price_xaf: number
+          available?: boolean
+          drink_stock?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          name?: string
+          category?: string
+          kind?: string
+          price_xaf?: number
+          available?: boolean
+          drink_stock?: number | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      salon_services: {
+        Row: {
+          id: string
+          shop_id: string
+          name: string
+          price_xaf: number
+          duration_minutes: number
+          active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          name: string
+          price_xaf: number
+          duration_minutes: number
+          active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          name?: string
+          price_xaf?: number
+          duration_minutes?: number
+          active?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      salon_booking_links: {
+        Row: {
+          shop_id: string
+          public_token: string
+          enabled: boolean
+          created_at: string
+        }
+        Insert: {
+          shop_id: string
+          public_token?: string
+          enabled?: boolean
+          created_at?: string
+        }
+        Update: {
+          shop_id?: string
+          public_token?: string
+          enabled?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      salon_booking_requests: {
+        Row: {
+          id: string
+          shop_id: string
+          service_id: string | null
+          first_name: string
+          last_name: string
+          phone: string
+          requested_at: string
+          status: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          service_id?: string | null
+          first_name: string
+          last_name: string
+          phone: string
+          requested_at: string
+          status?: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          service_id?: string | null
+          first_name?: string
+          last_name?: string
+          phone?: string
+          requested_at?: string
+          status?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       employees: {
         Row: {
           id: string
