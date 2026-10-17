@@ -22,7 +22,7 @@ insert into public.restaurant_menu_items(id,shop_id,name,category,kind,price_xaf
 do $secure$
 begin
  if has_function_privilege('anon','public.restaurant_kitchen_inbox(uuid)','execute')
- or has_function_privilege('anon','public.restaurant_kitchen_acknowledge(uuid,bigint)','execute')
+ or has_function_privilege('anon','public.restaurant_kitchen_acknowledge(uuid,text)','execute')
  then raise exception 'Anonymous visitor can access kitchen inbox';end if;
 end $secure$;
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000c1',true);
@@ -57,14 +57,14 @@ begin
   or inbox->'events'->0 ? 'participantToken'
  then raise exception 'Kitchen feed missing item or revealing private information';end if;
  signal:=inbox->'events'->0->>'id';
- if public.restaurant_kitchen_acknowledge(sh,signal::bigint)<>signal
+ if public.restaurant_kitchen_acknowledge(sh,signal)<>signal
  then raise exception 'First acknowledgement failed';end if;
  if jsonb_array_length((public.restaurant_kitchen_inbox(sh))->'events')<>0
  then raise exception 'Acknowledged dish is still unread';end if;
- if public.restaurant_kitchen_acknowledge(sh,signal::bigint)<>signal then
+ if public.restaurant_kitchen_acknowledge(sh,signal)<>signal then
   raise exception 'Duplicate acknowledgement moved cursor';end if;
  begin
-  perform public.restaurant_kitchen_acknowledge(sh,999999999);
+  perform public.restaurant_kitchen_acknowledge(sh,'999999999');
   raise exception 'Fictitious future kitchen event acknowledged';
  exception when raise_exception then
   if sqlerrm not like '%does not belong%' then raise;end if;end;
@@ -113,7 +113,7 @@ begin
   raise exception 'Other owner can read kitchen outbox directly';end if;
  begin
   perform public.restaurant_kitchen_acknowledge(
-    '10000000-0000-0000-0000-0000000000c1',1);
+    '10000000-0000-0000-0000-0000000000c1','1');
   raise exception 'Other restaurant can acknowledge a kitchen event';
  exception when insufficient_privilege then null;end;
 end $other$;
