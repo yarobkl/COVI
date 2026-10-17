@@ -1,6 +1,8 @@
 -- Restaurant cash refunds: append-only evidence for actual cash returned to client.
 -- Owner attestation only. Never infer a refund from an incident-review decision.
 -- This migration is for disposable CI / non-production branch ONLY.
+-- Enable strict tenant composite FK before creating the refund register.
+alter table public.restaurant_served_incidents add constraint restaurant_incident_shop_id_key unique(shop_id,id);
 create table public.restaurant_cash_refunds (
   id uuid primary key default gen_random_uuid(),
   shop_id uuid not null,
@@ -20,7 +22,6 @@ create table public.restaurant_cash_refunds (
   foreign key(shop_id,incident_id) references public.restaurant_served_incidents(shop_id,id)
 );
 -- Existing incident PK is id; add composite tenant key for a strict cross-tenant FK.
-alter table public.restaurant_served_incidents add constraint restaurant_incident_shop_id_key unique(shop_id,id);
 create index restaurant_refunds_session on public.restaurant_cash_refunds(shop_id,session_id);
 create index restaurant_refunds_line on public.restaurant_cash_refunds(shop_id,line_id);
 alter table public.restaurant_cash_refunds enable row level security;
