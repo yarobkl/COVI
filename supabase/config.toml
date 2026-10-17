@@ -21,3 +21,8 @@ verify_jwt = false
 # Elle ne peut fonctionner qu'avec Turnstile, secret HMAC et activation explicite.
 [functions.restaurant-guest]
 verify_jwt = false
+
+# Push Cuisine : seul un ordonnanceur serveur muni du secret peut exécuter
+# les envois. La passerelle contrôle son propre bearer avant toute lecture.
+[functions.restaurant-kitchen-push]
+verify_jwt = false
