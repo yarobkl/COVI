@@ -434,16 +434,16 @@ export function App({
           </ul>
           <div className="menu-sheet__foot">
             {sector === 'retail' && (
-            <button
-              type="button"
-              className="btn btn--ghost"
-              onClick={() => {
-                setMenuOpen(false)
-                onSimulation()
-              }}
-            >
-              Voir une boutique d’exemple
-            </button>
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={() => {
+                  setMenuOpen(false)
+                  onSimulation()
+                }}
+              >
+                Voir une boutique d’exemple
+              </button>
             )}
             <Button variant="danger" onClick={askSignOut}>
               Se déconnecter
