@@ -37,7 +37,7 @@ export async function shareReceiptPdf(receipt: PdfReceiptData): Promise<PdfShare
   const filename = receiptPdfFileName(receipt.receiptNumber)
   const file = new File([pdf], filename, { type: 'application/pdf' })
 
-  let supported = false
+  let supported: boolean
   try {
     supported = typeof navigator.share === 'function' &&
       (typeof navigator.canShare !== 'function' || navigator.canShare({ files: [file] }))
