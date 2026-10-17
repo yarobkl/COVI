@@ -31,9 +31,9 @@ begin
  -- Both rows are counted even for failed codes/credentials. A concurrent
  -- request is serialized on the same unique tuple, never overshoots.
  for v_scope,v_key,v_max in
-   select 'qr',p_qr_hmac,case when p_operation='join' then 80 else 1500 end
+   select 'qr',p_qr_hmac,case when p_operation='join' then 80 else 5000 end
    union all
-   select 'source',p_source_hmac,case when p_operation='join' then 12 else 240 end
+   select 'source',p_source_hmac,case when p_operation='join' then 12 else 2000 end
  loop
   insert into public.restaurant_guest_gateway_limits(scope,operation,fingerprint,bucket,calls)
   values(v_scope,p_operation,v_key,v_bucket,1)
