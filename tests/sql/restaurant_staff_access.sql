@@ -41,12 +41,19 @@ begin
  if v->>'ok'<>'true' then raise exception 'Cannot join the authorized restaurant';end if;
  if (select count(*) from public.restaurant_staff_my_spaces())<>1 then
   raise exception 'Staff work space missing';end if;
- if not public.restaurant_staff_allowed('10000000-0000-0000-0000-0000000000a1','staff_add_item')
-   or not public.restaurant_staff_allowed('10000000-0000-0000-0000-0000000000a1','issue_group_code')
-   or public.restaurant_staff_allowed('10000000-0000-0000-0000-0000000000a1','capture_cash')
-   or public.restaurant_staff_allowed('10000000-0000-0000-0000-0000000000a1','unknown')
-   or public.restaurant_staff_allowed('10000000-0000-0000-0000-0000000000a2','staff_add_item') then
-  raise exception 'Waiter permissions/tenant invalid';end if;
+ if public.restaurant_staff_room('10000000-0000-0000-0000-0000000000a1')->>'role'<>'waiter' then
+  raise exception 'Waiter workspace/role invalid'; end if;
+ begin
+  perform public.restaurant_staff_room('10000000-0000-0000-0000-0000000000a2');
+  raise exception 'Waiter read another restaurant';
+ exception when insufficient_privilege then null;
+ end;
+ begin
+  perform public.restaurant_capture_cash('10000000-0000-0000-0000-0000000000a1',
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',100,'40000000-0000-0000-0000-0000000000a1');
+  raise exception 'Waiter allowed to capture cash';
+ exception when insufficient_privilege then null;
+ end;
  -- Each failure must be persisted, not rolled back after a raised SQL exception.
  if (public.restaurant_staff_join('00000000000000000000000000000000'))->>'ok'<>'false' then
   raise exception 'Bad code accepted';end if;
@@ -66,10 +73,15 @@ declare v jsonb;
 begin
  v:=public.restaurant_staff_join(current_setting('app.staff_cashier_code'));
  if v->>'staffRole'<>'cashier' then raise exception 'Incorrect cashier role'; end if;
- if not public.restaurant_staff_allowed('10000000-0000-0000-0000-0000000000a1','capture_cash')
-   or public.restaurant_staff_allowed('10000000-0000-0000-0000-0000000000a1','staff_add_item')
-   or public.restaurant_staff_allowed('10000000-0000-0000-0000-0000000000a1','mark_served') then
-  raise exception 'Cashier permissions invalid'; end if;
+ if public.restaurant_staff_room('10000000-0000-0000-0000-0000000000a1')->>'role'<>'cashier' then
+  raise exception 'Cashier workspace invalid';end if;
+ begin
+  perform public.restaurant_staff_add_item('10000000-0000-0000-0000-0000000000a1',
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',1);
+  raise exception 'Cashier allowed to change food order';
+ exception when insufficient_privilege then null;
+ end;
 end $cashier$;
 reset role;
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000a2',true);
@@ -105,8 +117,7 @@ select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000a3'
 set local role authenticated;
 do $revoked$
 begin
- if public.restaurant_staff_allowed('10000000-0000-0000-0000-0000000000a1','staff_add_item')
-  or (select count(*) from public.restaurant_staff_my_spaces())<>0 then
+ if (select count(*) from public.restaurant_staff_my_spaces())<>0 then
   raise exception 'Disabled staff still has permissions';end if;
 end $revoked$;
 rollback;
