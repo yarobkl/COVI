@@ -13,6 +13,8 @@ const eventLabels: Record<string, string> = {
   group_code_issued: 'Code de groupe généré',
   line_added: 'Article ajouté',
   line_served: 'Article servi',
+  line_cancelled: 'Article annulé (motif enregistré)',
+  table_cancelled: 'Table libérée après annulation',
   payment_confirmed: 'Encaissement confirmé',
 }
 const pageSize = 50
