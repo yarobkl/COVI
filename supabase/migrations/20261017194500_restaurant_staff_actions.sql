@@ -115,7 +115,7 @@ begin
   where id=p_line and shop_id=p_shop;
  insert into public.restaurant_staff_events(shop_id,session_id,line_id,actor_user_id,event_type)
  values(p_shop,v_session,p_line,auth.uid(),'line_served');
-end; $;
+end; $$;
 
 create or replace function public.restaurant_capture_cash(
  p_shop uuid,p_session uuid,p_amount bigint,p_operation_id uuid
