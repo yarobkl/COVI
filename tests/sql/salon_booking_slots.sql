@@ -38,8 +38,17 @@ begin
   raise exception 'Adjacent booking at end should not overlap'; end if;
  if public.salon_change_booking_status(s,a,'cancelled')<>'cancelled' then
   raise exception 'Cancel should be accepted'; end if;
+ -- B still conflicts with C, which remains confirmed even after A is cancelled.
+ begin
+  perform public.salon_change_booking_status(s,b,'confirmed');
+  raise exception 'Overlap with C incorrectly allowed';
+ exception when raise_exception then
+  if sqlerrm not like '%already confirmed%' then raise; end if;
+ end;
+ if public.salon_change_booking_status(s,c,'cancelled')<>'cancelled' then
+  raise exception 'Cancel C should be accepted'; end if;
  if public.salon_change_booking_status(s,b,'confirmed')<>'confirmed' then
-  raise exception 'Slot not free after cancellation'; end if;
+  raise exception 'Slot should be free when A and C are cancelled'; end if;
  begin
    perform public.salon_change_booking_status(
      '10000000-0000-0000-0000-0000000000e2', b,'completed');
