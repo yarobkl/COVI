@@ -61,7 +61,7 @@ describe('Restaurant guest Edge',()=>{
    const path=new URL(u).pathname;calls.push([path,JSON.parse(options.body)])
    if(path.endsWith('restaurant_guest_rate_gate'))return Response.json(true)
    if(path.endsWith('restaurant_guest_status'))
-    return Response.json({isLeader:true,ready:true,participants:2,
+    return Response.json({groupStatus:'collecting',orderReference:null,isLeader:true,ready:true,participants:2,
       readyParticipants:2,lines:[{itemId:id,name:'Poisson',quantity:1,
         unitPriceXaf:6000,mine:true,employeeName:'private'}],shopId:'private'})
    throw new Error('Unknown route '+path)
