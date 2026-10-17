@@ -96,7 +96,11 @@ function safeGuestResult(action,data){
   for(const l of data.lines)if(!UUID.test(l.itemId)||typeof l.name!=='string'||
    !Number.isInteger(l.quantity)||!Number.isSafeInteger(l.unitPriceXaf)||
    typeof l.mine!=='boolean')return null
-  return {isLeader:data.isLeader,ready:data.ready,
+  if (!['collecting','submitted'].includes(data.groupStatus) ||
+      (data.orderReference !== null &&
+       (typeof data.orderReference !== 'string' || !/^CMD-[0-9]{6,20}$/.test(data.orderReference))))return null
+  return {groupStatus:data.groupStatus,orderReference:data.orderReference,
+   isLeader:data.isLeader,ready:data.ready,
    participants:data.participants,readyParticipants:data.readyParticipants,
    lines:data.lines.map(l=>({itemId:l.itemId,name:l.name,quantity:l.quantity,
     unitPriceXaf:l.unitPriceXaf,mine:l.mine}))}
