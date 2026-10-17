@@ -38,7 +38,7 @@ describe('Restaurant guest Edge', () => {
   })
   it('requires durable quota and correctly verified Turnstile for join', async () => {
     const calls = []
-    const h = createRestaurantGuestGateway(env, async (u, options) => {
+    const h = createRestaurantGuestGateway(env, async (u) => {
       const path = typeof u === 'string' ? u : new URL(u).pathname
       calls.push(path)
       if (path.includes('restaurant_guest_rate_gate')) return Response.json(true)
