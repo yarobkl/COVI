@@ -48,7 +48,7 @@ describe('Kitchen durable inbox', () => {
   })
   it('acknowledging a page preserves undisplayed events', () => {
     const page = readKitchenInbox({ events: [event('3'), event('4')], more: true, lastSeenId: '2' })
-    expect(page.events.at(-1)?.id).toBe('4')
+    expect(page.events[page.events.length - 1]?.id).toBe('4')
     expect(page.more).toBe(true)
   })
 })
