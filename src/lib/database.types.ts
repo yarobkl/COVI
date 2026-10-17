@@ -738,7 +738,13 @@ export type Database = {
         Returns: string
       }
       restaurant_choose_item: {
-        Args: { p_shop: string; p_session: string; p_participant: string; p_item: string; p_quantity: number }
+        Args: {
+          p_shop: string
+          p_session: string
+          p_participant: string
+          p_item: string
+          p_quantity: number
+        }
         Returns: string | null
       }
       restaurant_mark_ready: {

@@ -49,5 +49,11 @@ export function navigationFor(kind: Sector): {
 
 export const availableInSector = (kind: Sector, page: PageId) =>
   kind === 'retail'
-    ? !['restaurant-orders', 'restaurant-tables', 'restaurant-menu', 'salon-services', 'salon-bookings'].includes(page)
+    ? ![
+        'restaurant-orders',
+        'restaurant-tables',
+        'restaurant-menu',
+        'salon-services',
+        'salon-bookings',
+      ].includes(page)
     : navigationFor(kind).sommaire.some((x) => x.page === page)
