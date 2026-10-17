@@ -16,7 +16,7 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
-      - run: npx prettier --write src/features/restaurant/RestaurantOrdersPage.tsx src/lib/database.types.ts src/app/sectorNavigation.ts src/app/App.tsx src/app/App.test.tsx src/app/navigation.ts src/app/routes.ts
+      - run: npx prettier --write src/features/restaurant/*.tsx src/features/salon/*.tsx src/lib/database.types.ts src/app/sectorNavigation.ts src/app/App.tsx src/app/App.test.tsx src/app/navigation.ts src/app/routes.ts
       - run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
