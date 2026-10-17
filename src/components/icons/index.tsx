@@ -228,3 +228,11 @@ export const BellIcon = (p: IconProps) => (
     <path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15ZM10 20.5a2.2 2.2 0 0 0 4 0M12 3.5V5" />
   </Icon>
 )
+
+/** Owner-only employee directory. */
+export const PeopleIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="9" cy="8" r="3" />
+    <path d="M3.5 20v-2.2c0-3.2 2.2-5 5.5-5s5.5 1.8 5.5 5V20M16 5.8a3 3 0 0 1 0 5.8M17.5 13.2c2.3.5 3 2.3 3 4.5V20" />
+  </Icon>
+)

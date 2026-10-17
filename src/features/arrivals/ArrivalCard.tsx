@@ -65,7 +65,7 @@ export function ArrivalCard({
             />
             <LedgerRow
               variant="total"
-              label="Résultat actuel"
+              label="Ventes moins coût total de l’arrivage"
               value={
                 <span className={'figures' + (p.profit < 0 ? ' amount-out' : '')}>
                   {p.profit >= 0 ? '+ ' : ''}

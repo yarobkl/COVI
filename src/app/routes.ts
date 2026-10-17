@@ -9,6 +9,7 @@ export type PageId =
   | 'arrivages'
   | 'ventes'
   | 'charges'
+  | 'personnel'
   | 'bilan'
   | 'boutique'
 
@@ -28,6 +29,7 @@ export const pageIds: readonly PageId[] = [
   'arrivages',
   'ventes',
   'charges',
+  'personnel',
   'bilan',
   'boutique',
 ]

@@ -106,7 +106,7 @@ export function AuthGate({
       // Owned shop only (members may read other rows later): same query as before the team.
       supabase
         .from('shops')
-        .select('id,name,city,country,currency')
+        .select('id,name,city,country,currency,business_kind')
         .eq('owner_id', userId)
         .limit(1)
         .maybeSingle(),

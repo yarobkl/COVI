@@ -8,6 +8,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      employees: {
+        Row: {
+          id: string
+          shop_id: string
+          full_name: string
+          job_title: string
+          compensation_mode: string
+          monthly_salary: number
+          commission_percent: number
+          hired_on: string | null
+          active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          full_name: string
+          job_title: string
+          compensation_mode?: string
+          monthly_salary?: number
+          commission_percent?: number
+          hired_on?: string | null
+          active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          full_name?: string
+          job_title?: string
+          compensation_mode?: string
+          monthly_salary?: number
+          commission_percent?: number
+          hired_on?: string | null
+          active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'employees_shop_id_fkey'
+            columns: ['shop_id']
+            isOneToOne: false
+            referencedRelation: 'shops'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       arrivals: {
         Row: {
           code: string
@@ -274,6 +324,7 @@ export type Database = {
       }
       shops: {
         Row: {
+          business_kind: string
           city: string | null
           country: string | null
           latitude: number | null
@@ -287,6 +338,7 @@ export type Database = {
           owner_id: string
         }
         Insert: {
+          business_kind?: string
           city?: string | null
           country?: string | null
           latitude?: number | null
@@ -300,6 +352,7 @@ export type Database = {
           owner_id: string
         }
         Update: {
+          business_kind?: string
           city?: string | null
           country?: string | null
           latitude?: number | null
@@ -327,6 +380,7 @@ export type Database = {
           p_name: string
         }
         Returns: {
+          business_kind: string
           city: string | null
           country: string | null
           latitude: number | null
@@ -355,6 +409,7 @@ export type Database = {
           p_neighborhood: string
         }
         Returns: {
+          business_kind: string
           city: string | null
           country: string | null
           latitude: number | null
@@ -386,6 +441,40 @@ export type Database = {
           p_location_accuracy_m?: number
         }
         Returns: {
+          business_kind: string
+          city: string | null
+          country: string | null
+          created_at: string
+          currency: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          location_accuracy_m: number | null
+          name: string
+          neighborhood: string | null
+          owner_id: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'shops'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_my_business_with_location: {
+        Args: {
+          p_name: string
+          p_city: string
+          p_country: string
+          p_neighborhood: string
+          p_business_kind: string
+          p_currency?: string
+          p_latitude?: number
+          p_longitude?: number
+          p_location_accuracy_m?: number
+        }
+        Returns: {
+          business_kind: string
           city: string | null
           country: string | null
           created_at: string

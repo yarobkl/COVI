@@ -4,7 +4,10 @@
 import type { Tables } from './database.types'
 
 /** The signed-in owner's shop, as loaded by AuthGate and edited in the settings. */
-export type Shop = Pick<Tables<'shops'>, 'id' | 'name' | 'city' | 'country' | 'currency'>
+export type Shop = Pick<Tables<'shops'>, 'id' | 'name' | 'city' | 'country' | 'currency'> & {
+  /** Optional for legacy tests and snapshots. */
+  business_kind?: string
+}
 
 /** CHECK (kind in ('supplier_order','balloon')). */
 export type ArrivalKind = 'supplier_order' | 'balloon'
