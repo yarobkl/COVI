@@ -2,7 +2,8 @@ import { useEffect, useRef } from 'react'
 import { CloudUpIcon } from '../../components/icons'
 import { Button, ButtonLink, Notice, Stamp, Ticket, TicketLine } from '../../components/ui'
 import { ticketClock, ticketDay } from '../../lib/dates'
-import { fcfa, money, paidWith, plural } from '../../lib/format'
+import { fcfa, money, paidWith, paymentCode, plural } from '../../lib/format'
+import { ReceiptPdfActions } from '../checkout/ReceiptPdfActions'
 import { soldTotal, type SoldLine, type SoldSale } from './cart'
 import { saleOperationReference } from '../../lib/operationReference'
 
@@ -129,6 +130,28 @@ export function SaleDone({
         </Notice>
       )}
       <div className="sale-done__actions">
+        {!sale.offline && operationReference && (
+          <ReceiptPdfActions
+            receipt={{
+              shopName,
+              receiptNumber: operationReference,
+              confirmedAt: sale.at.toISOString(),
+              cashierFirstName: sale.sellerName,
+              method: paymentCode(sale.payment),
+              amountXaf: total,
+              lines: sale.lines.map((line) => ({
+                label: line.product.name,
+                quantity: line.quantity,
+                lineTotalXaf: line.price * line.quantity,
+              })),
+            }}
+          />
+        )}
+        {sale.offline && (
+          <p className="field__hint" role="status">
+            Le PDF sera disponible lorsque la vente aura été enregistrée sur le serveur.
+          </p>
+        )}
         <Button ref={next} variant="sale" size="xl" block onClick={onNext}>
           Vente suivante
         </Button>
