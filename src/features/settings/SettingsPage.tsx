@@ -39,7 +39,7 @@ export function SettingsPage({
     let active = true
     void supabase
       .from('shops')
-      .select('id,name,city,country,currency,neighborhood,latitude,longitude,location_accuracy_m')
+      .select('id,name,city,country,currency,business_kind,neighborhood,latitude,longitude,location_accuracy_m')
       .eq('id', shopId)
       .single()
       .then(({ data, error }) => {
@@ -118,7 +118,7 @@ export function SettingsPage({
         .from('shops')
         .update(payload)
         .eq('id', shopId)
-        .select('id,name,city,country,currency,neighborhood,latitude,longitude,location_accuracy_m')
+        .select('id,name,city,country,currency,business_kind,neighborhood,latitude,longitude,location_accuracy_m')
         .single()
       if (error || !data) {
         setMsg('Impossible d’enregistrer les paramètres. Vérifiez votre connexion puis réessayez.')
