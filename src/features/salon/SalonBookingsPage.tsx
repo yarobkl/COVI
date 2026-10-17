@@ -119,7 +119,10 @@ export function SalonBookingsPage({ shopId }: { shopId: string }) {
               Ce lien identifie uniquement votre salon. Il pourra être encodé dans un QR permanent,
               sans inclure de données clients.
             </p>
-            <p className="muted">Le lien sécurisé de ce salon est réservé, mais la page publique n’est pas encore activée. Ne partagez pas encore ce lien avec les clients.</p>
+            <p className="muted">
+              Le lien sécurisé de ce salon est réservé, mais la page publique n’est pas encore
+              activée. Ne partagez pas encore ce lien avec les clients.
+            </p>
             <Button variant="secondary" disabled title="Réservation publique en préparation">
               Partage disponible après activation
             </Button>
