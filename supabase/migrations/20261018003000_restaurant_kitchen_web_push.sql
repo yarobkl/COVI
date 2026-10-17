@@ -51,7 +51,7 @@ begin
      ))
  ) then raise exception 'Access denied' using errcode='42501';end if;
  if not public.restaurant_push_endpoint_allowed(p_endpoint)
-   or coalesce(p_p256dh,'') !~ '^[A-Za-z0-9_-]{40,256}$'
+   or coalesce(p_p256dh,'') !~ '^[A-Za-z0-9_-]{40,255}$'
    or coalesce(p_auth,'') !~ '^[A-Za-z0-9_-]{12,128}$'
  then raise exception 'Unsupported or malformed browser push subscription';end if;
  select coalesce(max(id),0) into v_cursor from public.restaurant_kitchen_events
