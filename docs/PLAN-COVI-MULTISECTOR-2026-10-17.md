@@ -248,6 +248,80 @@ COVI devient une plateforme de gestion de petites entreprises, tout en préserva
 
 **Statut : règles de conception ajoutées; pas encore développées, aucun déploiement ni changement SQL en production.**
 
+## Gestion commune — exports Excel/PDF, traçabilité et pilotage financier
+
+**Exigence transverse aux boutiques d'habillement, restaurants et salons :** depuis l'administration, le propriétaire télécharge ses vrais registres de gestion au format **Excel .xlsx** ou **PDF .pdf**, pour l'établissement actif ou, s'il est habilité, un bilan consolidé de ses établissements. Ne jamais fabriquer des chiffres ou appeler « Excel » un CSV renommé.
+
+### Filtres et contenu des exports
+
+- Période : jour / semaine / mois / année / dates personnalisées, avec intervalle et fuseau horaire du commerce. Exporter les lignes filtrées, pas uniquement les chiffres visibles à l'écran (pagination).
+- Dimension : établissement, catégorie, article ou prestation, vendeur / caissier / préparateur (selon droits), fournisseur, canal, moyen de paiement, statut, type de mouvement. Chaque fichier reprend période, établissement, devise XAF, date de génération et filtres.
+- **Achats / approvisionnements** : date, numéro interne, fournisseur, articles / ingrédients / boissons, quantités, coût total, frais annexes, mode de règlement si réellement enregistré, personne ayant saisi / réceptionné.
+- **Stock et mouvements** : stock initial, entrées, sorties vendues / servies, réservations de boissons, corrections avec motif, pertes, stock final, responsable, horodatage; éviter les sorties doublées lors du paiement d'une commande déjà servie.
+- **Ventes et encaissements** : référence, date, établissement, table ou client lorsqu'utile, produits / prestations, prix historique, quantité, vendeur / intervenants autorisés, canal QR ou saisie serveur, remise, méthode de paiement, état vérifié, montant encaissé, remboursement / annulation.
+- **Dépenses et charges** : catégorie, libellé, somme, date effective, bénéficiaire / fournisseur lorsque renseigné, référence et justificatifs optionnels.
+- **Personnel / rémunérations** : nombre d'employés (actifs / passés), salaire fixe prévu, variable / commissions calculées, avances, primes, paiements réellement effectués, solde non versé, historique daté; droits stricts sur les noms, montants et documents de rémunération.
+- Exports PDF lisibles (récapitulatif, totaux, tableaux à pagination et dates) et Excel analysables (feuilles distinctes selon rapport, colonnes correctement typées, montants numériques, filtres / sous-totaux); montants toujours sourcés et pas seulement calculés côté navigateur.
+
+### Bilan mensuel et annuel : argent gagné, dépensé et réellement disponible
+
+- Synthèse mensuelle / annuelle : chiffre d'affaires encaissé, ventes non encaissées distinguées, achats de marchandises / matières premières, coût **des biens ou matières réellement consommés** quand calculable, marge brute, dépenses de fonctionnement, salaires réellement versés, commissions payées et résultat opérationnel estimé.
+- Distinguer **bénéfice estimé**, **solde de trésorerie**, **stock encore disponible**, **charges dues** et **salaires prévus/non versés**. « Il me reste tant » ne doit pas confondre cash en caisse, dépenses d'achat de stock et résultat comptable.
+- Afficher pour l'année : nombre d'employés, rémunérations versées, masse salariale prévue, recettes et résultat; si coûts fournisseurs ou inventaires absents, afficher « estimation / donnée manquante » au lieu d'un bénéfice faussement exact.
+- Consolidation multi-établissements seulement après isolation par `shop_id`, et sans compter deux fois transferts internes, avances / salaires ou achats et coûts de ventes.
+- Les paiements de salaire créent une charge **une seule fois lors du décaissement**; ne pas comptabiliser à nouveau la même opération lors de l'export ou de la production de la fiche salarié.
+- Une fiche individuelle / attestation de paie PDF n'est pas automatiquement un bulletin de paie **officiel** : conformité légale et retenues locales du pays d'exploitation à définir séparément.
+
+### Sécurité, robustesse et recette
+
+- Les exports contiennent uniquement les établissements et domaines auxquels le compte a droit; employés sans permission salariale ne peuvent pas exporter les salaires. Auth / permissions vérifiées **côté serveur** aussi pour la génération / récupération de fichier.
+- Journaliser les demandes d'export sensibles, éviter les liens de téléchargement publics durables, ne pas inclure des données client inutiles; suppression / conservation conformes aux règles applicables.
+- En cas de rapport volumineux, générer un fichier paginé / asynchrone avec statut d'avancement, jamais couper silencieusement les lignes à une limite de pagination.
+- Tester par exemple : toutes les dépenses et les 143 mouvements du mois sont exportés sans omissions; total Excel identique au bilan PDF et aux transactions; un caissier ne peut pas exporter la paie d'un autre établissement; deux établissements du propriétaire restent distincts et consolidables explicitement.
+
+**Statut : besoins d'exports et bilans détaillés validés, non développés / non déployés sur cette branche.**
+
+## Restaurant — plan de salle visuel et supervision à distance
+
+**Exigence :** l'administration restaurant présente un **plan de salle en deux dimensions**, à la manière d'une sélection visuelle des places, mais représentant ici les **tables réelles**. Le propriétaire peut voir l'activité à distance depuis un téléphone, une tablette ou un PC, y compris depuis l'étranger avec connexion autorisée.
+
+### Création et configuration du plan
+
+- Chaque restaurant personnalise ses zones (salle intérieure, terrasse, étage, VIP si utiles), crée ses tables, définit nom / numéro et capacité indicative (2 / 4 / 6 / 8 personnes, etc.), puis positionne chaque table sur un plan simple, sauvegardé par `shop_id`.
+- Le plan montre le nombre de places **et le nombre de convives présents**, sans attendre que toutes les places soient occupées pour accepter les commandes. Une table 4 peut avoir 1 ou 2 convives.
+- Vue d'ensemble adaptable au petit écran : table cliquable, panneau de détail montrant numéro, capacité, convives déclarés, nombre de commandes, total dû, statut d'encaissement, heure du premier ordre / occupation, besoins d'intervention éventuels.
+- Les positions et états ne sont **jamais** partagés avec un autre restaurant, même quand les numéros de tables coïncident.
+
+### États distingués
+
+- **Libre** : aucune session active et disponible pour le prochain groupe.
+- **Choix en cours** : panier collectif en composition, table réservée au groupe actuel.
+- **Occupée / en préparation / servie** : une session active existe, table verrouillée pour un nouveau groupe; les serveurs autorisés peuvent ajouter à l'addition.
+- **À encaisser** : service fini et montant dû; table toujours occupée.
+- **Réservée à l'avance** : éventuelle réservation future sur un créneau défini; état **distinct** de l'occupation en temps réel. Une réservation future ne doit pas afficher la table comme physiquement occupée maintenant ni automatiquement débloquer une table impayée. Mettre en place cette couche uniquement si le propriétaire active les réservations de table.
+- Utiliser libellés, icônes et contrastes conformes à la DA « Le Cahier » et à l'accessibilité; ne pas reposer sur une couleur seule.
+
+### Actualisation et véracité des états
+
+- La source de vérité est Supabase : états dérivés de la **session de table et de la caisse validée**, pas d'un simple clic graphique. Réception en temps réel / notifications avec relecture et rafraîchissement de secours, en signalant « données potentiellement anciennes » si le réseau tombe.
+- À l'encaissement total validé, clôture atomique de session → table libre → mise à jour des vues sur tous les écrans, même chez le propriétaire éloigné. Aucun bouton de libération manuelle de routine.
+- Cliquer sur une table depuis le plan ouvre les opérations autorisées : suivi, affectation serveur, demande d'addition, recherche commande, sans permettre aux utilisateurs non habilités d'exposer les identités complètes des employés.
+- Les annulations, départs sans paiement ou incidents déclenchent un traitement exceptionnel réservé au responsable et audité; ne jamais déguiser une table non payée en table « payée ».
+- Multi-appareils concurrents : une seule session active par (restaurant, table), récupération atomique de l'état, aucune collision entre scans QR, serveur et caisse.
+
+### Vérifications avant intégration
+
+1. Le propriétaire place 8 tables sur son plan; leurs positions / capacités sont conservées après reconnexion sur PC et téléphone.
+2. Deux clients occupent une table de quatre; affichage « 2 / 4 présents » et « choix en cours », sans attente de quatre commandes.
+3. Scan QR, confirmation de groupe et commande cuisine font passer le plan aux états corrects en temps réel sur téléphone, PC et tablette.
+4. Serveuse ajoute un dessert; la valeur de l'addition sur le plan se met à jour, sans ouvrir une deuxième table.
+5. Caisse valide un paiement partiel : la table reste « à encaisser ». Paiement final confirmé : elle passe « libre » automatiquement.
+6. Une réservation demain à 20h n'est pas représentée comme une occupation physique aujourd'hui.
+7. Le propriétaire distant perd le réseau : écran signale la dernière actualisation, puis récupère l'état réel au retour du réseau.
+8. Accès au plan d'un autre restaurant impossible côté serveur, même en modifiant l'URL.
+
+**Statut : spécification du plan de salle uniquement; aucun composant n'a été mis en production.**
+
 ## Principe non négociable — QR codes isolés par établissement
 
 **Un QR code = un établissement précis + un usage précis.** Cela concerne la boutique de vêtements, le restaurant et le salon de coiffure, y compris lorsqu'un seul propriétaire possède plusieurs établissements.
