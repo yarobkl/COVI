@@ -80,6 +80,58 @@ COVI devient une plateforme de gestion de petites entreprises, tout en préserva
 
 **Statut : spécification préparatoire, pas encore implémentée ni déployée.**
 
+## Restaurant — commandes numérotées, table et prise de commande par serveur
+
+**Toute commande réelle appartient à un seul restaurant** et reçoit une référence unique et lisible dès sa création effective, que la commande provienne du QR à table, d'une serveuse avec tablette/téléphone/PC, ou du comptoir.
+
+### Une seule source de vérité pour tous les canaux
+
+- Les commandes QR client et les commandes saisies par le personnel suivent **le même cycle métier, la même carte publiée, les mêmes tarifs, contrôles de stock, permissions, historique, caisse et notifications cuisine**. Éviter de créer deux systèmes de commandes parallèles.
+- Les terminaux sont interchangeables : interface responsive tablette, téléphone et PC, éventuellement plusieurs appareils simultanés, avec mise à jour quasi temps réel. Un appareil hors réseau peut conserver un brouillon mais ne prétend pas avoir envoyé une commande au serveur sans accusé de réception.
+- La fiche admin affiche en évidence le **numéro de commande**, le **numéro / nom de table**, l'heure, l'origine (`qr_client`, `serveur`, `comptoir`), le serveur si applicable, les plats et quantités, les notes, le total, l'état cuisine/service et l'état du paiement.
+- Les commandes à emporter/sans table restent possibles et doivent être identifiées explicitement comme telles, jamais attribuées arbitrairement à une table.
+
+### Numérotation fiable
+
+- Chaque commande obtient une **clé interne UUID immuable** et un **numéro commercial lisible**, unique à l'intérieur de son établissement; l'interface admin peut afficher une référence de type `CMD-0042` en exemple, sans jamais dépendre du numéro seul pour des autorisations.
+- Numérotation générée **côté serveur et atomiquement**, avec contrainte d'unicité `(shop_id, order_number)`. Plusieurs commandes simultanées doivent recevoir des références distinctes. Prévoir un identifiant d'opération (idempotence) pour éviter les doubles créations après un rafraîchissement ou un nouvel essai.
+- Un restaurant A et B peuvent tous les deux avoir `CMD-0042`, mais leurs commandes restent parfaitement distinctes par `shop_id` et UUID. Dans les exports multi-restaurants, afficher également le nom et/ou code d'établissement.
+
+### Commande prise par une serveuse
+
+1. La serveuse se connecte à l'espace **de son restaurant** avec une identité/session autorisée sur la tablette ou le téléphone; le propriétaire attribue les droits et le compte/identifiant de personnel.
+2. Elle choisit **Table 04**, puis « Nouvelle commande »; l'app affiche exclusivement la carte, les prix et les disponibilités du restaurant actif.
+3. Elle sélectionne les plats, boissons, quantités et remarques (`sans piment`, `sauce à part`, etc.), puis vérifie le récapitulatif et appuie sur « Envoyer en cuisine ».
+4. Le serveur enregistre atomiquement la commande, son numéro lisible, sa table et la provenance `serveur`. La cuisine/bar reçoit la commande avec une notification; l'interface propriétaire et caisse la voit aussi.
+5. La serveuse suit « Reçue → En préparation → Prête → Servie », peut ajouter une **commande complémentaire** à la même table sans effacer la première, et peut demander l'addition selon ses autorisations.
+6. Le client peut **également** commander en scannant le QR de sa table. Les deux canaux peuvent coexister pour une table, avec références propres à chaque commande et une addition de table éventuellement regroupée. La saisie d'une même commande deux fois est protégée par idempotence, pas par rapprochement naïf du contenu.
+7. Les modifications/annulations après envoi ont des règles de permissions, d'état et un journal d'audit; les prix historiques, réservations de boissons et totaux doivent rester cohérents.
+
+### La table ne doit jamais se mélanger
+
+- Modèle proposé : `restaurant_tables` avec `id`, `shop_id`, `name/number`, `active`; la référence de table n'est unique **que dans son restaurant**. Les commandes référencent obligatoirement une table appartenant au même établissement lorsqu'il s'agit d'une commande sur place.
+- Le QR de table résout côté serveur une liaison `shop_id + table_id` stable, et la commande manuelle doit valider les deux IDs côté serveur; le client ne peut pas modifier le restaurant ou la table en bricolant le formulaire.
+- Aucune prise de commande par serveur sur un autre restaurant sans accès autorisé; changement d'établissement explicite pour les propriétaires de plusieurs entreprises.
+
+### Paiement, stock et fiabilité
+
+- **Commande créée ≠ paiement confirmé**. Le paiement en caisse, Mobile Money ou carte suit la politique de l'établissement (avant/après service) et la confirmation sécurisée du moyen de paiement.
+- Réservation de stock de boissons à l'acceptation et déduction une fois au service, selon la règle existante; ne pas soustraire à nouveau lors du paiement.
+- Notifications réelles et temps de préparation sont indicatifs; aucun statut `servi` ne signifie automatiquement `payé`.
+- Doit rester conforme à la DA **« Le Cahier »** sur smartphone, tablette et PC, sans réinventer de thème sombre.
+
+### Tests obligatoires avant déploiement
+
+1. Deux serveuses sur deux tablettes créent simultanément des commandes différentes; chaque commande reçoit un numéro distinct.
+2. Le QR de la table 4 du restaurant A et la commande manuelle de la table 4 du restaurant B restent isolés.
+3. Une serveuse enregistre une commande sans QR : elle apparaît immédiatement avec table, numéro, auteur et état dans l'espace admin et cuisine.
+4. La même table reçoit commande par QR et par serveuse, sans doublon, avec possibilité d'addition regroupée.
+5. Le terminal perd le réseau avant confirmation : une commande non validée au serveur ne doit pas apparaître comme « envoyée »; la nouvelle tentative ne doit pas doubler la commande.
+6. Deux commandes simultanées sur le dernier soda disponible ne peuvent pas réserver plus d'unités que le stock.
+7. Les commandes à emporter ne sont pas artificiellement liées à une table; les corrections de serveur ne réécrivent pas l'historique de paiement.
+
+**État : exigences documentées uniquement, fonctionnalités restaurant non implémentées ni déployées.**
+
 ## Principe non négociable — QR codes isolés par établissement
 
 **Un QR code = un établissement précis + un usage précis.** Cela concerne la boutique de vêtements, le restaurant et le salon de coiffure, y compris lorsqu'un seul propriétaire possède plusieurs établissements.
