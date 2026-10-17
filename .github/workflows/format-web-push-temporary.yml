@@ -1,0 +1,27 @@
+name: Format Web Push draft (temporary)
+on:
+  push:
+    branches:
+      - feature/covi-restaurant-salon-v1
+permissions:
+  contents: write
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/covi-restaurant-salon-v1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx prettier --write src/lib/kitchenBrowserNotifications.ts src/features/restaurant/RestaurantKitchenInbox.tsx src/features/restaurant/RestaurantStaffApp.tsx public/restaurant-kitchen-worker.js supabase/functions/restaurant-kitchen-push/dispatcher.mjs supabase/functions/restaurant-kitchen-push/index.ts tests/kitchen_push.mjs docs/IMPLEMENTATION-CUISINE-WEB-PUSH-LOT-8.md package.json
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/ public/restaurant-kitchen-worker.js supabase/functions/restaurant-kitchen-push/ tests/kitchen_push.mjs docs/IMPLEMENTATION-CUISINE-WEB-PUSH-LOT-8.md package.json
+          if ! git diff --cached --quiet; then
+            git commit -m "style(push): normaliser les fichiers Web Push Cuisine"
+            git push origin HEAD:feature/covi-restaurant-salon-v1
+          fi
