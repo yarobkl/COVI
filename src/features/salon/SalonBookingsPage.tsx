@@ -63,8 +63,6 @@ export function SalonBookingsPage({ shopId }: { shopId: string }) {
     }
   }, [shopId])
 
-  const linkUrl = link ? `${window.location.origin}/#/reserver/${link.public_token}` : ''
-
   async function createLink() {
     if (busy) return
     setBusy(true)
@@ -121,13 +119,9 @@ export function SalonBookingsPage({ shopId }: { shopId: string }) {
               Ce lien identifie uniquement votre salon. Il pourra être encodé dans un QR permanent,
               sans inclure de données clients.
             </p>
-            <p>
-              <a href={linkUrl} target="_blank" rel="noreferrer">
-                Voir la page de réservation du salon
-              </a>
-            </p>
-            <Button variant="secondary" onClick={() => void navigator.clipboard.writeText(linkUrl)}>
-              Copier le lien
+            <p className="muted">Le lien sécurisé de ce salon est réservé, mais la page publique n’est pas encore activée. Ne partagez pas encore ce lien avec les clients.</p>
+            <Button variant="secondary" disabled title="Réservation publique en préparation">
+              Partage disponible après activation
             </Button>
           </>
         ) : (
