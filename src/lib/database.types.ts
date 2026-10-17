@@ -921,6 +921,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      restaurant_kitchen_push_register: {
+        Args: { p_shop: string; p_endpoint: string; p_p256dh: string; p_auth: string }
+        Returns: boolean
+      }
+      restaurant_kitchen_push_unregister: {
+        Args: { p_shop: string; p_endpoint: string }
+        Returns: boolean
+      }
       restaurant_kitchen_inbox: {
         Args: { p_shop: string }
         Returns: Json
