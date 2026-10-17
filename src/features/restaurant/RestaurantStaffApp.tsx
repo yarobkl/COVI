@@ -3,6 +3,7 @@ import { Button, Notice, Sheet } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
 import type { RestaurantStaffSpace } from '../../lib/restaurantStaff'
 import { RestaurantKitchenInbox } from './RestaurantKitchenInbox'
+import { revokeKitchenBrowserAlerts } from '../../lib/kitchenBrowserNotifications'
 
 type RoomTable = { id: string; name: string; capacity: number }
 type RoomSession = {
@@ -329,7 +330,12 @@ export function RestaurantStaffApp({
           </p>
         </div>
         {onSwitch && <Button onClick={onSwitch}>Changer d’espace</Button>}
-        <Button variant="ghost" onClick={() => void signOut()}>
+        <Button variant="ghost" onClick={() => void (async () => {
+          if (space.staff_role === 'kitchen') {
+            try { await revokeKitchenBrowserAlerts(shopId) } catch { /* browser offline */ }
+          }
+          await signOut()
+        })()}>
           Se déconnecter
         </Button>
       </header>
