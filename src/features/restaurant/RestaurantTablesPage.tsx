@@ -13,6 +13,7 @@ export function RestaurantTablesPage({ shopId }: { shopId: string }) {
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   const [isError, setIsError] = useState(false)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const reload = useCallback(async () => {
     const { data, error } = await supabase
@@ -46,6 +47,34 @@ export function RestaurantTablesPage({ shopId }: { shopId: string }) {
     }
   }, [shopId])
 
+  const selected = rows.find((row) => row.id === selectedId) ?? rows[0] ?? null
+
+  async function savePlace(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (busy || !selected) return
+    const form = new FormData(e.currentTarget)
+    const pos_x = Number(form.get('pos_x'))
+    const pos_y = Number(form.get('pos_y'))
+    if (!Number.isInteger(pos_x) || !Number.isInteger(pos_y)
+      || pos_x < 0 || pos_x > 80 || pos_y < 0 || pos_y > 80) {
+      setIsError(true)
+      setMessage('Choisissez deux positions comprises entre 0 et 80.')
+      return
+    }
+    setBusy(true)
+    try {
+      const { error } = await supabase.from('restaurant_tables')
+        .update({ pos_x, pos_y }).eq('id', selected.id).eq('shop_id', shopId)
+      if (error) throw error
+      await reload()
+      setMessage('Emplacement enregistré.')
+      setIsError(false)
+    } catch {
+      setIsError(true)
+      setMessage('Impossible de déplacer cette table.')
+    } finally { setBusy(false) }
+  }
+
   async function add(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (busy) return
@@ -62,7 +91,11 @@ export function RestaurantTablesPage({ shopId }: { shopId: string }) {
     try {
       const { error } = await supabase
         .from('restaurant_tables')
-        .insert({ shop_id: shopId, label, zone, capacity })
+        .insert({
+          shop_id: shopId, label, zone, capacity,
+          pos_x: 6 + (rows.length % 4) * 22,
+          pos_y: 6 + (Math.floor(rows.length / 4) % 3) * 28,
+        })
       if (error) throw error
       await reload()
       setShowForm(false)
@@ -119,6 +152,35 @@ export function RestaurantTablesPage({ shopId }: { shopId: string }) {
         <Notice tone={isError ? 'danger' : 'success'}>
           <p>{message}</p>
         </Notice>
+      )}
+      {rows.length > 0 && (
+        <Sheet aria-label="Plan visuel de la salle">
+          <h2 className="section-title">Disposition de vos tables</h2>
+          <p className="muted">Touchez une table pour la sélectionner. Il s'agit des emplacements configurés, pas encore des états d'occupation en temps réel.</p>
+          <div className="floor-plan" role="group" aria-label="Disposition du restaurant">
+            {rows.map((table) => (
+              <button
+                type="button"
+                key={table.id}
+                aria-pressed={selected?.id === table.id}
+                className="floor-plan__table"
+                style={{ left: `${Math.min(80, table.pos_x)}%`, top: `${Math.min(80, table.pos_y)}%` }}
+                onClick={() => setSelectedId(table.id)}
+              >
+                Table {table.label}
+                <small>{table.capacity} places</small>
+              </button>
+            ))}
+          </div>
+          {selected && (
+            <form key={selected.id} className="form-grid" onSubmit={(e) => void savePlace(e)}>
+              <h3 className="section-title">Position de la table {selected.label}</h3>
+              <label>Horizontal (%)<input name="pos_x" type="number" defaultValue={selected.pos_x} min={0} max={80} required /></label>
+              <label>Vertical (%)<input name="pos_y" type="number" defaultValue={selected.pos_y} min={0} max={80} required /></label>
+              <Button type="submit" busy={busy}>Déplacer la table</Button>
+            </form>
+          )}
+        </Sheet>
       )}
       <Sheet aria-label="Tables du restaurant">
         {loading ? (
