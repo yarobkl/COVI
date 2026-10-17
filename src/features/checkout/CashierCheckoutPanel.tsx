@@ -83,15 +83,17 @@ function CashierCheckoutPanelInstance({
             lines: receipt.lines,
           }}
         />
-        <ReceiptPdfActions receipt={{
-          shopName,
-          receiptNumber: receipt.receiptNumber,
-          confirmedAt: receipt.confirmedAt,
-          cashierFirstName: receipt.cashierFirstName,
-          method: receipt.method,
-          amountXaf: receipt.amountXaf,
-          lines: receipt.lines,
-        }} />
+        <ReceiptPdfActions
+          receipt={{
+            shopName,
+            receiptNumber: receipt.receiptNumber,
+            confirmedAt: receipt.confirmedAt,
+            cashierFirstName: receipt.cashierFirstName,
+            method: receipt.method,
+            amountXaf: receipt.amountXaf,
+            lines: receipt.lines,
+          }}
+        />
       </section>
     )
   }

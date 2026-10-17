@@ -23,22 +23,27 @@ const example = {
 
 for (const [filename, data] of [
   ['covi-recu-exemple.pdf', example],
-  ['covi-recu-multipage.pdf', {
-    ...example,
-    receiptNumber: 'CV-2026-MULTIPAGE',
-    lines: Array.from({ length: 75 }, (_, i) => ({
-      label: 'Chemise collection N°' + (i + 1),
-      quantity: 1,
-      lineTotalXaf: 1000,
-    })),
-    amountXaf: 75000,
-  }],
+  [
+    'covi-recu-multipage.pdf',
+    {
+      ...example,
+      receiptNumber: 'CV-2026-MULTIPAGE',
+      lines: Array.from({ length: 75 }, (_, i) => ({
+        label: 'Chemise collection N°' + (i + 1),
+        quantity: 1,
+        lineTotalXaf: 1000,
+      })),
+      amountXaf: 75000,
+    },
+  ],
 ]) {
   const pdf = makeConfirmedReceiptPdf(data)
   const bytes = new Uint8Array(await pdf.arrayBuffer())
-  if (pdf.type !== 'application/pdf' ||
-      bytes.length < 500 ||
-      new TextDecoder().decode(bytes.subarray(0, 8)) !== '%PDF-1.4') {
+  if (
+    pdf.type !== 'application/pdf' ||
+    bytes.length < 500 ||
+    new TextDecoder().decode(bytes.subarray(0, 8)) !== '%PDF-1.4'
+  ) {
     throw new Error('Generated PDF is invalid')
   }
   await writeFile(join(dir, filename), bytes)

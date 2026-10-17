@@ -74,9 +74,9 @@ function receiptLines(receipt: PdfReceiptData): string[] {
     '----------------------------------------',
     'TOTAL : ' + fcfa(receipt.amountXaf),
     'Paiement : ' + (names[receipt.method] ?? receipt.method.slice(0, 60)),
-    ...(receipt.cashierFirstName?.trim() ? [
-      'Encaissement confirmé par : ' + receipt.cashierFirstName.trim().slice(0, 60),
-    ] : []),
+    ...(receipt.cashierFirstName?.trim()
+      ? ['Encaissement confirmé par : ' + receipt.cashierFirstName.trim().slice(0, 60)]
+      : []),
     '',
     'Reçu émis après confirmation du paiement.',
     'Conservez ce document pour vos archives.',
@@ -94,10 +94,13 @@ function pdfObjects(receipt: PdfReceiptData): Uint8Array {
     receipt.amountXaf < 0 ||
     receipt.lines.length < 1 ||
     receipt.lines.length > 120 ||
-    receipt.lines.some((line) =>
-      !line.label.trim() ||
-      !Number.isSafeInteger(line.quantity) || line.quantity <= 0 ||
-      !Number.isSafeInteger(line.lineTotalXaf) || line.lineTotalXaf < 0
+    receipt.lines.some(
+      (line) =>
+        !line.label.trim() ||
+        !Number.isSafeInteger(line.quantity) ||
+        line.quantity <= 0 ||
+        !Number.isSafeInteger(line.lineTotalXaf) ||
+        line.lineTotalXaf < 0,
     )
   ) {
     throw new Error('Reçu confirmé incomplet : export PDF impossible.')
@@ -135,26 +138,33 @@ function pdfObjects(receipt: PdfReceiptData): Uint8Array {
       ...chunk.map((line, index) => {
         const y = 766 - index * 18
         const isTotal = line.startsWith('TOTAL :')
-        const accent = isTotal
-          ? '0.99 0.87 0.40 rg 47 ' + (y - 5) + ' 495 18 re f\n'
-          : ''
-        const color = (index === 0 || isTotal)
-          ? '0.14 0.29 0.53 rg '
-          : '0.14 0.17 0.23 rg '
+        const accent = isTotal ? '0.99 0.87 0.40 rg 47 ' + (y - 5) + ' 495 18 re f\n' : ''
+        const color = index === 0 || isTotal ? '0.14 0.29 0.53 rg ' : '0.14 0.17 0.23 rg '
         const font = index === 0 || isTotal ? 'F2' : 'F1'
         const size = index === 0 && page === 0 ? 16 : isTotal ? 12 : 10
-        return accent + color + 'BT /' + font + ' ' + size +
-          ' Tf 48 ' + y + ' Td (' + encodedPdfText(line) + ') Tj ET'
+        return (
+          accent +
+          color +
+          'BT /' +
+          font +
+          ' ' +
+          size +
+          ' Tf 48 ' +
+          y +
+          ' Td (' +
+          encodedPdfText(line) +
+          ') Tj ET'
+        )
       }),
       ...(page === pages - 1 && chunk.length < 32
         ? [
             '0.68 0.20 0.16 RG 1.8 w 415 106 122 47 re S',
-            '0.68 0.20 0.16 rg BT /F2 20 Tf 433 122 Td (' +
-              encodedPdfText('PAYÉ') + ') Tj ET',
+            '0.68 0.20 0.16 rg BT /F2 20 Tf 433 122 Td (' + encodedPdfText('PAYÉ') + ') Tj ET',
           ]
         : []),
       '0.14 0.29 0.53 rg BT /F3 9 Tf 465 38 Td (' +
-        encodedPdfText('Page ' + (page + 1) + '/' + pages) + ') Tj ET',
+        encodedPdfText('Page ' + (page + 1) + '/' + pages) +
+        ') Tj ET',
     ].join('\n')
     const pageId = objects.length + 1
     const streamId = pageId + 1

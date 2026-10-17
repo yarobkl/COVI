@@ -17,7 +17,9 @@ export function ReceiptPdfActions({ receipt }: { receipt: PdfReceiptData }) {
     try {
       const result = await shareReceiptPdf(receipt)
       if (result === 'downloaded') {
-        setFeedback('Partage direct indisponible : le PDF a été téléchargé. Vous pouvez l’envoyer depuis vos fichiers.')
+        setFeedback(
+          'Partage direct indisponible : le PDF a été téléchargé. Vous pouvez l’envoyer depuis vos fichiers.',
+        )
       }
       if (result === 'cancelled') setFeedback('Partage annulé.')
     } catch (error) {
@@ -46,7 +48,11 @@ export function ReceiptPdfActions({ receipt }: { receipt: PdfReceiptData }) {
       <Button variant="ghost" block disabled={busy} onClick={download}>
         Télécharger le PDF
       </Button>
-      {feedback && <p className="field__hint" role="status">{feedback}</p>}
+      {feedback && (
+        <p className="field__hint" role="status">
+          {feedback}
+        </p>
+      )}
     </div>
   )
 }

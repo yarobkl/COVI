@@ -30,15 +30,27 @@ describe('current notebook sale: PDF invoice availability', () => {
   })
 
   it('never issues a paid PDF for an offline sale awaiting server sync', () => {
-    render(<SaleDone sale={{ ...sale, offline: true }} shopName="YARO BOUTIQUE"
-      today={null} onNext={() => {}} />)
+    render(
+      <SaleDone
+        sale={{ ...sale, offline: true }}
+        shopName="YARO BOUTIQUE"
+        today={null}
+        onNext={() => {}}
+      />,
+    )
     expect(screen.queryByRole('button', { name: 'Partager la facture PDF' })).toBeNull()
     expect(screen.getByText(/attente de synchronisation/)).toBeTruthy()
   })
 
   it('does not invent a receipt reference when an old sale lacks its operation ID', () => {
-    render(<SaleDone sale={{ ...sale, operationId: undefined }} shopName="YARO BOUTIQUE"
-      today={null} onNext={() => {}} />)
+    render(
+      <SaleDone
+        sale={{ ...sale, operationId: undefined }}
+        shopName="YARO BOUTIQUE"
+        today={null}
+        onNext={() => {}}
+      />,
+    )
     expect(screen.queryByRole('button', { name: 'Partager la facture PDF' })).toBeNull()
   })
 })
