@@ -332,7 +332,7 @@ export type Database = {
           owner_id: string
         }
         Insert: {
-          business_kind: string?
+          business_kind?: string
           city?: string | null
           country?: string | null
           latitude?: number | null
@@ -346,7 +346,7 @@ export type Database = {
           owner_id: string
         }
         Update: {
-          business_kind: string?
+          business_kind?: string
           city?: string | null
           country?: string | null
           latitude?: number | null
