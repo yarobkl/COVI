@@ -8,6 +8,75 @@ export type Database = {
   }
   public: {
     Tables: {
+      restaurant_staff_members: {
+        Row: {
+          id: string
+          shop_id: string
+          user_id: string
+          display_name: string
+          staff_role: string
+          active: boolean
+          created_by: string
+          created_at: string
+          disabled_at: string | null
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          user_id: string
+          display_name: string
+          staff_role: string
+          active?: boolean
+          created_by: string
+          created_at?: string
+          disabled_at?: string | null
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          user_id?: string
+          display_name?: string
+          staff_role?: string
+          active?: boolean
+          created_by?: string
+          created_at?: string
+          disabled_at?: string | null
+        }
+        Relationships: []
+      }
+      restaurant_staff_events: {
+        Row: {
+          id: number
+          shop_id: string
+          actor_user_id: string
+          session_id: string | null
+          line_id: string | null
+          event_type: string
+          details: Json
+          occurred_at: string
+        }
+        Insert: {
+          id?: number
+          shop_id: string
+          actor_user_id: string
+          session_id?: string | null
+          line_id?: string | null
+          event_type: string
+          details?: Json
+          occurred_at?: string
+        }
+        Update: {
+          id?: number
+          shop_id?: string
+          actor_user_id?: string
+          session_id?: string | null
+          line_id?: string | null
+          event_type?: string
+          details?: Json
+          occurred_at?: string
+        }
+        Relationships: []
+      }
       restaurant_drink_adjustments: {
         Row: {
           id: string
@@ -765,6 +834,34 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      restaurant_staff_my_spaces: {
+        Args: Record<PropertyKey, never>
+        Returns: { shop_id: string; shop_name: string; staff_role: string; display_name: string }[]
+      }
+      restaurant_staff_create_invite: {
+        Args: { p_shop: string; p_name: string; p_role: string }
+        Returns: Json
+      }
+      restaurant_staff_join: {
+        Args: { p_code: string }
+        Returns: Json
+      }
+      restaurant_staff_pending_invites: {
+        Args: { p_shop: string }
+        Returns: { id: string; display_name: string; staff_role: string; expires_at: string }[]
+      }
+      restaurant_staff_revoke_invite: {
+        Args: { p_shop: string; p_invite: string }
+        Returns: boolean
+      }
+      restaurant_staff_disable: {
+        Args: { p_shop: string; p_member: string }
+        Returns: boolean
+      }
+      restaurant_staff_room: {
+        Args: { p_shop: string }
+        Returns: Json
+      }
       salon_change_booking_status: {
         Args: { p_shop: string; p_booking: string; p_status: string }
         Returns: string
