@@ -52,7 +52,18 @@ export function RestaurantTablesPage({ shopId }: { shopId: string }) {
     }
     void sync()
     const interval = window.setInterval(() => { void sync() }, 10000)
-    return () => { mounted = false; window.clearInterval(interval) }
+    const channel = supabase.channel(`restaurant-room-${shopId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'restaurant_table_sessions',
+        filter: `shop_id=eq.${shopId}`,
+      }, () => { void sync() }).subscribe()
+    return () => {
+      mounted = false
+      window.clearInterval(interval)
+      void supabase.removeChannel(channel)
+    }
   }, [reload])
 
   const selected = rows.find((row) => row.id === selectedId) ?? rows[0] ?? null
