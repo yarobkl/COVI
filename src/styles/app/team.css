@@ -1,0 +1,296 @@
+/* Caisse multi-caissiers : pavé du code PIN, espace caissier, équipe (Ma boutique), changement de
+   caissier sur l'appareil partagé, ventes par caissier. Mêmes jetons que le reste du cahier ;
+   toute cible tactile fait au moins --tap-min (44 px), les touches du pavé --tap-sale-lg. */
+@layer app {
+  /* Pavé du code PIN ------------------------------------------------------------------------- */
+  .pinpad {
+    display: grid;
+    gap: var(--space-4);
+    width: min(100%, 22rem);
+    margin-inline: auto;
+  }
+  .pinpad__title {
+    text-align: center;
+  }
+  .pinpad__hint {
+    color: var(--ink-soft);
+    text-align: center;
+  }
+  .pinpad__dots {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-3);
+    min-height: var(--tap-min);
+    align-items: center;
+  }
+  .pinpad__dot {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-pill);
+  }
+  .pinpad__dot--on {
+    background: var(--ink);
+  }
+  .pinpad__keys {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-2);
+  }
+  .pinpad__key {
+    min-height: var(--tap-sale-lg);
+    border: var(--border-tactile, 2px solid var(--ink));
+    border-radius: var(--radius-2);
+    background: var(--surface-key);
+    color: var(--ink);
+    font-family: var(--font-figures);
+    font-size: var(--step-2);
+    box-shadow: var(--shadow-press-sm);
+    cursor: pointer;
+  }
+  .pinpad__key:active:not(:disabled) {
+    box-shadow: var(--shadow-press-none);
+    transform: translate(var(--press-offset-sm), var(--press-offset-sm));
+  }
+  .pinpad__key:disabled {
+    background: var(--disabled-bg);
+    color: var(--disabled-ink);
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+  .pinpad__key--text {
+    font-family: var(--font-text);
+    font-size: var(--step--1);
+  }
+  .pinpad__key:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+  }
+
+  .pin-screen {
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: var(--space-4);
+    min-height: 100dvh;
+    padding: var(--space-6) var(--gutter);
+    background: var(--paper);
+  }
+  .pin-screen__shop {
+    color: var(--action);
+    font-weight: var(--weight-bold);
+    letter-spacing: 0.04em;
+  }
+
+  /* Espace caissier ------------------------------------------------------------------------ */
+  .cashier {
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
+    min-height: 100dvh;
+    background: var(--paper);
+  }
+  .cashier__top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--gutter);
+    border-bottom: 1px solid var(--line);
+  }
+  .cashier__top > div {
+    flex: 1 1 12rem;
+    min-width: 0;
+  }
+  .cashier__shop {
+    font-weight: var(--weight-bold);
+  }
+  .cashier__who {
+    color: var(--ink-soft);
+    font-size: var(--step--1);
+  }
+  .cashier__tabs {
+    padding-inline: var(--gutter);
+  }
+  .cashier__tabs .tabs__tab {
+    min-height: var(--tap-min);
+    background: none;
+    border: 0;
+    cursor: pointer;
+    font: inherit;
+  }
+  .cashier__page {
+    min-width: 0;
+    padding: var(--space-4) var(--gutter) var(--space-8);
+  }
+  .cashier__foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--gutter) var(--space-6);
+    border-top: 1px solid var(--line);
+  }
+
+  /* Changement de caissier (appareil partagé du responsable) -------------------------------- */
+  .till-switch {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+  }
+  .till-switch__who {
+    font-size: var(--step--1);
+  }
+  .till-switch__dialog {
+    display: grid;
+    gap: var(--space-4);
+  }
+  .till-switch__list {
+    display: grid;
+    gap: var(--space-2);
+    padding: 0;
+    list-style: none;
+  }
+
+  /* Mode comptoir (appareil partagé du responsable) ----------------------------------------- */
+  .counter {
+    min-height: 100dvh;
+    background: var(--paper);
+  }
+  .counter > .pin-screen__shop {
+    padding: var(--space-4) var(--gutter) 0;
+    text-align: center;
+  }
+  .counter-pick {
+    align-content: start;
+  }
+  .counter-pick .till-switch__list {
+    width: min(100%, 22rem);
+  }
+  .pin-screen__help {
+    max-width: 22rem;
+    font-size: var(--step--1);
+    text-align: center;
+  }
+  .owner-pin {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-3);
+  }
+  .team-owner-pin {
+    display: grid;
+    gap: var(--space-3);
+    padding-block: var(--space-4);
+    border-block: 1px solid var(--line);
+  }
+
+  /* Équipe (Ma boutique) ------------------------------------------------------------------- */
+  .team {
+    display: grid;
+    gap: var(--space-4);
+    max-width: var(--content-max);
+  }
+  .team-invite,
+  .team-member__rights {
+    display: grid;
+    gap: var(--space-3);
+    max-width: 26rem;
+  }
+  .team-check {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--tap-min);
+    cursor: pointer;
+  }
+  .team-check input {
+    width: 24px;
+    height: 24px;
+    accent-color: var(--action);
+  }
+  .team-code {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border: 2px dashed var(--action);
+    border-radius: var(--radius-2);
+    background: var(--action-tint);
+  }
+  .team-code__value {
+    font-family: var(--font-figures);
+    font-size: var(--step-3);
+    letter-spacing: 0.08em;
+    overflow-wrap: anywhere;
+    user-select: all;
+  }
+  .team-code__actions,
+  .team-member__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  .team-members,
+  .team-invites {
+    display: grid;
+    gap: var(--space-3);
+    padding: 0;
+    list-style: none;
+  }
+  .team-member {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .team-member--off .team-member__name {
+    color: var(--ink-muted);
+    text-decoration: line-through;
+  }
+  .team-member__name {
+    font-weight: var(--weight-bold);
+  }
+  .team-invites li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
+  /* Choix de l'espace, rejoindre une boutique ----------------------------------------------- */
+  .space-chooser {
+    display: grid;
+    gap: var(--space-3);
+    padding: 0;
+    list-style: none;
+  }
+  .auth__join {
+    display: grid;
+    gap: var(--space-2);
+    margin-block-start: var(--space-4);
+  }
+
+  /* Ventes par caissier -------------------------------------------------------------------- */
+  .seller-totals ul {
+    display: grid;
+    gap: var(--space-2);
+    padding: 0;
+    list-style: none;
+  }
+  .seller-totals li {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+  .seller-filter {
+    display: grid;
+    gap: var(--space-1);
+    margin-block-start: var(--space-3);
+  }
+  .seller-filter select {
+    min-height: var(--tap-comfort);
+    max-width: 100%;
+    font: inherit;
+  }
+}

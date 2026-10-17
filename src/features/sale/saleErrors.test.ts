@@ -55,3 +55,29 @@ describe('saleErrorMessage', () => {
     expect(saleErrorMessage(null)).toBe('Ça n’a pas marché. Vérifiez le réseau puis réessayez.')
   })
 })
+
+describe('saleErrorMessage: multi-cashier till', () => {
+  it('gives the minimum price from the server detail', () => {
+    expect(
+      saleErrorMessage({
+        message: 'Price below allowed minimum',
+        details: 'item 0: product_id 3000, minimum_price=9000',
+      }),
+    ).toMatch(
+      /^Ce prix est en dessous du minimum autorisé \(9.000 FCFA\)\. Demandez au responsable\.$/,
+    )
+  })
+  it('falls back to the minimum known by the screen, or no amount', () => {
+    expect(
+      saleErrorMessage({ message: 'Price below allowed minimum' }, { minimum: 13500 }),
+    ).toMatch(/13.500 FCFA/)
+    expect(saleErrorMessage({ message: 'Price below allowed minimum' })).toBe(
+      'Ce prix est en dessous du minimum autorisé. Demandez au responsable.',
+    )
+  })
+  it('explains PIN, till session and access refusals', () => {
+    expect(saleErrorMessage({ message: 'PIN required' })).toMatch(/code PIN/)
+    expect(saleErrorMessage({ message: 'Till session invalid' })).toMatch(/Changer/)
+    expect(saleErrorMessage({ message: 'Shop not found' })).toMatch(/plus accès/)
+  })
+})

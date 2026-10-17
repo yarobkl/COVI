@@ -1,8 +1,9 @@
 import { useMemo } from 'react'
+import { Ledger, LedgerRow, SearchField, Sheet } from '../../components/ui'
 import { money } from '../../lib/format'
 import { tickets } from './demoData'
 
-/** Simulated sales, searchable by ticket, product or arrival. */
+/** Simulated sales, searchable by ticket, product or arrival, one notebook line per article. */
 export function DemoHistory({
   query,
   onQueryChange,
@@ -10,77 +11,60 @@ export function DemoHistory({
   query: string
   onQueryChange: (query: string) => void
 }) {
-  const visibleTickets = useMemo(
+  const q = query.toLowerCase()
+  const lines = useMemo(
     () =>
-      tickets.filter((t) =>
-        `${t.id} ${t.lines.map((l) => `${l.name} ${l.arrival}`).join(' ')}`
-          .toLowerCase()
-          .includes(query.toLowerCase()),
+      tickets.flatMap((ticket) =>
+        ticket.lines
+          .filter(
+            (line) =>
+              !q ||
+              ticket.id.toLowerCase().includes(q) ||
+              `${line.name} ${line.category} ${line.arrival}`.toLowerCase().includes(q),
+          )
+          .map((line, i) => ({ ticket, line, key: ticket.id + line.arrival + i })),
       ),
-    [query],
+    [q],
   )
   return (
-    <section className="card">
-      <div className="demo-history-head">
-        <div>
-          <h2>Historique des ventes simulées</h2>
-          <p>105 tickets clients · 143 articles vendus</p>
-        </div>
-        <input
-          className="demo-search"
-          value={query}
-          onChange={(e) => onQueryChange(e.target.value)}
-          placeholder="Rechercher un produit ou un ticket…"
-        />
-      </div>
-      <div className="demo-table-wrap">
-        <table className="demo-table">
-          <thead>
-            <tr>
-              <th>Ticket / date</th>
-              <th>Produit</th>
-              <th>Arrivage</th>
-              <th>Qté</th>
-              <th>Prix initial</th>
-              <th>Prix vendu</th>
-              <th>Paiement</th>
-              <th>Total ticket</th>
-            </tr>
-          </thead>
-          <tbody>
-            {visibleTickets.flatMap((ticket) =>
-              ticket.lines
-                .filter(
-                  (line) =>
-                    !query ||
-                    ticket.id.toLowerCase().includes(query.toLowerCase()) ||
-                    `${line.name} ${line.category} ${line.arrival}`
-                      .toLowerCase()
-                      .includes(query.toLowerCase()),
-                )
-                .map((line, i) => (
-                  <tr key={ticket.id + line.arrival + i}>
-                    <td>
-                      {ticket.id}
-                      <small>{ticket.date.toLocaleString('fr-FR')}</small>
-                    </td>
-                    <td>
-                      {line.name}
-                      <small>{line.category}</small>
-                    </td>
-                    <td>{line.arrival}</td>
-                    <td>{line.quantity}</td>
-                    <td>{money(line.initial)}</td>
-                    <td>{money(line.sold)}</td>
-                    <td>{ticket.payment}</td>
-                    <td>{money(ticket.total)}</td>
-                  </tr>
-                )),
-            )}
-          </tbody>
-        </table>
-      </div>
-      {visibleTickets.length === 0 && <p>Aucun résultat pour cette recherche.</p>}
-    </section>
+    <Sheet aria-labelledby="demo-history-title">
+      <h2 className="section-title" id="demo-history-title">
+        Ventes simulées
+      </h2>
+      <p className="muted">105 tickets clients · 143 articles vendus</p>
+      <SearchField
+        label="Rechercher un produit ou un ticket"
+        placeholder="Rechercher un produit ou un ticket…"
+        value={query}
+        onChange={onQueryChange}
+      />
+      {lines.length === 0 ? (
+        <p className="muted">Aucun résultat pour cette recherche.</p>
+      ) : (
+        <Ledger label="Ventes simulées">
+          {lines.map(({ ticket, line, key }) => (
+            <LedgerRow
+              key={key}
+              className="sold-row"
+              label={
+                <>
+                  {line.quantity > 1 && <span className="figures">{line.quantity} × </span>}
+                  {line.name}
+                </>
+              }
+              meta={`${ticket.id} · ${ticket.date.toLocaleDateString('fr-FR')} · ${ticket.payment} · ${line.arrival}`}
+              value={
+                <span className="sold-row__price">
+                  {line.initial !== line.sold && (
+                    <s className="figures sold-row__initial">{money(line.initial)}</s>
+                  )}
+                  <span className="figures">{money(line.sold)}</span>
+                </span>
+              }
+            />
+          ))}
+        </Ledger>
+      )}
+    </Sheet>
   )
 }

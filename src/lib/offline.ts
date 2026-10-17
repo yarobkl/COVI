@@ -77,6 +77,12 @@ let syncInProgress = false,
 const RETRY_BASE_MS = 5000,
   RETRY_MAX_MS = 300000
 export const nextSyncRetryAt = () => retryAt
+/** Retry offline sales after the cashier has successfully unlocked their PIN on the server. */
+export function retrySyncAfterPinUnlock() {
+  resetSyncBackoff()
+  void syncPendingSales()
+}
+
 function resetSyncBackoff() {
   retryDelay = 0
   retryAt = 0
@@ -121,7 +127,7 @@ export async function syncPendingSales() {
       } catch (e) {
         const message = String(errorMessage(e) || 'Erreur de synchronisation'),
           network =
-            /fetch|network|offline|failed to fetch|timeout|jwt|token|unauthorized|401|not authenticated/i.test(
+            /fetch|network|offline|failed to fetch|timeout|jwt|token|unauthorized|401|not authenticated|pin unlock required/i.test(
               message,
             )
         if (network) {
@@ -164,7 +170,7 @@ export async function resilientSale(input: {
   quantity: number
   soldUnitPrice: number
   paymentLabel: string
-}) {
+}): Promise<{ offline: boolean; saleId?: string }> {
   const operationId = crypto.randomUUID(),
     userId = activeUser,
     queue = () => {
@@ -177,7 +183,7 @@ export async function resilientSale(input: {
   if (!navigator.onLine) return queue()
   try {
     const { recordSale } = await import('./covi')
-    await recordSale(
+    const saleId = await recordSale(
       input.shopId,
       input.productId,
       input.quantity,
@@ -185,7 +191,7 @@ export async function resilientSale(input: {
       input.paymentLabel,
       operationId,
     )
-    return { offline: false }
+    return { offline: false, saleId }
   } catch (e) {
     const network = /fetch|network|offline|failed to fetch/i.test(String(errorMessage(e) || e))
     if (!network) throw e

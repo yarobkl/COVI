@@ -1,8 +1,9 @@
+import { Ledger, LedgerRow } from '../../components/ui'
 import { money, plural } from '../../lib/format'
 import type { ArrivalProfit } from '../../lib/operations'
 import type { Arrival } from '../../lib/types'
 
-/** Recovery progress and registered products of an arrival. */
+/** What an arrival has become: products registered, sold, left, and the money back. */
 export function ArrivalDetail({
   arrival: a,
   detail,
@@ -11,46 +12,37 @@ export function ArrivalDetail({
   detail: ArrivalProfit | undefined
 }) {
   return (
-    <div className="arrival-detail">
-      <div className="progress">
-        <i style={{ width: Math.min(100, detail?.recovery || 0) + '%' }} />
-      </div>
-      <div className="arrival-detail-kpis">
-        <span>
-          Produits enregistrés<b>{detail?.productCount ?? 0}</b>
-        </span>
-        <span>
-          Produits vendus<b>{detail?.sold ?? 0}</b>
-        </span>
-        <span>
-          Restants<b>{detail?.remaining ?? 0}</b>
-        </span>
-        <span>
-          Ventes générées<b>{money(detail?.revenue ?? 0)}</b>
-        </span>
-        <span>
-          Récupération<b>{detail?.recovery ?? 0}%</b>
-        </span>
-        <span>
-          Résultat actuel<b>{money(detail?.profit ?? -Number(a.global_cost))}</b>
-        </span>
-      </div>
+    <div className="entry__detail">
+      <Ledger label={`Détail de ${a.code}`}>
+        <LedgerRow label="Produits enregistrés" value={detail?.productCount ?? 0} />
+        <LedgerRow label="Produits vendus" value={detail?.sold ?? 0} />
+        <LedgerRow label="Restants" value={detail?.remaining ?? 0} />
+        <LedgerRow
+          label="Ventes générées"
+          value={<span className="figures">{money(detail?.revenue ?? 0)}</span>}
+        />
+        <LedgerRow label="Récupération" value={`${detail?.recovery ?? 0} %`} />
+      </Ledger>
       {detail?.products?.length ? (
-        <div className="arrival-product-list">
-          {detail.products.map((product) => (
-            <div key={product.id}>
-              <b>{product.name}</b>
-              <span>
-                {[product.category, product.brand, product.size].filter(Boolean).join(' · ') ||
-                  'Référence'}{' '}
-                · {plural(product.quantity_on_hand, 'restant')} · prix initial{' '}
-                {money(Number(product.initial_sale_price))}
-              </span>
-            </div>
-          ))}
-        </div>
+        <>
+          <h4 className="entry__subtitle">Produits de l’arrivage</h4>
+          <Ledger label={`Produits de ${a.code}`}>
+            {detail.products.map((product) => (
+              <LedgerRow
+                key={product.id}
+                label={product.name}
+                meta={[
+                  [product.category, product.brand, product.size].filter(Boolean).join(' · ') ||
+                    'Référence',
+                  plural(product.quantity_on_hand, 'restant'),
+                ].join(' · ')}
+                value={<span className="figures">{money(Number(product.initial_sale_price))}</span>}
+              />
+            ))}
+          </Ledger>
+        </>
       ) : (
-        <p>
+        <p className="muted">
           Les produits apparaîtront ici lorsque vous les enregistrerez à la réception. Pour un
           ballon, COVI les ajoute au fur et à mesure de son ouverture.
         </p>

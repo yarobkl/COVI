@@ -1,21 +1,41 @@
-import { ProductThumb } from '../../components/ProductThumb'
-import type { Product } from '../../lib/types'
+import { LedgerRow } from '../../components/ui'
 import { money, plural } from '../../lib/format'
+import type { Product } from '../../lib/types'
 
-export function StockRow({ product: x }: { product: Product }) {
+/**
+ * Un article écrit comme une ligne du cahier : nom · pointillés · prix, le détail dessous. Toucher
+ * la ligne ouvre « Modifier le produit ».
+ */
+export function StockRow({ product: x, onOpen }: { product: Product; onOpen?: () => void }) {
+  const quantity = x.is_unique_piece
+    ? plural(x.quantity_on_hand, 'pièce')
+    : `${x.quantity_on_hand} en stock`
+  const name = (
+    <>
+      <span className="stock-row__name">{x.name}</span>
+      {x.is_test && <span className="test-note">test</span>}
+    </>
+  )
   return (
-    <div className="row">
-      <ProductThumb imageUrl={x.image_url} fallback={x.name[0]} />
-      <div className="grow">
-        <b>
-          {x.name} {x.is_test && <em className="test-tag">TEST</em>}
-        </b>
-        <span>{[x.category, x.brand, x.size].filter(Boolean).join(' · ')}</span>
-      </div>
-      <b>{money(Number(x.initial_sale_price))}</b>
-      <span className="qty">
-        {x.is_unique_piece ? plural(x.quantity_on_hand, 'pièce') : x.quantity_on_hand + ' en stock'}
-      </span>
-    </div>
+    <LedgerRow
+      className="stock-row"
+      variant={onOpen ? 'link' : undefined}
+      label={
+        onOpen ? (
+          <button
+            type="button"
+            className="ledger__open"
+            aria-label={`Modifier ${x.name}`}
+            onClick={onOpen}
+          >
+            {name}
+          </button>
+        ) : (
+          name
+        )
+      }
+      meta={[x.category, x.brand, x.size, quantity].filter(Boolean).join(' · ')}
+      value={<span className="figures">{money(Number(x.initial_sale_price))}</span>}
+    />
   )
 }

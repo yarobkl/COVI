@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { BrandMark } from '../../components/Brand'
 import { LabelCard } from '../../components/ui'
 
 /**
@@ -21,6 +22,7 @@ export function AuthPage({
     <div className="auth">
       <main className="auth__sheet seyes margin-rule">
         <LabelCard className="auth__brand">
+          <BrandMark size={56} />
           <p className="auth__name">COVI</p>
           <p className="auth__tagline">Le cahier de la boutique.</p>
         </LabelCard>

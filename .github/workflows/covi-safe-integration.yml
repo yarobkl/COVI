@@ -1,0 +1,36 @@
+name: COVI integration checks
+
+on:
+  push:
+    branches:
+      - integration/covi-caisse-safe-rollout-2026-10-17
+  pull_request:
+    branches:
+      - claude/caisse-multi-caissiers
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  web-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install pinned dependencies
+        run: npm ci
+      - name: Verify formatting
+        run: npm run format:check
+      - name: Verify TypeScript
+        run: npm run typecheck
+      - name: Verify lint
+        run: npm run lint
+      - name: Build application
+        run: npm run build
+      - name: Unit, offline and gateway security tests
+        run: npm test

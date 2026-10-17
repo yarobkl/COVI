@@ -146,6 +146,34 @@ assert.equal(offline.rejectedSaleCount(), 0)
 assert.equal(offline.rejectedSales().length, 1)
 assert.equal(offline.rejectedSales()[0].dismissed, true)
 
+// Server-side PIN expiry must NOT reject or lose a cashier's offline sale.
+// Its original idempotency key stays queued; entering the correct PIN resumes the same sale.
+navigator.onLine = false
+seed()
+await offline.resilientSale(input)
+const pinPendingOperation = offline.pendingSales()[0].id
+navigator.onLine = true
+globalThis.testBackend = {
+  recordSale: async () => {
+    throw new Error('PIN unlock required')
+  },
+}
+const pinPendingResult = await offline.syncPendingSales()
+assert.equal(pinPendingResult.rejected, 0, 'PIN unlock is not a definitive sale rejection')
+assert.equal(offline.pendingCount(), 1, 'cashier sale still pending after PIN lock')
+assert.equal(offline.pendingSales()[0].id, pinPendingOperation, 'idempotency key preserved')
+assert.equal(offline.pendingSales()[0].lastError, 'PIN unlock required')
+const retryPinOperations = []
+globalThis.testBackend = {
+  recordSale: async (...args) => {
+    retryPinOperations.push(args[5])
+  },
+}
+offline.retrySyncAfterPinUnlock()
+await new Promise((r) => setImmediate(r))
+assert.deepEqual(retryPinOperations, [pinPendingOperation])
+assert.equal(offline.pendingCount(), 0, 'pending cashier sale recorded after PIN unlock')
+
 // Per-account queue: user A's offline sale is neither shown to nor sent by user B, and survives the switch.
 navigator.onLine = false
 seed()

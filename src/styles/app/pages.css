@@ -1,0 +1,525 @@
+/* Pages de gestion (Stock, Arrivages, Ventes, Charges, Bilan, Ma boutique) : une seule écriture.
+   Titre souligné au stylo rouge, feuilles posées, formulaires et listes du cahier. */
+@layer app {
+  /* Titre de page : le mot en gras, souligné d'un trait de stylo rouge (comme la date d'Accueil). */
+  .page-title {
+    display: inline-block;
+    font-size: var(--step-3);
+    font-weight: var(--weight-bold);
+    line-height: var(--leading-snug);
+    color: var(--ink);
+    padding-bottom: var(--space-1);
+    border-bottom: 2px solid var(--danger);
+  }
+  .page-head__text {
+    min-width: 0;
+    max-width: 40rem;
+  }
+
+  /* Les zones d'une page, l'une sous l'autre, au même rythme partout. */
+  .page-stack {
+    display: grid;
+    gap: var(--space-5);
+    min-width: 0;
+  }
+  .page-stack > * {
+    min-width: 0;
+  }
+
+  /* Message après une action : note à l'encre bleue dans la marge. */
+  .page-msg {
+    padding: var(--space-2) var(--space-3);
+    border-inline-start: 3px solid var(--action);
+    background: var(--action-tint);
+    border-radius: 0 var(--radius-2) var(--radius-2) 0;
+    font-weight: var(--weight-bold);
+    color: var(--ink);
+  }
+
+  /* Formulaire du cahier : libellé en gras, champ de 48 px ; 2 colonnes dès qu'il y a la place. */
+  .form-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+    align-items: start;
+  }
+  @container (min-width: 34rem) {
+    .form-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  .form-grid > .form-grid__full,
+  .form-grid > .form-grid__title,
+  .form-grid > .form-grid__actions,
+  .form-grid > .form-grid__note {
+    grid-column: 1 / -1;
+  }
+  .form-grid__title {
+    font-size: var(--step-1);
+    font-weight: var(--weight-bold);
+  }
+  .form-grid__kicker {
+    display: block;
+    font-size: var(--step--1);
+    color: var(--ink-muted);
+    font-weight: var(--weight-bold);
+  }
+  .form-grid__note {
+    color: var(--ink-soft);
+    font-size: var(--step--1);
+  }
+  .form-grid label {
+    display: grid;
+    gap: var(--space-1);
+    min-width: 0;
+    font-size: var(--step--1);
+    font-weight: var(--weight-bold);
+    color: var(--ink);
+    line-height: var(--leading-snug);
+  }
+  .form-grid label small {
+    font-weight: 400;
+    color: var(--ink-muted);
+  }
+  .form-grid :is(input:not([type='checkbox'], [type='radio'], [type='file']), select, textarea) {
+    width: 100%;
+    min-width: 0;
+    height: var(--field-height);
+    padding: 0 var(--space-3);
+    border: var(--border-field) solid var(--line-field);
+    border-radius: var(--radius-3);
+    background-color: var(--sheet);
+    color: var(--ink);
+    font-family: var(--font-text);
+    font-size: max(16px, var(--step-0));
+    font-weight: 400;
+  }
+  .form-grid textarea {
+    height: auto;
+    min-height: 6rem;
+    padding-block: var(--space-2);
+  }
+  .form-grid select {
+    appearance: none;
+    padding-inline-end: 2.75rem;
+    background-image:
+      linear-gradient(45deg, transparent 50%, var(--ink) 50%),
+      linear-gradient(135deg, var(--ink) 50%, transparent 50%);
+    background-position:
+      calc(100% - 22px) 52%,
+      calc(100% - 15px) 52%;
+    background-size:
+      7px 7px,
+      7px 7px;
+    background-repeat: no-repeat;
+    cursor: pointer;
+  }
+  .form-grid :is(input, select, textarea):hover:not(:disabled) {
+    border-color: var(--ink-soft);
+  }
+  .form-grid :is(input, select, textarea):focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: 1px;
+    border-color: var(--action);
+  }
+  .form-grid :is(input, select):disabled {
+    background-color: var(--disabled-bg);
+    color: var(--disabled-ink);
+    border-style: dashed;
+  }
+  /* ChoiceField : le champ « nouvelle valeur » se place sous la liste. */
+  .form-grid label > select + input {
+    margin-top: var(--space-2);
+  }
+  /* Case à cocher : sur une ligne, la case avant le texte. */
+  .form-grid .form-check {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: var(--tap-min);
+    font-size: var(--step-0);
+    font-weight: 400;
+  }
+  .form-check input {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    accent-color: var(--action);
+  }
+  .form-grid__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+  @media (max-width: 479px) {
+    .form-grid__actions > .btn {
+      flex: 1 1 100%;
+    }
+  }
+
+  /* Petits boutons d'une ligne de liste (Modifier, Supprimer…). */
+  .row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+  }
+  .row-actions .btn {
+    min-height: 40px;
+    padding-inline: var(--space-3);
+    font-size: var(--step--1);
+  }
+
+  /* « test » noté à la main, au stylo rouge, à côté d'un nom. */
+  .test-note {
+    margin-inline-start: var(--space-2);
+    font-family: var(--font-hand);
+    font-size: var(--step-0);
+    font-weight: 400;
+    line-height: 1.2;
+    color: var(--danger);
+  }
+
+  /* Une entrée du cahier (un arrivage) : en-tête, lignes chiffrées, règle, actions. */
+  .entry + .entry {
+    margin-top: var(--space-6);
+    padding-top: var(--space-5);
+    border-top: 1.5px dashed var(--line-dotted);
+  }
+  .entry__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-1) var(--space-3);
+  }
+  .entry__title {
+    font-size: var(--step-1);
+    font-weight: var(--weight-bold);
+    overflow-wrap: anywhere;
+  }
+  .entry__meta {
+    margin-top: var(--space-1);
+    color: var(--ink-muted);
+    font-size: var(--step--1);
+  }
+  .entry .ledger {
+    margin-top: var(--space-3);
+  }
+  .entry .ruler {
+    margin-top: var(--space-4);
+  }
+  .entry__detail {
+    margin-top: var(--space-4);
+  }
+  .entry__subtitle {
+    margin-top: var(--space-4);
+    font-size: var(--step-0);
+    font-weight: var(--weight-bold);
+    margin-bottom: var(--space-1);
+  }
+
+  /* Montant qui sort (charge) : signe moins, encre rouge. */
+  .amount-out {
+    color: var(--danger);
+  }
+
+  /* Bilan : barres des ventes dessinées comme au feutre, sur la ligne du cahier. */
+  .bars {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    align-items: end;
+    gap: var(--space-4);
+    height: 220px;
+    padding-top: var(--space-4);
+    border-bottom: 2px solid var(--line-strong);
+  }
+  .bars__col {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    justify-items: center;
+    height: 100%;
+    min-width: 0;
+  }
+  .bars__value {
+    font-family: var(--font-figures);
+    font-size: var(--step--1);
+    white-space: nowrap;
+    color: var(--ink-soft);
+  }
+  .bars__bar {
+    align-self: end;
+    width: min(56px, 70%);
+    min-height: 4px;
+    border-radius: var(--radius-1) var(--radius-1) 0 0;
+    background: repeating-linear-gradient(
+      -45deg,
+      var(--action) 0 6px,
+      color-mix(in srgb, var(--action) 80%, white) 6px 9px
+    );
+  }
+  .bars__labels {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+    margin-top: var(--space-2);
+    text-align: center;
+    font-weight: var(--weight-bold);
+    font-size: var(--step--1);
+  }
+
+  /* Deux feuilles côte à côte sur grand écran, l'une sous l'autre sur téléphone. */
+  .page-pair {
+    display: grid;
+    gap: var(--space-5);
+  }
+  @media (min-width: 900px) {
+    .page-pair {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+}
+
+/* Charges : choix de la période au-dessus de la liste, totaux en pied de page. */
+@layer app {
+  .page-stack .sheet > .segmented + * {
+    margin-top: var(--space-4);
+  }
+  .page-stack .sheet > .ledger + .ledger {
+    margin-top: var(--space-5);
+  }
+  .expense-row .ledger__label {
+    font-weight: var(--weight-bold);
+  }
+  .expense-row .ledger__meta {
+    font-weight: 400;
+  }
+}
+
+@layer app {
+  .page-stack .sheet > .section-title {
+    margin-bottom: var(--space-3);
+  }
+  .bilan__note {
+    font-size: var(--step--1);
+  }
+  .page-stack .sheet > .section-title + .entry {
+    margin-top: var(--space-2);
+  }
+}
+
+@layer app {
+  .seller-filter {
+    margin-top: var(--space-4);
+  }
+}
+
+@layer app {
+  /* Un montant ne se coupe jamais en deux (« − » d'un côté, le nombre de l'autre). */
+  .ledger__value,
+  .ledger__value .figures {
+    white-space: nowrap;
+  }
+  .expense-row {
+    flex-wrap: wrap;
+  }
+  .expense-row .ledger__label {
+    flex: 0 1 auto;
+  }
+  .expense-row__actions {
+    flex-basis: 100%;
+    margin-top: 0;
+  }
+}
+
+@layer app {
+  .sheet.till-switch {
+    display: grid;
+    justify-items: start;
+    gap: var(--space-3);
+  }
+}
+
+/* Boutique d'exemple : bandeau « simulation » écrit à la main en haut de la page. */
+@layer app {
+  .demo-band {
+    padding: var(--space-2) var(--space-3);
+    border: 1.5px dashed var(--danger);
+    border-radius: var(--radius-2);
+    color: var(--ink-soft);
+    font-size: var(--step--1);
+  }
+  .demo-band b {
+    font-family: var(--font-hand);
+    font-size: var(--step-1);
+    font-weight: 400;
+    color: var(--danger);
+  }
+  .demo-shell .topbar .btn {
+    margin-inline-start: auto;
+  }
+  .demo-shell .sommaire__link {
+    width: 100%;
+    border: 0;
+    background: none;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+  }
+  .page-stack .sheet > .muted + .ledger,
+  .page-stack .sheet > .muted + .search,
+  .page-stack .sheet > .search + .ledger,
+  .page-stack .sheet > .ledger + .muted {
+    margin-top: var(--space-3);
+  }
+}
+
+@layer app {
+  .ledger__row--head .ledger__meta {
+    font-weight: 400;
+  }
+}
+
+/* Stabilité sur petit écran : un bouton au libellé long passe à la ligne au lieu de pousser la
+   page hors de l'écran ; un champ ou une image ne dépasse jamais sa colonne. */
+@layer app {
+  .btn {
+    max-width: 100%;
+  }
+  @media (max-width: 479px) {
+    .btn {
+      white-space: normal;
+      text-wrap: balance;
+    }
+  }
+  .shell__page :is(img, video, canvas, svg, textarea, select, input) {
+    max-width: 100%;
+  }
+  .shell__page :is(h1, h2, h3, p, li, a) {
+    overflow-wrap: anywhere;
+  }
+}
+
+/* « Modifier le produit » : la ligne du stock s'ouvre au toucher, l'écran se lit de haut en bas. */
+@layer app {
+  .ledger__open {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+  }
+  .ledger__row--link .ledger__open::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+  .ledger__row--link:has(.ledger__open:focus-visible) {
+    outline: var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .ledger__open:focus-visible {
+    outline: none;
+  }
+  .product-editor {
+    display: grid;
+    gap: var(--space-4);
+  }
+  .product-editor__part {
+    display: grid;
+    gap: var(--space-3);
+    padding-top: var(--space-4);
+    border-top: 1.5px dashed var(--line-dotted);
+  }
+  .product-editor__part > .btn {
+    justify-self: start;
+  }
+  .product-editor__qty {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-4);
+    font-weight: var(--weight-bold);
+  }
+  .stock-list .segmented__options {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Supprimer mon compte : la feuille, la boîte de confirmation, l'écran « suppression programmée ». */
+@layer app {
+  .account-deletion {
+    display: grid;
+    gap: var(--space-3);
+    border-inline-start: 3px solid var(--danger);
+  }
+  .account-deletion__dialog {
+    display: grid;
+    gap: var(--space-3);
+  }
+  .account-deletion__list {
+    display: grid;
+    gap: var(--space-2);
+    padding-inline-start: var(--space-5);
+  }
+  .deletion-pending {
+    display: grid;
+    gap: var(--space-4);
+  }
+  .deletion-pending__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+}
+
+/* Politique de confidentialité : une page du cahier, lisible d'une traite. */
+@layer app {
+  .legal {
+    display: grid;
+    gap: var(--space-4);
+    max-width: 44rem;
+  }
+  .legal__part {
+    display: grid;
+    gap: var(--space-2);
+  }
+  .legal__part ul {
+    display: grid;
+    gap: var(--space-2);
+    padding-inline-start: var(--space-5);
+  }
+  .legal__nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-5);
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1.5px dashed var(--line-dotted);
+  }
+  .legal__faq dt {
+    font-weight: var(--weight-bold);
+    margin-top: var(--space-3);
+  }
+  .legal__faq dd {
+    margin: var(--space-1) 0 0;
+  }
+}
+
+/* Liens légaux discrets, en pied du sommaire et du menu « Plus ». */
+@layer app {
+  .legal-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-3);
+    margin-top: var(--space-3);
+    font-size: var(--step--1);
+  }
+  .legal-links a {
+    color: var(--ink-soft);
+  }
+}

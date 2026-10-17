@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { PlusIcon } from '../../components/icons'
+import { Button, Ledger, PageHead, PageMessage, Segmented, Sheet } from '../../components/ui'
 import { localDay } from '../../lib/dates'
 import { money } from '../../lib/format'
 import {
@@ -93,38 +94,29 @@ export function ExpensesPage({ shopId }: { shopId: string }) {
     }
   }
   return (
-    <div>
-      <div className="hello">
-        <div>
-          <h1>Charges de la boutique</h1>
-          <span>
-            Dépenses réelles et charges de simulation marquées TEST, sans doubler les arrivages.
-          </span>
-        </div>
-        <button
-          onClick={() => {
-            setEditing(null)
-            setShow(!show)
-            setMsg('')
-          }}
-        >
-          <PlusIcon />
-          Ajouter une charge
-        </button>
-      </div>
-      <ExpenseSummary visible={visible} period={period} />
-      <section className="card expense-toolbar">
-        <label>
-          Période
-          <select value={period} onChange={(e) => setPeriod(e.target.value as 'month' | 'all')}>
-            <option value="month">Ce mois-ci</option>
-            <option value="all">Tout l’historique</option>
-          </select>
-        </label>
-      </section>
+    <div className="page-stack">
+      <PageHead
+        title="Charges de la boutique"
+        sub="Loyer, transport, salaires… Les coûts des arrivages sont comptés à part."
+        action={
+          <Button
+            variant="secondary"
+            icon={<PlusIcon />}
+            onClick={() => {
+              setEditing(null)
+              setShow(!show)
+              setMsg('')
+            }}
+          >
+            {show && !editing ? 'Fermer' : 'Ajouter une charge'}
+          </Button>
+        }
+      />
       {show && (
         <ExpenseForm
+          key={editing?.id ?? 'new'}
           editing={editing}
+          usedLabels={rows.map((item) => ({ category: item.category, label: item.label ?? '' }))}
           today={today()}
           busy={busy}
           onSubmit={save}
@@ -134,21 +126,33 @@ export function ExpensesPage({ shopId }: { shopId: string }) {
           }}
         />
       )}
-      {msg && <p className="successmsg">{msg}</p>}
-      <section className="card">
+      {msg && <PageMessage>{msg}</PageMessage>}
+      <Sheet aria-label="Charges">
+        <Segmented
+          legend="Période"
+          value={period}
+          onChange={setPeriod}
+          options={[
+            { value: 'month' as const, label: 'Ce mois-ci' },
+            { value: 'all' as const, label: 'Tout l’historique' },
+          ]}
+        />
         {visible.length === 0 ? (
-          <p>Aucune charge sur cette période.</p>
+          <p className="muted">Aucune charge sur cette période.</p>
         ) : (
-          visible.map((x) => (
-            <ExpenseRow
-              key={x.id}
-              expense={x}
-              onEdit={() => startEdit(x)}
-              onDelete={() => void remove(x)}
-            />
-          ))
+          <Ledger label="Charges, la plus récente d’abord">
+            {visible.map((x) => (
+              <ExpenseRow
+                key={x.id}
+                expense={x}
+                onEdit={() => startEdit(x)}
+                onDelete={() => void remove(x)}
+              />
+            ))}
+          </Ledger>
         )}
-      </section>
+        <ExpenseSummary visible={visible} period={period} />
+      </Sheet>
     </div>
   )
 }

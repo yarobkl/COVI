@@ -1,0 +1,26 @@
+# Migrations déjà appliquées en production (projet Supabase bmbwmwgfzrijglzcgjut), dans l'ordre.
+# Relevé du 2026-10-14 (supabase_migrations.schema_migrations). À mettre à jour après chaque
+# application en production. tests/sql/run.sh vérifie que :
+#   - chacune existe dans supabase/migrations, au même rang ;
+#   - toute autre migration du dépôt a une version PLUS RÉCENTE que la dernière de cette liste
+#     (sinon `supabase db push` la refuserait, ou l'appliquerait hors d'ordre avec --include-all).
+20261005234321
+20261005234329
+20261006094231
+20261006094458
+20261006094503
+20261006134757
+20261006151316
+20261006152048
+20261007044124
+20261007065006
+20261007065227
+20261007065309
+20261007065614
+20261007214818
+20261007215003
+20261007220223
+20261013045706
+20261013083635
+20261013083931
+20261013084611

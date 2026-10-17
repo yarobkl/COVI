@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { PlusIcon } from '../../components/icons'
-import { addProduct } from '../../lib/covi'
+import { Button, EmptyState, PageHead, PageMessage, Sheet } from '../../components/ui'
+import { addProduct, listProducts } from '../../lib/covi'
 import { localDay } from '../../lib/dates'
 import {
   arrivalProfitability,
@@ -9,7 +10,7 @@ import {
   updateArrival,
   type ArrivalProfit,
 } from '../../lib/operations'
-import type { Arrival } from '../../lib/types'
+import type { Arrival, Product } from '../../lib/types'
 import { ArrivalCard } from './ArrivalCard'
 import { ArrivalForm } from './ArrivalForm'
 import { ArrivalProductForm } from './ArrivalProductForm'
@@ -26,6 +27,7 @@ const errorMessage = (e: unknown) => (e as Error).message
 /** Arrivals (all, supplier orders only or balloons only) with their lifecycle and products. */
 export function ArrivalsPage({ shopId, kind }: { shopId: string; kind?: Arrival['kind'] }) {
   const [rows, setRows] = useState<Arrival[]>([])
+  const [products, setProducts] = useState<Product[]>([])
   const [profit, setProfit] = useState<ArrivalProfit[]>([])
   const [show, setShow] = useState(false)
   const [arrivalKind, setArrivalKind] = useState<Arrival['kind']>(kind ?? 'supplier_order')
@@ -40,6 +42,7 @@ export function ArrivalsPage({ shopId, kind }: { shopId: string; kind?: Arrival[
     void arrivalProfitability(shopId)
       .then((x) => setProfit(kind ? x.filter((a) => a.kind === kind) : x))
       .catch((e) => setMsg(errorMessage(e)))
+    void listProducts(shopId, false, true).then(setProducts, () => {})
   }, [shopId, kind])
   useEffect(() => {
     load()
@@ -96,34 +99,44 @@ export function ArrivalsPage({ shopId, kind }: { shopId: string; kind?: Arrival[
     }
   }
   return (
-    <div>
-      <div className="hello">
-        <div>
-          <h1>{kind ? titles[kind] : 'Mes arrivages'}</h1>
-          <span>Suivi des arrivages réels et de la simulation marquée TEST.</span>
-        </div>
-        <button onClick={() => setShow(!show)}>
-          <PlusIcon />
-          Nouvel arrivage
-        </button>
-      </div>
+    <div className="page-stack">
+      <PageHead
+        title={kind ? titles[kind] : 'Mes arrivages'}
+        sub="Commandes fournisseurs et ballons, de la commande à la revente."
+        action={
+          <Button variant="secondary" icon={<PlusIcon />} onClick={() => setShow(!show)}>
+            {show ? 'Fermer' : 'Nouvel arrivage'}
+          </Button>
+        }
+      />
       {show && (
         <ArrivalForm
           kind={kind}
           arrivalKind={arrivalKind}
+          suppliers={[
+            ...new Set(rows.map((a) => a.supplier_name).filter((s): s is string => Boolean(s))),
+          ]}
           onArrivalKindChange={setArrivalKind}
           busy={busy}
           onSubmit={save}
         />
       )}
-      {msg && <p className="successmsg">{msg}</p>}
-      <section className="card">
-        {rows.length === 0 ? (
-          <p>
-            Aucun arrivage enregistré. Créez une commande fournisseur ou un ballon pour commencer.
-          </p>
-        ) : (
-          rows.map((a) => (
+      {msg && <PageMessage>{msg}</PageMessage>}
+      {addTo && (
+        <ArrivalProductForm
+          arrival={addTo}
+          products={products}
+          onSubmit={saveProduct}
+          onCancel={() => setAddTo(null)}
+        />
+      )}
+      {rows.length === 0 ? (
+        <EmptyState title="Aucun arrivage enregistré.">
+          <p>Créez une commande fournisseur ou un ballon pour commencer.</p>
+        </EmptyState>
+      ) : (
+        <Sheet aria-label="Arrivages">
+          {rows.map((a) => (
             <ArrivalCard
               key={a.id}
               arrival={a}
@@ -134,15 +147,8 @@ export function ArrivalsPage({ shopId, kind }: { shopId: string; kind?: Arrival[
               onAddProduct={() => setAddTo(a)}
               onToggleDetail={() => setExpanded(expanded === a.id ? null : a.id)}
             />
-          ))
-        )}
-      </section>
-      {addTo && (
-        <ArrivalProductForm
-          arrival={addTo}
-          onSubmit={saveProduct}
-          onCancel={() => setAddTo(null)}
-        />
+          ))}
+        </Sheet>
       )}
     </div>
   )

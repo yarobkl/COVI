@@ -4,6 +4,7 @@ import {
   resolveAfricanCity,
   resolveAfricanCountry,
 } from '../../lib/centralAfricaLocations'
+import { Button, PageHead, PageMessage, Sheet, Skeleton } from '../../components/ui'
 import { CentralAfricaLocationFields } from '../locations/CentralAfricaLocationFields'
 import { ShopGpsControl, type ShopGpsPosition } from '../locations/ShopGpsControl'
 import { OTHER_NEIGHBORHOOD, resolveNeighborhood } from '../../lib/neighborhoods'
@@ -136,87 +137,99 @@ export function SettingsPage({
   }
 
   if (!shop || !draft) {
-    return loadError ? <p role="alert">{msg}</p> : <p>Chargement des paramètres…</p>
+    return (
+      <>
+        <PageHead title="Ma boutique" />
+        {loadError ? (
+          <p className="page-msg" role="alert">
+            {msg}
+          </p>
+        ) : (
+          <Skeleton caption="Ouverture de la fiche de la boutique…" />
+        )}
+      </>
+    )
   }
 
   return (
-    <div>
-      <div className="hello">
-        <div>
-          <h1>Paramètres</h1>
-          <span>Identité et informations principales de votre commerce.</span>
-        </div>
-      </div>
-      <ProfilePhotoEditor />
-      <form className="card formgrid" onSubmit={(e) => void save(e)}>
-        <label>
-          Nom de la boutique
-          <input
-            name="name"
-            required
-            value={draft.name}
-            onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+    <>
+      <PageHead
+        title="Ma boutique"
+        sub="La fiche de votre commerce, vos caissiers et votre équipe."
+      />
+      <Sheet aria-labelledby="shop-card-title">
+        <form className="form-grid" onSubmit={(e) => void save(e)}>
+          <h2 className="section-title form-grid__title" id="shop-card-title">
+            Fiche de la boutique
+          </h2>
+          <label>
+            Nom de la boutique
+            <input
+              name="name"
+              required
+              value={draft.name}
+              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+            />
+          </label>
+          <CentralAfricaLocationFields
+            country={draft.country}
+            city={draft.city}
+            customCity={draft.customCity}
+            neighborhood={draft.neighborhood}
+            customNeighborhood={draft.customNeighborhood}
+            onNeighborhoodChange={(neighborhood) =>
+              setDraft({ ...draft, neighborhood, customNeighborhood: '' })
+            }
+            onCustomNeighborhoodChange={(customNeighborhood) =>
+              setDraft({ ...draft, customNeighborhood })
+            }
+            onCountryChange={(country) =>
+              setDraft({
+                ...draft,
+                country,
+                city: '',
+                customCity: '',
+                neighborhood: '',
+                customNeighborhood: '',
+                gps: null,
+              })
+            }
+            onCityChange={(city) =>
+              setDraft({
+                ...draft,
+                city,
+                customCity: '',
+                neighborhood: '',
+                customNeighborhood: '',
+              })
+            }
+            onCustomCityChange={(customCity) =>
+              setDraft({
+                ...draft,
+                customCity,
+                neighborhood: '',
+                customNeighborhood: '',
+                gps: null,
+              })
+            }
           />
-        </label>
-        <CentralAfricaLocationFields
-          country={draft.country}
-          city={draft.city}
-          customCity={draft.customCity}
-          neighborhood={draft.neighborhood}
-          customNeighborhood={draft.customNeighborhood}
-          onNeighborhoodChange={(neighborhood) =>
-            setDraft({ ...draft, neighborhood, customNeighborhood: '' })
-          }
-          onCustomNeighborhoodChange={(customNeighborhood) =>
-            setDraft({ ...draft, customNeighborhood })
-          }
-          onCountryChange={(country) =>
-            setDraft({
-              ...draft,
-              country,
-              city: '',
-              customCity: '',
-              neighborhood: '',
-              customNeighborhood: '',
-              gps: null,
-            })
-          }
-          onCityChange={(city) =>
-            setDraft({
-              ...draft,
-              city,
-              customCity: '',
-              neighborhood: '',
-              customNeighborhood: '',
-            })
-          }
-          onCustomCityChange={(customCity) =>
-            setDraft({ ...draft, customCity, neighborhood: '', customNeighborhood: '', gps: null })
-          }
-        />
-        <ShopGpsControl value={draft.gps} onChange={(gps) => setDraft({ ...draft, gps })} />
-        <label>
-          Devise
-          <input value={shop.currency} disabled />
-          <small>La devise du commerce reste XAF pour cette version.</small>
-        </label>
-        <button className="primary span2" disabled={busy}>
-          {busy ? 'Enregistrement…' : 'Enregistrer les paramètres'}
-        </button>
-      </form>
-      {msg && (
-        <p className="successmsg" role="status">
-          {msg}
-        </p>
-      )}
-      <section className="card">
-        <small>COVI V1</small>
-        <h2>Commerce connecté</h2>
-        <p>
-          Vos données sont protégées par votre compte COVI et synchronisées avec votre espace
-          Supabase.
-        </p>
-      </section>
-    </div>
+          <div className="form-grid__full">
+            <ShopGpsControl value={draft.gps} onChange={(gps) => setDraft({ ...draft, gps })} />
+          </div>
+          <label>
+            Devise
+            <input value={shop.currency} disabled />
+            <small>La devise du commerce reste XAF pour cette version.</small>
+          </label>
+          <div className="form-grid__actions">
+            <Button variant="primary" type="submit" busy={busy} busyLabel="Enregistrement…">
+              Enregistrer la fiche
+            </Button>
+          </div>
+        </form>
+        {msg && <PageMessage>{msg}</PageMessage>}
+      </Sheet>
+      <ProfilePhotoEditor />
+    </>
   )
 }

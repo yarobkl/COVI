@@ -9,41 +9,100 @@ import {
   SearchField,
   Skeleton,
 } from '../../components/ui'
-import { CloudOffIcon } from '../../components/icons'
+import { ChevronRightIcon, CloudOffIcon } from '../../components/icons'
 import { DESKTOP, useMediaQuery } from '../../hooks/useMediaQuery'
 import { listProducts } from '../../lib/covi'
-import { plural } from '../../lib/format'
+import { fcfa, plural } from '../../lib/format'
 import { listArrivals, todaySales } from '../../lib/operations'
 import type { Product } from '../../lib/types'
 import { SaleDone } from './SaleDone'
-import { SaleForm, type SoldSale } from './SaleForm'
+import {
+  addToCart,
+  cartCount,
+  cartTotal,
+  lineOf,
+  MAX_CART_LINES,
+  refreshLines,
+  soldTotal,
+  type AddOutcome,
+  type Cart,
+  type SoldSale,
+} from './cart'
+import type { CartOperation, FrozenCart } from './cartSubmit'
+import { clearUncertainCart, recoverUncertainCart, saveUncertainCart } from './cartRecovery'
+import { EMPTY_CART_TEXT, SaleForm, type SaleSeller } from './SaleForm'
 import { SaleTile } from './SaleTile'
 import { matchesSearch } from './saleMath'
+
+/** What touching a tile did, said to screen readers (the tile and the cart show it). */
+function addedText(outcome: AddOutcome, product: Product, inCart: number) {
+  switch (outcome) {
+    case 'added':
+      return `Ajouté au panier : ${product.name}.`
+    case 'more':
+      return `${product.name} : ${inCart} dans le panier.`
+    case 'max':
+      return product.is_unique_piece
+        ? `${product.name} est une pièce unique, elle est déjà dans le panier.`
+        : `Tout le stock de ${product.name} est déjà dans le panier.`
+    case 'full':
+      return `Le panier est plein : ${MAX_CART_LINES} articles différents au plus. Validez cette vente, puis commencez-en une autre.`
+  }
+}
 
 type Today = { count: number; total: number } | null
 
 /**
- * Vendre: find the article (instant local search), touch it, agree on the price and the payment,
- * validate — one article per sale, as the server records it. Phone: the sale opens in a sheet;
- * computer: beside the articles.
+ * Vendre: find the articles (instant local search), touch them to fill the cart, agree on the
+ * prices and the payment, validate — one sale for the whole cart. Computer: the cart sits beside
+ * the articles; phone: a bar at the bottom (« Panier · 3 articles · 54 000 ») opens it in a sheet.
  */
-export function SalePage({ shopId, shopName }: { shopId: string; shopName: string }) {
+export function SalePage({
+  userId,
+  shopId,
+  shopName,
+  seller,
+  paused = false,
+}: {
+  /** The signed-in account (AuthGate): a cart is kept and replayed for it only, in its shop. */
+  userId: string
+  shopId: string
+  shopName: string
+  /**
+   * A cashier sells: on their own account (personal device), or the cashier of the till session
+   * of the owner's shared device (`tillToken`, counter mode). Their maximum discount applies.
+   */
+  seller?: SaleSeller
+  /** Hidden behind a lock screen: the physical keyboard must not type into the price pad. */
+  paused?: boolean
+}) {
   const desktop = useMediaQuery(DESKTOP)
   const [products, setProducts] = useState<Product[] | null>(null)
   const [loadFailed, setLoadFailed] = useState(false)
   const [codes, setCodes] = useState<Map<string, string>>(new Map())
   const [today, setToday] = useState<Today>(null)
   const [query, setQuery] = useState('')
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [cart, setCart] = useState<Cart>([])
+  const [sheetOpen, setSheetOpen] = useState(false)
+  // One operation id per cart, reused on every retry of the same cart; a new one after a sale.
+  const [operation, setOperation] = useState<CartOperation | null>(null)
+  // A request may already have recorded the sale when the reply was lost.
+  // Restore its operation id after a page refresh instead of risking a duplicate sale.
+  const [frozen, setFrozen] = useState<FrozenCart | null>(() =>
+    recoverUncertainCart(userId, shopId),
+  )
+  const [said, setSaid] = useState('')
   const [done, setDone] = useState<SoldSale | null>(null)
+  const [sales, setSales] = useState(0)
   const [attempt, setAttempt] = useState(0)
   const sheetTitle = useId()
   const aside = useRef<HTMLElement>(null)
+  const articles = useRef<HTMLDivElement>(null)
 
-  // A new article or « Vendu. » starts at the top of the sale column (computer).
+  // « Vendu. » starts at the top of the sale column (computer).
   useEffect(() => {
     aside.current?.scrollTo?.(0, 0)
-  }, [selectedId, done])
+  }, [done])
 
   const loadProducts = useCallback(
     () =>
@@ -51,6 +110,8 @@ export function SalePage({ shopId, shopName }: { shopId: string; shopName: strin
         (rows) => {
           setProducts(rows)
           setLoadFailed(false)
+          // The cart follows the fresh stock (names, quantities left).
+          setCart((c) => refreshLines(c, rows))
         },
         () => setLoadFailed(true),
       ),
@@ -81,25 +142,74 @@ export function SalePage({ shopId, shopName }: { shopId: string; shopName: strin
       ),
     [products, codes, query],
   )
-  const selected = products?.find((p) => p.id === selectedId) ?? null
   const codeOf = (p: Product) => (p.arrival_id ? codes.get(p.arrival_id) : undefined)
+  const shownCart = frozen?.lines ?? cart
+  const count = cartCount(shownCart)
+  const total = cartTotal(shownCart)
+
+  const add = (product: Product) => {
+    if (frozen) {
+      // The cart waits for its answer: nothing joins it. Show it instead.
+      setSaid(
+        'Ce panier attend la réponse du serveur : réessayez ou abandonnez-le avant d’ajouter.',
+      )
+      if (!desktop) setSheetOpen(true)
+      return
+    }
+    const result = addToCart(cart, product)
+    setCart(result.cart)
+    setDone(null)
+    setSaid(addedText(result.outcome, product, lineOf(result.cart, product.id)?.quantity ?? 0))
+  }
 
   const sold = (sale: SoldSale) => {
+    clearUncertainCart(userId, shopId)
     setDone(sale)
-    setSelectedId(null)
+    setCart([])
+    setOperation(null)
+    setFrozen(null)
+    setSheetOpen(false)
+    setSales((n) => n + 1)
     setQuery('')
-    setToday((t) => (t ? { count: t.count + 1, total: t.total + sale.price * sale.quantity } : t))
+    setSaid('')
+    setToday((t) => (t ? { count: t.count + 1, total: t.total + soldTotal(sale) } : t))
     void loadProducts()
   }
 
-  const form = selected && (
+  const addMore = () => {
+    if (desktop) articles.current?.querySelector('input')?.focus()
+    else setSheetOpen(false)
+  }
+
+  const form = (
     <SaleForm
-      key={selected.id}
+      // A new sale starts afresh (payment, cash received, operation id).
+      key={sales}
+      userId={userId}
       shopId={shopId}
-      product={selected}
-      arrivalCode={codeOf(selected)}
-      keyboard={desktop}
-      onBack={desktop ? undefined : () => setSelectedId(null)}
+      seller={seller}
+      lines={cart}
+      onLinesChange={setCart}
+      codeOf={codeOf}
+      keyboard={desktop && !paused}
+      onBack={desktop ? undefined : () => setSheetOpen(false)}
+      onAddMore={addMore}
+      operation={operation}
+      onOperation={setOperation}
+      frozen={frozen}
+      onFreeze={(value) => {
+        if (value) saveUncertainCart(userId, shopId, value)
+        else clearUncertainCart(userId, shopId)
+        setFrozen(value)
+      }}
+      onAbandon={() => {
+        clearUncertainCart(userId, shopId)
+        setFrozen(null)
+        setCart([])
+        setOperation(null)
+        setSheetOpen(false)
+        setSaid('Panier abandonné.')
+      }}
       onSold={sold}
     />
   )
@@ -124,16 +234,36 @@ export function SalePage({ shopId, shopName }: { shopId: string; shopName: strin
       </header>
 
       <div className="sale-layout">
-        <div className="sale-layout__articles">
+        <div className="sale-layout__articles" ref={articles}>
+          <label className="sale-product-picker">
+            Choisir un article dans la liste
+            <select
+              className="select"
+              aria-label="Ajouter un article du stock au panier"
+              defaultValue=""
+              onChange={(event) => {
+                const product = products?.find((item) => item.id === event.target.value)
+                if (product) add(product)
+                event.target.value = ''
+              }}
+            >
+              <option value="">Sélectionner un article…</option>
+              {(products ?? []).map((product) => (
+                <option key={product.id} value={product.id}>
+                  {product.name} · {fcfa(Number(product.initial_sale_price))}
+                </option>
+              ))}
+            </select>
+          </label>
           <SearchField
             className="sale-search"
             label="Chercher un article"
             placeholder="Chercher : robe, jean, BAL-003…"
             value={query}
             onChange={setQuery}
-            autoFocus={desktop}
+            autoFocus={desktop && !paused}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && visible.length === 1) setSelectedId(visible[0].id)
+              if (e.key === 'Enter' && visible.length === 1) add(visible[0])
             }}
           />
 
@@ -158,12 +288,18 @@ export function SalePage({ shopId, shopName }: { shopId: string; shopName: strin
               <EmptyState
                 title="Rien à vendre pour l’instant."
                 actions={
-                  <ButtonLink variant="primary" href="#/stock">
-                    Ajouter au stock
-                  </ButtonLink>
+                  seller ? undefined : (
+                    <ButtonLink variant="primary" href="#/stock">
+                      Ajouter au stock
+                    </ButtonLink>
+                  )
                 }
               >
-                <p>Mettez vos pièces en stock : elles apparaîtront ici, prêtes à vendre.</p>
+                <p>
+                  {seller
+                    ? 'Le stock est vide. Demandez au responsable d’ajouter des pièces.'
+                    : 'Mettez vos pièces en stock : elles apparaîtront ici, prêtes à vendre.'}
+                </p>
               </EmptyState>
             ) : (
               <Notice icon={CloudOffIcon}>
@@ -187,11 +323,8 @@ export function SalePage({ shopId, shopName }: { shopId: string; shopName: strin
                   <SaleTile
                     product={p}
                     arrivalCode={codeOf(p)}
-                    selected={p.id === selectedId}
-                    onSelect={() => {
-                      setDone(null)
-                      setSelectedId(p.id)
-                    }}
+                    inCart={lineOf(shownCart, p.id)?.quantity ?? 0}
+                    onAdd={() => add(p)}
                   />
                 </li>
               ))}
@@ -201,26 +334,58 @@ export function SalePage({ shopId, shopName }: { shopId: string; shopName: strin
 
         {desktop && (
           <aside className="sale-layout__sale" aria-label="La vente" ref={aside}>
-            {doneScreen ?? form ?? (
-              <div className="sale-waiting">
-                <h2 className="section-title">La vente</h2>
-                <p className="muted">Touchez un article pour l’ajouter.</p>
-              </div>
-            )}
+            {doneScreen ??
+              (shownCart.length > 0 ? (
+                form
+              ) : (
+                <div className="sale-waiting">
+                  <h2 className="section-title">La vente</h2>
+                  <p className="muted">{EMPTY_CART_TEXT}</p>
+                </div>
+              ))}
           </aside>
         )}
       </div>
 
+      <p className="visually-hidden" role="status">
+        {said}
+      </p>
+
+      {!desktop && shownCart.length > 0 && (
+        <div className="sale-cartbar">
+          <button
+            type="button"
+            className="sale-bar sale-cartbar__open"
+            aria-haspopup="dialog"
+            onClick={() => setSheetOpen(true)}
+          >
+            <span className="sale-cartbar__what">
+              <span className="sale-bar__count">
+                {frozen ? 'Vente à confirmer' : 'Panier'} · {plural(count, 'article')}
+              </span>
+              <span className="amount">
+                {fcfa(total)}
+                <span className="amount__unit">FCFA</span>
+              </span>
+            </span>
+            <span className="sale-cartbar__go">
+              Voir le panier
+              <ChevronRightIcon />
+            </span>
+          </button>
+        </div>
+      )}
+
       {!desktop && (
         <Dialog
-          open={Boolean(selected)}
-          onClose={() => setSelectedId(null)}
+          open={sheetOpen}
+          onClose={() => setSheetOpen(false)}
           labelledBy={sheetTitle}
           sheet
           className="is-sale sale-sheet"
         >
           <h2 className="visually-hidden" id={sheetTitle}>
-            {selected ? `Vendre ${selected.name}` : 'La vente'}
+            Le panier
           </h2>
           {form}
         </Dialog>

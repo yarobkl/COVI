@@ -1,31 +1,42 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { MenuIcon, PlusIcon } from '../components/icons'
 import { Button, ButtonLink, cx, Dialog, LabelCard } from '../components/ui'
+import { AccountDeletionPanel } from '../features/account/AccountDeletionPanel'
 import { ArrivalsPage } from '../features/arrivals/ArrivalsPage'
 import { useCurrentUser } from '../features/auth/useCurrentUser'
 import { DashboardPage } from '../features/dashboard/DashboardPage'
 import { useProfilePhoto } from '../features/profile/useProfilePhoto'
 import { ExpensesPage } from '../features/expenses/ExpensesPage'
 import { HistoryPage } from '../features/history/HistoryPage'
-import { SalePage } from '../features/sale/SalePage'
+import { NotificationBell } from '../features/notifications/NotificationBell'
+import { useShopNotifications } from '../features/notifications/useShopNotifications'
+import { OrdersPage } from '../features/orders/OrdersPage'
+import { TillSwitch } from '../features/team/TillSwitch'
 import { SettingsPage } from '../features/settings/SettingsPage'
 import { StatisticsPage } from '../features/statistics/StatisticsPage'
 import { StockPage } from '../features/stock/StockPage'
 import { NetStatus } from '../features/sync/NetStatus'
+import { TeamPanel } from '../features/team/TeamPanel'
+import { SharedCashiersPanel } from '../features/team/SharedCashiersPanel'
 import { useSyncState } from '../features/sync/useSyncState'
 import { plural } from '../lib/format'
+import { legalLinks } from '../lib/legal'
 import type { Shop } from '../lib/types'
 import { initials, ownerName, shortName } from './identity'
-import { LegacyPage } from './LegacyPage'
 import { bottomBar, morePages, pages, sommaire } from './navigation'
 import { routeHash, routeKey, type ArrivalFilter, type PageId, type Route } from './routes'
 import { useHashRoute } from './useHashRoute'
 
 type PageContext = {
   shop: Shop
+  /** The signed-in account of the validated session (AuthGate). */
+  userId: string
   updateShop: (shop: Shop) => void
   navigate: (route: Route) => void
   onSimulation: () => void
+  /** Owner's user id: groups their own sales in « Ventes par caissier ». */
+  ownerId: string | null
+  signOut: () => Promise<void>
 }
 
 /** « Tous · Commandes · Ballons »: filters of Arrivages (each one keeps its own state). */
@@ -50,57 +61,66 @@ function ArrivalsScreen({ shopId, filter }: { shopId: string; filter?: ArrivalFi
           </a>
         ))}
       </nav>
-      <LegacyPage>
-        <ArrivalsPage
-          shopId={shopId}
-          kind={
-            filter === 'commandes' ? 'supplier_order' : filter === 'ballons' ? 'balloon' : undefined
-          }
-        />
-      </LegacyPage>
+      <ArrivalsPage
+        shopId={shopId}
+        kind={
+          filter === 'commandes' ? 'supplier_order' : filter === 'ballons' ? 'balloon' : undefined
+        }
+      />
     </>
   )
 }
 
-function renderPage(route: Route, { shop, updateShop, onSimulation }: PageContext) {
+function renderPage(route: Route, { shop, updateShop, onSimulation, ownerId }: PageContext) {
   switch (route.page) {
     case 'accueil':
       return <DashboardPage shop={shop} onSimulation={onSimulation} />
     case 'vendre':
-      return <SalePage shopId={shop.id} shopName={shop.name} />
+      return <TillSwitch shopId={shop.id} />
     case 'stock':
-      return (
-        <LegacyPage>
-          <StockPage shopId={shop.id} />
-        </LegacyPage>
-      )
+      return <StockPage shopId={shop.id} />
     case 'arrivages':
-      return <ArrivalsScreen shopId={shop.id} filter={route.filter} />
+      return (
+        <ArrivalsScreen
+          shopId={shop.id}
+          filter={route.filter === 'qr' ? undefined : route.filter}
+        />
+      )
+    case 'commandes':
+      return <OrdersPage shop={shop} tab={route.filter === 'qr' ? 'qr' : undefined} />
     case 'ventes':
-      return (
-        <LegacyPage>
-          <HistoryPage shopId={shop.id} />
-        </LegacyPage>
-      )
+      return <HistoryPage shopId={shop.id} ownerId={ownerId} />
     case 'charges':
-      return (
-        <LegacyPage>
-          <ExpensesPage shopId={shop.id} />
-        </LegacyPage>
-      )
+      return <ExpensesPage shopId={shop.id} />
     case 'bilan':
-      return (
-        <LegacyPage>
-          <StatisticsPage shopId={shop.id} />
-        </LegacyPage>
-      )
+      return <StatisticsPage shopId={shop.id} />
     case 'boutique':
       return (
-        <LegacyPage>
+        <div className="page-stack">
           <SettingsPage shopId={shop.id} onShopUpdated={updateShop} />
-        </LegacyPage>
+          <SharedCashiersPanel shopId={shop.id} />
+          <TeamPanel shopId={shop.id} shopName={shop.name} />
+          <AccountDeletionPanel
+            shopId={shop.id}
+            shopName={shop.name}
+            onScheduled={() => window.location.reload()}
+          />
+        </div>
       )
   }
+}
+
+/** Aide, conditions et confidentialité : toujours à portée de main (App Store). */
+function LegalLinks() {
+  return (
+    <nav className="legal-links" aria-label="Informations légales">
+      {legalLinks.map((l) => (
+        <a key={l.href} href={l.href}>
+          {l.label}
+        </a>
+      ))}
+    </nav>
+  )
 }
 
 /** The notebook label: shop name, place and who keeps it. */
@@ -187,17 +207,21 @@ function SignOutDialog({
  */
 export function App({
   shop,
+  userId,
   signOut,
   updateShop,
   onSimulation,
 }: {
   shop: Shop
+  /** The signed-in account of the validated session (AuthGate). */
+  userId: string
   signOut: () => Promise<void>
   updateShop: (shop: Shop) => void
   onSimulation: () => void
 }) {
   const { route, navigate } = useHashRoute()
   const sync = useSyncState()
+  const notifications = useShopNotifications(shop.id)
   const user = useCurrentUser()
   const owner = ownerName(user?.user_metadata)
   const profilePhotoUrl = useProfilePhoto(user)
@@ -226,7 +250,15 @@ export function App({
     setMenuOpen(false)
     setSignOutOpen(true)
   }
-  const ctx: PageContext = { shop, updateShop, navigate, onSimulation }
+  const ctx: PageContext = {
+    shop,
+    userId,
+    updateShop,
+    navigate,
+    onSimulation,
+    ownerId: user?.id ?? userId,
+    signOut,
+  }
 
   return (
     <div className="shell">
@@ -237,6 +269,7 @@ export function App({
       <header className="topbar">
         <p className="topbar__shop">{shop.name}</p>
         <NetStatus state={sync} shopId={shop.id} />
+        <NotificationBell state={notifications} />
         <button
           type="button"
           className="avatar"
@@ -260,6 +293,7 @@ export function App({
             Nouvelle vente
           </ButtonLink>
         </div>
+        <NotificationBell state={notifications} className="bell--sommaire" withLabel />
         <h2 className="sommaire__title">Sommaire</h2>
         <ul className="sommaire__list">
           {sommaire.map(({ page, label, icon: Icon }) => (
@@ -279,6 +313,7 @@ export function App({
           <button type="button" className="btn btn--ghost sommaire__quiet" onClick={askSignOut}>
             Se déconnecter
           </button>
+          <LegalLinks />
         </div>
       </nav>
 
@@ -367,6 +402,7 @@ export function App({
             <Button variant="danger" onClick={askSignOut}>
               Se déconnecter
             </Button>
+            <LegalLinks />
           </div>
         </div>
       </Dialog>

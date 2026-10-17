@@ -1,0 +1,461 @@
+/* Canal client (QR code, liens WhatsApp / TikTok) : page publique du client, suivi, commandes
+   reçues et « QR & liens ». Mêmes jetons que le reste du cahier ; cibles tactiles ≥ --tap-min. */
+@layer app {
+  /* Page publique : une page du cahier (Seyès + marge rouge), comme la connexion ----------- */
+  .order-guest {
+    min-height: 100dvh;
+  }
+  .order-guest__sheet {
+    display: grid;
+    align-content: start;
+    gap: var(--space-6);
+    min-height: 100dvh;
+    padding-block: var(--space-6) var(--space-10);
+    padding-inline-end: var(--gutter);
+  }
+  /* Étiquette du cahier : le nom de la boutique, posé un peu de travers. */
+  .order-guest__label {
+    justify-self: center;
+    text-align: center;
+    max-width: min(100%, 22rem);
+    rotate: -1deg;
+  }
+  .order-guest__shop {
+    color: var(--action);
+    font-size: var(--step-2);
+    font-weight: var(--weight-bold);
+    letter-spacing: 0.04em;
+    line-height: var(--leading-snug);
+    text-transform: uppercase;
+  }
+  .order-guest__place {
+    color: var(--ink-soft);
+    font-size: var(--step--1);
+  }
+  .order-guest__head {
+    display: grid;
+    gap: var(--space-2);
+  }
+  .order-guest .section-title {
+    font-size: var(--step-2);
+  }
+  .order-guest h2.section-title,
+  .order-guest .segmented__legend .section-title {
+    font-size: var(--step-1);
+  }
+  .order-guest__hand {
+    font-size: 1.25rem;
+    rotate: -1.5deg;
+    transform-origin: left;
+  }
+  /* Mot de la boutique : un papillon jaune collé dans la marge. */
+  .order-guest__message {
+    justify-self: start;
+    max-width: 30rem;
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+    background: #fff4b8;
+    color: var(--ink);
+    font-size: 1.15rem;
+    white-space: pre-line;
+    rotate: 0.8deg;
+    box-shadow:
+      0 1px 0 #e6d98a,
+      2px 3px 6px rgb(30 36 48 / 0.08);
+  }
+  .order-guest__loading {
+    font-size: 1.35rem;
+  }
+  .order-guest__form {
+    display: grid;
+    gap: var(--space-8);
+  }
+  .order-guest__part {
+    display: grid;
+    gap: var(--space-4);
+    min-width: 0;
+    max-width: 34rem;
+  }
+  .order-guest__lead {
+    color: var(--ink-soft);
+  }
+  /* Une ligne d'article : comme une ligne du cahier, numérotée au stylo, sans boîte. */
+  .order-guest__line {
+    display: grid;
+    gap: var(--space-3);
+    min-width: 0;
+    padding-block: var(--space-2) var(--space-4);
+    border-bottom: 1.5px dashed var(--line-dotted);
+  }
+  .order-guest__num {
+    float: left;
+    width: 100%;
+    margin-bottom: var(--space-1);
+    padding: 0;
+    color: var(--action);
+    font-size: 1.3rem;
+    rotate: -1deg;
+  }
+  .order-guest__num + * {
+    clear: both;
+  }
+  .order-guest__row {
+    display: grid;
+    grid-template-columns: minmax(5.5rem, 7rem) minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+  .order-guest__remove {
+    justify-self: start;
+  }
+  .order-guest__textarea {
+    height: auto;
+    min-height: calc(var(--field-height) * 1.5);
+    padding-block: var(--space-2);
+    resize: vertical;
+  }
+  /* Total : ligne de cahier, libellé · pointillés · montant en chiffres de caisse. */
+  .order-guest__total {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    margin: 0;
+    font-weight: var(--weight-bold);
+  }
+  .order-guest__total b {
+    font-size: 1.2rem;
+  }
+  .order-guest__dots {
+    flex: 1;
+    border-bottom: 2px dotted var(--line-dotted);
+    translate: 0 -0.3em;
+  }
+  /* Photo : bouton du cahier, puis le tirage scotché sur la page. */
+  .order-guest__upload {
+    justify-self: start;
+    cursor: pointer;
+  }
+  .order-guest__upload:focus-within {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+  }
+  .order-guest__polaroid {
+    position: relative;
+    justify-self: start;
+    margin: var(--space-3) 0 0 var(--space-2);
+    padding: var(--space-2) var(--space-2) var(--space-1);
+    background: var(--sheet);
+    box-shadow: var(--shadow-sheet);
+    rotate: -2deg;
+  }
+  .order-guest__polaroid::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    width: 72px;
+    height: 20px;
+    translate: -50% 0;
+    rotate: 3deg;
+    background: rgb(255 236 150 / 0.75);
+    box-shadow: 0 1px 1px rgb(30 36 48 / 0.08);
+  }
+  .order-guest__polaroid img {
+    display: block;
+    max-width: min(16rem, 70vw);
+    max-height: 16rem;
+    object-fit: contain;
+  }
+  .order-guest__polaroid figcaption {
+    padding-top: var(--space-1);
+    text-align: center;
+    font-size: 1.05rem;
+  }
+  .order-guest .segmented__label {
+    min-height: var(--tap-min);
+  }
+  .order-guest__promise {
+    color: var(--ink-soft);
+  }
+  .order-guest__send {
+    gap: var(--space-3);
+  }
+  .order-guest__why {
+    color: var(--ink-muted);
+    font-size: var(--step--1);
+  }
+  .order-guest__turnstile {
+    min-height: 66px;
+  }
+  .order-guest__done {
+    justify-items: start;
+  }
+  .order-guest__ref {
+    font-size: var(--step-1);
+  }
+  .order-guest__ref .figures {
+    font-size: 1.5rem;
+    font-weight: var(--weight-bold);
+    color: var(--action);
+  }
+  .order-guest__link {
+    font-weight: var(--weight-bold);
+    word-break: break-all;
+  }
+  .order-guest__summary {
+    margin: 0;
+    padding-left: 1.25rem;
+  }
+  .order-guest__footer {
+    margin-top: var(--space-6);
+    color: var(--ink-muted);
+    font-size: var(--step--1);
+  }
+  .order-receipt__paper {
+    display: grid;
+    justify-self: start;
+    padding-block: var(--space-2) var(--space-4);
+  }
+  /* Tampon posé sous le reçu, sans masquer de chiffre. */
+  .order-receipt__paper .stamp {
+    justify-self: end;
+    margin: calc(var(--space-2) * -1) var(--space-2) 0 0;
+    rotate: -10deg;
+  }
+
+  @media (min-width: 1024px) {
+    body:has(.order-guest) {
+      background: var(--ground);
+    }
+    .order-guest {
+      display: grid;
+      place-items: start center;
+      padding: var(--space-8) var(--space-6);
+    }
+    .order-guest__sheet {
+      --margin-offset: var(--space-16);
+      width: min(100%, 46rem);
+      min-height: 0;
+      padding: var(--space-8) var(--space-10) var(--space-12) calc(var(--space-16) + var(--space-8));
+      border-radius: var(--radius-sheet);
+      box-shadow: var(--shadow-sheet);
+    }
+  }
+
+  .order-status {
+    display: inline-block;
+    justify-self: start;
+    padding: 0.15rem 0.6rem;
+    border-radius: var(--radius-pill);
+    background: var(--action-tint);
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+  .order-status--paid {
+    background: var(--success-tint);
+    color: var(--success);
+  }
+  .order-status--rejected {
+    background: var(--danger-tint);
+    color: var(--danger);
+  }
+
+  /* Commandes reçues --------------------------------------------------------------------------- */
+  .orders-page {
+    display: grid;
+    gap: var(--space-4);
+    min-width: 0;
+  }
+  .orders-page > * {
+    min-width: 0;
+  }
+  .orders-inbox,
+  .order-channel {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+    max-width: 48rem;
+  }
+  .orders-inbox h2,
+  .order-channel h2 {
+    margin: 0;
+  }
+  .orders-inbox__head p {
+    margin: 0;
+  }
+  .orders-inbox__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.75rem;
+  }
+  .order-card {
+    background: var(--sheet);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--action);
+    border-radius: var(--radius-3);
+    padding: 0.75rem var(--space-4);
+    display: grid;
+    gap: 0.4rem;
+  }
+  .order-card p {
+    margin: 0;
+  }
+  .order-card--paid {
+    border-left-color: var(--success);
+  }
+  .order-card--rejected {
+    border-left-color: var(--ink-muted);
+    opacity: 0.8;
+  }
+  .order-card--fresh {
+    background: var(--sale-accent-tint);
+  }
+  .order-card__head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  .order-card__lines {
+    margin: 0;
+    padding-left: 1.25rem;
+  }
+  .order-card__warn {
+    color: var(--danger);
+  }
+  .order-card__note {
+    font-style: italic;
+    white-space: pre-line;
+  }
+  .order-card__photo {
+    max-width: min(100%, 18rem);
+    border-radius: var(--radius-2);
+  }
+  .order-card__mobile {
+    padding: 0.35rem 0.6rem;
+    border-radius: var(--radius-2);
+    background: var(--notice-bg);
+  }
+  .order-card__mobile--success {
+    background: var(--success-tint);
+    color: var(--success);
+  }
+  .order-card__mobile--failed,
+  .order-card__mobile--cancelled,
+  .order-card__mobile--error {
+    background: var(--danger-tint);
+    color: var(--danger);
+  }
+  .order-channel__steps {
+    margin: 0;
+    padding-left: 1.25rem;
+    display: grid;
+    gap: 0.5rem;
+  }
+  .order-channel__callback {
+    word-break: break-all;
+    font-size: 0.85rem;
+  }
+  .order-card__paid {
+    color: var(--success);
+    font-weight: 700;
+  }
+  .order-card__actions,
+  .order-channel__actions,
+  .order-channel__danger {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .order-confirm {
+    display: grid;
+    gap: 0.75rem;
+  }
+  .order-confirm label {
+    display: grid;
+    gap: 0.25rem;
+  }
+  .order-confirm__line {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-3);
+    padding: 0.5rem 0.75rem;
+    margin: 0;
+    display: grid;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+  .order-confirm__check {
+    display: flex !important;
+    align-items: flex-start;
+    gap: 0.5rem;
+    font-weight: 700;
+  }
+  .order-confirm__check input {
+    width: 1.25rem;
+    height: 1.25rem;
+    flex: none;
+    margin-top: 0.15rem;
+  }
+
+  /* QR & liens ------------------------------------------------------------------------------- */
+  .order-channel__qr {
+    margin: 0;
+    padding: var(--space-4);
+    background: var(--c-white);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-4);
+    display: grid;
+    justify-items: center;
+    gap: 0.5rem;
+    width: fit-content;
+    max-width: 100%;
+    text-align: center;
+  }
+  .order-channel__qr img {
+    width: min(240px, 70vw);
+    height: auto;
+  }
+  .order-channel__url code {
+    word-break: break-all;
+    font-size: 0.85rem;
+  }
+
+  /* Impression : seulement le QR code de la boutique, ou le reçu du client. */
+  @media print {
+    body:has(.order-channel__qr) * {
+      visibility: hidden;
+    }
+    body:has(.order-channel__qr) .order-channel__qr,
+    body:has(.order-channel__qr) .order-channel__qr * {
+      visibility: visible;
+    }
+    .order-channel__qr {
+      position: absolute;
+      inset: 0 auto auto 0;
+      border: none;
+    }
+    .order-guest__sheet {
+      background: #fff;
+      box-shadow: none;
+    }
+    .order-guest button,
+    .order-guest__turnstile,
+    .order-guest__footer {
+      display: none;
+    }
+  }
+}
+
+/* Modération : lien discret sous chaque commande, boîte « Bloquer ou signaler ». */
+@layer app {
+  .order-card__moderate {
+    margin-top: var(--space-2);
+    font-size: var(--step--1);
+  }
+  .order-moderation {
+    display: grid;
+    gap: var(--space-3);
+  }
+}

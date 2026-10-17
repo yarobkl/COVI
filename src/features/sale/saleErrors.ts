@@ -1,6 +1,8 @@
 // Sale errors in the shop's words. The server (`record_sale`) answers in English and the offline
 // queue (lib/offline.ts) in technical French: neither is ever shown as is.
 
+import { belowMinimumMessage } from '../../lib/teamRules'
+
 const messageOf = (error: unknown) =>
   String(
     (error as { message?: unknown } | null | undefined)?.message ??
@@ -18,8 +20,31 @@ const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
  * What to tell the seller when a sale is refused: what happened and what to do. `remaining` is the
  * quantity the screen believes is left, used in « Il n’en reste que 1 ».
  */
-export function saleErrorMessage(error: unknown, context: { remaining?: number } = {}): string {
+export function saleErrorMessage(
+  error: unknown,
+  context: { remaining?: number; minimum?: number | null } = {},
+): string {
   const m = messageOf(error).toLowerCase()
+  if (m.includes('price below allowed minimum')) {
+    // DETAIL of the server: « item 0: product_id …, minimum_price=9000 ».
+    const detail = String((error as { details?: unknown } | null)?.details ?? '')
+    const fromServer = /minimum_price=([0-9.]+)/.exec(detail)?.[1]
+    const minimum = fromServer !== undefined ? Number(fromServer) : context.minimum
+    return minimum !== undefined && minimum !== null
+      ? belowMinimumMessage(minimum)
+      : 'Ce prix est en dessous du minimum autorisé. Demandez au responsable.'
+  }
+  if (m.includes('pin required')) return 'Choisissez d’abord votre code PIN pour pouvoir vendre.'
+  if (m.includes('pin unlock required'))
+    return 'Cette caisse doit être déverrouillée. Touchez « Verrouiller », puis entrez votre code PIN avant de réessayer.'
+  if (m.includes('till session invalid'))
+    return 'La caisse de ce caissier est fermée ou a expiré. Touchez « Changer de caissier » et entrez à nouveau son code PIN.'
+  if (m.includes('shop not found'))
+    return 'Vous n’avez plus accès à cette boutique. Demandez au responsable.'
+  if (m.includes('cannot mix test and real products'))
+    return 'Les articles d’exemple ne se vendent pas avec les vrais. Faites deux ventes séparées.'
+  if (m.includes('duplicate product in cart'))
+    return 'Un article est deux fois dans le panier. Retirez-en un, puis validez à nouveau.'
   if (m.includes('unique piece quantity')) return 'C’est une pièce unique : la quantité est 1.'
   if (m.includes('insufficient stock')) return capitalize(remainingText(context.remaining, ''))
   if (m.includes('product unavailable'))

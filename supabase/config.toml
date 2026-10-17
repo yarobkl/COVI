@@ -1,0 +1,13 @@
+# Canal client : fonction publique au niveau HTTP. La passerelle contrôle elle-même l'origine,
+# Turnstile, les quotas et chaque champ (voir supabase/functions/public-checkout).
+[functions.public-checkout]
+verify_jwt = false
+
+# Paiement Mobile Money (OpenPay) : le callback d'OpenPay n'a pas de JWT. La fonction vérifie
+# elle-même la session de la boutique (actions request / refresh) et relit tout statut chez OpenPay.
+[functions.openpay]
+verify_jwt = false
+
+# Purge nocturne des comptes supprimés : appelée par pg_cron avec son propre jeton (Vault).
+[functions.account-purge]
+verify_jwt = false

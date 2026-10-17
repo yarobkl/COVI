@@ -8,7 +8,7 @@ import { App } from './App'
 vi.mock('../features/dashboard/DashboardPage', () => ({
   DashboardPage: ({ shop }: { shop: { id: string } }) => <p>page:dashboard:{shop.id}</p>,
 }))
-vi.mock('../features/sale/SalePage', () => ({ SalePage: () => <p>page:sale</p> }))
+vi.mock('../features/team/TillSwitch', () => ({ TillSwitch: () => <p>page:cashier-entry</p> }))
 vi.mock('../features/stock/StockPage', () => ({ StockPage: () => <p>page:stock</p> }))
 vi.mock('../features/arrivals/ArrivalsPage', () => ({
   // Keeps a counter, to check that each filter has its own state.
@@ -27,6 +27,7 @@ vi.mock('../features/statistics/StatisticsPage', () => ({
   StatisticsPage: () => <p>page:statistics</p>,
 }))
 vi.mock('../features/settings/SettingsPage', () => ({ SettingsPage: () => <p>page:settings</p> }))
+vi.mock('../features/team/TeamPanel', () => ({ TeamPanel: () => <p>page:team</p> }))
 vi.mock('../features/auth/useCurrentUser', () => ({ useCurrentUser: () => null }))
 
 const shop: Shop = {
@@ -55,6 +56,7 @@ function renderApp(overrides: Partial<Shop> = {}) {
   const onSimulation = vi.fn()
   const view = render(
     <App
+      userId="u-owner"
       shop={{ ...shop, ...overrides }}
       signOut={signOut}
       updateShop={vi.fn()}
@@ -78,12 +80,16 @@ describe('App shell', () => {
     ).toEqual([
       'Nouvelle vente',
       'Accueil',
+      'Commandes',
       'Stock',
       'Arrivages',
       'Ventes',
       'Charges',
       'Bilan',
       'Ma boutique',
+      'Conditions d’utilisation',
+      'Confidentialité',
+      'Aide et contact',
     ])
     expect(
       within(bottom)
@@ -115,7 +121,7 @@ describe('App shell', () => {
       '#/vendre',
     )
     await go('#/vendre')
-    expect(screen.getByText('page:sale')).toBeTruthy()
+    expect(screen.getByText('page:cashier-entry')).toBeTruthy()
     expect(within(bottom).getByRole('link', { name: 'Vendre' }).getAttribute('aria-current')).toBe(
       'page',
     )
