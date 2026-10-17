@@ -561,3 +561,11 @@
     outline: 3px solid var(--action);
   }
 }
+
+@layer app {
+  .floor-plan__table--occupied {
+    border-color: var(--c-red-600);
+    background: var(--c-red-100);
+    color: var(--ink);
+  }
+}
