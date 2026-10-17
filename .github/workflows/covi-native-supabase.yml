@@ -1,0 +1,79 @@
+name: COVI native Supabase sandbox
+
+on:
+  push:
+    branches:
+      - feature/covi-stock-central-omnichannel
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-auth-rest:
+    name: Local Supabase Auth and PostgREST
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: supabase/setup-cli@v1
+        with:
+          version: '2.120.0'
+      - name: Install exact application dependencies
+        run: npm ci
+      - name: Start disposable local Supabase stack
+        run: |
+          supabase --version
+          supabase start
+      - name: Apply review-only SQL to disposable localhost and verify actual roles
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '54322'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: postgres
+        run: |
+          set -euo pipefail
+          if [[ "$PGHOST" != '127.0.0.1' || "$PGPORT" != '54322' || "$PGDATABASE" != 'postgres' ]]; then
+            echo 'Refusing any non-local connection' >&2
+            exit 1
+          fi
+          supabase status --output env > /tmp/covi-native-supabase-env
+          set -a
+          source /tmp/covi-native-supabase-env
+          set +a
+          export COVI_NATIVE_CI=true
+          export COVI_NATIVE_URL="$API_URL"
+          export COVI_NATIVE_ANON_KEY="$ANON_KEY"
+          export COVI_NATIVE_SERVICE_KEY="$SERVICE_ROLE_KEY"
+
+          psql -X -v ON_ERROR_STOP=1 --no-password -f tests/supabase/native-fixture.sql
+          for file in \
+            draft_category_stock_schema.sql \
+            draft_checkout_manual_payment_schema.sql \
+            draft_checkout_cashier_accounts.sql \
+            draft_post_arrival_category_stock.sql \
+            draft_create_approve_manual_checkout_order.sql \
+            draft_reject_checkout_order.sql \
+            draft_confirm_manual_checkout_payment.sql \
+            draft_protect_confirmed_category_sales.sql \
+            draft_public_order_channels.sql \
+            draft_checkout_private_reference_storage.sql; do
+            psql -X -v ON_ERROR_STOP=1 --no-password -f "supabase/sql-drafts/$file"
+          done
+
+          node tests/supabase/native-auth-seed.mjs
+          psql -X -v ON_ERROR_STOP=1 --no-password -f /tmp/covi-native-seed.sql
+          psql -X -v ON_ERROR_STOP=1 --no-password -c "select pg_notify('pgrst','reload schema')"
+          node tests/supabase/native-verify.mjs
+          node tests/supabase/native-gateway-http.mjs
+      - name: Destroy local Supabase containers
+        if: always()
+        run: supabase stop --no-backup || true

@@ -1,0 +1,60 @@
+name: COVI receipt PDF formatting (one-shot)
+on:
+  push:
+    branches:
+      - feature/covi-stock-central-omnichannel
+    paths:
+      - '.github/workflows/covi-receipt-format.yml'
+permissions:
+  contents: write
+jobs:
+  format-receipt-files-only:
+    if: github.event_name == 'push' && github.repository == 'yarobkl/COVI'
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Format only files flagged by receipt PR Windows check
+        run: |
+          npx prettier --write \
+            docs/production-integration-gate-2026-10-17.md \
+            src/features/checkout/CashierCheckoutPanel.tsx \
+            src/features/checkout/ReceiptPdfActions.tsx \
+            src/features/sale/SaleDone.test.tsx \
+            src/features/sale/SaleDone.tsx \
+            src/lib/receiptPdf.ts \
+            src/lib/receiptShare.ts \
+            tests/render-receipt-pdf.mjs
+      - name: Check entire branch and test security invariants
+        run: |
+          npm run format:check
+          npm run typecheck
+          npm run lint
+          npm test
+      - name: Commit formatting to isolated feature branch only
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- \
+            docs/production-integration-gate-2026-10-17.md \
+            src/features/checkout/CashierCheckoutPanel.tsx \
+            src/features/checkout/ReceiptPdfActions.tsx \
+            src/features/sale/SaleDone.test.tsx \
+            src/features/sale/SaleDone.tsx \
+            src/lib/receiptPdf.ts \
+            src/lib/receiptShare.ts \
+            tests/render-receipt-pdf.mjs
+          if git diff --cached --quiet; then
+            echo "No formatting changes"
+          else
+            git commit -m 'style(receipt): format PDF sharing integration without modifying auth'
+            git push origin HEAD:refs/heads/feature/covi-stock-central-omnichannel
+          fi

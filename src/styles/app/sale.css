@@ -263,6 +263,19 @@
   .sale-done__actions .btn--ghost {
     justify-self: center;
   }
+  /* Same tactile paper controls as the current receipt, on mobile and desktop. */
+  .receipt-pdf-actions {
+    display: grid;
+    gap: var(--space-2);
+    width: 100%;
+    min-width: 0;
+  }
+  .receipt-pdf-actions .btn {
+    min-height: 48px;
+  }
+  .receipt-pdf-actions .field__hint {
+    overflow-wrap: anywhere;
+  }
   .sale-page > .sale-done {
     margin-inline-start: calc((var(--margin-offset) + var(--space-3)) * -1);
   }

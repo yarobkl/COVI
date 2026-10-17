@@ -3,3 +3,16 @@ node_modules/
 package-lock.json
 src-tauri/
 supabase/
+
+# Temporary exception: preserve legacy OAuth/shop-registration forms verbatim.
+# They were already unformatted on main and are unrelated to the cashier PR.
+# Revisit with a separate, explicitly reviewed authentication-only change.
+src/features/auth/CreateShopForm.tsx
+src/features/auth/LoginForm.tsx
+
+# Unmodified MIT-licensed library; do not reformat third-party source.
+src/vendor/
+
+# Human-reviewed risk register with intentionally long Markdown table cells.
+# Not executable or bundled in the application.
+docs/pre-integration-security-audit-2026-10-12.md

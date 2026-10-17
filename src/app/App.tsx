@@ -8,6 +8,8 @@ import { useProfilePhoto } from '../features/profile/useProfilePhoto'
 import { ExpensesPage } from '../features/expenses/ExpensesPage'
 import { HistoryPage } from '../features/history/HistoryPage'
 import { SalePage } from '../features/sale/SalePage'
+import { NotebookCheckoutHub } from '../features/checkout/NotebookCheckoutHub'
+import { categoryCheckoutEnabled } from '../lib/checkoutFeatureFlag'
 import { SettingsPage } from '../features/settings/SettingsPage'
 import { StatisticsPage } from '../features/statistics/StatisticsPage'
 import { StockPage } from '../features/stock/StockPage'
@@ -68,6 +70,12 @@ function renderPage(route: Route, { shop, updateShop, onSimulation }: PageContex
       return <DashboardPage shop={shop} onSimulation={onSimulation} />
     case 'vendre':
       return <SalePage shopId={shop.id} shopName={shop.name} />
+    case 'caisse':
+      return categoryCheckoutEnabled ? (
+        <NotebookCheckoutHub shopId={shop.id} shopName={shop.name} />
+      ) : (
+        <SalePage shopId={shop.id} shopName={shop.name} />
+      )
     case 'stock':
       return (
         <LegacyPage>

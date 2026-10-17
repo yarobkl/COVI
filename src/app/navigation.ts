@@ -18,6 +18,7 @@ export type NavEntry = { page: PageId; label: string; icon: ComponentType<IconPr
 export const pages: Record<PageId, NavEntry> = {
   accueil: { page: 'accueil', label: 'Accueil', icon: HomeIcon },
   vendre: { page: 'vendre', label: 'Vendre', icon: ReceiptIcon },
+  caisse: { page: 'caisse', label: 'Nouvelle caisse', icon: ReceiptIcon },
   stock: { page: 'stock', label: 'Stock', icon: HangerIcon },
   arrivages: { page: 'arrivages', label: 'Arrivages', icon: BoxIcon },
   ventes: { page: 'ventes', label: 'Ventes', icon: NotebookIcon },

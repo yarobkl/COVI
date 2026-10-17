@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { listCategorySaleHistory } from './categorySaleHistory'
 import { localDay, localMonth } from './dates'
 import type { TablesInsert, TablesUpdate } from './database.types'
 import type { Arrival, ArrivalKind } from './types'
@@ -122,7 +123,7 @@ export async function dashboard(shopId: string) {
     start = new Date(now.getFullYear(), now.getMonth(), 1),
     previousStart = new Date(now.getFullYear(), now.getMonth() - 1, 1),
     today = new Date(now.getFullYear(), now.getMonth(), now.getDate()),
-    [sales, recent, products, expenses, activeArrivals] = await Promise.all([
+    [sales, recent, products, expenses, activeArrivals, categoryReceipts] = await Promise.all([
       supabase
         .from('sales')
         .select('total_amount,sold_at,payment_method')
@@ -157,6 +158,7 @@ export async function dashboard(shopId: string) {
         .eq('is_test', false)
         .in('status', ['draft', 'ordered', 'in_transit'])
         .order('created_at', { ascending: false }),
+      listCategorySaleHistory(shopId, 30),
     ])
   for (const r of [sales, recent, products, expenses, activeArrivals]) if (r.error) throw r.error
   const all = sales.data ?? [],
@@ -192,11 +194,19 @@ export async function dashboard(shopId: string) {
       soldAt: s.sold_at,
       paymentMethod: s.payment_method,
       total: Number(s.total_amount),
-      lines: (s.sale_items ?? []).map((i) => ({
-        quantity: Number(i.quantity),
-        name: i.products?.name ?? 'Article supprimé',
-        balloon: i.products?.arrivals?.kind === 'balloon',
-      })),
+      lines:
+        categoryReceipts
+          .find((r) => r.saleId === s.id && !r.isTest)
+          ?.lines.map((line) => ({
+            quantity: line.quantity,
+            name: line.label,
+            balloon: false,
+          })) ??
+        (s.sale_items ?? []).map((i) => ({
+          quantity: Number(i.quantity),
+          name: i.products?.name ?? 'Article supprimé',
+          balloon: i.products?.arrivals?.kind === 'balloon',
+        })),
     })),
   }
 }

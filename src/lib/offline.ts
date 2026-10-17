@@ -172,7 +172,7 @@ export async function resilientSale(input: {
         throw new Error('Session introuvable. Reconnectez-vous pour enregistrer cette vente.')
       assertOfflineStock(input.shopId, input.productId, input.quantity)
       queueSale({ ...input, userId }, operationId)
-      return { offline: true }
+      return { offline: true, operationId }
     }
   if (!navigator.onLine) return queue()
   try {
@@ -185,7 +185,7 @@ export async function resilientSale(input: {
       input.paymentLabel,
       operationId,
     )
-    return { offline: false }
+    return { offline: false, operationId }
   } catch (e) {
     const network = /fetch|network|offline|failed to fetch/i.test(String(errorMessage(e) || e))
     if (!network) throw e

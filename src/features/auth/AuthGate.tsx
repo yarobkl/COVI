@@ -4,6 +4,10 @@ import { supabase } from '../../lib/supabase'
 import { listenForDesktopOAuth } from '../../lib/desktopAuth'
 import type { Shop } from '../../lib/types'
 import { CreateShopForm } from './CreateShopForm'
+import { categoryCheckoutEnabled } from '../../lib/checkoutFeatureFlag'
+import { myCashierShops, type CashierMembership } from '../../lib/cashierAccounts'
+import { CashierWorkspace } from '../checkout/CashierWorkspace'
+import { CashierJoinPage } from '../checkout/CashierJoinPage'
 import { LoginForm, type AuthMode } from './LoginForm'
 
 /**
@@ -23,6 +27,9 @@ export function AuthGate({
 }) {
   const [session, setSession] = useState<Session | null>(null)
   const [shop, setShop] = useState<Shop | null>(null)
+  const [cashierShops, setCashierShops] = useState<CashierMembership[]>([])
+  const [cashierRefresh, setCashierRefresh] = useState(0)
+  const [wantShop, setWantShop] = useState(false)
   const [loading, setLoading] = useState(true)
   const [mode, setMode] = useState<AuthMode>('login')
   const [message, setMessage] = useState('')
@@ -52,24 +59,44 @@ export function AuthGate({
     if (!session) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- reset when signed out (unchanged behaviour)
       setShop(null)
+      setCashierShops([])
       setLoading(false)
       return
     }
     setLoading(true)
-    supabase
-      .from('shops')
-      .select('id,name,city,country,currency')
-      .limit(1)
-      .maybeSingle()
-      .then(({ data, error }) => {
-        if (error)
-          setMessage(
-            'Impossible de charger votre commerce. Vérifiez votre connexion puis réessayez.',
-          )
-        setShop(data)
-        setLoading(false)
-      })
-  }, [session])
+    let active = true
+    void (async () => {
+      const { data, error } = await supabase
+        .from('shops')
+        .select('id,name,city,country,currency')
+        .limit(1)
+        .maybeSingle()
+      if (!active) return
+      if (error) {
+        setMessage('Impossible de charger votre commerce. Vérifiez votre connexion puis réessayez.')
+      }
+      setShop(data)
+      if (categoryCheckoutEnabled && !data) {
+        try {
+          const memberships = await myCashierShops()
+          if (active) setCashierShops(memberships)
+        } catch (reason) {
+          if (active)
+            setMessage(
+              reason instanceof Error
+                ? reason.message
+                : 'La gestion des caissiers est indisponible.',
+            )
+        }
+      } else {
+        setCashierShops([])
+      }
+      if (active) setLoading(false)
+    })()
+    return () => {
+      active = false
+    }
+  }, [session, cashierRefresh])
   if (loading)
     return (
       <div className="authshell" role="status">
@@ -91,7 +118,31 @@ export function AuthGate({
         onSimulation={onSimulation}
       />
     )
-  if (!shop) return <CreateShopForm message={message} onMessage={setMessage} onCreated={setShop} />
+  if (!shop) {
+    if (categoryCheckoutEnabled && cashierShops.length) {
+      return (
+        <CashierWorkspace
+          shops={cashierShops}
+          onRefresh={() => setCashierRefresh((value) => value + 1)}
+          signOut={async () => {
+            await supabase.auth.signOut()
+          }}
+        />
+      )
+    }
+    if (categoryCheckoutEnabled && !wantShop) {
+      return (
+        <CashierJoinPage
+          onJoined={() => setCashierRefresh((value) => value + 1)}
+          onCreateShop={() => setWantShop(true)}
+          signOut={async () => {
+            await supabase.auth.signOut()
+          }}
+        />
+      )
+    }
+    return <CreateShopForm message={message} onMessage={setMessage} onCreated={setShop} />
+  }
   return (
     <>
       {children(

@@ -38,6 +38,10 @@ export type SoldSale = {
   /** Kept on the device, to be sent when the network comes back. */
   offline: boolean
   at: Date
+  /** Stable transaction reference sent to the server; not a fabricated fiscal invoice number. */
+  operationId?: string
+  /** Name saved with the transaction when the active checkout records it. */
+  cashierFirstName?: string
 }
 
 const payments: readonly SegmentedOption<string>[] = [
@@ -116,6 +120,7 @@ export function SaleForm({
         payment,
         received: cash ? received : null,
         offline: result.offline,
+        operationId: result.operationId,
         at: new Date(),
       })
     } catch (e) {

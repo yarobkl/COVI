@@ -1,0 +1,5 @@
+# Function is public only at the HTTP layer. It authenticates through
+# strict origin checks, mandatory Turnstile and server-only SQL quotas.
+# Enable only in an isolated Supabase test project until formally approved.
+[functions.public-checkout]
+verify_jwt = false
