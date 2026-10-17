@@ -21,13 +21,12 @@ const shopId = '11111111-1111-4111-8111-111111111111'
 const trackingToken = 'eeeeeeee-0000-4000-8000-000000000001'
 // Minimal 2x2 JPEG-like fixture with an actual SOF frame + SOS scan.
 // This exercises header validation only: pixels are not decoded by the gateway.
-const bytesForJpeg = () => Uint8Array.from([
-  0xff, 0xd8,
-  0xff, 0xe0, 0x00, 0x04, 0x00, 0x00,
-  0xff, 0xc0, 0x00, 0x0b, 0x08, 0x00, 0x02, 0x00, 0x02, 0x01, 0x01, 0x11, 0x00,
-  0xff, 0xda, 0x00, 0x08, 0x01, 0x01, 0x00, 0x00, 0x3f, 0x00,
-  0x10, 0x20, 0x30, 0x40, 0xff, 0xd9,
-])
+const bytesForJpeg = () =>
+  Uint8Array.from([
+    0xff, 0xd8, 0xff, 0xe0, 0x00, 0x04, 0x00, 0x00, 0xff, 0xc0, 0x00, 0x0b, 0x08, 0x00, 0x02, 0x00,
+    0x02, 0x01, 0x01, 0x11, 0x00, 0xff, 0xda, 0x00, 0x08, 0x01, 0x01, 0x00, 0x00, 0x3f, 0x00, 0x10,
+    0x20, 0x30, 0x40, 0xff, 0xd9,
+  ])
 const jpegData = (bytes) => 'data:image/jpeg;base64,' + btoa(String.fromCharCode(...bytes))
 const jpeg = jpegData(bytesForJpeg())
 
@@ -160,9 +159,10 @@ describe('passerelle publique des commandes', () => {
 
   it('n’annonce pas une photo sauvée quand le stockage renvoie une erreur HTTP 400', async () => {
     const { transport } = backend({ uploadStatus: 400 })
-    const result = await createPublicCheckoutGateway(env, transport)(
-      post({ ...order, referenceImage: jpeg }),
-    )
+    const result = await createPublicCheckoutGateway(
+      env,
+      transport,
+    )(post({ ...order, referenceImage: jpeg }))
     expect(result.status).toBe(200)
     expect((await result.json()).photoSaved).toBe(false)
   })
@@ -241,7 +241,13 @@ describe('fichiers JPEG envoyés par un client', () => {
     for (const marker of [0xe1, 0xed, 0xfe]) {
       const source = bytesForJpeg()
       const malicious = Uint8Array.from([
-        ...source.slice(0, 2), 0xff, marker, 0x00, 0x04, 0x00, 0x00,
+        ...source.slice(0, 2),
+        0xff,
+        marker,
+        0x00,
+        0x04,
+        0x00,
+        0x00,
         ...source.slice(2),
       ])
       expect(decodeReferenceJpeg(jpegData(malicious))).toBeNull()

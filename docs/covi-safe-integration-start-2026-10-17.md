@@ -13,6 +13,7 @@ La version de production contient déjà : commandes clients et QR sociaux, équ
 ## Objectif de la branche
 
 Reprendre **seulement** les améliorations manquantes et les correctifs de sécurité validés, en préservant :
+
 - les comptes et l'authentification existants, notamment Google/Facebook ;
 - le suivi des caissiers/PIN et l'identification nominative de l'encaissement ;
 - la confirmation manuelle de l'argent reçu (ne jamais affirmer avoir vérifié automatiquement une transaction Mobile Money) ;
@@ -38,5 +39,5 @@ Reprendre **seulement** les améliorations manquantes et les correctifs de sécu
 - Vercel : `covi-snowy.vercel.app` pointe vers un déploiement prêt du commit `ba8c99b7…`, branche `claude/caisse-multi-caissiers`.
 - Supabase : tables expérimentales `stock_categories`, `checkout_orders`, `checkout_order_lines` et `manual_payment_confirmations` absentes, tandis que `public_orders`, `shop_members`, `sales`, `products` et `stock_movements` existent.
 - Aucune donnée réelle modifiée lors de ce contrôle.
- 
+
 **État de livraison : branche de préparation uniquement. Ne pas présenter cette étape comme un déploiement réussi.**
