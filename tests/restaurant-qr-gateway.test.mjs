@@ -1,4 +1,5 @@
-import { test } from 'node:test'
+// @vitest-environment node
+import { it as test } from 'vitest'
 import assert from 'node:assert/strict'
 import { createRestaurantQrGateway } from '../supabase/functions/restaurant-qr/gateway.mjs'
 
