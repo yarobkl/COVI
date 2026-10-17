@@ -46,7 +46,9 @@ export function DashboardPage({ shop, onSimulation }: { shop: Shop; onSimulation
     <header className="page-head home-head">
       <div>
         <h1 className="home-date">{longDay(now)}</h1>
-        <p className="muted">Outils de gestion opérationnelle, financière et humaine de l’entreprise.</p>
+        <p className="muted">
+          Outils de gestion opérationnelle, financière et humaine de l’entreprise.
+        </p>
       </div>
       <ButtonLink variant="sale" href="#/vendre" icon={<PlusIcon />} className="home-sale">
         Nouvelle vente
