@@ -54,8 +54,8 @@ create table public.restaurant_staff_events (
   )),
   details jsonb not null default '{}'::jsonb,
   occurred_at timestamptz not null default now(),
-  foreign key(shop_id,session_id) references public.restaurant_table_sessions(shop_id,id),
-  foreign key(shop_id,line_id) references public.restaurant_session_lines(shop_id,id)
+  foreign key(shop_id,session_id) references public.restaurant_table_sessions(shop_id,id) on delete cascade,
+  foreign key(shop_id,line_id) references public.restaurant_session_lines(shop_id,id) on delete cascade
 );
 create index restaurant_staff_events_by_shop
   on public.restaurant_staff_events(shop_id,occurred_at desc);
