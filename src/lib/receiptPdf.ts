@@ -136,7 +136,7 @@ function pdfObjects(receipt: PdfReceiptData): Uint8Array {
         const y = 766 - index * 18
         const isTotal = line.startsWith('TOTAL :')
         const accent = isTotal
-          ? '0.99 0.87 0.40 rg 47 ' + (y - 5) + ' 495 18 re f\\n'
+          ? '0.99 0.87 0.40 rg 47 ' + (y - 5) + ' 495 18 re f\n'
           : ''
         const color = (index === 0 || isTotal)
           ? '0.14 0.29 0.53 rg '
