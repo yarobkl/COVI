@@ -16,12 +16,14 @@ export function CreateShopForm({
   onMessage,
   onCreated,
   onJoin,
+  onRestaurantJoin,
 }: {
   message: string
   onMessage: (message: string) => void
   onCreated: (shop: Shop) => void
   /** « J’ai un code de caissier » : opens the join page instead of creating a shop. */
   onJoin?: () => void
+  onRestaurantJoin?: () => void
 }) {
   const [name, setName] = useState('')
   const [businessKind, setBusinessKind] = useState<BusinessKind>('retail')
@@ -86,6 +88,14 @@ export function CreateShopForm({
       aside={
         <>
           {preview}
+          {onRestaurantJoin && (
+            <div className="auth__join">
+              <p>Vous travaillez dans le restaurant de quelqu’un ?</p>
+              <Button variant="secondary" size="lg" block onClick={onRestaurantJoin}>
+                J’ai un code d’employé de restaurant
+              </Button>
+            </div>
+          )}
           {onJoin && (
             <div className="auth__join">
               <p>Vous travaillez dans la boutique de quelqu’un ?</p>
