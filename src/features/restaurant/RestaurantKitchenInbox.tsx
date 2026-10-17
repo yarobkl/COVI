@@ -126,17 +126,28 @@ export function RestaurantKitchenInbox({ shopId }: { shopId: string }) {
         </Notice>
       )}
       <Button onClick={() => void enableNotifications()} disabled={browserMode !== 'unavailable'}>
-        {browserMode === 'push' ? 'Web Push activé sur cet appareil'
-          : browserMode === 'browser' ? 'Alertes locales autorisées'
-          : 'Autoriser les notifications Cuisine'}
+        {browserMode === 'push'
+          ? 'Web Push activé sur cet appareil'
+          : browserMode === 'browser'
+            ? 'Alertes locales autorisées'
+            : 'Autoriser les notifications Cuisine'}
       </Button>
-      {browserMode === 'push' && <Button onClick={() => {
-        void revokeKitchenBrowserAlerts(shopId).then(ok => {
-          setBrowserMode('unavailable')
-          setMessage(ok ? 'Notifications désactivées sur cet appareil.'
-            : 'Appareil désabonné, mais serveur non vérifié : contactez le responsable si nécessaire.')
-        })
-      }}>Désactiver sur cet appareil</Button>}
+      {browserMode === 'push' && (
+        <Button
+          onClick={() => {
+            void revokeKitchenBrowserAlerts(shopId).then((ok) => {
+              setBrowserMode('unavailable')
+              setMessage(
+                ok
+                  ? 'Notifications désactivées sur cet appareil.'
+                  : 'Appareil désabonné, mais serveur non vérifié : contactez le responsable si nécessaire.',
+              )
+            })
+          }}
+        >
+          Désactiver sur cet appareil
+        </Button>
+      )}
       <p className="muted">
         En mode Web Push, les alertes peuvent atteindre une application fermée si le serveur d’envoi
         est activé et le système autorise les notifications. Sur iPhone, COVI doit être installée

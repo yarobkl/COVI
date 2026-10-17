@@ -330,12 +330,21 @@ export function RestaurantStaffApp({
           </p>
         </div>
         {onSwitch && <Button onClick={onSwitch}>Changer d’espace</Button>}
-        <Button variant="ghost" onClick={() => void (async () => {
-          if (space.staff_role === 'kitchen') {
-            try { await revokeKitchenBrowserAlerts(shopId) } catch { /* browser offline */ }
+        <Button
+          variant="ghost"
+          onClick={() =>
+            void (async () => {
+              if (space.staff_role === 'kitchen') {
+                try {
+                  await revokeKitchenBrowserAlerts(shopId)
+                } catch {
+                  /* browser offline */
+                }
+              }
+              await signOut()
+            })()
           }
-          await signOut()
-        })()}>
+        >
           Se déconnecter
         </Button>
       </header>
