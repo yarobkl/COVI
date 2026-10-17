@@ -58,7 +58,10 @@ seed()
 await assert.rejects(offline.resilientSale(input), /Session introuvable/)
 assert.equal(values.get('covi:pending-sales:v1'), undefined)
 offline.setSyncUser('user-a')
-assert.deepEqual(await offline.resilientSale(input), { offline: true })
+const queuedSale = await offline.resilientSale(input)
+assert.equal(queuedSale.offline, true)
+assert.match(queuedSale.operationId, /^[0-9a-f-]{36}$/)
+assert.equal(queuedSale.operationId, offline.pendingSales()[0].id)
 assert.equal(offline.pendingSales()[0].userId, 'user-a')
 assert.equal(offline.pendingCount(), 1)
 assert.equal(offline.cachedStock(input.shopId)[0].quantity_on_hand, 0)
@@ -395,9 +398,9 @@ assert.deepEqual(
   ['real'],
 )
 await assert.rejects(covi.listProducts(shop, true, true), /Failed to fetch/)
-assert.deepEqual(await offline.resilientSale({ ...input, shopId: shop, productId: 'demo' }), {
-  offline: true,
-})
+const queuedDemo = await offline.resilientSale({ ...input, shopId: shop, productId: 'demo' })
+assert.equal(queuedDemo.offline, true)
+assert.match(queuedDemo.operationId, /^[0-9a-f-]{36}$/)
 assert.equal(offline.cachedStock(shop).find((x) => x.id === 'demo').status, 'sold')
 assert.deepEqual(
   (await covi.listProducts(shop, false, true)).map((x) => x.id),
