@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button, Notice, Sheet } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
-import { newlyArrivedKitchenCount, readKitchenInbox, type KitchenInbox } from '../../lib/kitchenInbox'
 import {
-  requestKitchenBrowserAlerts, showKitchenBrowserAlert,
+  newlyArrivedKitchenCount,
+  readKitchenInbox,
+  type KitchenInbox,
+} from '../../lib/kitchenInbox'
+import {
+  requestKitchenBrowserAlerts,
+  showKitchenBrowserAlert,
 } from '../../lib/kitchenBrowserNotifications'
 
 /** Independent kitchen event inbox. Backlog is kept on the server per staff account. */
@@ -42,7 +47,9 @@ export function RestaurantKitchenInbox({ shopId }: { shopId: string }) {
           void showKitchenBrowserAlert(count)
       } catch {
         if (live) {
-          setError('Impossible de récupérer les préparations : vérifiez la connexion et les droits.')
+          setError(
+            'Impossible de récupérer les préparations : vérifiez la connexion et les droits.',
+          )
           setInbox(null)
         }
       } finally {
@@ -67,9 +74,11 @@ export function RestaurantKitchenInbox({ shopId }: { shopId: string }) {
     const granted = await requestKitchenBrowserAlerts()
     permissionEnabled.current = granted
     setBrowserEnabled(granted)
-    setMessage(granted
-      ? 'Alertes navigateur autorisées pendant que COVI peut synchroniser les commandes.'
-      : 'Ce navigateur ne permet pas les alertes, ou la permission a été refusée. La liste Cuisine reste disponible.')
+    setMessage(
+      granted
+        ? 'Alertes navigateur autorisées pendant que COVI peut synchroniser les commandes.'
+        : 'Ce navigateur ne permet pas les alertes, ou la permission a été refusée. La liste Cuisine reste disponible.',
+    )
   }
   async function markRead() {
     if (!inbox?.events.length || busy) return
@@ -102,36 +111,58 @@ export function RestaurantKitchenInbox({ shopId }: { shopId: string }) {
         Les événements non lus sont conservés dans le restaurant, même après une coupure réseau.
         Seuls les plats et boissons encore à préparer apparaissent ici.
       </p>
-      {error && <Notice tone="danger"><p>{error}</p></Notice>}
-      {message && <Notice tone="calm"><p>{message}</p></Notice>}
+      {error && (
+        <Notice tone="danger">
+          <p>{error}</p>
+        </Notice>
+      )}
+      {message && (
+        <Notice tone="calm">
+          <p>{message}</p>
+        </Notice>
+      )}
       <Button onClick={() => void enableNotifications()} disabled={browserEnabled}>
         {browserEnabled ? 'Alertes navigateur autorisées' : 'Autoriser les alertes du navigateur'}
       </Button>
       <p className="muted">
-        Ces alertes sont possibles tant que la page peut fonctionner en arrière-plan.
-        Elles ne garantissent pas une livraison si l’application est complètement fermée.
+        Ces alertes sont possibles tant que la page peut fonctionner en arrière-plan. Elles ne
+        garantissent pas une livraison si l’application est complètement fermée.
       </p>
-      {!inbox ? <p role="status">Vérification des nouvelles commandes…</p> :
-        rows.length===0 ? <p className="muted">Aucune nouvelle préparation non lue.</p> :
+      {!inbox ? (
+        <p role="status">Vérification des nouvelles commandes…</p>
+      ) : rows.length === 0 ? (
+        <p className="muted">Aucune nouvelle préparation non lue.</p>
+      ) : (
         <>
           <ul className="team-invites">
-            {rows.map(entry => <li key={entry.id}>
-              <div>
-                <strong>Table {entry.table} · {entry.quantity} × {entry.item}</strong>
-                <p className="muted">Commande {entry.orderReference ?? 'en cours'}
-                  {' · '}{new Date(entry.at).toLocaleTimeString('fr-FR')}
-                </p>
-              </div>
-            </li>)}
+            {rows.map((entry) => (
+              <li key={entry.id}>
+                <div>
+                  <strong>
+                    Table {entry.table} · {entry.quantity} × {entry.item}
+                  </strong>
+                  <p className="muted">
+                    Commande {entry.orderReference ?? 'en cours'}
+                    {' · '}
+                    {new Date(entry.at).toLocaleTimeString('fr-FR')}
+                  </p>
+                </div>
+              </li>
+            ))}
           </ul>
-          {inbox.more && <Notice tone="calm"><p>
-            D’autres préparations attendent dans la file. Confirmez la lecture de cette page
-            pour récupérer les suivantes.
-          </p></Notice>}
+          {inbox.more && (
+            <Notice tone="calm">
+              <p>
+                D’autres préparations attendent dans la file. Confirmez la lecture de cette page
+                pour récupérer les suivantes.
+              </p>
+            </Notice>
+          )}
           <Button variant="primary" busy={busy} onClick={() => void markRead()}>
             J’ai vu ces {rows.length} préparation(s)
           </Button>
-        </>}
+        </>
+      )}
     </Sheet>
   )
 }
