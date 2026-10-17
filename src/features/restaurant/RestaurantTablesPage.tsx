@@ -83,7 +83,7 @@ export function RestaurantTablesPage({ shopId }: { shopId: string }) {
       window.clearInterval(interval)
       void supabase.removeChannel(channel)
     }
-  }, [reload])
+  }, [reload, shopId])
 
   const selected = rows.find((row) => row.id === selectedId) ?? rows[0] ?? null
 
