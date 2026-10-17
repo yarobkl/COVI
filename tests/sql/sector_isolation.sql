@@ -56,10 +56,10 @@ select pg_temp.check(
  (select count(*) from public.restaurant_tables where shop_id='10000000-0000-0000-0000-0000000000c2')=0,
  'shop B has no exposed rows'
 );
-select pg_temp.expect_denied($
+select pg_temp.expect_denied($sql$
  insert into public.salon_services(shop_id,name,price_xaf,duration_minutes)
  values('10000000-0000-0000-0000-0000000000c3','Tresses',10000,90)
-$, 'owner A cannot create salon C services');
+$sql$, 'owner A cannot create salon C services');
 
 reset role;
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000c2',true);
