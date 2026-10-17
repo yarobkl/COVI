@@ -126,8 +126,12 @@ function renderPage(route: Route, { shop, updateShop, onSimulation, ownerId }: P
       return (
         <div className="page-stack">
           <SettingsPage shopId={shop.id} onShopUpdated={updateShop} />
-          <SharedCashiersPanel shopId={shop.id} />
-          <TeamPanel shopId={shop.id} shopName={shop.name} />
+          {sector === 'retail' && (
+            <>
+              <SharedCashiersPanel shopId={shop.id} />
+              <TeamPanel shopId={shop.id} shopName={shop.name} />
+            </>
+          )}
           <AccountDeletionPanel
             shopId={shop.id}
             shopName={shop.name}
@@ -429,6 +433,7 @@ export function App({
             ))}
           </ul>
           <div className="menu-sheet__foot">
+            {sector === 'retail' && (
             <button
               type="button"
               className="btn btn--ghost"
@@ -439,6 +444,7 @@ export function App({
             >
               Voir une boutique d’exemple
             </button>
+            )}
             <Button variant="danger" onClick={askSignOut}>
               Se déconnecter
             </Button>
