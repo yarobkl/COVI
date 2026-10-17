@@ -38,8 +38,10 @@ endpoint text:='https://fcm.googleapis.com/fcm/send/aaaaaaaaaaaaaaaaaaaaaaaaaaaa
 begin
  if not public.restaurant_kitchen_push_register(sh,endpoint,repeat('A',87),repeat('B',22))
  then raise exception 'Authorized kitchen cannot register device';end if;
- if (select count(*) from public.restaurant_kitchen_push_subscriptions)<>0
- then raise exception 'Kitchen can read subscription secrets';end if;
+ begin
+  perform (select count(*) from public.restaurant_kitchen_push_subscriptions);
+  raise exception 'Kitchen could read secret subscription keys';
+ exception when insufficient_privilege then null;end;
  begin
   perform public.restaurant_kitchen_push_register(
    '10000000-0000-0000-0000-0000000000b4',endpoint,repeat('A',87),repeat('B',22));
