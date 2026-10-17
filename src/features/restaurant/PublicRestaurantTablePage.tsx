@@ -39,7 +39,8 @@ export function PublicRestaurantTablePage({ token }: { token: string }) {
   }, [token])
 
   useEffect(() => {
-    void load()
+    // Schedule after effect setup: loading updates should not cascade synchronously.
+    void Promise.resolve().then(load)
   }, [load])
   useEffect(() => {
     document.title = catalog ? `Carte — ${catalog.restaurantName}` : 'Carte Restaurant — COVI'
