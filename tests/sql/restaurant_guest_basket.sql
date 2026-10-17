@@ -106,6 +106,10 @@ begin
   raise exception 'Incorrect group reference'; end if;
  if public.restaurant_guest_submit(repeat('a',64),secret1)<>'CMD-000001' then
   raise exception 'Double click created new order'; end if;
+ if (public.restaurant_guest_status(repeat('a',64),secret1))->>'orderReference'<>'CMD-000001'
+    or (public.restaurant_guest_status(repeat('a',64),secret2))->>'groupStatus'<>'submitted' then
+   raise exception 'Existing group not recoverable after network loss';
+ end if;
  if (select count(*) from public.restaurant_table_sessions where shop_id='10000000-0000-0000-0000-0000000000a1')<>1
  then raise exception 'Second session created'; end if;
  if (select count(*) from public.restaurant_session_lines where
