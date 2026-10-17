@@ -1,0 +1,40 @@
+name: COVI integration format correction
+
+on:
+  push:
+    branches:
+      - integration/covi-caisse-safe-rollout-2026-10-17
+    paths:
+      - '.github/workflows/covi-integration-format.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  format-only:
+    if: github.repository == 'yarobkl/COVI' && github.ref == 'refs/heads/integration/covi-caisse-safe-rollout-2026-10-17'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Format only audited files and integration runbook
+        run: |
+          npx prettier --write             supabase/functions/public-checkout/gateway.mjs             tests/public-checkout-gateway.test.mjs             docs/covi-safe-integration-start-2026-10-17.md
+          npm run format:check
+      - name: Commit format-only changes to integration branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add --             supabase/functions/public-checkout/gateway.mjs             tests/public-checkout-gateway.test.mjs             docs/covi-safe-integration-start-2026-10-17.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'style(security): format integration-only JPEG audit and tests'
+            git push origin HEAD:refs/heads/integration/covi-caisse-safe-rollout-2026-10-17
+          fi
