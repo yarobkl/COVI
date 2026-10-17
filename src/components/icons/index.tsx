@@ -221,3 +221,11 @@ export const EyeOffIcon = (p: IconProps) => (
     <circle cx="12" cy="12" r="2.75" />
   </Icon>
 )
+
+/** Owner-only employee directory. */
+export const PeopleIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="9" cy="8" r="3" />
+    <path d="M3.5 20v-2.2c0-3.2 2.2-5 5.5-5s5.5 1.8 5.5 5V20M16 5.8a3 3 0 0 1 0 5.8M17.5 13.2c2.3.5 3 2.3 3 4.5V20" />
+  </Icon>
+)
