@@ -91,7 +91,7 @@ describe('DashboardPage', () => {
     ).toBeTruthy()
     expect(screen.getByText('Ventes moins charges enregistrées')).toBeTruthy()
     expect(screen.getByText(/Ce montant n’est ni un bénéfice net/)).toBeTruthy()
-    expect(screen.getByText(/Outils de gestion opérationnelle, financière et humaine/)).toBeTruthy()
+    expect(screen.getByText('Outils de gestion opérationnelle, financière et humaine des PME')).toBeTruthy()
     expect(screen.getByText('plus que 1')).toBeTruthy()
     expect(screen.getByText('En route')).toBeTruthy()
     expect(document.querySelectorAll('.kpi')).toHaveLength(0)
