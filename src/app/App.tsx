@@ -80,7 +80,8 @@ function ArrivalsScreen({ shopId, filter }: { shopId: string; filter?: ArrivalFi
 
 function renderPage(route: Route, { shop, updateShop, onSimulation, ownerId }: PageContext) {
   const sector = sectorOf(shop.business_kind)
-  if (!availableInSector(sector, route.page)) return <SectorHomePage shop={shop} />
+  if (!availableInSector(sector, route.page))
+    return sector === 'retail' ? <DashboardPage shop={shop} onSimulation={onSimulation} /> : <SectorHomePage shop={shop} />
   switch (route.page) {
     case 'accueil':
       return sector === 'retail' ? (
