@@ -17,6 +17,9 @@ export function RestaurantMenuPage({ shopId }: { shopId: string }) {
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   const [isError, setIsError] = useState(false)
+  const [adjustItemId, setAdjustItemId] = useState<string | null>(null)
+  const [adjustDelta, setAdjustDelta] = useState(1)
+  const [adjustReason, setAdjustReason] = useState('Réapprovisionnement')
 
   const reload = useCallback(async () => {
     const { data, error } = await supabase
@@ -87,6 +90,37 @@ export function RestaurantMenuPage({ shopId }: { shopId: string }) {
     } catch {
       setIsError(true)
       setMessage('Article non enregistré. Réessayez après vérification de vos données.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function adjustDrinkStock(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (!adjustItemId || busy) return
+    if (!Number.isInteger(adjustDelta) || adjustDelta===0 || Math.abs(adjustDelta)>1000000
+        || adjustReason.trim().length<3) {
+      setIsError(true)
+      setMessage('Indiquez un mouvement non nul et son motif.')
+      return
+    }
+    setBusy(true)
+    try {
+      const { error } = await supabase.rpc('restaurant_adjust_drink_stock', {
+        p_shop: shopId,
+        p_item: adjustItemId,
+        p_delta: adjustDelta,
+        p_reason: adjustReason.trim(),
+      })
+      if (error) throw error
+      await reload()
+      setAdjustItemId(null)
+      setAdjustDelta(1)
+      setIsError(false)
+      setMessage('Mouvement de boisson enregistré dans l’historique.')
+    } catch {
+      setIsError(true)
+      setMessage('Mouvement refusé : le stock ne peut pas être négatif ni inférieur aux quantités réservées.')
     } finally {
       setBusy(false)
     }
@@ -174,6 +208,40 @@ export function RestaurantMenuPage({ shopId }: { shopId: string }) {
           <p>{message}</p>
         </Notice>
       )}
+
+      {adjustItemId && (
+        <Sheet aria-label="Réapprovisionnement et correction de boisson">
+          <h2 className="section-title">Corriger le stock</h2>
+          <p className="muted">La correction est enregistrée avec son motif et votre compte.</p>
+          <form className="form-grid" onSubmit={(e) => void adjustDrinkStock(e)}>
+            <label>
+              Quantité (+ entrée, − sortie)
+              <input
+                type="number"
+                required
+                min={-1000000}
+                max={1000000}
+                value={adjustDelta}
+                onChange={(e) => setAdjustDelta(Number(e.target.value))}
+              />
+            </label>
+            <label>
+              Motif
+              <input
+                required
+                minLength={3}
+                maxLength={240}
+                value={adjustReason}
+                onChange={(e) => setAdjustReason(e.target.value)}
+              />
+            </label>
+            <div className="row-actions">
+              <Button variant="primary" type="submit" busy={busy}>Enregistrer le mouvement</Button>
+              <Button onClick={() => setAdjustItemId(null)}>Annuler</Button>
+            </div>
+          </form>
+        </Sheet>
+      )}
       <Sheet aria-label="Carte de votre restaurant">
         {loading ? (
           <p>Chargement de la carte…</p>
@@ -194,18 +262,25 @@ export function RestaurantMenuPage({ shopId }: { shopId: string }) {
                     {!item.available && ' · Indisponible'}
                   </p>
                 </div>
-                <Button disabled={busy} onClick={() => void toggle(item)}>
-                  {item.available ? 'Masquer' : 'Réactiver'}
-                </Button>
+                <div className="row-actions">
+                  {item.kind === 'drink' && (
+                    <Button disabled={busy} onClick={() => setAdjustItemId(item.id)}>
+                      Stock
+                    </Button>
+                  )}
+                  <Button disabled={busy} onClick={() => void toggle(item)}>
+                    {item.available ? 'Masquer' : 'Réactiver'}
+                  </Button>
+                </div>
               </li>
             ))}
           </ul>
         )}
       </Sheet>
       <p className="muted">
-        Les mouvements de stock, la commande collective et la déduction au service seront raccordés
-        à la caisse dans un prochain lot. Le stock n'est pas encore décrémenté par une commande
-        client.
+        Les ajustements sont tracés. Lorsqu’une boisson est réservée pour une commande,
+        son stock disponible est réduit ; son stock réel est débité une seule fois au service.
+        Le QR public reste en préparation.
       </p>
     </div>
   )
