@@ -3,6 +3,7 @@ import { Button, Notice, PageHead, Sheet } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
 import type { Tables } from '../../lib/database.types'
 import { RestaurantStaffAudit } from './RestaurantStaffAudit'
+import { RestaurantIncidentsPanel } from './RestaurantIncidentsPanel'
 
 type Member = Tables<'restaurant_staff_members'>
 type Pending = { id: string; display_name: string; staff_role: string; expires_at: string }
@@ -273,6 +274,7 @@ export function RestaurantStaffPanel({ shopId }: { shopId: string }) {
           </ul>
         )}
       </Sheet>
+      <RestaurantIncidentsPanel shopId={shopId} />
       <RestaurantStaffAudit shopId={shopId} />
     </div>
   )
