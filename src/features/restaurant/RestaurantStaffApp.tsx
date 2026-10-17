@@ -296,7 +296,9 @@ export function RestaurantStaffApp({
     if (!incidentLineId || incidentDescription.trim().length < 12) return
     await run(async () => {
       const { data, error: fault } = await supabase.rpc('restaurant_report_served_issue', {
-        p_shop: shopId, p_line: incidentLineId, p_description: incidentDescription.trim(),
+        p_shop: shopId,
+        p_line: incidentLineId,
+        p_description: incidentDescription.trim(),
         p_operation_id: incidentOperation.current,
       })
       if (fault) throw fault
@@ -554,7 +556,11 @@ export function RestaurantStaffApp({
                                 {l.quantity} × {l.name}
                               </strong>
                               <p className="muted">
-                                {l.state === 'served' ? 'Servi' : l.state === 'cancelled' ? 'Annulé (non facturé)' : 'À préparer / servir'}
+                                {l.state === 'served'
+                                  ? 'Servi'
+                                  : l.state === 'cancelled'
+                                    ? 'Annulé (non facturé)'
+                                    : 'À préparer / servir'}
                               </p>
                             </div>
                             {l.state === 'ordered' && (
@@ -568,31 +574,52 @@ export function RestaurantStaffApp({
                   )}
                 </Sheet>
               )}
-              {active?.state === 'submitted' && current.some(l => l.state === 'served') && (
+              {active?.state === 'submitted' && current.some((l) => l.state === 'served') && (
                 <Sheet>
                   <h2 className="section-title">Signaler un problème après service</h2>
-                  <p className="muted">Un article servi reste dans l’addition. Le propriétaire examinera le signalement avant toute éventuelle décision financière.</p>
-                  <form className="form-grid" onSubmit={e => void reportServedIncident(e)}>
-                    <label>Article déjà servi
-                      <select value={incidentLineId} onChange={e => {
-                        setIncidentLineId(e.target.value)
-                        incidentOperation.current = crypto.randomUUID()
-                      }}>
+                  <p className="muted">
+                    Un article servi reste dans l’addition. Le propriétaire examinera le signalement
+                    avant toute éventuelle décision financière.
+                  </p>
+                  <form className="form-grid" onSubmit={(e) => void reportServedIncident(e)}>
+                    <label>
+                      Article déjà servi
+                      <select
+                        value={incidentLineId}
+                        onChange={(e) => {
+                          setIncidentLineId(e.target.value)
+                          incidentOperation.current = crypto.randomUUID()
+                        }}
+                      >
                         <option value="">Choisir un article</option>
-                        {current.filter(l => l.state === 'served').map(l =>
-                          <option value={l.id} key={l.id}>{l.quantity} × {l.name}</option>)}
+                        {current
+                          .filter((l) => l.state === 'served')
+                          .map((l) => (
+                            <option value={l.id} key={l.id}>
+                              {l.quantity} × {l.name}
+                            </option>
+                          ))}
                       </select>
                     </label>
-                    <label>Description du problème
-                      <textarea minLength={12} maxLength={500} required
-                        value={incidentDescription} onChange={e => {
+                    <label>
+                      Description du problème
+                      <textarea
+                        minLength={12}
+                        maxLength={500}
+                        required
+                        value={incidentDescription}
+                        onChange={(e) => {
                           setIncidentDescription(e.target.value)
                           incidentOperation.current = crypto.randomUUID()
                         }}
-                        placeholder="Ex. Le client signale un plat non conforme après service" />
+                        placeholder="Ex. Le client signale un plat non conforme après service"
+                      />
                     </label>
-                    <Button type="submit" busy={busy}
-                      disabled={!incidentLineId || incidentDescription.trim().length < 12}>
+                    <Button
+                      type="submit"
+                      busy={busy}
+                      disabled={!incidentLineId || incidentDescription.trim().length < 12}
+                    >
                       Signaler au propriétaire
                     </Button>
                   </form>
