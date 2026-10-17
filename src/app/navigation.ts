@@ -27,6 +27,7 @@ export const pages: Record<PageId, NavEntry> = {
   personnel: { page: 'personnel', label: 'Personnel', icon: PeopleIcon },
   bilan: { page: 'bilan', label: 'Bilan', icon: BarsIcon },
   boutique: { page: 'boutique', label: 'Ma boutique', icon: ShopIcon },
+  'restaurant-orders': { page: 'restaurant-orders', label: 'Service & caisse', icon: ReceiptIcon },
   'restaurant-tables': { page: 'restaurant-tables', label: 'Plan de salle', icon: BoxIcon },
   'restaurant-menu': { page: 'restaurant-menu', label: 'Carte & boissons', icon: NotebookIcon },
   'salon-services': { page: 'salon-services', label: 'Prestations', icon: ReceiptIcon },
