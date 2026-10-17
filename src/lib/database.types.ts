@@ -8,6 +8,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      restaurant_drink_adjustments: {
+        Row: {
+          id: string
+          shop_id: string
+          menu_item_id: string
+          quantity_delta: number
+          stock_after: number
+          reason: string
+          created_by: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          menu_item_id: string
+          quantity_delta: number
+          stock_after: number
+          reason: string
+          created_by: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          menu_item_id?: string
+          quantity_delta?: number
+          stock_after?: number
+          reason?: string
+          created_by?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       restaurant_table_sessions: {
         Row: {
           id: string
@@ -331,6 +364,7 @@ export type Database = {
       }
       salon_booking_requests: {
         Row: {
+          duration_minutes: number | null
           id: string
           shop_id: string
           service_id: string | null
@@ -342,6 +376,7 @@ export type Database = {
           created_at: string
         }
         Insert: {
+          duration_minutes?: number | null
           id?: string
           shop_id: string
           service_id?: string | null
@@ -353,6 +388,7 @@ export type Database = {
           created_at?: string
         }
         Update: {
+          duration_minutes?: number | null
           id?: string
           shop_id?: string
           service_id?: string | null
@@ -729,6 +765,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      salon_change_booking_status: {
+        Args: { p_shop: string; p_booking: string; p_status: string }
+        Returns: string
+      }
+      restaurant_adjust_drink_stock: {
+        Args: { p_shop: string; p_item: string; p_delta: number; p_reason: string }
+        Returns: number
+      }
       restaurant_open_table: {
         Args: { p_shop: string; p_table: string; p_guest_count: number }
         Returns: string
