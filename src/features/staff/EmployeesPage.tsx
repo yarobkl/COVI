@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { money, plural } from '../../lib/format'
+import { Button, Notice, PageHead, Sheet } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
 import type { Tables } from '../../lib/database.types'
 import { plannedMonthlySalaries } from './salaryMath'
@@ -128,126 +129,106 @@ export function EmployeesPage({ shopId }: { shopId: string }) {
   }
 
   return (
-    <div>
-      <div className="hello">
-        <div>
-          <h1>Personnel</h1>
-          <span>Votre équipe et les rémunérations prévues, en toute confidentialité.</span>
-        </div>
-        <button type="button" onClick={() => setShowForm(!showForm)}>
-          {showForm ? 'Fermer' : 'Ajouter un employé'}
-        </button>
-      </div>
-
-      <section className="card">
-        <h2>{plural(active.length, 'employé')} en activité</h2>
+    <div className="page-stack">
+      <PageHead
+        title="Personnel"
+        sub="Votre équipe et les rémunérations prévues, en toute confidentialité."
+        action={
+          <Button variant="secondary" onClick={() => setShowForm(!showForm)}>
+            {showForm ? 'Fermer' : 'Ajouter un employé'}
+          </Button>
+        }
+      />
+      <Sheet aria-label="Effectif et salaires prévus">
+        <h2 className="section-title">{plural(active.length, 'employé')} en activité</h2>
         <p>
           Salaires fixes prévus par mois : <strong>{money(forecast)}</strong>
         </p>
-        <small>
-          Ce montant ne comprend pas les commissions variables. Aucun salaire n’est marqué payé et
-          aucune charge n’est créée automatiquement.
-        </small>
-      </section>
-
+        <p className="muted">
+          Les commissions variables ne sont pas calculées ici. Aucun salaire n’est déclaré payé
+          et aucune dépense n’est enregistrée automatiquement.
+        </p>
+      </Sheet>
       {showForm && (
-        <form className="card formgrid" onSubmit={(event) => void addEmployee(event)}>
-          <div className="span2">
-            <h2>Ajouter un membre de l’équipe</h2>
-          </div>
-          <label>
-            Nom de l’employé
-            <input name="full_name" minLength={2} maxLength={120} required />
-          </label>
-          <label>
-            Poste
-            <input
-              name="job_title"
-              minLength={2}
-              maxLength={100}
-              required
-              placeholder="Ex. Vendeuse, serveur, coiffeuse"
-            />
-          </label>
-          <label>
-            Rémunération
-            <select
-              value={mode}
-              onChange={(event) => setMode(event.target.value as CompensationMode)}
-            >
-              {Object.entries(modeLabels).map(([value, label]) => (
-                <option value={value} key={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          {mode !== 'commission' && (
+        <Sheet aria-label="Ajouter un membre de l’équipe">
+          <form className="form-grid" onSubmit={(event) => void addEmployee(event)}>
+            <h2 className="form-grid__title">Ajouter un membre de l’équipe</h2>
             <label>
-              Salaire fixe mensuel (FCFA)
-              <input
-                name="monthly_salary"
-                type="number"
-                min="0"
-                step="1"
-                required
-                defaultValue="0"
-              />
+              Nom de l’employé
+              <input name="full_name" minLength={2} maxLength={120} required />
             </label>
-          )}
-          {mode !== 'fixed' && (
             <label>
-              Commission prévue (%)
-              <input
-                name="commission_percent"
-                type="number"
-                min="0"
-                max="100"
-                step="0.01"
-                required
-                defaultValue="0"
-              />
+              Poste
+              <input name="job_title" minLength={2} maxLength={100} required
+                placeholder="Ex. Vendeuse, serveur, coiffeuse" />
             </label>
-          )}
-          <button className="primary span2" disabled={busy}>
-            {busy ? 'Enregistrement…' : 'Ajouter l’employé'}
-          </button>
-        </form>
+            <label>
+              Rémunération
+              <select value={mode}
+                onChange={(event) => setMode(event.target.value as CompensationMode)}>
+                {Object.entries(modeLabels).map(([value, label]) => (
+                  <option value={value} key={value}>{label}</option>
+                ))}
+              </select>
+            </label>
+            {mode !== 'commission' && (
+              <label>
+                Salaire fixe mensuel (FCFA)
+                <input name="monthly_salary" type="number" min="0" step="1"
+                  required defaultValue="0" />
+              </label>
+            )}
+            {mode !== 'fixed' && (
+              <label>
+                Commission prévue (%)
+                <input name="commission_percent" type="number" min="0" max="100"
+                  step="0.01" required defaultValue="0" />
+              </label>
+            )}
+            <div className="form-grid__actions">
+              <Button variant="primary" type="submit" busy={busy} busyLabel="Enregistrement…">
+                Ajouter l’employé
+              </Button>
+            </div>
+          </form>
+        </Sheet>
       )}
       {message && (
-        <p className="successmsg" role={error ? 'alert' : 'status'}>
-          {message}
-        </p>
+        <Notice tone={error ? 'danger' : 'success'}>
+          <p>{message}</p>
+        </Notice>
       )}
-      <section className="card">
-        <h2>Votre équipe</h2>
+      <Sheet aria-label="Membres de l’équipe">
+        <h2 className="section-title">Votre équipe</h2>
         {loading ? (
-          <p>Chargement du personnel…</p>
+          <p className="muted">Chargement du personnel…</p>
         ) : employees.length === 0 ? (
-          <p>Vous n’avez pas encore ajouté d’employé.</p>
+          <p className="muted">Vous n’avez pas encore ajouté d’employé.</p>
         ) : (
-          <ul>
+          <ul className="team-invites" aria-label="Employés">
             {employees.map((employee) => (
               <li key={employee.id}>
-                <p>
-                  <strong>{employee.full_name}</strong> — {employee.job_title}
-                  {!employee.active && ' (inactif)'}
-                </p>
-                <p>
-                  {modeLabels[employee.compensation_mode as CompensationMode] ??
-                    employee.compensation_mode}
-                  {employee.monthly_salary > 0 &&
-                    ` · ${money(Number(employee.monthly_salary))} / mois`}
-                  {employee.commission_percent > 0 && ` · ${employee.commission_percent} %`}
-                </p>
-                <button type="button" disabled={busy} onClick={() => void toggleActive(employee)}>
+                <div>
+                  <p><strong>{employee.full_name}</strong> — {employee.job_title}
+                    {!employee.active && ' (inactif)'}</p>
+                  <p className="muted">
+                    {modeLabels[employee.compensation_mode as CompensationMode] ??
+                      employee.compensation_mode}
+                    {employee.monthly_salary > 0 &&
+                      ` · ${money(Number(employee.monthly_salary))} / mois`}
+                    {employee.commission_percent > 0 &&
+                      ` · ${employee.commission_percent} %`}
+                  </p>
+                </div>
+                <Button variant="secondary" disabled={busy}
+                  onClick={() => void toggleActive(employee)}>
                   {employee.active ? 'Désactiver' : 'Réactiver'}
-                </button>
+                </Button>
               </li>
             ))}
           </ul>
         )}
-      </section>
+      </Sheet>
     </div>
   )
 }
