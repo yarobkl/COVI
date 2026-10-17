@@ -18,6 +18,7 @@ const eventLabels: Record<string, string> = {
   payment_confirmed: 'Encaissement confirmé',
   served_issue_reported: 'Incident signalé après service',
   served_issue_reviewed: 'Incident examiné par le propriétaire',
+  cash_refund_confirmed: 'Espèces réellement remboursées au client',
 }
 const pageSize = 50
 
