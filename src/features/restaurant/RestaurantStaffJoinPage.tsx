@@ -29,34 +29,49 @@ export function RestaurantStaffJoinPage({
         onJoined(result.shopId)
         return
       }
-      setMessage(result?.reason === 'locked'
-        ? 'Trop de codes incorrects. Réessayez dans quinze minutes.'
-        : 'Code invalide, expiré ou déjà utilisé. Demandez une nouvelle invitation.')
+      setMessage(
+        result?.reason === 'locked'
+          ? 'Trop de codes incorrects. Réessayez dans quinze minutes.'
+          : 'Code invalide, expiré ou déjà utilisé. Demandez une nouvelle invitation.',
+      )
     } catch {
       setMessage('Connexion impossible. Vérifiez votre réseau puis réessayez.')
     } finally {
       setBusy(false)
     }
   }
-  return <AuthPage title="Rejoindre un restaurant"
-    lead="Utilisez votre propre compte COVI et le code donné par le propriétaire.">
-    <form className="auth__form" onSubmit={e=>void join(e)}>
-      <Field label="Code personnel d’invitation">
-        {control=><Input {...control}
-          value={code}
-          autoComplete="off"
-          autoCapitalize="characters"
-          spellCheck={false}
-          maxLength={32}
-          placeholder="Code de 32 caractères"
-          onChange={e=>setCode(e.target.value.toUpperCase().replace(/[^A-F0-9]/g,''))}
-        />}
-      </Field>
-      {message && <Notice tone="danger"><p>{message}</p></Notice>}
-      <Button variant="primary" type="submit" busy={busy} block>
-        Rejoindre mon restaurant
-      </Button>
-      <Button variant="ghost" onClick={onBack} block>Retour</Button>
-    </form>
-  </AuthPage>
+  return (
+    <AuthPage
+      title="Rejoindre un restaurant"
+      lead="Utilisez votre propre compte COVI et le code donné par le propriétaire."
+    >
+      <form className="auth__form" onSubmit={(e) => void join(e)}>
+        <Field label="Code personnel d’invitation">
+          {(control) => (
+            <Input
+              {...control}
+              value={code}
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              maxLength={32}
+              placeholder="Code de 32 caractères"
+              onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-F0-9]/g, ''))}
+            />
+          )}
+        </Field>
+        {message && (
+          <Notice tone="danger">
+            <p>{message}</p>
+          </Notice>
+        )}
+        <Button variant="primary" type="submit" busy={busy} block>
+          Rejoindre mon restaurant
+        </Button>
+        <Button variant="ghost" onClick={onBack} block>
+          Retour
+        </Button>
+      </form>
+    </AuthPage>
+  )
 }

@@ -52,10 +52,18 @@ export function SpaceChooser({
         ))}
         {restaurantSpaces.map((space) => (
           <li key={space.shop_id}>
-            <Button variant="secondary" block size="lg"
-              onClick={() => onChoose({ kind: 'restaurant-staff', shopId: space.shop_id })}>
-              {space.shop_name} · {space.staff_role === 'waiter' ? 'Service'
-                : space.staff_role === 'kitchen' ? 'Cuisine' : 'Caisse restaurant'}
+            <Button
+              variant="secondary"
+              block
+              size="lg"
+              onClick={() => onChoose({ kind: 'restaurant-staff', shopId: space.shop_id })}
+            >
+              {space.shop_name} ·{' '}
+              {space.staff_role === 'waiter'
+                ? 'Service'
+                : space.staff_role === 'kitchen'
+                  ? 'Cuisine'
+                  : 'Caisse restaurant'}
             </Button>
           </li>
         ))}

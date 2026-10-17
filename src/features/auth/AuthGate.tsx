@@ -187,14 +187,14 @@ export function AuthGate({
     )
   // Which space: owner only (unchanged), cashier only, or a choice when both exist.
   const cashierOf = (shopId: string) => memberships.find((m) => m.shop_id === shopId) ?? null
-  const restaurantOf = (shopId: string) => restaurantSpaces.find((m) => m.shop_id === shopId) ?? null
+  const restaurantOf = (shopId: string) =>
+    restaurantSpaces.find((m) => m.shop_id === shopId) ?? null
   let space: SpaceChoice | null = choice
   if (space?.kind === 'cashier' && !cashierOf(space.shopId)) space = null
   if (space?.kind === 'restaurant-staff' && !restaurantOf(space.shopId)) space = null
   if (space?.kind === 'owner' && !shop) space = null
   if (!space) {
-    if (shop && memberships.length === 0 && restaurantSpaces.length === 0)
-      space = { kind: 'owner' }
+    if (shop && memberships.length === 0 && restaurantSpaces.length === 0) space = { kind: 'owner' }
     else if (!shop && memberships.length === 0 && restaurantSpaces.length === 1)
       space = { kind: 'restaurant-staff', shopId: restaurantSpaces[0].shop_id }
     else if (!shop && memberships.length === 1 && restaurantSpaces.length === 0)
@@ -231,9 +231,14 @@ export function AuthGate({
         space={restaurantSpace}
         signOut={signOutEverywhere}
         onLostAccess={reloadMemberships}
-        onSwitch={shop || memberships.length > 0 || restaurantSpaces.length > 1
-          ? () => { setChoice(null); reloadMemberships() }
-          : undefined}
+        onSwitch={
+          shop || memberships.length > 0 || restaurantSpaces.length > 1
+            ? () => {
+                setChoice(null)
+                reloadMemberships()
+              }
+            : undefined
+        }
       />
     )
   }
