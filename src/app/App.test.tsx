@@ -8,6 +8,9 @@ import { App } from './App'
 vi.mock('../features/sectors/SectorHomePage', () => ({
   SectorHomePage: () => <p>page:sector-home</p>,
 }))
+vi.mock('../features/restaurant/RestaurantOrdersPage', () => ({
+  RestaurantOrdersPage: () => <p>page:restaurant-orders</p>,
+}))
 vi.mock('../features/restaurant/RestaurantTablesPage', () => ({
   RestaurantTablesPage: () => <p>page:restaurant-tables</p>,
 }))
@@ -89,6 +92,7 @@ describe('App shell', () => {
     const { sommaire } = renderApp({ business_kind: 'restaurant' })
     expect(screen.getByText('page:sector-home')).toBeTruthy()
     expect(within(sommaire).getByText('Plan de salle')).toBeTruthy()
+    expect(within(sommaire).getByText('Service & caisse')).toBeTruthy()
     expect(within(sommaire).getByText('Carte & boissons')).toBeTruthy()
     expect(within(sommaire).queryByText('Arrivages')).toBeNull()
     await go('#/restaurant-menu')
