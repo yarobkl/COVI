@@ -100,7 +100,8 @@ begin
  if auth.uid() is null or not exists(select 1 from public.shops s
   where s.id=p_shop and s.owner_id=auth.uid() and s.business_kind='restaurant')
  then raise exception 'Access denied' using errcode='42501';end if;
- if p_operation_id is null or p_incident is null or p_amount is null or p_amount<=0
+ if p_operation_id is null or p_incident is null or p_amount is null
+  or p_amount<=0 or p_amount>999999999999
   or p_cash_handed_over is distinct from true
   or length(btrim(coalesce(p_reason,''))) not between 12 and 500 then
   raise exception 'Confirmed physical cash payout, amount and reason required';end if;
