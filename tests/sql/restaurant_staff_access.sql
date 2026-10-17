@@ -35,7 +35,7 @@ reset role;
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000a3',true);
 set local role authenticated;
 do $waiter$
-declare v jsonb;
+declare v jsonb;i integer;
 begin
  v:=public.restaurant_staff_join(current_setting('app.staff_waiter_code'));
  if v->>'ok'<>'true' then raise exception 'Cannot join the authorized restaurant';end if;
@@ -57,8 +57,11 @@ begin
  -- Each failure must be persisted, not rolled back after a raised SQL exception.
  if (public.restaurant_staff_join('00000000000000000000000000000000'))->>'ok'<>'false' then
   raise exception 'Bad code accepted';end if;
- if (select count(*) from public.restaurant_staff_invite_attempts where user_id=auth.uid() and not successful)<>1 then
-  raise exception 'Failed attempt was not stored';end if;
+ for i in 1..4 loop
+  perform public.restaurant_staff_join('00000000000000000000000000000000');
+ end loop;
+ if (public.restaurant_staff_join('00000000000000000000000000000000'))->>'reason'<>'locked' then
+  raise exception 'Wrong invite attempts were not retained and locked';end if;
  if (select count(*) from public.restaurant_staff_members)<>0 then
   -- Direct RLS table read is owner-only, even for the staff member.
   raise exception 'Staff can read member identities without owner permission';end if;
