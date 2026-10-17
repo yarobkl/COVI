@@ -6,6 +6,7 @@ import {
   HangerIcon,
   HomeIcon,
   NotebookIcon,
+  PeopleIcon,
   ReceiptIcon,
   ShopIcon,
   type IconProps,
@@ -22,6 +23,7 @@ export const pages: Record<PageId, NavEntry> = {
   arrivages: { page: 'arrivages', label: 'Arrivages', icon: BoxIcon },
   ventes: { page: 'ventes', label: 'Ventes', icon: NotebookIcon },
   charges: { page: 'charges', label: 'Charges', icon: BillIcon },
+  personnel: { page: 'personnel', label: 'Personnel', icon: PeopleIcon },
   bilan: { page: 'bilan', label: 'Bilan', icon: BarsIcon },
   boutique: { page: 'boutique', label: 'Ma boutique', icon: ShopIcon },
 }
@@ -33,6 +35,7 @@ export const sommaire: readonly NavEntry[] = [
   pages.arrivages,
   pages.ventes,
   pages.charges,
+  pages.personnel,
   pages.bilan,
   pages.boutique,
 ]
@@ -45,6 +48,7 @@ export const morePages: readonly NavEntry[] = [
   pages.arrivages,
   pages.ventes,
   pages.charges,
+  pages.personnel,
   pages.bilan,
   pages.boutique,
 ]
