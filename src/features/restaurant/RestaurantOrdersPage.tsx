@@ -90,7 +90,8 @@ export function RestaurantOrdersPage({ shopId }: { shopId: string }) {
 
   useEffect(() => {
     let mounted = true
-    void refresh()
+    void Promise.resolve()
+      .then(refresh)
       .catch(() => {
         if (mounted) setError('Les opérations restaurant ne sont pas disponibles sur cette base.')
       })
