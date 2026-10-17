@@ -132,6 +132,47 @@ COVI devient une plateforme de gestion de petites entreprises, tout en préserva
 
 **État : exigences documentées uniquement, fonctionnalités restaurant non implémentées ni déployées.**
 
+## Restaurant — verrouillage de table, compléments et paiement final en caisse
+
+**Règle métier décidée : une table physique accepte une seule session de clientèle active à la fois. La table reste occupée et son QR public bloqué pour toute nouvelle commande client tant que la caisse n'a pas réellement validé le paiement complet de l'addition.** La serveuse authentifiée conserve toutefois la possibilité de scanner le QR de la table ou de retrouver la commande dans l'historique pour ajouter des articles à **la session en cours**, jamais pour ouvrir une deuxième session.
+
+### Cycle normal
+
+1. **Libre** : le QR permanent du restaurant et de la table peut être scanné par un nouveau client; la simple consultation de la carte n'occupe pas la table. L'acceptation atomique de la première commande ouvre `table_session`, crée une commande avec référence unique et marque la table `occupied`.
+2. **Occupée / addition ouverte** : un nouveau scan public affiche « Table occupée, adressez-vous au personnel »; **aucune nouvelle commande publique** ne peut être créée. La serveuse connectée scanne le QR via le mode personnel (ou choisit la table / commande dans l'historique) et ajoute une ou plusieurs commandes complémentaires **à la même session**. Chaque ajout conserve sa référence de commande et s'agrège au total de l'addition; cuisine et stocks sont mis à jour selon les mêmes règles.
+3. **Service terminé / à encaisser** : le client se rend à l'accueil et communique son numéro de table ou de commande. La caissière autorisée peut rechercher l'un ou l'autre, mais l'écran doit résoudre **l'établissement, la session active et l'addition complète**, avec toutes les commandes initiales et complémentaires; ne jamais encaisser par accident une commande d'un autre établissement ou une ancienne session de la même table.
+4. **À la caisse** : la caissière reçoit espèces ou confirme un paiement Mobile Money / carte vérifié; une saisie côté client ne fait jamais foi. La caisse enregistre un paiement traçable et idempotent pour la session, rattache les montants réellement encaissés et émet le reçu.
+5. **Paiement complet confirmé** : dans la même transaction serveur que la clôture de l'addition, marquer `table_session=closed_paid`, `table=free`, et invalider tout contexte ou jeton de session client antérieur. **Le QR physique ne change pas** : son identifiant opaque continue de désigner cette table, et le prochain client peut ouvrir une nouvelle session avec son prochain scan.
+6. **Paiement incomplet, refusé, en attente ou non vérifié** : la table reste occupée, le QR public reste verrouillé, et aucun autre client ne peut créer de commande. La caisse peut traiter des paiements partiels si ce mode est prévu, mais seule l'extinction du solde dû libère la table.
+
+### Modèle et contrôles serveur proposés
+
+- `restaurant_tables (id, shop_id, table_number, ...)` : QR permanent unique pour (établissement, table); `table_number` est un libellé humain, pas une clé globale.
+- `restaurant_table_sessions (id, shop_id, table_id, status, opened_at, closed_at, ...)` : **une seule session ouverte par (shop_id, table_id)**, garantie par index unique partiel / transaction verrouillée. Une table libre peut avoir un long historique de sessions fermées.
+- `restaurant_orders (id, shop_id, table_session_id, order_number, source, staff_id, ...)` : une session peut recevoir plusieurs commandes, chaque commande obtient une référence serveur unique par restaurant. L'encaissement recherche soit `table_number`, soit `order_number`, et associe tous les ajouts de la même session.
+- `restaurant_session_payments (id, shop_id, table_session_id, amount, method, external_reference?, verified_at, cashier_id, idempotency_key, ...)` : paiements réellement confirmés distincts des commandes. Une somme d'encaisses confirmées `>=` total final dû est nécessaire à la fermeture, avec gestion explicite des remises/avoirs.
+- Toute création de commande, tout ajout, toute fermeture et toute libération sont **atomiques et autorisés côté serveur**, indépendamment du statut affiché dans le navigateur. Une nouvelle requête concurrente échoue si table déjà occupée.
+- QR public et scan par serveuse peuvent utiliser le **même QR imprimé**, mais avec contrôle du rôle et de la session : un visiteur sur ce QR d'une table occupée est bloqué; un membre de ce restaurant connecté et autorisé peut accéder à la session courante pour l'enrichir.
+- Le QR ne contient ni numéro de téléphone, ni nom client, ni identifiant de session actif; seul le serveur résout un jeton opaque stable vers `shop_id + table_id + purpose`.
+- Dépenses, stocks de boissons, historique cuisine et commissions éventuelles conservent une piste d'audit : un ajout n'est jamais une deuxième session indépendante, et clôturer le paiement ne décompte pas de nouveau le stock.
+- Prévoir une procédure **responsable** documentée pour annulation/sortie exceptionnelle sans encaissement (client parti sans payer, erreur de table, panne), avec droits stricts et journal d'audit; ne jamais présenter un départ sans paiement comme une clôture payée.
+- La tablette, le téléphone et le PC présentent les mêmes données de session en temps réel. Sans accusé serveur, ne pas prétendre qu'une commande ou un paiement a été enregistré.
+
+### Tests d'acceptation obligatoires
+
+1. QR Table 04 libre → nouvelle commande `CMD-0042` → Table 04 occupée immédiatement à l'acceptation.
+2. Deux clients scannent simultanément la même table libre : une seule session peut être ouverte; le second voit la table occupée.
+3. Sur Table 04 occupée, un nouveau visiteur ne peut soumettre aucune commande par QR, y compris en réutilisant un ancien lien.
+4. La serveuse authentifiée scanne Table 04 occupée → ajoute une boisson; le même résultat est obtenu par recherche dans l'historique. La cuisine et l'addition reflètent l'ajout.
+5. En caisse, rechercher « Table 04 » ou « CMD-0042 » retourne **la même session** et le total de l'ensemble de ses commandes; une ancienne session Table 04 n'est pas choisie.
+6. Paiement non vérifié, partiel ou rejeté → table bloquée; paiement entièrement confirmé → clôture atomique, reçu, table libre.
+7. Après paiement, le même QR physique permet une nouvelle session de table; un ancien contexte client ne peut plus modifier l'ancienne addition.
+8. QR restaurant A ne peut ouvrir, enrichir ou encaisser une session du restaurant B; un employé de B ne peut pas modifier A.
+9. Les doubles clics, retries réseau et notifications répétées ne doublent ni commandes, ni paiements, ni décréments de stock.
+10. Sur tablette, téléphone et ordinateur, caissière, serveuse et cuisine voient les changements après confirmation serveur sans affichage trompeur.
+
+**État : règle métier confirmée et documentée; aucun verrou de table ni flux de paiement restaurant n'a été développé ou déployé.**
+
 ## Principe non négociable — QR codes isolés par établissement
 
 **Un QR code = un établissement précis + un usage précis.** Cela concerne la boutique de vêtements, le restaurant et le salon de coiffure, y compris lorsqu'un seul propriétaire possède plusieurs établissements.
