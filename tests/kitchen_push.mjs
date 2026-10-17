@@ -95,7 +95,7 @@ test('treats expired endpoints as gone and transient outages as retry, never as 
             { ...task, id: '00000000-0000-0000-0000-000000000002' },
           ]
         : (finish.push(args.p_outcome), true),
-    sendPush: async (_s, _p) => {
+    sendPush: async () => {
       if (finish.length === 0) throw Object.assign(Error('expired'), { statusCode: 410 })
       throw Error('network')
     },
