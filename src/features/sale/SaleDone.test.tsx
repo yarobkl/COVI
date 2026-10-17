@@ -4,17 +4,19 @@ import { SaleDone } from './SaleDone'
 import type { SoldSale } from './cart'
 
 const example: SoldSale = {
-  lines: [{
-    product: {
-      id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-      name: 'Robe',
-      quantity_on_hand: 4,
-      initial_sale_price: 3500,
-      is_unique_piece: false,
-    } as SoldSale['lines'][number]['product'],
-    quantity: 1,
-    price: 3500,
-  }],
+  lines: [
+    {
+      product: {
+        id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        name: 'Robe',
+        quantity_on_hand: 4,
+        initial_sale_price: 3500,
+        is_unique_piece: false,
+      } as SoldSale['lines'][number]['product'],
+      quantity: 1,
+      price: 3500,
+    },
+  ],
   payment: 'Mobile Money',
   received: null,
   offline: false,
@@ -38,17 +40,20 @@ describe('the real production checkout: PDF invoice sharing', () => {
   it('also supports multiple lines from the current cart', () => {
     const sale: SoldSale = {
       ...example,
-      lines: [...example.lines, {
-        product: {
-          id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
-          name: 'Chemise',
-          quantity_on_hand: 3,
-          initial_sale_price: 3000,
-          is_unique_piece: false,
-        } as SoldSale['lines'][number]['product'],
-        quantity: 2,
-        price: 2500,
-      }],
+      lines: [
+        ...example.lines,
+        {
+          product: {
+            id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+            name: 'Chemise',
+            quantity_on_hand: 3,
+            initial_sale_price: 3000,
+            is_unique_piece: false,
+          } as SoldSale['lines'][number]['product'],
+          quantity: 2,
+          price: 2500,
+        },
+      ],
     }
     render(<SaleDone sale={sale} shopName="YARO BOUTIQUE" today={null} onNext={() => {}} />)
     expect(screen.getByRole('button', { name: 'Partager la facture PDF' })).toBeTruthy()
@@ -56,15 +61,27 @@ describe('the real production checkout: PDF invoice sharing', () => {
   })
 
   it('never presents an unpaid queued sale as a downloadable PAID invoice', () => {
-    render(<SaleDone sale={{ ...example, offline: true, saleId: undefined }}
-      shopName="YARO BOUTIQUE" today={null} onNext={() => {}} />)
+    render(
+      <SaleDone
+        sale={{ ...example, offline: true, saleId: undefined }}
+        shopName="YARO BOUTIQUE"
+        today={null}
+        onNext={() => {}}
+      />,
+    )
     expect(screen.queryByRole('button', { name: 'Partager la facture PDF' })).toBeNull()
     expect(screen.getByText(/lorsque la vente aura été enregistrée/)).toBeTruthy()
   })
 
   it('does not invent a COVI reference for older sales without a confirmed sale ID', () => {
-    render(<SaleDone sale={{ ...example, saleId: undefined }}
-      shopName="YARO BOUTIQUE" today={null} onNext={() => {}} />)
+    render(
+      <SaleDone
+        sale={{ ...example, saleId: undefined }}
+        shopName="YARO BOUTIQUE"
+        today={null}
+        onNext={() => {}}
+      />,
+    )
     expect(screen.queryByRole('button', { name: 'Partager la facture PDF' })).toBeNull()
   })
 })
