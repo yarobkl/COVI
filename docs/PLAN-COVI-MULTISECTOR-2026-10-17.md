@@ -48,6 +48,30 @@ COVI devient une plateforme de gestion de petites entreprises, tout en préserva
 - Tests de types, lint, tests unitaires et e2e des 3 parcours au vert.
 - Les migrations sont revues sur base de test avec plan de restauration avant publication.
 
+## Principe non négociable — QR codes isolés par établissement
+
+**Un QR code = un établissement précis + un usage précis.** Cela concerne la boutique de vêtements, le restaurant et le salon de coiffure, y compris lorsqu'un seul propriétaire possède plusieurs établissements.
+
+- Le QR code salon « Prendre rendez-vous » appartient à un seul salon. Le client peut saisir nom, prénom, téléphone, date et créneau souhaités. La demande, la disponibilité et la notification sont enregistrées exclusivement dans le calendrier de ce salon.
+- Le QR code restaurant « Commander » appartient à un seul restaurant. Un QR placé sur une table est également attaché à cette table **de ce restaurant uniquement**. La carte, les commandes, la cuisine, la caisse et le stock se rapportent au même établissement.
+- Les QR boutique / commande / paiement appartiennent à la boutique concernée. Un code destiné à réserver ne doit jamais pouvoir agir comme un code d'encaissement.
+- Un propriétaire multi-établissements génère et retrouve des QR distincts dans la fiche de **chaque** établissement. La duplication involontaire, la réaffectation et la confusion de tableaux de bord sont interdites.
+- Chaque QR possède un identifiant opaque, unique, aléatoire et révocable. Le serveur résout cet identifiant vers une association immuable `shop_id`, `purpose` et, si nécessaire, `table_id`; les paramètres `shop_id` soumis par le navigateur public ne sont **jamais** considérés comme autorité. Il faut vérifier que toute table, prestation, horaire, demande, panier ou paiement appartient au même établissement.
+- La lecture et l'écriture côté propriétaire/équipe sont soumises aux permissions et à l'isolation multi-tenant; aucune autre boutique ne doit voir les noms, téléphones, rendez-vous, commandes ou ventes d'autrui. Le QR ne contient aucune donnée personnelle du client.
+- La confirmation des paiements reste distincte de la création d'une commande ou réservation : un QR ou une déclaration « payé » ne certifie pas un paiement bancaire ou Mobile Money.
+
+### Vérifications obligatoires avant déploiement
+
+1. Scanner le QR du salon A n'affiche et n'enregistre des rendez-vous **que** pour A, même si le même compte possède un salon B.
+2. Essayer de substituer l'identifiant du salon B, d'une prestation étrangère ou d'un autre créneau est refusé côté serveur.
+3. Un QR restaurant de la table 4 ne peut pas créer de commande à la table 4 d'un autre restaurant.
+4. Un QR de réservation ne peut déclencher ni paiement ni vente, et inversement.
+5. Révoquer ou régénérer un QR invalide l'ancien code sans modifier les QR des autres établissements.
+6. Les notifications, agendas, historiques et stocks filtrent par `shop_id`, sans fuite entre entreprises.
+7. Le scan et la demande de réservation ne requièrent pas la création d'un compte COVI pour le client; anti-abus et protection des données sont prévus.
+
+**État** : exigence et tests spécifiés uniquement; aucun générateur de QR salon n'est déployé.
+
 ## Statut
 
 En préparation. Le code de cette branche ne vaut pas approbation de déploiement.
