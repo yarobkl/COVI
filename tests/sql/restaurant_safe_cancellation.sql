@@ -3,7 +3,10 @@
 begin;
 insert into auth.users(id) values
  ('00000000-0000-0000-0000-0000000000d1'),
- ('00000000-0000-0000-0000-0000000000d2');
+ ('00000000-0000-0000-0000-0000000000d2'),
+ ('00000000-0000-0000-0000-0000000000d3'),
+ ('00000000-0000-0000-0000-0000000000d4'),
+ ('00000000-0000-0000-0000-0000000000d5');
 insert into public.shops(id,owner_id,name,business_kind) values
  ('10000000-0000-0000-0000-0000000000d1','00000000-0000-0000-0000-0000000000d1','Resto annulations A','restaurant'),
  ('10000000-0000-0000-0000-0000000000d2','00000000-0000-0000-0000-0000000000d2','Resto annulations B','restaurant');
@@ -13,6 +16,11 @@ insert into public.restaurant_tables(id,shop_id,label,capacity) values
 insert into public.restaurant_menu_items(id,shop_id,name,category,kind,price_xaf,drink_stock) values
  ('30000000-0000-0000-0000-0000000000d1','10000000-0000-0000-0000-0000000000d1','Poisson','Plat','dish',6000,null),
  ('30000000-0000-0000-0000-0000000000d2','10000000-0000-0000-0000-0000000000d1','Jus','Boisson','drink',1000,6);
+insert into public.restaurant_staff_members(shop_id,user_id,display_name,staff_role,created_by)
+values
+ ('10000000-0000-0000-0000-0000000000d1','00000000-0000-0000-0000-0000000000d3','Service D3','waiter','00000000-0000-0000-0000-0000000000d1'),
+ ('10000000-0000-0000-0000-0000000000d1','00000000-0000-0000-0000-0000000000d4','Cuisine D4','kitchen','00000000-0000-0000-0000-0000000000d1'),
+ ('10000000-0000-0000-0000-0000000000d1','00000000-0000-0000-0000-0000000000d5','Caisse D5','cashier','00000000-0000-0000-0000-0000000000d1');
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000d1',true);
 set local role authenticated;
 do $run$
@@ -28,8 +36,20 @@ begin
  if (select reserved_drink_stock from public.restaurant_menu_items
     where id='30000000-0000-0000-0000-0000000000d2')<>2 then
    raise exception 'Drink stock not initially reserved'; end if;
- -- Same restaurant, one waiter, first correction of drink never served.
+ -- Cuisine and cashier cannot cancel even when they know a line's UUID.
+ perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000d4',true);
+ begin
+  perform public.restaurant_cancel_order_line(shop,drink,'Cuisine souhaite annuler');
+  raise exception 'Kitchen cancelled a line';
+ exception when insufficient_privilege then null; end;
+ perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000d5',true);
+ begin
+  perform public.restaurant_cancel_order_line(shop,drink,'Caisse souhaite annuler');
+  raise exception 'Cashier cancelled a line';
+ exception when insufficient_privilege then null; end;
+ perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000d3',true);
  res:=public.restaurant_cancel_order_line(shop,drink,'Client retire les jus');
+ perform set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000d1',true);
  if res->>'cancelled'<>'true' or res->>'tableReleased'<>'false' then
   raise exception 'Unexpected cancellation status'; end if;
  if (select reserved_drink_stock from public.restaurant_menu_items
