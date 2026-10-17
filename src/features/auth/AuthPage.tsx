@@ -24,7 +24,9 @@ export function AuthPage({
         <LabelCard className="auth__brand">
           <BrandMark size={56} />
           <p className="auth__name">COVI</p>
-          <p className="auth__tagline">Outils de gestion opérationnelle, financière et humaine de l’entreprise.</p>
+          <p className="auth__tagline">
+            Outils de gestion opérationnelle, financière et humaine de l’entreprise.
+          </p>
         </LabelCard>
         <div className="auth__grid">
           <div className="auth__main">
