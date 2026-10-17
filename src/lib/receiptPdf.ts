@@ -114,29 +114,53 @@ function pdfObjects(receipt: PdfReceiptData): Uint8Array {
     '',
     '',
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>',
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>',
   ]
   const pageIds: number[] = []
   for (let page = 0; page < pages; page += 1) {
     const chunk = textLines.slice(page * perPage, (page + 1) * perPage)
+    // Same paper/ink vocabulary as the UI: ruled page, red margin,
+    // white ticket, navy heading and yellow total highlight.
+    const ruled = Array.from({ length: 38 }, (_, i) => {
+      const y = 22 * (i + 1)
+      return '0.88 0.92 0.97 RG 0.35 w 0 ' + y + ' m 595 ' + y + ' l S'
+    })
     const content = [
-      '0.5 w 40 797 m 555 797 l S',
-      ...chunk.map(
-        (line, index) =>
-          'BT /F1 ' +
-          (index === 0 && page === 0 ? '16' : '10') +
-          ' Tf 48 ' +
-          (766 - index * 18) +
-          ' Td (' +
-          encodedPdfText(line) +
-          ') Tj ET',
-      ),
-      'BT /F1 9 Tf 465 38 Td (' + encodedPdfText('Page ' + (page + 1) + '/' + pages) + ') Tj ET',
+      '0.985 0.981 0.963 rg 0 0 595 842 re f',
+      ...ruled,
+      '0.77 0.35 0.31 RG 1.2 w 34 0 m 34 842 l S',
+      '1 1 1 rg 42 81 511 718 re f',
+      '0.15 0.31 0.55 RG 2 w 46 795 m 550 795 l S',
+      ...chunk.map((line, index) => {
+        const y = 766 - index * 18
+        const isTotal = line.startsWith('TOTAL :')
+        const accent = isTotal
+          ? '0.99 0.87 0.40 rg 47 ' + (y - 5) + ' 495 18 re f\\n'
+          : ''
+        const color = (index === 0 || isTotal)
+          ? '0.14 0.29 0.53 rg '
+          : '0.14 0.17 0.23 rg '
+        const font = index === 0 || isTotal ? 'F2' : 'F1'
+        const size = index === 0 && page === 0 ? 16 : isTotal ? 12 : 10
+        return accent + color + 'BT /' + font + ' ' + size +
+          ' Tf 48 ' + y + ' Td (' + encodedPdfText(line) + ') Tj ET'
+      }),
+      ...(page === pages - 1 && chunk.length < 32
+        ? [
+            '0.68 0.20 0.16 RG 1.8 w 415 106 122 47 re S',
+            '0.68 0.20 0.16 rg BT /F2 20 Tf 433 122 Td (' +
+              encodedPdfText('PAYÉ') + ') Tj ET',
+          ]
+        : []),
+      '0.14 0.29 0.53 rg BT /F3 9 Tf 465 38 Td (' +
+        encodedPdfText('Page ' + (page + 1) + '/' + pages) + ') Tj ET',
     ].join('\n')
     const pageId = objects.length + 1
     const streamId = pageId + 1
     pageIds.push(pageId)
     objects.push(
-      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> >> /Contents ' +
+      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents ' +
         streamId +
         ' 0 R >>',
     )
