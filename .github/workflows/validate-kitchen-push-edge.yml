@@ -1,0 +1,23 @@
+name: Web Push Cuisine — vérification Edge
+on:
+  push:
+    branches:
+      - feature/covi-restaurant-salon-v1
+    paths:
+      - 'supabase/functions/restaurant-kitchen-push/**'
+      - '.github/workflows/validate-kitchen-push-edge.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate-edge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Vérifier module Edge sans secrets
+        run: deno check supabase/functions/restaurant-kitchen-push/index.ts
+      - name: Tester le distributeur sans serveur réel
+        run: node --test tests/kitchen_push.mjs
