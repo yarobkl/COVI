@@ -76,6 +76,16 @@ begin
  exception when raise_exception then
   if sqlerrm not like '%Drink out of stock%' then raise; end if;
  end;
+ -- Cashier cannot free a table before every ordered item is served.
+ begin
+  perform public.restaurant_capture_cash(shop,sess,7000,'40000000-0000-0000-0000-0000000000d3');
+  raise exception 'Unserved table incorrectly closed';
+ exception when raise_exception then
+  if sqlerrm not like '%Serve all ordered items%' then raise; end if;
+ end;
+ if exists(select 1 from public.restaurant_cash_payments where session_id=sess) then
+   raise exception 'A rejected closing payment was incorrectly stored';
+ end if;
  perform public.restaurant_mark_served(shop,first_line);
  perform public.restaurant_mark_served(shop,second_line);
  perform public.restaurant_mark_served(shop,second_line);
@@ -85,6 +95,27 @@ begin
  if v<>1 or amt<>0 then raise exception 'Incorrect stock after service %/%',v,amt; end if;
  if (select count(*) from public.restaurant_drink_movements where shop_id=shop)<>2 then
   raise exception 'Service wrote duplicate drink movement';
+ end if;
+ -- No stock UPDATE directly from a browser, even for the owner.
+ begin
+  update public.restaurant_menu_items set drink_stock=999 where id=drink;
+  raise exception 'Direct stock UPDATE unexpectedly succeeded';
+ exception when insufficient_privilege then null;
+ end;
+ if public.restaurant_adjust_drink_stock(shop,drink,2,'Nouvel arrivage')<>3 then
+   raise exception 'Audited delivery incorrect';
+ end if;
+ if (select count(*) from public.restaurant_drink_adjustments where shop_id=shop)<>1 then
+   raise exception 'Missing stock adjustment audit';
+ end if;
+ begin
+  perform public.restaurant_adjust_drink_stock(shop,drink,-4,'Erreur inventaire');
+  raise exception 'Negative stock incorrectly accepted';
+ exception when raise_exception then
+  if sqlerrm not like '%Insufficient unreserved stock%' then raise; end if;
+ end;
+ if (select drink_stock from public.restaurant_menu_items where id=drink)<>3 then
+   raise exception 'Failed adjustment changed stock';
  end if;
  if (select count(*) from public.restaurant_session_lines where session_id=sess)<>3 then
   raise exception 'Wrong number of order lines';
