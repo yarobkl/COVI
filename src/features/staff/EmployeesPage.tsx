@@ -66,8 +66,7 @@ export function EmployeesPage({ shopId }: { shopId: string }) {
     const fullName = String(form.get('full_name') ?? '').trim()
     const jobTitle = String(form.get('job_title') ?? '').trim()
     const monthlySalary = mode === 'commission' ? 0 : Number(form.get('monthly_salary'))
-    const commissionPercent =
-      mode === 'fixed' ? 0 : Number(form.get('commission_percent'))
+    const commissionPercent = mode === 'fixed' ? 0 : Number(form.get('commission_percent'))
     if (
       fullName.length < 2 ||
       jobTitle.length < 2 ||
@@ -142,46 +141,72 @@ export function EmployeesPage({ shopId }: { shopId: string }) {
 
       <section className="card">
         <h2>{plural(active.length, 'employé')} en activité</h2>
-        <p>Salaires fixes prévus par mois : <strong>{money(forecast)}</strong></p>
+        <p>
+          Salaires fixes prévus par mois : <strong>{money(forecast)}</strong>
+        </p>
         <small>
-          Ce montant ne comprend pas les commissions variables. Aucun salaire n’est marqué payé
-          et aucune charge n’est créée automatiquement.
+          Ce montant ne comprend pas les commissions variables. Aucun salaire n’est marqué payé et
+          aucune charge n’est créée automatiquement.
         </small>
       </section>
 
       {showForm && (
         <form className="card formgrid" onSubmit={(event) => void addEmployee(event)}>
-          <div className="span2"><h2>Ajouter un membre de l’équipe</h2></div>
+          <div className="span2">
+            <h2>Ajouter un membre de l’équipe</h2>
+          </div>
           <label>
             Nom de l’employé
             <input name="full_name" minLength={2} maxLength={120} required />
           </label>
           <label>
             Poste
-            <input name="job_title" minLength={2} maxLength={100} required
-              placeholder="Ex. Vendeuse, serveur, coiffeuse" />
+            <input
+              name="job_title"
+              minLength={2}
+              maxLength={100}
+              required
+              placeholder="Ex. Vendeuse, serveur, coiffeuse"
+            />
           </label>
           <label>
             Rémunération
-            <select value={mode} onChange={(event) =>
-              setMode(event.target.value as CompensationMode)}>
+            <select
+              value={mode}
+              onChange={(event) => setMode(event.target.value as CompensationMode)}
+            >
               {Object.entries(modeLabels).map(([value, label]) => (
-                <option value={value} key={value}>{label}</option>
+                <option value={value} key={value}>
+                  {label}
+                </option>
               ))}
             </select>
           </label>
           {mode !== 'commission' && (
             <label>
               Salaire fixe mensuel (FCFA)
-              <input name="monthly_salary" type="number" min="0" step="1" required
-                defaultValue="0" />
+              <input
+                name="monthly_salary"
+                type="number"
+                min="0"
+                step="1"
+                required
+                defaultValue="0"
+              />
             </label>
           )}
           {mode !== 'fixed' && (
             <label>
               Commission prévue (%)
-              <input name="commission_percent" type="number" min="0" max="100"
-                step="0.01" required defaultValue="0" />
+              <input
+                name="commission_percent"
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                required
+                defaultValue="0"
+              />
             </label>
           )}
           <button className="primary span2" disabled={busy}>
@@ -213,11 +238,9 @@ export function EmployeesPage({ shopId }: { shopId: string }) {
                     employee.compensation_mode}
                   {employee.monthly_salary > 0 &&
                     ` · ${money(Number(employee.monthly_salary))} / mois`}
-                  {employee.commission_percent > 0 &&
-                    ` · ${employee.commission_percent} %`}
+                  {employee.commission_percent > 0 && ` · ${employee.commission_percent} %`}
                 </p>
-                <button type="button" disabled={busy}
-                  onClick={() => void toggleActive(employee)}>
+                <button type="button" disabled={busy} onClick={() => void toggleActive(employee)}>
                   {employee.active ? 'Désactiver' : 'Réactiver'}
                 </button>
               </li>

@@ -2,7 +2,15 @@
 // Android back button and the browser history move between pages.
 
 export type PageId =
-  'accueil' | 'vendre' | 'stock' | 'arrivages' | 'ventes' | 'charges' | 'personnel' | 'bilan' | 'boutique'
+  | 'accueil'
+  | 'vendre'
+  | 'stock'
+  | 'arrivages'
+  | 'ventes'
+  | 'charges'
+  | 'personnel'
+  | 'bilan'
+  | 'boutique'
 
 /** Arrivages can be filtered to supplier orders or bales (« Commandes », « Ballons »). */
 export type ArrivalFilter = 'commandes' | 'ballons'
