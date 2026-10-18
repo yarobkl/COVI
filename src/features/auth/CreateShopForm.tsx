@@ -11,7 +11,11 @@ import {
 import type { Shop } from '../../lib/types'
 import { OTHER_CITY } from '../../lib/centralAfricaLocations'
 import { OTHER_NEIGHBORHOOD } from '../../lib/neighborhoods'
-import { CentralAfricaLocationFields } from '../locations/CentralAfricaLocationFields'
+import { OTHER_ADMIN_AREA, isCemacCountry, isValidBusinessAddress } from '../../lib/cemacAreas'
+import {
+  CemacBusinessAddressFields,
+  type BusinessLocation,
+} from '../locations/CemacBusinessAddressFields'
 import { ShopGpsControl, type ShopGpsPosition } from '../locations/ShopGpsControl'
 import { AuthPage } from './AuthPage'
 import { authError } from './authErrors'
@@ -41,23 +45,41 @@ export function CreateShopForm({
   const [phone, setPhone] = useState(hints.phone)
   const needsOwnerIdentity = !hints.firstName || !hints.lastName || !isValidOwnerPhone(hints.phone)
   const kindInfo = businessKindInfo(businessKind)
-  const [city, setCity] = useState('')
-  const [country, setCountry] = useState<string>('République du Congo')
-  const [customCity, setCustomCity] = useState('')
-  const [neighborhood, setNeighborhood] = useState('')
-  const [customNeighborhood, setCustomNeighborhood] = useState('')
+  const [location, setLocation] = useState<BusinessLocation>({
+    country: 'République du Congo',
+    city: '',
+    customCity: '',
+    area: '',
+    customArea: '',
+    neighborhood: '',
+    customNeighborhood: '',
+    streetAddress: '',
+  })
   const [gps, setGps] = useState<ShopGpsPosition | null>(null)
-  const selectedCity = city === OTHER_CITY ? customCity.trim() : city
+  const selectedCity =
+    location.city === OTHER_CITY ? location.customCity.trim() : location.city
+  const selectedArea =
+    location.area === OTHER_ADMIN_AREA ? location.customArea.trim() : location.area.trim()
   const selectedNeighborhood =
-    neighborhood === OTHER_NEIGHBORHOOD ? customNeighborhood.trim() : neighborhood.trim()
+    location.neighborhood === OTHER_NEIGHBORHOOD
+      ? location.customNeighborhood.trim()
+      : location.neighborhood.trim()
   const [busy, setBusy] = useState(false)
 
   async function createShop(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     onMessage('')
     const f = new FormData(e.currentTarget)
-    if (!selectedCity.trim() || !selectedNeighborhood) {
-      onMessage('Choisissez votre ville et votre quartier, ou saisissez-les manuellement.')
+    if (!isCemacCountry(location.country)) {
+      onMessage('Choisissez un pays de la zone CEMAC.')
+      return
+    }
+    if (!selectedCity.trim() || !selectedArea || !selectedNeighborhood) {
+      onMessage('Indiquez votre ville, arrondissement / commune et quartier.')
+      return
+    }
+    if (!isValidBusinessAddress(location.streetAddress)) {
+      onMessage('L’adresse physique de votre établissement est obligatoire (10 à 240 caractères).')
       return
     }
     setBusy(true)
@@ -84,12 +106,14 @@ export function CreateShopForm({
         })
         if (profileError) throw profileError
       }
-      const { data, error } = await supabase.rpc('create_my_business_with_location', {
+      const { data, error } = await supabase.rpc('create_my_business_with_address', {
         p_business_kind: businessKind,
         p_name: String(f.get('name')).trim(),
         p_city: selectedCity.trim(),
+        p_administrative_area: selectedArea,
         p_neighborhood: selectedNeighborhood,
-        p_country: country,
+        p_address_line: location.streetAddress.trim(),
+        p_country: location.country,
         p_currency: 'XAF',
         p_latitude: gps?.latitude ?? undefined,
         p_longitude: gps?.longitude ?? undefined,
@@ -223,39 +247,17 @@ export function CreateShopForm({
             />
           )}
         </Field>
-        <CentralAfricaLocationFields
-          country={country}
-          city={city}
-          customCity={customCity}
-          requireCity
-          requireNeighborhood
-          neighborhood={neighborhood}
-          customNeighborhood={customNeighborhood}
-          onNeighborhoodChange={(value) => {
-            setNeighborhood(value)
-            setCustomNeighborhood('')
-          }}
-          onCustomNeighborhoodChange={setCustomNeighborhood}
-          onCountryChange={(value) => {
-            setCountry(value)
-            setCity('')
-            setCustomCity('')
-            setNeighborhood('')
-            setCustomNeighborhood('')
-            setGps(null)
-          }}
-          onCityChange={(value) => {
-            setCity(value)
-            setCustomCity('')
-            setNeighborhood('')
-            setCustomNeighborhood('')
-            setGps(null)
-          }}
-          onCustomCityChange={(value) => {
-            setCustomCity(value)
-            setNeighborhood('')
-            setCustomNeighborhood('')
-            setGps(null)
+        <CemacBusinessAddressFields
+          value={location}
+          onChange={(next) => {
+            if (
+              next.country !== location.country ||
+              next.city !== location.city ||
+              next.customCity !== location.customCity
+            ) {
+              setGps(null)
+            }
+            setLocation(next)
           }}
         />
         <ShopGpsControl value={gps} onChange={setGps} />
