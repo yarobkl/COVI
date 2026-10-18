@@ -74,7 +74,7 @@ select cron.schedule(
           where name = 'covi_kitchen_push_dispatch_secret')
       ),
       body := '{}'::jsonb,
-      timeout_milliseconds := 10000
+      timeout_milliseconds := 90000
     );
   $job$
 );
@@ -92,3 +92,12 @@ Documentation Supabase : https://supabase.com/docs/guides/functions/schedule-fun
 - **Android** : navigateur prenant en charge Push API + notifications autorisées par Android; limitations de batterie et restrictions d'arrière-plan susceptibles de retarder les avis.
 - **Windows, macOS et Linux** : navigateur compatible, autorisation système et navigateur, politique d'économie d'énergie et service Push accessible. Faire un essai avec la fenêtre fermée et un autre après reconnexion.
 - Une PWA retirée de l'écran d'accueil, une permission révoquée ou un endpoint 404/410 impose une nouvelle souscription via le bouton utilisateur. Aucune garantie de livraison temps réel.
+
+## Résilience réseau et changement de rôle — revue du 18 octobre
+
+- L'Edge Function applique un délai de 5 secondes aux appels PostgREST et une temporisation de socket de 8 secondes aux envois Web Push ; la dernière limite est un délai d'inactivité réseau, **pas une garantie de temps total maximum**.
+- Le dispatcher réclame un lot de 5 abonnements au maximum par appel, afin de réduire les risques de dépassement du bail SQL de 90 secondes et de l'expiration HTTP du cron. Le nombre de destinataires en attente peut être supérieur à 5 et sera servi sur les invocations suivantes.
+- Le cron de préproduction (non installé) laisse 90 secondes de délai HTTP; une livraison lente ou interrompue n'est jamais enregistrée comme effectivement livrée sans accusé de la fonction SQL.
+- Le passage d'un employé Cuisine au rôle Service désactive ses abonnements Push côté PostgreSQL dans la même transaction, même si son compte reste actif.
+- Les URL Push contenant identifiants ou ports explicites sont rejetées par SQL dès la souscription; le dispatcher vérifie lui aussi les destinations pour empêcher les appels vers des hôtes non approuvés.
+- La recette réelle doit vérifier une reprise après panne, l'expiration de bail et l'éventualité de doublons lorsque le fournisseur accepte un envoi mais que l'accusé SQL échoue.
