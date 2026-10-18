@@ -31,6 +31,35 @@
     color: var(--ink-soft);
     font-size: var(--step--1);
   }
+  .auth__identity {
+    color: var(--ink);
+    font-weight: var(--weight-bold);
+    font-size: var(--step--1);
+  }
+  .auth__sectors {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+  }
+  .auth__sector {
+    display: inline-flex;
+    min-height: 1.95rem;
+    align-items: center;
+    padding: 0.2rem 0.65rem;
+    border: var(--border-hair) solid var(--line);
+    border-radius: 999px;
+    font-size: var(--step--2);
+    color: var(--ink-soft);
+    background: var(--sheet);
+  }
+  .auth__sector--active {
+    color: var(--action);
+    border-color: var(--action);
+    font-weight: var(--weight-bold);
+  }
+
   .auth__grid {
     display: grid;
     gap: var(--space-8);
@@ -57,6 +86,52 @@
     stroke: none;
     stroke-width: 0;
   }
+  /* Google and Facebook share a single compact row; keep the notebook's existing palette. */
+  .auth__social-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: var(--space-3);
+    width: 100%;
+  }
+  .auth__social-actions .btn.auth__social-btn {
+    min-width: 0;
+    min-height: 3.15rem;
+    width: 100%;
+    border-radius: 999px;
+    padding-inline: var(--space-2);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    background: var(--sheet);
+    color: var(--ink);
+    border: var(--border-field) solid var(--line);
+    font-weight: var(--weight-bold);
+    box-shadow: 0 2px 7px rgb(0 0 0 / 4%);
+    transition:
+      border-color 150ms ease,
+      box-shadow 150ms ease,
+      transform 150ms ease;
+  }
+  .auth__social-actions .btn.auth__social-btn:hover {
+    border-color: var(--action);
+    box-shadow: 0 3px 10px rgb(0 0 0 / 10%);
+    transform: translateY(-1px);
+  }
+  .auth__social-actions .btn.auth__social-btn:focus-visible {
+    outline: 3px solid var(--action);
+    outline-offset: 3px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .auth__social-actions .btn.auth__social-btn {
+      transition: none;
+    }
+    .auth__social-actions .btn.auth__social-btn:hover {
+      transform: none;
+    }
+  }
+
   .auth__or {
     display: flex;
     align-items: center;

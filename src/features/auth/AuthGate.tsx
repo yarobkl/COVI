@@ -183,6 +183,7 @@ export function AuthGate({
           onMessage={setMessage}
           onCreated={setShop}
           onJoin={() => setJoining(true)}
+          accountMetadata={session.user.user_metadata}
         />
       )
     return (
