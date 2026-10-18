@@ -112,9 +112,15 @@ export const CENTRAL_AFRICA = [
     cities: ['Kigali', 'Huye', 'Musanze', 'Rubavu', 'Muhanga', 'Rusizi', 'Nyagatare'],
   },
   // Starting city suggestions for West Africa. All countries retain 'Autre ville'.
-  { country: 'Côte d’Ivoire', cities: ['Abidjan', 'Yamoussoukro', 'Bouaké', 'San-Pédro', 'Korhogo', 'Daloa'] },
+  {
+    country: 'Côte d’Ivoire',
+    cities: ['Abidjan', 'Yamoussoukro', 'Bouaké', 'San-Pédro', 'Korhogo', 'Daloa'],
+  },
   { country: 'Bénin', cities: ['Cotonou', 'Porto-Novo', 'Parakou', 'Ouidah', 'Abomey-Calavi'] },
-  { country: 'Sénégal', cities: ['Dakar', 'Thiès', 'Saint-Louis', 'Touba', 'Kaolack', 'Ziguinchor'] },
+  {
+    country: 'Sénégal',
+    cities: ['Dakar', 'Thiès', 'Saint-Louis', 'Touba', 'Kaolack', 'Ziguinchor'],
+  },
   { country: 'Togo', cities: ['Lomé', 'Kara', 'Sokodé', 'Kpalimé', 'Atakpamé'] },
   { country: 'Guinée-Bissau', cities: ['Bissau', 'Bafatá', 'Gabú', 'Bissorã'] },
   { country: 'Burkina Faso', cities: ['Ouagadougou', 'Bobo-Dioulasso', 'Koudougou', 'Ouahigouya'] },
