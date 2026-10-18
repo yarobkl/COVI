@@ -11,6 +11,11 @@ const encoder = new TextEncoder()
 const PAYMENT_METHODS = ['cash', 'mobile_money', 'card', 'bank_transfer']
 const STATUSES = ['new', 'accepted', 'paid', 'rejected']
 const MAX_BODY = 480000
+// Time-bound privileged outbound calls so a stalled upstream cannot pin Edge
+// resources indefinitely. The checkout never confirms money automatically.
+const RPC_TIMEOUT_MS = 8000
+const TURNSTILE_TIMEOUT_MS = 8000
+const REFERENCE_TIMEOUT_MS = 12000
 const jsonHeaders = {
   'Content-Type': 'application/json; charset=utf-8',
   'Cache-Control': 'no-store',
@@ -41,6 +46,21 @@ export function allowedOrigins(value) {
         return false
       }
     })
+}
+
+/** Resolve runtime settings without implicit public-order activation or
+ * deriving rate-limit secrets from the Supabase service-role credential.
+ * readEnv is injected for unit tests; Deno.env.get is used only at runtime.
+ */
+export function resolvePublicCheckoutEnvironment(readEnv) {
+  return {
+    COVI_GATEWAY_ENABLED: readEnv('COVI_GATEWAY_ENABLED') === 'true' ? 'true' : 'false',
+    COVI_PUBLIC_ORIGIN: readEnv('COVI_PUBLIC_ORIGIN') ?? '',
+    SUPABASE_URL: readEnv('SUPABASE_URL'),
+    SUPABASE_SERVICE_ROLE_KEY: readEnv('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    COVI_GATEWAY_PEPPER: readEnv('COVI_GATEWAY_PEPPER') ?? '',
+    COVI_TURNSTILE_SECRET: readEnv('COVI_TURNSTILE_SECRET'),
+  }
 }
 
 function readSettings(env) {
@@ -255,6 +275,7 @@ function serverHeaders(env, contentType = 'application/json') {
 
 async function rpc(env, fetchImpl, name, payload) {
   const response = await fetchImpl(new URL('/rest/v1/rpc/' + name, env.SUPABASE_URL), {
+    signal: AbortSignal.timeout(RPC_TIMEOUT_MS),
     method: 'POST',
     headers: serverHeaders(env),
     body: JSON.stringify(payload),
@@ -274,6 +295,7 @@ async function rpc(env, fetchImpl, name, payload) {
 
 async function verifyTurnstile(env, fetchImpl, challenge, hostnames) {
   const response = await fetchImpl('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+    signal: AbortSignal.timeout(TURNSTILE_TIMEOUT_MS),
     method: 'POST',
     body: new URLSearchParams({ secret: env.COVI_TURNSTILE_SECRET, response: challenge }),
   })
@@ -298,6 +320,7 @@ async function storeReference(env, fetchImpl, order, result) {
   const upload = await fetchImpl(
     new URL('/storage/v1/object/covi-order-references/' + path, env.SUPABASE_URL),
     {
+      signal: AbortSignal.timeout(REFERENCE_TIMEOUT_MS),
       method: 'POST',
       headers: { ...serverHeaders(env, 'image/jpeg'), 'x-upsert': 'false' },
       body: image,

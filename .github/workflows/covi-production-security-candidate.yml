@@ -1,0 +1,33 @@
+name: COVI production-compatible security candidate
+on:
+  push:
+    branches:
+      - security/covi-gateway-prod-compatible-2026-10-18
+  pull_request:
+    branches:
+      - claude/caisse-multi-caissiers
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-gateway-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install exactly locked dependencies
+        run: npm ci
+      - name: Verify formatting
+        run: npm run format:check
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Build
+        run: npm run build
+      - name: Unit and offline regression tests
+        run: npm test
