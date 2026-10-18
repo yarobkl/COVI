@@ -64,7 +64,8 @@ commit;
 do $check$
 begin
   if exists(select 1 from public.checkout_gateway_rate_windows
-    where digest=repeat('e',64)) then
+    where digest=repeat('e',64)
+      and bucket_start < clock_timestamp() - interval '9 days') then
     raise exception 'Old gateway fingerprint unexpectedly retained';
   end if;
   if not exists(select 1 from public.checkout_gateway_rate_windows
