@@ -34,7 +34,7 @@ describe('CEMAC establishment addresses', () => {
 
   it('requires a plausible descriptive physical address even without a street number', () => {
     expect(isValidBusinessAddress('')).toBe(false)
-    expect(isValidBusinessAddress('Brazzaville')).toBe(true)
+    expect(isValidBusinessAddress('Brazzaville')).toBe(false)
     expect(isValidBusinessAddress('Avenue de la Paix, près du marché')).toBe(true)
     expect(isValidBusinessAddress('00000000000000')).toBe(false)
   })
