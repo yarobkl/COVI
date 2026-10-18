@@ -155,8 +155,8 @@ export function LoginForm({
             </h2>
             <p>COVI — Le système d’exploitation de votre commerce.</p>
             <p>
-              Boutiques et commerces : déjà disponibles. Les espaces Restaurant et Salon de
-              coiffure sont en préparation et seront ouverts après validation.
+              Boutiques et commerces : déjà disponibles. Les espaces Restaurant et Salon de coiffure
+              sont en préparation et seront ouverts après validation.
             </p>
             <p>
               Découvrez trois mois dans une boutique de Poto-Poto : ventes, arrivages, ballons et
