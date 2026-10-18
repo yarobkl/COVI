@@ -109,7 +109,10 @@
     border: var(--border-field) solid var(--line);
     font-weight: var(--weight-bold);
     box-shadow: 0 2px 7px rgb(0 0 0 / 4%);
-    transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+    transition:
+      border-color 150ms ease,
+      box-shadow 150ms ease,
+      transform 150ms ease;
   }
   .auth__social-actions .btn.auth__social-btn:hover {
     border-color: var(--action);
