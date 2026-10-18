@@ -1,3 +1,12 @@
+# Inscription locale / préproduction : lien obligatoire avant ouverture de session.
+# IMPORTANT : ces options CLI ne modifient PAS le réglage Auth hébergé du Dashboard.
+[auth.email]
+enable_confirmations = true
+
+[auth.email.template.confirmation]
+subject = "COVI — Confirmez votre adresse e-mail"
+content_path = "./supabase/templates/confirmation.html"
+
 # Canal client : fonction publique au niveau HTTP. La passerelle contrôle elle-même l'origine,
 # Turnstile, les quotas et chaque champ (voir supabase/functions/public-checkout).
 [functions.public-checkout]
