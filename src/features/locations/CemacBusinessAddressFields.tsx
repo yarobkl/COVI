@@ -2,12 +2,14 @@ import { useState } from 'react'
 import { Field, Input } from '../../components/ui'
 import { listedAfricanCities, OTHER_CITY } from '../../lib/centralAfricaLocations'
 import { OTHER_NEIGHBORHOOD } from '../../lib/neighborhoods'
+import { administrativeAreas, neighborhoodsForArea, OTHER_ADMIN_AREA } from '../../lib/cemacAreas'
 import {
-  administrativeAreas,
-  CEMAC_COUNTRIES,
-  neighborhoodsForArea,
-  OTHER_ADMIN_AREA,
-} from '../../lib/cemacAreas'
+  AFRICAN_MARKET_GROUPS,
+  AFRICAN_MARKETS,
+  currencyLabel,
+  marketForCountry,
+  paymentCurrenciesForCountry,
+} from '../../lib/africanMarkets'
 
 export type BusinessLocation = {
   country: string
@@ -28,6 +30,7 @@ export function CemacBusinessAddressFields({
   onChange: (value: BusinessLocation) => void
 }) {
   const [query, setQuery] = useState('')
+  const market = marketForCountry(value.country)
   const cityName = value.city === OTHER_CITY ? value.customCity.trim() : value.city
   const areaName = value.area === OTHER_ADMIN_AREA ? value.customArea.trim() : value.area
   const cities = listedAfricanCities(value.country)
@@ -40,7 +43,7 @@ export function CemacBusinessAddressFields({
 
   return (
     <>
-      <Field label="Pays (zone CEMAC)">
+      <Field label="Pays de l’établissement">
         {(control) => (
           <select
             {...control}
@@ -61,14 +64,33 @@ export function CemacBusinessAddressFields({
               })
             }}
           >
-            {CEMAC_COUNTRIES.map((country) => (
-              <option key={country} value={country}>
-                {country}
-              </option>
+            {AFRICAN_MARKET_GROUPS.map((group) => (
+              <optgroup key={group.key} label={group.label}>
+                {AFRICAN_MARKETS.filter((item) => item.region === group.key).map((item) => (
+                  <option key={item.country} value={item.country}>
+                    {item.country}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         )}
       </Field>
+      {market && (
+        <div className="field" role="status">
+          <p className="field__label">Monnaie de référence : {currencyLabel(market.currency)}</p>
+          <p className="field__hint">
+            Devise définie automatiquement selon le pays. Elle ne change pas avec la ville.
+          </p>
+          {paymentCurrenciesForCountry(value.country).length > 1 && (
+            <p className="field__hint">
+              En RDC, les paiements en USD seront pris en charge après validation du module
+              de conversion. Les comptes et états financiers restent en CDF : aucun taux
+              automatique n'est supposé.
+            </p>
+          )}
+        </div>
+      )}
       <Field label="Ville">
         {(control) => (
           <select
