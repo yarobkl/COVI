@@ -605,6 +605,41 @@ revoke all on function public.consume_checkout_gateway_quota(text,text)
 grant execute on function public.consume_checkout_gateway_quota(text,text)
   to service_role;
 
+
+-- Explicit maintenance ONLY: fixed retention, no arbitrary timestamp or
+-- table names from callers. Service role schedules this in staging/production
+-- after separate approval; it never runs as part of a customer request.
+-- 72h keeps two previous daily source quota periods plus the current day.
+-- Eight days for per-shop 24h/one-day order ceilings and incident diagnosis.
+create or replace function public.prune_checkout_rate_windows()
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $maintenance$
+declare
+  v_gateway bigint;
+  v_shop bigint;
+begin
+  delete from public.checkout_gateway_rate_windows
+    where bucket_start < clock_timestamp() - interval '72 hours';
+  get diagnostics v_gateway = row_count;
+
+  delete from public.checkout_public_rate_windows
+    where bucket_start < clock_timestamp() - interval '8 days';
+  get diagnostics v_shop = row_count;
+
+  return jsonb_build_object(
+    'gatewayWindowsPruned', v_gateway,
+    'shopWindowsPruned', v_shop
+  );
+end;
+$maintenance$;
+revoke all on function public.prune_checkout_rate_windows()
+  from public, anon, authenticated;
+grant execute on function public.prune_checkout_rate_windows()
+  to service_role;
+
 commit;
 
 -- BLOCKING gates for any deployment:
@@ -612,5 +647,5 @@ commit;
 -- Blocking: implement and test a server gateway with source limits; direct calls are denied.
 -- Rotate links on abuse; owners must inspect/approve customer-quoted prices.
 -- Do not expose customer contact data or exact inventory publicly.
--- Clean up obsolete rate windows periodically after approval.
+-- Periodic server-only pruning is defined above; schedule it only after approval.
 -- No payment API or public paid-status mutation exists here.
