@@ -27,6 +27,12 @@ export function AuthPage({
           <p className="auth__tagline">
             Outils de gestion opérationnelle, financière et humaine des PME
           </p>
+          <p className="auth__identity">Le système d’exploitation de votre commerce.</p>
+          <div className="auth__sectors" aria-label="Activités accompagnées par COVI">
+            <span className="auth__sector auth__sector--active">Boutique</span>
+            <span className="auth__sector">Restaurant — bientôt</span>
+            <span className="auth__sector">Coiffure — bientôt</span>
+          </div>
         </LabelCard>
         <div className="auth__grid">
           <div className="auth__main">
