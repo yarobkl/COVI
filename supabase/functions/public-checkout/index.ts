@@ -1,4 +1,4 @@
-import { createPublicCheckoutGateway } from './gateway.mjs'
+import { configuredPublicGatewayEnv, createPublicCheckoutGateway } from './gateway.mjs'
 
 // Fonction publique au niveau HTTP (pas de JWT client) : la passerelle contrôle l'origine, les
 // quotas, Turnstile et chaque champ avant d'appeler les fonctions SQL réservées à la clé serveur.
@@ -6,18 +6,22 @@ import { createPublicCheckoutGateway } from './gateway.mjs'
 //
 // Réglages (secrets de la fonction, tableau de bord Supabase → Edge Functions → Secrets) :
 //   COVI_TURNSTILE_SECRET  clé secrète Cloudflare Turnstile (obligatoire pour accepter des demandes)
-//   COVI_GATEWAY_ENABLED   « false » coupe immédiatement tout le canal public (arrêt d'urgence)
-//   COVI_PUBLIC_ORIGIN     origines autorisées, séparées par des virgules (défaut : le site officiel)
-//   COVI_GATEWAY_PEPPER    sel des empreintes de quotas (défaut : dérivé de la clé serveur)
-const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-
+//   COVI_GATEWAY_ENABLED   'true' explicitly required; absence disables public access
+//   COVI_PUBLIC_ORIGIN     allowlisted HTTPS origins, explicitly configured
+//   COVI_GATEWAY_PEPPER    independent random secret (32+ characters), NEVER derived from service key
+//
+// SECURITY: no silent production defaults for public access or privileges.
+// Keep the deployed function unchanged until the operator confirms all secrets
+// and the gateway is tested in staging.
 Deno.serve(
-  createPublicCheckoutGateway({
-    COVI_GATEWAY_ENABLED: Deno.env.get('COVI_GATEWAY_ENABLED') === 'false' ? 'false' : 'true',
-    COVI_PUBLIC_ORIGIN: Deno.env.get('COVI_PUBLIC_ORIGIN') || 'https://covi-snowy.vercel.app',
-    SUPABASE_URL: Deno.env.get('SUPABASE_URL'),
-    SUPABASE_SERVICE_ROLE_KEY: serviceKey,
-    COVI_GATEWAY_PEPPER: Deno.env.get('COVI_GATEWAY_PEPPER') || 'covi-quota:' + serviceKey,
-    COVI_TURNSTILE_SECRET: Deno.env.get('COVI_TURNSTILE_SECRET'),
-  }),
+  createPublicCheckoutGateway(
+    configuredPublicGatewayEnv({
+      COVI_GATEWAY_ENABLED: Deno.env.get('COVI_GATEWAY_ENABLED'),
+      COVI_PUBLIC_ORIGIN: Deno.env.get('COVI_PUBLIC_ORIGIN'),
+      SUPABASE_URL: Deno.env.get('SUPABASE_URL'),
+      SUPABASE_SERVICE_ROLE_KEY: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
+      COVI_GATEWAY_PEPPER: Deno.env.get('COVI_GATEWAY_PEPPER'),
+      COVI_TURNSTILE_SECRET: Deno.env.get('COVI_TURNSTILE_SECRET'),
+    }),
+  ),
 )
