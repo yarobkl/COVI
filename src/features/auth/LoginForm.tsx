@@ -12,7 +12,8 @@ import { createOwnerSignupDetails, storeOwnerOAuthIntent } from '../../lib/owner
 export type AuthMode = 'login' | 'signup'
 
 /** Messages of this screen that are good news, not errors. */
-const isGoodNews = (message: string) => message.startsWith('Compte créé')
+const isGoodNews = (message: string) =>
+  message.startsWith('Compte créé') || message.startsWith('Si cette adresse')
 
 /** Official-color brand marks, kept local so sign-in buttons need no third-party assets. */
 function GoogleLogo() {
@@ -92,6 +93,7 @@ export function LoginForm({
 }) {
   const [busy, setBusy] = useState(false)
   const [selectedKind, setSelectedKind] = useState<BusinessKind>('retail')
+  const [businessName, setBusinessName] = useState('')
   const login = mode === 'login'
 
   async function auth(e: FormEvent<HTMLFormElement>) {
@@ -151,8 +153,7 @@ export function LoginForm({
     try {
       if (!login) {
         // Retain the user's activity choice through the external OAuth redirect.
-        const company = (document.querySelector('input[name="business-name"]') as HTMLInputElement | null)?.value ?? ''
-        storeOwnerOAuthIntent(selectedKind, company)
+        storeOwnerOAuthIntent(selectedKind, businessName)
       }
       const desktop = isTauriApp()
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -237,7 +238,7 @@ export function LoginForm({
             </Field>
             <Field label="Nom de votre établissement">
               {(control) => (
-                <Input {...control} name="business-name" autoComplete="organization" placeholder={BUSINESS_KINDS.find((kind) => kind.value === selectedKind)?.example} minLength={2} maxLength={120} required />
+                <Input {...control} name="business-name" autoComplete="organization" placeholder={BUSINESS_KINDS.find((kind) => kind.value === selectedKind)?.example} minLength={2} maxLength={120} value={businessName} onChange={(e) => setBusinessName(e.target.value)} required />
               )}
             </Field>
           </>
