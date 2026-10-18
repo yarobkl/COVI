@@ -13,6 +13,11 @@ export function checkoutFeatureConfigured(
   try {
     const url = new URL(supabaseUrl)
     const local = ['localhost', '127.0.0.1'].includes(url.hostname)
+    // The main COVI project is a live database. A build flag alone must
+    // never turn experimental checkout on against that project's real data.
+    // Keep this explicit block even when a publishable browser key is used.
+    const productionHost = 'bmbwmwgfzrijglzcgjut.supabase.co'
+    if (url.hostname.toLowerCase() === productionHost) return false
     if (
       (!local && url.protocol !== 'https:') ||
       (local && !['http:', 'https:'].includes(url.protocol)) ||
