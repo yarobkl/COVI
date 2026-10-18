@@ -4,9 +4,7 @@ import { supabase } from '../../lib/supabase'
 import type { Shop } from '../../lib/types'
 
 type SetupStatus =
-  | { kind: 'loading' }
-  | { kind: 'error' }
-  | { kind: 'ready'; tables: number; menuItems: number }
+  { kind: 'loading' } | { kind: 'error' } | { kind: 'ready'; tables: number; menuItems: number }
 
 /**
  * Counts are fetched with owner-scoped RLS, not cached in a browser flag.
@@ -165,9 +163,9 @@ function RestaurantHome({ shop }: { shop: Shop }) {
         <summary>Besoin d’une explication ?</summary>
         <p>
           Commencez par « Plan de salle » pour ajouter les tables et leurs capacités. Puis ouvrez «
-          Carte & boissons » pour inscrire les articles et leurs prix. Pendant le service, « Service &
-          caisse » permet d’ouvrir une table, de suivre les commandes et d’enregistrer les paiements
-          en espèces.
+          Carte & boissons » pour inscrire les articles et leurs prix. Pendant le service, « Service
+          & caisse » permet d’ouvrir une table, de suivre les commandes et d’enregistrer les
+          paiements en espèces.
         </p>
       </details>
     </div>
