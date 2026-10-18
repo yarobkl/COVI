@@ -6,3 +6,6 @@ supabase/
 
 # Bibliothèque MIT non modifiée : ne pas reformater.
 src/vendor/
+
+# Skills locaux importés, ne pas réécrire le contenu de leurs instructions.
+.agents/skills/
