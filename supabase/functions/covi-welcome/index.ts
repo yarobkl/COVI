@@ -36,7 +36,7 @@ Deno.serve(async (req: Request) => {
         const { data, error } = await admin.auth.getUser(jwt)
         return error ? null : data.user
       },
-      sendMail: async (mail: { to: string[]; subject: string; text: string }, key: string) => {
+      sendMail: async (mail: { to: string[]; subject: string; text: string; html: string }, key: string) => {
         const response = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
