@@ -55,10 +55,7 @@ describe('passerelle QR/social explicite, sans repli de production', () => {
       ),
     ).toBe('https://covi-test.supabase.co/functions/v1/public-checkout')
     expect(
-      resolvePublicGatewayUrl(
-        'http://localhost:54321/functions/v1/public-checkout',
-        undefined,
-      ),
+      resolvePublicGatewayUrl('http://localhost:54321/functions/v1/public-checkout', undefined),
     ).toBe('http://localhost:54321/functions/v1/public-checkout')
   })
 

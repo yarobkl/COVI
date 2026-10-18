@@ -48,13 +48,8 @@ export function resolvePublicGatewayUrl(
       url = new URL(direct)
     } else if (base) {
       const root = new URL(base)
-      if (
-        root.pathname !== '/' ||
-        root.search ||
-        root.hash ||
-        root.username ||
-        root.password
-      ) return ''
+      if (root.pathname !== '/' || root.search || root.hash || root.username || root.password)
+        return ''
       url = new URL('/functions/v1/public-checkout', root)
     } else {
       return ''
@@ -67,7 +62,8 @@ export function resolvePublicGatewayUrl(
       url.search ||
       url.hash ||
       url.pathname !== '/functions/v1/public-checkout'
-    ) return ''
+    )
+      return ''
     return url.toString()
   } catch {
     return ''
