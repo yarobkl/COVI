@@ -146,15 +146,23 @@ describe('LoginForm', () => {
     expect(group.querySelector('button:first-child')?.textContent).toContain('Google')
     expect(group.querySelector('button:last-child')?.textContent).toContain('Facebook')
     fireEvent.click(screen.getByRole('button', { name: 'Google' }))
-    await waitFor(() => expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({
-      provider: 'google',
-      options: { redirectTo: window.location.origin, skipBrowserRedirect: false },
-    }))
+    await waitFor(() =>
+      expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+        provider: 'google',
+        options: { redirectTo: window.location.origin, skipBrowserRedirect: false },
+      }),
+    )
     fireEvent.click(screen.getByRole('button', { name: 'Facebook' }))
-    await waitFor(() => expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({
-      provider: 'facebook',
-      options: { redirectTo: window.location.origin, skipBrowserRedirect: false, scopes: 'email' },
-    }))
+    await waitFor(() =>
+      expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+        provider: 'facebook',
+        options: {
+          redirectTo: window.location.origin,
+          skipBrowserRedirect: false,
+          scopes: 'email',
+        },
+      }),
+    )
   })
 
   it('switches to sign-up, shows the password and opens the example shop', () => {
