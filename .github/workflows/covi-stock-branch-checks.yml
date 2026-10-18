@@ -1,0 +1,90 @@
+name: COVI isolated branch checks
+
+on:
+  push:
+    branches:
+      - feature/covi-stock-central-omnichannel
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit-and-static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Guard against accidental SQL migrations
+        run: node tests/sql-draft-safety.mjs
+      - name: Install exact dependencies
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Unit and offline tests
+        run: npm test
+      - name: Lint
+        run: npm run lint
+
+  postgres-checkout-smoke:
+    name: Disposable PostgreSQL checkout tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: covi_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d covi_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure PostgreSQL client is available
+        run: command -v psql || (sudo apt-get update -qq && sudo apt-get install -y postgresql-client)
+      - name: Run migrations and owner-only checkout tests in disposable DB
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGDATABASE: covi_ci
+          PGPASSWORD: postgres
+        run: bash tests/run-postgres-checkout.sh
+
+  pdf-receipt-render:
+    name: Render native PDF receipts without external service
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Ensure a PDF parser and rasterizer are available
+        run: command -v pdfinfo && command -v pdftoppm || (sudo apt-get update -qq && sudo apt-get install -y poppler-utils)
+      - name: Generate synthetic standard and long checkout receipts
+        run: node --experimental-strip-types tests/render-receipt-pdf.mjs "$RUNNER_TEMP/covi-pdfs"
+      - name: Parse, extract and rasterize PDFs
+        run: |
+          set -euo pipefail
+          pdfinfo "$RUNNER_TEMP/covi-pdfs/covi-recu-exemple.pdf" | grep -q "Pages: *1"
+          pdfinfo "$RUNNER_TEMP/covi-pdfs/covi-recu-multipage.pdf" | grep -E "Pages: *[2-9]"
+          pdftotext -layout "$RUNNER_TEMP/covi-pdfs/covi-recu-exemple.pdf" - | grep -q "YARO BOUTIQUE"
+          pdftotext -layout "$RUNNER_TEMP/covi-pdfs/covi-recu-exemple.pdf" - | grep -q "COVI-489A49"
+          pdftoppm -f 1 -l 1 -r 110 -png -singlefile \
+            "$RUNNER_TEMP/covi-pdfs/covi-recu-exemple.pdf" \
+            "$RUNNER_TEMP/covi-pdfs/covi-render"
+          test -s "$RUNNER_TEMP/covi-pdfs/covi-render.png"

@@ -13,6 +13,7 @@ import { CloudOffIcon } from '../../components/icons'
 import { DESKTOP, useMediaQuery } from '../../hooks/useMediaQuery'
 import { listProducts } from '../../lib/covi'
 import { plural } from '../../lib/format'
+import { categoryCheckoutEnabled } from '../../lib/checkoutFeatureFlag'
 import { listArrivals, todaySales } from '../../lib/operations'
 import type { Product } from '../../lib/types'
 import { SaleDone } from './SaleDone'
@@ -122,6 +123,14 @@ export function SalePage({ shopId, shopName }: { shopId: string; shopName: strin
           )}
         </div>
       </header>
+
+      {categoryCheckoutEnabled && (
+        <p className="sale-page__category-entry">
+          <ButtonLink variant="secondary" href="#/caisse">
+            Ouvrir la caisse par catégories
+          </ButtonLink>
+        </p>
+      )}
 
       <div className="sale-layout">
         <div className="sale-layout__articles">

@@ -1,0 +1,510 @@
+/* COVI — nouvelle caisse, dans la DA existante « Le Cahier ».
+   Aucun changement aux tokens, à la navigation ou au module de vente actuel.
+   Cette feuille reste isolée jusqu'à la mise en service des RPC de caisse. */
+@layer app {
+  .checkout-confirmation,
+  .checkout-receipt {
+    display: grid;
+    align-content: start;
+    gap: var(--space-5);
+    width: 100%;
+    max-width: 42rem;
+    margin-inline: auto;
+    color: var(--ink);
+  }
+
+  .checkout-confirmation__head {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .checkout-confirmation__hand {
+    width: fit-content;
+    font-size: var(--step-1);
+    rotate: -1.5deg;
+  }
+
+  .checkout-confirmation__intro {
+    max-width: var(--reading-max);
+    color: var(--ink-soft);
+  }
+
+  /* Total du panier : trait double et pointillés du vrai cahier de caisse. */
+  .checkout-confirmation__ledger .ledger__row {
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .checkout-confirmation__ledger .ledger__value {
+    min-width: 0;
+  }
+
+  .checkout-confirmation__ledger .amount {
+    font-size: clamp(1.35rem, 1rem + 2vw, var(--amount-lg));
+  }
+
+  .checkout-confirmation__fields {
+    display: grid;
+    gap: var(--space-5);
+  }
+
+  .checkout-confirmation__fields .segmented__options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .checkout-confirmation__fields .segmented__label {
+    min-height: var(--tap-sale);
+    transition:
+      border-color var(--dur-fast) var(--ease-out),
+      background-color var(--dur-fast) var(--ease-out),
+      transform var(--dur-instant) var(--ease-press),
+      box-shadow var(--dur-instant) var(--ease-press);
+  }
+
+  .checkout-confirmation__fields .segmented__input:checked + .segmented__label {
+    box-shadow: inset 0 -2px 0 var(--action);
+  }
+
+  .checkout-confirmation__assurance {
+    padding-inline-start: var(--space-3);
+    border-inline-start: 2px solid var(--margin-line);
+    color: var(--ink-soft);
+    font-size: var(--step--1);
+    line-height: var(--leading-base);
+  }
+
+  .checkout-confirmation__error {
+    animation: covi-rise var(--dur-fast) var(--ease-out) both;
+  }
+
+  .checkout-confirmation > .btn--sale {
+    justify-self: stretch;
+  }
+
+  /* Le ticket garde ses dents, sa police Courier et son encre : pas de carte SaaS. */
+  .checkout-receipt {
+    justify-items: start;
+  }
+
+  .checkout-receipt__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .checkout-receipt__hand {
+    font-size: var(--step-1);
+    rotate: -1deg;
+  }
+
+  .checkout-receipt .ticket {
+    width: 100%;
+    max-width: 28rem;
+    animation: covi-rise var(--dur-slow) var(--ease-sheet) both;
+  }
+
+  .checkout-receipt__status {
+    color: var(--ink-soft);
+    font-size: var(--step--1);
+  }
+
+  @media (min-width: 480px) {
+    .checkout-confirmation__fields .segmented__options {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 360px) {
+    .checkout-confirmation,
+    .checkout-receipt {
+      padding: var(--space-4);
+    }
+    .checkout-confirmation__ledger .amount {
+      font-size: var(--amount-md);
+    }
+  }
+
+  /* Panier multi-catégories : une feuille et des lignes, jamais un catalogue SKU. */
+  .checkout-flow {
+    display: grid;
+    gap: var(--space-5);
+    max-width: 44rem;
+    margin-inline: auto;
+  }
+
+  .checkout-flow__step {
+    width: fit-content;
+    font-size: var(--step-1);
+    rotate: -1deg;
+  }
+
+  .checkout-flow__demo {
+    padding: var(--space-2) var(--space-3);
+    border-inline-start: 3px solid var(--danger);
+    background: var(--danger-tint);
+    font-weight: var(--weight-bold);
+  }
+
+  .checkout-flow__loading {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .checkout-basket {
+    display: grid;
+    gap: var(--space-5);
+    width: 100%;
+    max-width: 42rem;
+    margin-inline: auto;
+    min-width: 0;
+  }
+
+  .checkout-basket__head,
+  .checkout-basket__form,
+  .checkout-basket__entry,
+  .checkout-basket__summary,
+  .checkout-basket__lines {
+    display: grid;
+    gap: var(--space-4);
+    min-width: 0;
+  }
+
+  .checkout-basket__head {
+    gap: var(--space-2);
+  }
+
+  .checkout-basket__hand {
+    width: fit-content;
+    font-size: var(--step-1);
+    rotate: -1deg;
+  }
+
+  .checkout-basket__intro,
+  .checkout-basket__empty {
+    color: var(--ink-soft);
+  }
+
+  .checkout-basket__entry {
+    padding: var(--space-4);
+    border: var(--border-hair) solid var(--line);
+    border-radius: var(--radius-3);
+    background: var(--paper);
+  }
+
+  .checkout-basket__entry > legend {
+    margin-bottom: var(--space-3);
+  }
+
+  .checkout-basket__entry-fields {
+    display: grid;
+    gap: var(--space-3);
+    min-width: 0;
+  }
+
+  .checkout-basket__quantity {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+    font-weight: var(--weight-bold);
+  }
+
+  .checkout-basket__quantity .field__hint {
+    font-weight: var(--weight-regular);
+  }
+
+  .checkout-basket__summary {
+    gap: var(--space-3);
+  }
+
+  .checkout-basket__item {
+    display: grid;
+    gap: var(--space-2);
+    padding-block: var(--space-3);
+    border-bottom: var(--border-hair) solid var(--line);
+    animation: covi-rise var(--dur-fast) var(--ease-out) both;
+  }
+
+  .checkout-basket__item-head,
+  .checkout-basket__item-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-4);
+  }
+
+  .checkout-basket__item-head {
+    justify-content: space-between;
+  }
+
+  .checkout-basket__item-head .figures {
+    font-size: var(--step--1);
+    color: var(--ink-soft);
+  }
+
+  .checkout-basket__item-actions > .amount {
+    margin-inline-start: auto;
+  }
+
+  .checkout-basket__remove {
+    color: var(--danger);
+    padding-inline: var(--space-2);
+  }
+
+  .checkout-basket__summary .ledger__row {
+    align-items: center;
+  }
+
+  .checkout-basket__form > .btn--sale {
+    justify-self: stretch;
+  }
+
+  @media (min-width: 600px) {
+    .checkout-basket__entry-fields {
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    }
+  }
+
+  @media (max-width: 360px) {
+    .checkout-basket {
+      padding: var(--space-4);
+    }
+
+    .checkout-basket__entry {
+      padding: var(--space-3);
+    }
+
+    .checkout-basket__item-actions {
+      gap: var(--space-2);
+    }
+  }
+
+  /* Nouveaux canaux : même papier, même écriture, même encre que le cahier. */
+  .checkout-hub {
+    display: grid;
+    gap: var(--space-5);
+    min-width: 0;
+  }
+
+  .checkout-hub__head {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .checkout-hub__head .hand,
+  .checkout-guest__head .hand,
+  .checkout-guest__sheet > .hand,
+  .checkout-inbox > .hand,
+  .checkout-inbox__review .hand,
+  .checkout-share > .hand {
+    width: fit-content;
+    rotate: -1deg;
+    font-size: var(--step-1);
+  }
+
+  .checkout-hub__tabs {
+    overflow-x: auto;
+    display: flex;
+    gap: var(--space-2);
+    max-width: 100%;
+  }
+
+  .checkout-hub__tabs > button {
+    flex-shrink: 0;
+    min-height: 44px;
+    font: inherit;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .checkout-guest {
+    min-height: 100dvh;
+    padding-block: var(--space-5);
+    padding-inline: clamp(var(--space-3), 4vw, var(--space-6));
+    color: var(--ink);
+  }
+
+  .checkout-guest__sheet {
+    max-width: 42rem;
+    margin-inline: auto;
+    display: grid;
+    gap: var(--space-5);
+  }
+
+  .checkout-guest__head,
+  .checkout-guest__form,
+  .checkout-guest__entry,
+  .checkout-guest__lines,
+  .checkout-share,
+  .checkout-share__actions,
+  .checkout-inbox,
+  .checkout-inbox__review,
+  .checkout-inbox__list,
+  .checkout-inbox__order {
+    display: grid;
+    gap: var(--space-3);
+    min-width: 0;
+  }
+
+  .checkout-guest__entry {
+    padding: var(--space-4);
+    background: var(--paper);
+    border: var(--border-hair) solid var(--line);
+    border-radius: var(--radius-3);
+  }
+
+  .checkout-guest__entry legend {
+    padding-inline: var(--space-2);
+  }
+
+  .checkout-guest__quantity {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+  }
+
+  .checkout-guest__quantity small,
+  .checkout-guest__item p,
+  .checkout-inbox__meta {
+    color: var(--ink-soft);
+  }
+
+  .checkout-guest__choices {
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .checkout-guest__choices label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 44px;
+  }
+
+  .checkout-guest__choices input {
+    accent-color: var(--action);
+    width: 20px;
+    height: 20px;
+  }
+
+  .checkout-guest__item,
+  .checkout-inbox__order {
+    border-bottom: var(--border-hair) solid var(--line);
+    padding-block: var(--space-3);
+  }
+
+  .checkout-guest__item {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .checkout-guest__caution,
+  .checkout-inbox__notice,
+  .checkout-share__caution {
+    border-inline-start: 2px solid var(--margin-line);
+    padding-inline-start: var(--space-3);
+    color: var(--ink-soft);
+    line-height: var(--leading-base);
+  }
+
+  .checkout-guest__reference {
+    font-size: var(--amount-lg);
+    overflow-wrap: anywhere;
+  }
+
+  .checkout-share__url {
+    width: 100%;
+    font-size: var(--step--1);
+    font-family: var(--font-figures);
+  }
+
+  .checkout-share__success {
+    color: var(--ink);
+  }
+
+  .checkout-inbox__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  .checkout-inbox__order > header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .checkout-inbox__order p {
+    overflow-wrap: anywhere;
+  }
+
+  /* QR imprimable local : contraste noir/blanc, espace blanc de lecture,
+     aucune capture ni requête vers un générateur distant. */
+  .checkout-share__qr {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border: var(--border-hair) solid var(--line);
+    background: var(--sheet);
+    color: var(--ink);
+    text-align: center;
+  }
+
+  .checkout-share__qr img {
+    display: block;
+    width: min(264px, 100%);
+    height: auto;
+    aspect-ratio: 1;
+    background: white;
+  }
+
+  .checkout-share__qr p {
+    max-width: 20rem;
+  }
+
+  @media print {
+    .topbar,
+    .sommaire,
+    .bottom-nav,
+    .checkout-hub__head,
+    .checkout-hub__tabs,
+    .checkout-share > :not(.checkout-share__actions),
+    .checkout-share__actions > :not(.checkout-share__qr),
+    .checkout-share__print {
+      display: none !important;
+    }
+
+    .checkout-share,
+    .checkout-share__qr,
+    .checkout-hub {
+      box-shadow: none;
+      border: 0;
+      padding: 0;
+      background: white;
+    }
+
+    .checkout-share__qr {
+      margin: 1cm auto;
+      break-inside: avoid;
+    }
+  }
+
+  @media (min-width: 600px) {
+    .checkout-guest__choices {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  /* Les animations sont déjà neutralisées globalement par base.css sous
+     prefers-reduced-motion. Ne jamais forcer d'animation ici. */
+}

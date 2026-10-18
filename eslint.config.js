@@ -10,7 +10,7 @@ import tseslint from 'typescript-eslint'
 // TypeScript 6 API package (@typescript/typescript6) used only by the linter, while the compiler
 // (`tsc -b`) is TypeScript 7, installed as `@typescript/native`.
 export default defineConfig(
-  { ignores: ['dist', 'src-tauri', 'supabase'] },
+  { ignores: ['dist', 'src-tauri', 'supabase', 'src/vendor'] },
   {
     files: ['**/*.{ts,tsx}'],
     extends: [js.configs.recommended, tseslint.configs.recommended],
