@@ -30,3 +30,34 @@
 - Un nouveau compte n'est pas un établissement. Le nom et le secteur sont conservés jusqu'au deuxième écran puis validés par le RPC `create_my_business_with_location`.
 - L'état « e-mail envoyé » de Supabase ne prouve pas que le message a été distribué dans la boîte du destinataire.
 - La fonction de bienvenue dépend d'un service d'envoi externe configuré et d'un domaine expéditeur vérifié, et n'est **pas** active en production tant que ce déploiement n'est pas validé.
+
+
+## Localisation CEMAC — exigence d'adresse pour chaque nouvel établissement
+
+La version cible suit le chemin **pays → ville → arrondissement/commune → quartier → adresse physique**. La liste de pays de la **création d'établissement** est limitée aux six États membres CEMAC, avec le Congo en premier ; les comptes/établissements historiques hors zone restent inchangés.
+
+- Pays : République du Congo, Cameroun, Gabon, République centrafricaine, Guinée équatoriale, Tchad ([CEMAC](https://cemac.int/about/)).
+- Brazzaville : les neuf arrondissements de la commune ([Ministère du développement durable du Congo](https://www.developpement-durable.gouv.cg/2017/06/05/brazzaville-brazza-la-verte/)).
+- Pointe-Noire : six arrondissements ([Les Dépêches de Brazzaville](https://www.adiac-congo.com/node/137583)).
+- Yaoundé : sept communes d'arrondissement ([Communauté urbaine de Yaoundé](https://yaounde.cm/communes-darrondissement/)).
+- Douala : six arrondissements (nomenclature nationale du Cameroun, [INS](https://stat.cm/nada/index.php/catalog/114/download/973)).
+- Les communes, arrondissements et quartiers **non vérifiés** ne sont pas inventés : « Autre arrondissement / commune » puis « Autre quartier » permettent la saisie libre.
+- Quartiers proposés dans les zones sélectionnées : répertoire conservateur, en cours d'extension. Ils sont filtrés par arrondissement ; aucun quartier d'une autre zone n'est mélangé par défaut.
+- Adresse physique descriptive **obligatoire** : 10–240 caractères, au moins deux mots avec lettres, sur l'écran de création et dans la fonction serveur **nouvelle** `create_my_business_with_address`. Numéro de rue non obligatoire (absence d'adressage normalisé dans certaines zones) ; avenue, lieu-dit et repère précis acceptés. La saisie n'équivaut **pas** à une vérification externe de réalité.
+- GPS uniquement facultatif et déclenché par le propriétaire. L'adresse saisie est conservée, GPS ne la remplace pas.
+- La migration `20261018010000_covi_business_address_cemac.sql` ajoute `shops.administrative_area`, `shops.address_line` sans modifier les adresses historiques. L'ancienne RPC est conservée pour les versions mobiles existantes ; un durcissement global des nouveaux INSERT devra être prévu après migration de tous les clients historiques.
+- Ne pas appliquer sur Supabase de production ni fusionner PR #44/#50 avant une recette complète. Le backend multisectoriel et le nouveau formulaire doivent être activés ensemble, sinon un RPC peut manquer.
+
+### Recette préalable à la publication
+
+1. Créer un compte pour chaque secteur, confirmer son e-mail, vérifier que l'activité et le nom préremplis persistent.
+2. Brazzaville : Moungali → Moukondo → adresse physique descriptive → création autorisée. Test négatif adresse vide, arrondissement absent, ville seule.
+3. Pointe-Noire : contrôle 6 arrondissements. Yaoundé/Douala : contrôler les 7/6 divisions.
+4. Autre ville CEMAC : commune saisie manuellement et quartier « Autre » saisi librement.
+5. Changer de pays ou ville : les valeurs dépendantes sont effacées, mais ne pas perdre l'adresse volontairement saisie.
+6. Vérifier l'isolation RLS d'un établissement d'un autre propriétaire et la présence de la nouvelle adresse dans la fiche établissement après création.
+7. Vérifier que les quatre comptes existants et leur historique restent lisibles et ne nécessitent aucune saisie rétrospective.
+
+### Périmètre non finalisé
+
+Le répertoire de **tous** les arrondissements, communes et quartiers de **toutes** les villes des six pays CEMAC demande une mission distincte de collecte, revue des sources et contrôle des variantes. Le parcours technique fonctionne même pour les localités encore absentes grâce à « Autre ». Ne pas présenter le répertoire partiel comme exhaustif.
