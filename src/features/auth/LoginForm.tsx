@@ -342,7 +342,11 @@ export function LoginForm({
             Continuer avec Apple
           </Button>
         )}
-        <div className="auth__social-actions" role="group" aria-label="Connexion avec un compte externe">
+        <div
+          className="auth__social-actions"
+          role="group"
+          aria-label="Connexion avec un compte externe"
+        >
           <Button
             variant="secondary"
             size="lg"
