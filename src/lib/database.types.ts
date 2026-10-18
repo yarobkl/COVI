@@ -873,6 +873,9 @@ export type Database = {
       }
       shops: {
         Row: {
+          administrative_area: string | null
+          address_line: string | null
+          secondary_currency: string | null
           business_kind: string
           city: string | null
           country: string | null
@@ -887,6 +890,9 @@ export type Database = {
           owner_id: string
         }
         Insert: {
+          administrative_area?: string | null
+          address_line?: string | null
+          secondary_currency?: string | null
           business_kind?: string
           city?: string | null
           country?: string | null
@@ -901,6 +907,9 @@ export type Database = {
           owner_id: string
         }
         Update: {
+          administrative_area?: string | null
+          address_line?: string | null
+          secondary_currency?: string | null
           business_kind?: string
           city?: string | null
           country?: string | null
@@ -1115,6 +1124,44 @@ export type Database = {
           p_location_accuracy_m?: number
         }
         Returns: {
+          business_kind: string
+          city: string | null
+          country: string | null
+          created_at: string
+          currency: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          location_accuracy_m: number | null
+          name: string
+          neighborhood: string | null
+          owner_id: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'shops'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_my_business_with_address: {
+        Args: {
+          p_name: string
+          p_city: string
+          p_country: string
+          p_administrative_area: string
+          p_neighborhood: string
+          p_address_line: string
+          p_business_kind: string
+          p_currency?: string
+          p_latitude?: number
+          p_longitude?: number
+          p_location_accuracy_m?: number
+        }
+        Returns: {
+          administrative_area: string | null
+          address_line: string | null
+          secondary_currency: string | null
           business_kind: string
           city: string | null
           country: string | null

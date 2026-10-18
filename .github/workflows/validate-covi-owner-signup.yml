@@ -1,0 +1,69 @@
+name: COVI — inscription PME et courriels
+
+on:
+  push:
+    branches:
+      - feature/covi-inscription-pme-secteurs-20261018
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Formatage
+        run: |
+          npm run format:check || {
+            npx prettier --write src/features/auth/LoginForm.tsx src/features/auth/CreateShopForm.tsx src/lib/ownerSignup.ts src/lib/ownerSignup.test.ts src/features/auth/LoginForm.test.tsx src/features/auth/AuthGate.tsx src/features/locations/CemacBusinessAddressFields.tsx src/lib/cemacAreas.ts src/lib/africanMarkets.ts src/lib/africanMarkets.test.ts src/lib/centralAfricaLocations.ts src/features/locations/CemacBusinessAddressFields.test.tsx supabase/functions/covi-welcome/handler.mjs docs/INSCRIPTION-PME-EMAIL-CONFIRMATION-2026-10-18.md docs/AFRIQUE-DEVISES-COVI-20261018.md tests/covi_welcome.mjs
+            git diff -- src/features/auth/LoginForm.tsx src/features/auth/CreateShopForm.tsx src/lib/ownerSignup.ts src/lib/ownerSignup.test.ts src/features/auth/LoginForm.test.tsx src/features/auth/AuthGate.tsx src/features/locations/CemacBusinessAddressFields.tsx src/lib/cemacAreas.ts src/lib/africanMarkets.ts src/lib/africanMarkets.test.ts src/lib/centralAfricaLocations.ts src/features/locations/CemacBusinessAddressFields.test.tsx supabase/functions/covi-welcome/handler.mjs docs/INSCRIPTION-PME-EMAIL-CONFIRMATION-2026-10-18.md docs/AFRIQUE-DEVISES-COVI-20261018.md tests/covi_welcome.mjs
+            exit 1
+          }
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm test
+  welcome-email:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: cd supabase/functions/covi-welcome && deno check index.ts
+      - run: node --test tests/covi_welcome.mjs
+      - run: node --test tests/confirmation_email.mjs
+
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - run: command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+      - run: bash tests/sql/run.sh

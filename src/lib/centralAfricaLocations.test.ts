@@ -8,8 +8,8 @@ import {
 } from './centralAfricaLocations'
 
 describe('Central Africa location selectors', () => {
-  it('reuses eleven countries and several cities for existing and new shops', () => {
-    expect(CENTRAL_AFRICA).toHaveLength(11)
+  it('reuses historical countries plus West African city suggestions', () => {
+    expect(CENTRAL_AFRICA).toHaveLength(26)
     expect(CENTRAL_AFRICA.map((x) => x.country)).toContain('République du Congo')
     expect(CENTRAL_AFRICA.map((x) => x.country)).toContain('République démocratique du Congo')
     expect(CENTRAL_AFRICA.map((x) => x.country)).toContain('Gabon')

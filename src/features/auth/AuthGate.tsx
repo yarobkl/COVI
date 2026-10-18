@@ -65,6 +65,21 @@ export function AuthGate({
   const loadedFor = useRef<string | null>(null)
   const userId = session?.user.id ?? null
   useEffect(() => {
+    const user = session?.user
+    const provider = user?.app_metadata?.provider
+    if (
+      !user ||
+      (provider !== 'google' && provider !== 'facebook') ||
+      !user.email_confirmed_at ||
+      !Number.isFinite(Date.parse(user.created_at)) ||
+      Date.now() - Date.parse(user.created_at) > 24 * 60 * 60 * 1000
+    )
+      return
+    // A failed welcome email is never interpreted as a failed sign-in.
+    // Backend verifies this JWT and the actual server-side account timestamp.
+    void supabase.functions.invoke('covi-welcome', { body: {} }).catch(() => undefined)
+  }, [session?.user])
+  useEffect(() => {
     let dispose: () => void = () => {}
     let active = true
     void listenForDesktopOAuth((message) => setMessage(message))
@@ -209,6 +224,7 @@ export function AuthGate({
           onCreated={setShop}
           onJoin={() => setJoining(true)}
           onRestaurantJoin={() => setJoiningRestaurant(true)}
+          accountMetadata={session.user.user_metadata}
         />
       )
     return (
