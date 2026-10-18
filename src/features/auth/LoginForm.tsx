@@ -342,26 +342,28 @@ export function LoginForm({
             Continuer avec Apple
           </Button>
         )}
-        <Button
-          variant="secondary"
-          size="lg"
-          block
-          onClick={() => void socialAuth('google')}
-          disabled={busy}
-        >
-          <GoogleLogo />
-          Continuer avec Google
-        </Button>
-        <Button
-          variant="secondary"
-          size="lg"
-          block
-          disabled={busy}
-          onClick={() => void socialAuth('facebook')}
-        >
-          <FacebookLogo />
-          Continuer avec Facebook
-        </Button>
+        <div className="auth__social-actions" role="group" aria-label="Connexion avec un compte externe">
+          <Button
+            variant="secondary"
+            size="lg"
+            className="auth__social-btn auth__social-btn--google"
+            onClick={() => void socialAuth('google')}
+            disabled={busy}
+          >
+            <GoogleLogo />
+            <span>Google</span>
+          </Button>
+          <Button
+            variant="secondary"
+            size="lg"
+            className="auth__social-btn auth__social-btn--facebook"
+            disabled={busy}
+            onClick={() => void socialAuth('facebook')}
+          >
+            <FacebookLogo />
+            <span>Facebook</span>
+          </Button>
+        </div>
       </form>
       <p className="auth__switch">
         {login ? 'Pas encore de compte ?' : 'J’ai déjà un compte,'}{' '}
