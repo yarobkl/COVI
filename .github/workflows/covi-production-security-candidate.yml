@@ -3,6 +3,9 @@ on:
   push:
     branches:
       - security/covi-gateway-prod-compatible-2026-10-18
+  pull_request:
+    branches:
+      - claude/caisse-multi-caissiers
   workflow_dispatch:
 permissions:
   contents: read
