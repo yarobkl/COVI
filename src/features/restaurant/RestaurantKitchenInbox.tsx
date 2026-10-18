@@ -133,7 +133,10 @@ export function RestaurantKitchenInbox({ shopId }: { shopId: string }) {
           <p>{message}</p>
         </Notice>
       )}
-      <Button onClick={() => void enableNotifications()} disabled={browserMode === 'push' || alertBusy}>
+      <Button
+        onClick={() => void enableNotifications()}
+        disabled={browserMode === 'push' || alertBusy}
+      >
         {browserMode === 'push'
           ? 'Abonnement Web Push enregistré'
           : browserMode === 'browser'
