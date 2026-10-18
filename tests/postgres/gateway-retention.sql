@@ -10,7 +10,8 @@ values
   ('11111111-1111-4111-8111-111111111111', 'minute',
    date_trunc('minute', clock_timestamp() - interval '12 days'), 1),
   ('11111111-1111-4111-8111-111111111111', 'minute',
-   date_trunc('minute', clock_timestamp()), 1);
+   date_trunc('minute', clock_timestamp()), 1)
+on conflict (shop_id,bucket_kind,bucket_start) do nothing;
 
 begin;
 set local role anon;
