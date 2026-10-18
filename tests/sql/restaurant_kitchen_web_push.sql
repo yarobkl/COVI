@@ -165,6 +165,31 @@ begin
  then raise exception 'Sent cursor not persisted';end if;
 end $dispatch$;
 reset role;
+-- The kitchen staffer can unsubscribe only their own browser and reconnect
+-- without re-delivery of already acknowledged events.
+select set_config('request.jwt.claim.role','authenticated',true);
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000b2',true);
+set local role authenticated;
+do $opt_out_and_reconnect$
+declare sh uuid:='10000000-0000-0000-0000-0000000000b1';
+endpoint text:='https://fcm.googleapis.com/fcm/send/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+begin
+ if not public.restaurant_kitchen_push_unregister(sh,endpoint)
+ then raise exception 'Authenticated chef could not opt out';end if;
+ if public.restaurant_kitchen_push_unregister(sh,endpoint)
+ then raise exception 'Unregister falsely claims to remove the same endpoint twice';end if;
+ if not public.restaurant_kitchen_push_register(sh,endpoint,repeat('A',87),repeat('B',22))
+ then raise exception 'Chef could not reconnect their browser';end if;
+end $opt_out_and_reconnect$;
+reset role;
+set local role service_role;
+select set_config('request.jwt.claim.role','service_role',true);
+do $no_duplicate_on_reconnect$
+begin
+ if jsonb_array_length(public.restaurant_kitchen_push_claim(25))<>0
+ then raise exception 'Reconnecting replayed an already delivered preparation';end if;
+end $no_duplicate_on_reconnect$;
+reset role;
 select set_config('request.jwt.claim.role','authenticated',true);
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000b1',true);
 set local role authenticated;
