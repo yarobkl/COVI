@@ -31,7 +31,6 @@
 - L'état « e-mail envoyé » de Supabase ne prouve pas que le message a été distribué dans la boîte du destinataire.
 - La fonction de bienvenue dépend d'un service d'envoi externe configuré et d'un domaine expéditeur vérifié, et n'est **pas** active en production tant que ce déploiement n'est pas validé.
 
-
 ## Localisation CEMAC — exigence d'adresse pour chaque nouvel établissement
 
 La version cible suit le chemin **pays → ville → arrondissement/commune → quartier → adresse physique**. La liste de pays de la **création d'établissement** est limitée aux six États membres CEMAC, avec le Congo en premier ; les comptes/établissements historiques hors zone restent inchangés.
