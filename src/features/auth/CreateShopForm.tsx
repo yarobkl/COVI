@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Button, Field, Input, LabelCard, Notice } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
 import { BUSINESS_KINDS, businessKindInfo, type BusinessKind } from '../../lib/businessKinds'
-import { createOwnerSignupDetails, isValidOwnerPhone, ownerOnboardingHints } from '../../lib/ownerSignup'
+import { clearOwnerOAuthIntent, createOwnerSignupDetails, isValidOwnerPhone, ownerOnboardingHints } from '../../lib/ownerSignup'
 import type { Shop } from '../../lib/types'
 import { OTHER_CITY } from '../../lib/centralAfricaLocations'
 import { OTHER_NEIGHBORHOOD } from '../../lib/neighborhoods'
@@ -92,7 +92,10 @@ export function CreateShopForm({
         p_location_accuracy_m: gps?.accuracy ?? undefined,
       })
       if (error) onMessage(authError(error))
-      else onCreated(data)
+      else {
+        clearOwnerOAuthIntent()
+        onCreated(data)
+      }
     } catch (error) {
       onMessage(error instanceof Error ? error.message : 'Création impossible. Réessayez.')
     } finally {
