@@ -44,8 +44,9 @@ describe('public checkout environment must fail closed', () => {
 
   it('rejects empty, false and non-boolean-like activation values', () => {
     for (const value of [undefined, null, '', 'false', 'TRUE', '1', 'yes', ' true ']) {
-      expect(fromSettings({ ...fullSettings, COVI_GATEWAY_ENABLED: value })
-        .COVI_GATEWAY_ENABLED).toBe('false')
+      expect(fromSettings({ ...fullSettings, COVI_GATEWAY_ENABLED: value }).COVI_GATEWAY_ENABLED).toBe(
+        'false',
+      )
     }
     expect(fromSettings(fullSettings).COVI_GATEWAY_ENABLED).toBe('true')
   })
