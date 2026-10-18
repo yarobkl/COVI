@@ -4,7 +4,7 @@
 enable_confirmations = true
 
 [auth.email.template.confirmation]
-subject = "COVI — Confirmez votre adresse e-mail"
+subject = "COVI — Confirmez votre compte et démarrez votre activité"
 content_path = "./supabase/templates/confirmation.html"
 
 # Canal client : fonction publique au niveau HTTP. La passerelle contrôle elle-même l'origine,
