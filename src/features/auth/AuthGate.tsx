@@ -209,6 +209,7 @@ export function AuthGate({
           onCreated={setShop}
           onJoin={() => setJoining(true)}
           onRestaurantJoin={() => setJoiningRestaurant(true)}
+          accountMetadata={session.user.user_metadata}
         />
       )
     return (
