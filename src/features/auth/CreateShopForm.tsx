@@ -11,7 +11,8 @@ import {
 import type { Shop } from '../../lib/types'
 import { OTHER_CITY } from '../../lib/centralAfricaLocations'
 import { OTHER_NEIGHBORHOOD } from '../../lib/neighborhoods'
-import { OTHER_ADMIN_AREA, isCemacCountry, isValidBusinessAddress } from '../../lib/cemacAreas'
+import { OTHER_ADMIN_AREA, isValidBusinessAddress } from '../../lib/cemacAreas'
+import { currencyLabel, officialCurrencyForCountry } from '../../lib/africanMarkets'
 import {
   CemacBusinessAddressFields,
   type BusinessLocation,
@@ -20,7 +21,7 @@ import { ShopGpsControl, type ShopGpsPosition } from '../locations/ShopGpsContro
 import { AuthPage } from './AuthPage'
 import { authError } from './authErrors'
 
-/** First sign-in: creates the owner's shop (currency fixed to XAF). */
+/** First sign-in: creates the owner's business with country-specific bookkeeping currency. */
 export function CreateShopForm({
   message,
   onMessage,
@@ -63,14 +64,15 @@ export function CreateShopForm({
     location.neighborhood === OTHER_NEIGHBORHOOD
       ? location.customNeighborhood.trim()
       : location.neighborhood.trim()
+  const currency = officialCurrencyForCountry(location.country)
   const [busy, setBusy] = useState(false)
 
   async function createShop(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     onMessage('')
     const f = new FormData(e.currentTarget)
-    if (!isCemacCountry(location.country)) {
-      onMessage('Choisissez un pays de la zone CEMAC.')
+    if (!currency) {
+      onMessage('Choisissez un pays couvert par COVI.')
       return
     }
     if (!selectedCity.trim() || !selectedArea || !selectedNeighborhood) {
@@ -113,7 +115,7 @@ export function CreateShopForm({
         p_neighborhood: selectedNeighborhood,
         p_address_line: location.streetAddress.trim(),
         p_country: location.country,
-        p_currency: 'XAF',
+        p_currency: currency,
         p_latitude: gps?.latitude ?? undefined,
         p_longitude: gps?.longitude ?? undefined,
         p_location_accuracy_m: gps?.accuracy ?? undefined,
@@ -137,6 +139,7 @@ export function CreateShopForm({
         <p className="sommaire__shop-kicker">Cahier de gestion</p>
         <p className="sommaire__shop-name">{name.trim() || kindInfo.preview}</p>
         <p className="sommaire__shop-place">{selectedCity || 'Votre ville'}</p>
+        {currency && <p className="sommaire__shop-place">{currencyLabel(currency)}</p>}
       </LabelCard>
       <figcaption className="hand auth__preview-note">
         votre étiquette, en haut du cahier
