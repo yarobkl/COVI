@@ -134,26 +134,26 @@ describe('isolated QR/social gateway', () => {
     expect(JSON.stringify(catalog)).not.toContain(env.COVI_SUPABASE_SECRET_KEY)
   })
 
-
   it('shares global and source ceilings across different guessed tokens', async () => {
     const { transport, calls } = fakeBackend()
     const gateway = createPublicCheckoutGateway(env, transport)
-    const guestUrl = (t, ip) => new Request(
-      'https://example.supabase.co/functions/v1/public-checkout?token=' + t,
-      { headers: { ...origin, 'x-forwarded-for': ip } },
-    )
+    const guestUrl = (t, ip) =>
+      new Request('https://example.supabase.co/functions/v1/public-checkout?token=' + t, {
+        headers: { ...origin, 'x-forwarded-for': ip },
+      })
     const secondToken = 'ffffffff-0000-4000-8000-000000000002'
     expect((await gateway(guestUrl(token, '192.0.2.10'))).status).toBe(200)
     expect((await gateway(guestUrl(secondToken, '192.0.2.10'))).status).toBe(200)
     expect((await gateway(guestUrl(secondToken, '192.0.2.11'))).status).toBe(200)
 
-    const quotas = calls.filter(call => call.address.endsWith('consume_checkout_gateway_quota'))
-      .map(call => JSON.parse(call.init.body))
-    const global = quotas.filter(call => call.p_kind === 'catalog_global_minute')
-    const source = quotas.filter(call => call.p_kind === 'catalog_source_minute')
-    const links = quotas.filter(call => call.p_kind === 'catalog_link_minute')
+    const quotas = calls
+      .filter((call) => call.address.endsWith('consume_checkout_gateway_quota'))
+      .map((call) => JSON.parse(call.init.body))
+    const global = quotas.filter((call) => call.p_kind === 'catalog_global_minute')
+    const source = quotas.filter((call) => call.p_kind === 'catalog_source_minute')
+    const links = quotas.filter((call) => call.p_kind === 'catalog_link_minute')
     expect(global).toHaveLength(3)
-    expect(new Set(global.map(call => call.p_digest)).size).toBe(1)
+    expect(new Set(global.map((call) => call.p_digest)).size).toBe(1)
     expect(source).toHaveLength(3)
     expect(source[0].p_digest).toBe(source[1].p_digest)
     expect(source[0].p_digest).not.toBe(source[2].p_digest)
@@ -165,13 +165,20 @@ describe('isolated QR/social gateway', () => {
     const { transport, calls } = fakeBackend()
     const gateway = createPublicCheckoutGateway(env, transport)
     for (const ip of ['198.51.100.4', '203.0.113.88']) {
-      expect((await gateway(guestPost(order, {
-        'x-forwarded-for': ip,
-      }))).status).toBe(200)
+      expect(
+        (
+          await gateway(
+            guestPost(order, {
+              'x-forwarded-for': ip,
+            }),
+          )
+        ).status,
+      ).toBe(200)
     }
-    const quotas = calls.filter(call => call.address.endsWith('consume_checkout_gateway_quota'))
-      .map(call => JSON.parse(call.init.body))
-    const globals = quotas.filter(call => call.p_kind === 'order_global_minute')
+    const quotas = calls
+      .filter((call) => call.address.endsWith('consume_checkout_gateway_quota'))
+      .map((call) => JSON.parse(call.init.body))
+    const globals = quotas.filter((call) => call.p_kind === 'order_global_minute')
     expect(globals).toHaveLength(2)
     expect(globals[0].p_digest).toBe(globals[1].p_digest)
   })
