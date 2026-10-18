@@ -25,6 +25,14 @@ describe('experimental checkout deployment gate', () => {
     expect(checkoutFeatureConfigured('true', url, jwt('anon'))).toBe(true)
   })
 
+  it('never activates the experimental cashier against COVI production even if explicitly enabled', () => {
+    const liveProject = 'https://bmbwmwgfzrijglzcgjut.supabase.co'
+    expect(checkoutFeatureConfigured('true', liveProject, publishable)).toBe(false)
+    expect(checkoutFeatureConfigured('true', liveProject + '/', jwt('anon'))).toBe(false)
+    // Legitimate isolated test projects remain eligible for the feature flag.
+    expect(checkoutFeatureConfigured('true', url, publishable)).toBe(true)
+  })
+
   it('rejects nonlocal HTTP, embedded credentials, paths and query parameters', () => {
     for (const invalidUrl of [
       'http://covi-test.supabase.co',
