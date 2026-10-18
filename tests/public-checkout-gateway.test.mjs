@@ -267,10 +267,8 @@ describe('fichiers JPEG envoyés par un client', () => {
 describe('public checkout deployment configuration fails closed', () => {
   it('never enables the public gateway from an absent or unexpected value', () => {
     for (const value of [undefined, null, '', 'TRUE', '1', 'false']) {
-      expect(configuredPublicGatewayEnv({
-        ...env,
-        COVI_GATEWAY_ENABLED: value,
-      }).COVI_GATEWAY_ENABLED).toBe('false')
+      const settings = configuredPublicGatewayEnv({ ...env, COVI_GATEWAY_ENABLED: value })
+      expect(settings.COVI_GATEWAY_ENABLED).toBe('false')
     }
     expect(configuredPublicGatewayEnv(env).COVI_GATEWAY_ENABLED).toBe('true')
   })
@@ -294,10 +292,12 @@ describe('public checkout deployment configuration fails closed', () => {
       COVI_GATEWAY_PEPPER: undefined,
     })
     const handle = createPublicCheckoutGateway(settings, transport)
-    const response = await handle(new Request('https://test.example/functions/v1/public-checkout', {
-      method: 'GET',
-      headers: { Origin: 'https://covi.example' },
-    }))
+    const response = await handle(
+      new Request('https://test.example/functions/v1/public-checkout', {
+        method: 'GET',
+        headers: { Origin: 'https://covi.example' },
+      }),
+    )
     expect(response.status).toBe(503)
     expect(transport).not.toHaveBeenCalled()
   })
