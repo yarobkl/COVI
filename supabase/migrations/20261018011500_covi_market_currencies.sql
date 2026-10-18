@@ -2,6 +2,17 @@
 -- Safe for historical shops: add nullable secondary currency and preserve their base currency.
 -- NOTE: This only establishes tenant currency metadata; no FX conversion or payment engine
 -- enablement is implied by this migration. Do not activate non-XAF flows in prod until audited.
+-- Existing retail has a CHECK requiring XAF. Replace it without rewriting any
+-- historical money: old XAF shops remain XAF; only new country-validated RPC
+-- registrations can select the other accounting codes.
+alter table public.shops drop constraint if exists shops_currency_xaf_check;
+alter table public.shops
+  add constraint shops_currency_iso_supported_check
+  check (currency in (
+    'XAF','XOF','CDF','AOA','STN','BIF','RWF',
+    'GHS','NGN','GNF','GMD','LRD','SLE','CVE'
+  ));
+
 alter table public.shops
   add column if not exists secondary_currency text;
 
