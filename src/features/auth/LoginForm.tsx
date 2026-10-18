@@ -223,22 +223,57 @@ export function LoginForm({
             </fieldset>
             <Field label="Prénom du propriétaire">
               {(control) => (
-                <Input {...control} name="first-name" autoComplete="given-name" minLength={2} maxLength={80} required />
+                <Input
+                  {...control}
+                  name="first-name"
+                  autoComplete="given-name"
+                  minLength={2}
+                  maxLength={80}
+                  required
+                />
               )}
             </Field>
             <Field label="Nom du propriétaire">
               {(control) => (
-                <Input {...control} name="last-name" autoComplete="family-name" minLength={2} maxLength={80} required />
+                <Input
+                  {...control}
+                  name="last-name"
+                  autoComplete="family-name"
+                  minLength={2}
+                  maxLength={80}
+                  required
+                />
               )}
             </Field>
-            <Field label="Téléphone du propriétaire" hint="Format international, par exemple +242061234567.">
+            <Field
+              label="Téléphone du propriétaire"
+              hint="Format international, par exemple +242061234567."
+            >
               {(control) => (
-                <Input {...control} type="tel" name="phone" autoComplete="tel" placeholder="+242061234567" maxLength={32} required />
+                <Input
+                  {...control}
+                  type="tel"
+                  name="phone"
+                  autoComplete="tel"
+                  placeholder="+242061234567"
+                  maxLength={32}
+                  required
+                />
               )}
             </Field>
             <Field label="Nom de votre établissement">
               {(control) => (
-                <Input {...control} name="business-name" autoComplete="organization" placeholder={BUSINESS_KINDS.find((kind) => kind.value === selectedKind)?.example} minLength={2} maxLength={120} value={businessName} onChange={(e) => setBusinessName(e.target.value)} required />
+                <Input
+                  {...control}
+                  name="business-name"
+                  autoComplete="organization"
+                  placeholder={BUSINESS_KINDS.find((kind) => kind.value === selectedKind)?.example}
+                  minLength={2}
+                  maxLength={120}
+                  value={businessName}
+                  onChange={(e) => setBusinessName(e.target.value)}
+                  required
+                />
               )}
             </Field>
           </>
