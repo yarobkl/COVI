@@ -6,6 +6,8 @@ import { desktopAuthRedirect, isTauriApp, openOAuthInSystemBrowser } from '../..
 import { AuthPage } from './AuthPage'
 import { authError } from './authErrors'
 import { legalLinks } from '../../lib/legal'
+import { BUSINESS_KINDS, type BusinessKind } from '../../lib/businessKinds'
+import { createOwnerSignupDetails } from '../../lib/ownerSignup'
 
 export type AuthMode = 'login' | 'signup'
 
@@ -89,19 +91,43 @@ export function LoginForm({
   onSimulation: () => void
 }) {
   const [busy, setBusy] = useState(false)
+  const [selectedKind, setSelectedKind] = useState<BusinessKind>('retail')
   const login = mode === 'login'
 
   async function auth(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     onMessage('')
-    const f = new FormData(e.currentTarget),
-      email = String(f.get('email')).trim(),
-      password = String(f.get('password'))
+    const f = new FormData(e.currentTarget)
+    const email = String(f.get('email')).trim()
+    const password = String(f.get('password'))
+    let signupDetails: ReturnType<typeof createOwnerSignupDetails> | null = null
+    if (!login) {
+      if (password !== String(f.get('confirm-password'))) {
+        onMessage('Les deux mots de passe ne correspondent pas.')
+        return
+      }
+      try {
+        signupDetails = createOwnerSignupDetails({
+          firstName: String(f.get('first-name') ?? ''),
+          lastName: String(f.get('last-name') ?? ''),
+          phone: String(f.get('phone') ?? ''),
+          businessKind: selectedKind,
+          businessName: String(f.get('business-name') ?? ''),
+        })
+      } catch (error) {
+        onMessage(error instanceof Error ? error.message : 'Veuillez vérifier le formulaire.')
+        return
+      }
+    }
     setBusy(true)
     try {
       const r = login
         ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password })
+        : await supabase.auth.signUp({
+            email,
+            password,
+            options: { data: signupDetails! },
+          })
       if (r.error) onMessage(authError(r.error))
       else if (!login && !r.data.session)
         onMessage(
@@ -144,8 +170,8 @@ export function LoginForm({
       title={login ? 'Connexion' : 'Créer votre compte'}
       lead={
         login
-          ? 'Connectez-vous pour ouvrir la boutique.'
-          : 'Quelques secondes, et votre boutique est prête.'
+          ? 'Connectez-vous à votre espace de gestion COVI.'
+          : 'Présentez-vous, puis choisissez votre métier et le nom de votre établissement.'
       }
       aside={
         login && (
@@ -165,6 +191,46 @@ export function LoginForm({
       }
     >
       <form className="auth__form" onSubmit={auth}>
+        {!login && (
+          <>
+            <fieldset>
+              <legend>Votre secteur d’activité</legend>
+              {BUSINESS_KINDS.map((kind) => (
+                <label key={kind.value} style={{ display: 'block', marginTop: '0.65rem' }}>
+                  <input
+                    type="radio"
+                    name="business-kind"
+                    value={kind.value}
+                    checked={selectedKind === kind.value}
+                    onChange={() => setSelectedKind(kind.value)}
+                    required
+                  />{' '}
+                  {kind.label}
+                </label>
+              ))}
+            </fieldset>
+            <Field label="Prénom du propriétaire">
+              {(control) => (
+                <Input {...control} name="first-name" autoComplete="given-name" minLength={2} maxLength={80} required />
+              )}
+            </Field>
+            <Field label="Nom du propriétaire">
+              {(control) => (
+                <Input {...control} name="last-name" autoComplete="family-name" minLength={2} maxLength={80} required />
+              )}
+            </Field>
+            <Field label="Téléphone du propriétaire" hint="Format international, par exemple +242061234567.">
+              {(control) => (
+                <Input {...control} type="tel" name="phone" autoComplete="tel" placeholder="+242061234567" maxLength={32} required />
+              )}
+            </Field>
+            <Field label="Nom de votre établissement">
+              {(control) => (
+                <Input {...control} name="business-name" autoComplete="organization" placeholder={BUSINESS_KINDS.find((kind) => kind.value === selectedKind)?.example} minLength={2} maxLength={120} required />
+              )}
+            </Field>
+          </>
+        )}
         <Field label="Adresse e-mail">
           {(control) => (
             <Input {...control} name="email" type="email" required autoComplete="email" />
@@ -191,6 +257,20 @@ export function LoginForm({
             </div>
           )}
         </Field>
+        {!login && (
+          <Field label="Confirmer le mot de passe">
+            {(control) => (
+              <Input
+                {...control}
+                name="confirm-password"
+                type={showPassword ? 'text' : 'password'}
+                minLength={6}
+                required
+                autoComplete="new-password"
+              />
+            )}
+          </Field>
+        )}
         {message && (
           <Notice tone={isGoodNews(message) ? 'success' : 'danger'}>
             <p>{message}</p>
