@@ -59,7 +59,8 @@ begin
   if p_neighborhood is null or char_length(btrim(p_neighborhood)) not between 2 and 120 then
     raise exception 'Neighborhood is required';
   end if;
-  if p_address_line is null or char_length(btrim(p_address_line)) not between 10 and 240 then
+  if p_address_line is null or char_length(btrim(p_address_line)) not between 10 and 240
+     or btrim(p_address_line) !~ '[[:space:]]' then
     raise exception 'Physical business address is required (10-240 characters)';
   end if;
   if p_business_kind is null or p_business_kind not in ('retail', 'restaurant', 'salon') then
