@@ -39,10 +39,7 @@ describe('African country registration currencies', () => {
   it('records the DRC in Central Africa with CDF as legal base currency and USD as additional settlement currency', () => {
     expect(marketForCountry('République démocratique du Congo')?.region).toBe('central_other')
     expect(officialCurrencyForCountry('République démocratique du Congo')).toBe('CDF')
-    expect(paymentCurrenciesForCountry('République démocratique du Congo')).toEqual([
-      'CDF',
-      'USD',
-    ])
+    expect(paymentCurrenciesForCountry('République démocratique du Congo')).toEqual(['CDF', 'USD'])
     expect(paymentCurrenciesForCountry('République du Congo')).toEqual(['XAF'])
     expect(officialCurrencyForCountry('Angola')).toBe('AOA')
     expect(officialCurrencyForCountry('São Tomé-et-Príncipe')).toBe('STN')
