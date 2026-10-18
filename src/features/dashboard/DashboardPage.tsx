@@ -44,7 +44,10 @@ export function DashboardPage({ shop, onSimulation }: { shop: Shop; onSimulation
   const now = new Date()
   const head = (
     <header className="page-head home-head">
-      <h1 className="home-date">{longDay(now)}</h1>
+      <div>
+        <h1 className="home-date">{longDay(now)}</h1>
+        <p className="muted">Outils de gestion opérationnelle, financière et humaine des PME</p>
+      </div>
       <ButtonLink variant="sale" href="#/vendre" icon={<PlusIcon />} className="home-sale">
         Nouvelle vente
       </ButtonLink>
@@ -169,7 +172,7 @@ export function DashboardPage({ shop, onSimulation }: { shop: Shop; onSimulation
             ))}
             <LedgerRow
               variant="total"
-              label="Reste après charges"
+              label="Ventes moins charges enregistrées"
               value={
                 <Amount
                   value={d.month.restAfterCharges}
@@ -179,7 +182,8 @@ export function DashboardPage({ shop, onSimulation }: { shop: Shop; onSimulation
             />
           </Ledger>
           <p className="home-month__note">
-            Sans compter ce que les articles vous ont coûté à l’achat.{' '}
+            Indicateur partiel : hors coût d’achat des articles, stocks et autres éléments non
+            renseignés. Ce montant n’est ni un bénéfice net ni le solde de votre caisse.{' '}
             <a href="#/bilan">Voir ce que chaque arrivage a rapporté</a>
           </p>
           {previous > 0 && (

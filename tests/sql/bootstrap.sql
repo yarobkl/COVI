@@ -133,3 +133,11 @@ language sql as $$
     description = coalesce(new_description, description) where id = secret_id
 $$;
 revoke all on schema vault from public;
+
+
+-- Supabase exposes auth.role() from verified JWT claims. Mirror that helper
+-- in disposable SQL CI, never grant clients the ability to choose their own role.
+create or replace function auth.role() returns text
+ language sql stable set search_path=''
+ as $$ select nullif(current_setting('request.jwt.claim.role', true), '') $$;
+grant execute on function auth.role() to anon,authenticated,service_role;

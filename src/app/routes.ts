@@ -9,8 +9,14 @@ export type PageId =
   | 'arrivages'
   | 'ventes'
   | 'charges'
+  | 'personnel'
   | 'bilan'
   | 'boutique'
+  | 'restaurant-orders'
+  | 'restaurant-tables'
+  | 'restaurant-menu'
+  | 'salon-services'
+  | 'salon-bookings'
 
 /** Arrivages can be filtered to supplier orders or bales (« Commandes », « Ballons »). */
 export type ArrivalFilter = 'commandes' | 'ballons'
@@ -28,8 +34,14 @@ export const pageIds: readonly PageId[] = [
   'arrivages',
   'ventes',
   'charges',
+  'personnel',
   'bilan',
   'boutique',
+  'restaurant-orders',
+  'restaurant-tables',
+  'restaurant-menu',
+  'salon-services',
+  'salon-bookings',
 ]
 
 const isPage = (s: string): s is PageId => (pageIds as readonly string[]).includes(s)

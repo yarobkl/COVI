@@ -26,9 +26,11 @@ type TurnstileWindow = Window & { turnstile?: TurnstileApi }
 export function TurnstileChallenge({
   onToken,
   resetKey,
+  action = 'covi_order',
 }: {
   onToken: (token: string) => void
   resetKey: number
+  action?: 'covi_order' | 'covi_restaurant_join'
 }) {
   const container = useRef<HTMLDivElement>(null)
   const widget = useRef<string | null>(null)
@@ -44,7 +46,7 @@ export function TurnstileChallenge({
       if (cancelled || widget.current || !win.turnstile || !container.current) return
       widget.current = win.turnstile.render(container.current, {
         sitekey: turnstileSiteKey,
-        action: 'covi_order',
+        action,
         language: 'fr',
         callback: (token) => callback.current(token),
         'expired-callback': () => callback.current(''),
@@ -67,7 +69,7 @@ export function TurnstileChallenge({
       if (widget.current) win.turnstile?.remove(widget.current)
       widget.current = null
     }
-  }, [])
+  }, [action])
 
   useEffect(() => {
     if (resetKey === 0 || !widget.current) return
