@@ -1,0 +1,43 @@
+name: COVI — inscription PME et courriels
+
+on:
+  push:
+    branches:
+      - feature/covi-inscription-pme-secteurs-20261018
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Formatage
+        run: |
+          npm run format:check || {
+            npx prettier --write src/features/auth/LoginForm.tsx src/features/auth/CreateShopForm.tsx src/lib/ownerSignup.ts src/lib/ownerSignup.test.ts src/features/auth/LoginForm.test.tsx src/features/auth/AuthGate.tsx
+            git diff -- src/features/auth/LoginForm.tsx src/features/auth/CreateShopForm.tsx src/lib/ownerSignup.ts src/lib/ownerSignup.test.ts src/features/auth/LoginForm.test.tsx src/features/auth/AuthGate.tsx
+            exit 1
+          }
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm test
+  welcome-email:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno check supabase/functions/covi-welcome/index.ts
+      - run: node --test tests/covi_welcome.mjs
