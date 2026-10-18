@@ -20,6 +20,7 @@ export function RestaurantKitchenInbox({ shopId }: { shopId: string }) {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [browserMode, setBrowserMode] = useState<KitchenAlertMode>('unavailable')
+  const [alertBusy, setAlertBusy] = useState(false)
   const maxArrived = useRef<string | null>(null)
   const permissionEnabled = useRef(false)
 
@@ -72,17 +73,24 @@ export function RestaurantKitchenInbox({ shopId }: { shopId: string }) {
   }, [refresh])
 
   async function enableNotifications() {
+    if (alertBusy) return
+    setAlertBusy(true)
     setError('')
-    const mode = await requestKitchenBrowserAlerts(shopId)
-    permissionEnabled.current = mode === 'browser'
-    setBrowserMode(mode)
-    setMessage(
-      mode === 'push'
-        ? 'Web Push enregistré pour ce restaurant et cet appareil. La livraison dépend encore de l’activation du serveur d’envoi.'
-        : mode === 'browser'
-          ? 'Alertes locales autorisées pendant que COVI peut synchroniser. Web Push non configuré ou indisponible.'
-          : 'Permission refusée ou navigateur incompatible. La file Cuisine reste disponible.',
-    )
+    try {
+      const mode = await requestKitchenBrowserAlerts(shopId)
+      // Keep the local alert fallback while the Web Push server is not yet enabled.
+      permissionEnabled.current = mode !== 'unavailable'
+      setBrowserMode(mode)
+      setMessage(
+        mode === 'push'
+          ? 'Abonnement Web Push enregistré sur cet appareil. La livraison dépend encore de l’activation du serveur d’envoi.'
+          : mode === 'browser'
+            ? 'Alertes locales autorisées. Vous pourrez réessayer le Web Push sans perdre ces alertes.'
+            : 'Permission refusée ou navigateur incompatible. La file Cuisine reste disponible.',
+      )
+    } finally {
+      setAlertBusy(false)
+    }
   }
   async function markRead() {
     if (!inbox?.events.length || busy) return
@@ -125,11 +133,11 @@ export function RestaurantKitchenInbox({ shopId }: { shopId: string }) {
           <p>{message}</p>
         </Notice>
       )}
-      <Button onClick={() => void enableNotifications()} disabled={browserMode !== 'unavailable'}>
+      <Button onClick={() => void enableNotifications()} disabled={browserMode === 'push' || alertBusy}>
         {browserMode === 'push'
-          ? 'Web Push activé sur cet appareil'
+          ? 'Abonnement Web Push enregistré'
           : browserMode === 'browser'
-            ? 'Alertes locales autorisées'
+            ? 'Réessayer le Web Push'
             : 'Autoriser les notifications Cuisine'}
       </Button>
       {browserMode === 'push' && (
