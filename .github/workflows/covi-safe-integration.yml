@@ -25,7 +25,12 @@ jobs:
       - name: Install pinned dependencies
         run: npm ci
       - name: Verify formatting
-        run: npm run format:check
+        run: |
+          npm run format:check || {
+            npx prettier --write src/features/auth/LoginForm.tsx
+            git diff -- src/features/auth/LoginForm.tsx
+            exit 1
+          }
       - name: Verify TypeScript
         run: npm run typecheck
       - name: Verify lint
