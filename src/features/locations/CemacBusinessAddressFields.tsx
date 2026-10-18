@@ -84,9 +84,9 @@ export function CemacBusinessAddressFields({
           </p>
           {paymentCurrenciesForCountry(value.country).length > 1 && (
             <p className="field__hint">
-              En RDC, les paiements en USD seront pris en charge après validation du module
-              de conversion. Les comptes et états financiers restent en CDF : aucun taux
-              automatique n'est supposé.
+              En RDC, les paiements en USD seront pris en charge après validation du module de
+              conversion. Les comptes et états financiers restent en CDF : aucun taux automatique
+              n'est supposé.
             </p>
           )}
         </div>
