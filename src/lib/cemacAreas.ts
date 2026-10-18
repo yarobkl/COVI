@@ -108,7 +108,7 @@ export function neighborhoodsForArea(
  */
 export function isValidBusinessAddress(address: string): boolean {
   const value = address.trim().replace(/\s+/g, ' ')
-  return value.length >= 10 && value.length <= 240 && /\p{L}/u.test(value)
+  return value.length >= 10 && value.length <= 240 && /\p{L}/u.test(value) && value.includes(' ')
 }
 
 export function isCemacCountry(country: string): boolean {
