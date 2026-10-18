@@ -41,3 +41,4 @@ jobs:
           deno-version: v2.x
       - run: cd supabase/functions/covi-welcome && deno check index.ts
       - run: node --test tests/covi_welcome.mjs
+      - run: node --test tests/confirmation_email.mjs
