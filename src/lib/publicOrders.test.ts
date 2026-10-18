@@ -20,8 +20,14 @@ const orderId = 'bbbbbbbb-0000-4000-8000-000000000001'
 const trackingToken = 'eeeeeeee-0000-4000-8000-000000000001'
 const operationId = '77770000-0000-4000-8000-000000000001'
 
-beforeEach(() => vi.mocked(supabase.rpc).mockReset())
-afterEach(() => vi.unstubAllGlobals())
+beforeEach(() => {
+  vi.mocked(supabase.rpc).mockReset()
+  vi.stubEnv('VITE_SUPABASE_URL', 'https://covi-isolated-test.supabase.co')
+})
+afterEach(() => {
+  vi.unstubAllGlobals()
+  vi.unstubAllEnvs()
+})
 
 describe('public checkout links and restricted requests', () => {
   it('keeps owner link disabled by default and updates it only through owner RPC', async () => {
@@ -70,6 +76,38 @@ describe('public checkout links and restricted requests', () => {
     expect(String(url)).toContain('/functions/v1/public-checkout?token=' + token)
     expect(options.credentials).toBe('omit')
     expect(supabase.rpc).not.toHaveBeenCalled()
+  })
+
+  it('never falls back to the production Supabase gateway when test configuration is missing', async () => {
+    const guestFetch = vi.fn()
+    vi.stubGlobal('fetch', guestFetch)
+    vi.stubEnv('VITE_SUPABASE_URL', '')
+    await expect(getPublicCatalog(token)).rejects.toThrow('non configurée')
+    await expect(submitPublicOrder({
+      token,
+      channel: 'qr',
+      operationId,
+      lines: [{ categoryId, quantity: 1, negotiatedUnitPriceXaf: 2000 }],
+      fulfillment: 'pickup',
+      challenge: 'valid-human-challenge-token',
+    })).rejects.toThrow('non configurée')
+    expect(guestFetch).not.toHaveBeenCalled()
+  })
+
+  it('rejects insecure or credential-bearing public gateway addresses before any request', async () => {
+    const guestFetch = vi.fn()
+    vi.stubGlobal('fetch', guestFetch)
+    for (const endpoint of [
+      'http://covi.example',
+      'https://user:password@covi.example',
+      'https://covi.example/path',
+      'https://covi.example/?token=secret',
+      'not-an-url',
+    ]) {
+      vi.stubEnv('VITE_SUPABASE_URL', endpoint)
+      await expect(getPublicCatalog(token)).rejects.toThrow()
+    }
+    expect(guestFetch).not.toHaveBeenCalled()
   })
 
   it('requires positive negotiated prices and contact for delivery, with 20-piece limit', () => {
