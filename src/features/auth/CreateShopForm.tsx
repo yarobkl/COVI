@@ -77,8 +77,8 @@ export function CreateShopForm({
 
   return (
     <AuthPage
-      title="Comment s’appelle votre boutique ?"
-      lead="Ce nom s’affichera en haut de l’écran. Vous pourrez le changer plus tard."
+      title="Créez votre espace COVI"
+      lead="La gestion des boutiques et commerces est disponible. Les espaces Restaurant et Salon de coiffure ouvriront après validation."
       aside={
         <>
           {preview}
@@ -94,7 +94,7 @@ export function CreateShopForm({
       }
     >
       <form className="auth__form" onSubmit={createShop}>
-        <Field label="Nom de la boutique">
+        <Field label="Nom de votre commerce">
           {(control) => (
             <Input
               {...control}
@@ -148,7 +148,7 @@ export function CreateShopForm({
           </Notice>
         )}
         <Button variant="primary" size="lg" block type="submit" busy={busy}>
-          Créer ma boutique
+          Créer mon commerce
         </Button>
       </form>
     </AuthPage>

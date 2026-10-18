@@ -33,6 +33,17 @@ function Harness({ onSimulation = vi.fn() }: { onSimulation?: () => void }) {
 }
 
 describe('LoginForm', () => {
+  it('presents COVI as a PME platform without claiming unlaunched sectors are ready', () => {
+    render(<Harness />)
+    expect(
+      screen.getByText('Outils de gestion opérationnelle, financière et humaine des PME'),
+    ).toBeTruthy()
+    expect(screen.getByText('COVI — Le système d’exploitation de votre commerce.')).toBeTruthy()
+    expect(screen.getByText(/Boutiques et commerces : déjà disponibles/)).toBeTruthy()
+    expect(screen.getByText(/Restaurant et Salon de coiffure sont en préparation/)).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Voir une boutique d’exemple' })).toBeTruthy()
+  })
+
   it('signs in and explains a refusal in plain words', async () => {
     vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({
       data: { user: null, session: null },

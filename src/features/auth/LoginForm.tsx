@@ -144,8 +144,8 @@ export function LoginForm({
       title={login ? 'Connexion' : 'Créer votre compte'}
       lead={
         login
-          ? 'Connectez-vous pour ouvrir la boutique.'
-          : 'Quelques secondes, et votre boutique est prête.'
+          ? 'Connectez-vous à votre espace de gestion COVI.'
+          : 'Un seul compte pour gérer votre activité professionnelle.'
       }
       aside={
         login && (
@@ -153,9 +153,14 @@ export function LoginForm({
             <h2 className="sheet__title" id="exemple-titre">
               Vous découvrez COVI ?
             </h2>
+            <p>COVI — Le système d’exploitation de votre commerce.</p>
             <p>
-              Voyez trois mois dans une boutique de Poto-Poto : ventes, arrivages, ballons et
-              charges. Rien de ce que vous voyez ne touche votre boutique.
+              Boutiques et commerces : déjà disponibles. Les espaces Restaurant et Salon de coiffure
+              sont en préparation et seront ouverts après validation.
+            </p>
+            <p>
+              Découvrez trois mois dans une boutique de Poto-Poto : ventes, arrivages, ballons et
+              charges. Cette simulation ne modifie aucune donnée réelle.
             </p>
             <Button variant="secondary" onClick={onSimulation}>
               Voir une boutique d’exemple
