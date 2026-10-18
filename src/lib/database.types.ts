@@ -875,6 +875,7 @@ export type Database = {
         Row: {
           administrative_area: string | null
           address_line: string | null
+          secondary_currency: string | null
           business_kind: string
           city: string | null
           country: string | null
@@ -891,6 +892,7 @@ export type Database = {
         Insert: {
           administrative_area?: string | null
           address_line?: string | null
+          secondary_currency?: string | null
           business_kind?: string
           city?: string | null
           country?: string | null
@@ -907,6 +909,7 @@ export type Database = {
         Update: {
           administrative_area?: string | null
           address_line?: string | null
+          secondary_currency?: string | null
           business_kind?: string
           city?: string | null
           country?: string | null
@@ -1158,6 +1161,7 @@ export type Database = {
         Returns: {
           administrative_area: string | null
           address_line: string | null
+          secondary_currency: string | null
           business_kind: string
           city: string | null
           country: string | null
