@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { dispatchWelcome, welcomeEligibility, welcomeMail } from '../supabase/functions/covi-welcome/handler.mjs'
+import {
+  dispatchWelcome,
+  welcomeEligibility,
+  welcomeMail,
+} from '../supabase/functions/covi-welcome/handler.mjs'
 
 const now = Date.UTC(2026, 9, 18, 12, 0, 0)
 const user = {
@@ -56,7 +60,9 @@ test('never sends a welcome email for old, unverified, password-only or already 
         sent++
         return { id: 'should-not-send' }
       },
-      markSent: async () => { throw Error('must not be called') },
+      markSent: async () => {
+        throw Error('must not be called')
+      },
     })
     assert.equal(result.status, 200)
     assert.equal(sent, 0)
@@ -70,7 +76,9 @@ test('refuses forged or missing JWTs and does not mark accounts when provider re
     now,
     getUser: async () => user,
     sendMail: async () => ({ id: 'bad' }),
-    markSent: async () => { marked = true },
+    markSent: async () => {
+      marked = true
+    },
   })
   assert.equal(noAuth.status, 401)
   const badAuth = await dispatchWelcome({
@@ -78,7 +86,9 @@ test('refuses forged or missing JWTs and does not mark accounts when provider re
     now,
     getUser: async () => null,
     sendMail: async () => ({ id: 'bad' }),
-    markSent: async () => { marked = true },
+    markSent: async () => {
+      marked = true
+    },
   })
   assert.equal(badAuth.status, 401)
   const rejected = await dispatchWelcome({
@@ -86,7 +96,9 @@ test('refuses forged or missing JWTs and does not mark accounts when provider re
     now,
     getUser: async () => user,
     sendMail: async () => null,
-    markSent: async () => { marked = true },
+    markSent: async () => {
+      marked = true
+    },
   })
   assert.deepEqual(rejected, { status: 503, reason: 'mail-not-accepted' })
   assert.equal(marked, false)
