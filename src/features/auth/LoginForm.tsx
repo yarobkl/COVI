@@ -126,13 +126,19 @@ export function LoginForm({
         : await supabase.auth.signUp({
             email,
             password,
-            options: { data: signupDetails! },
+            options: { data: signupDetails!, emailRedirectTo: window.location.origin },
           })
       if (r.error) onMessage(authError(r.error))
       else if (!login && !r.data.session)
         onMessage(
-          `Compte créé. Un e-mail vient de partir vers ${email} : ouvrez-le pour confirmer, puis connectez-vous.`,
+          `Si cette adresse peut être inscrite, un e-mail de confirmation est envoyé à ${email}. Ouvrez son lien pour activer votre compte avant de vous connecter.`,
         )
+      else if (!login && r.data.session) {
+        // Never pretend the verification link was sent when Auth email confirmation is disabled.
+        onMessage(
+          'Inscription enregistrée, mais la confirmation obligatoire par e-mail n’est pas activée côté serveur. Contactez le support COVI.',
+        )
+      }
     } finally {
       setBusy(false)
     }
