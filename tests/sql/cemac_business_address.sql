@@ -35,7 +35,7 @@ begin
     );
     raise exception 'Non-CEMAC country was accepted';
   exception when raise_exception then
-    if sqlerrm not like 'A supported CEMAC country is required%' then raise; end if;
+    if sqlerrm not like 'Unsupported African market country%' then raise; end if;
   end;
 
   shop := public.create_my_business_with_address(
@@ -58,7 +58,7 @@ begin
     );
     raise exception 'Non-XAF currency was accepted';
   exception when raise_exception then
-    if sqlerrm not like 'Only XAF is supported%' then raise; end if;
+    if sqlerrm not like 'Currency is not valid for the selected country%' then raise; end if;
   end;
 end $test$;
 rollback;
