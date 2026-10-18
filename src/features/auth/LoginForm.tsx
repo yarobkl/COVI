@@ -7,7 +7,7 @@ import { AuthPage } from './AuthPage'
 import { authError } from './authErrors'
 import { legalLinks } from '../../lib/legal'
 import { BUSINESS_KINDS, type BusinessKind } from '../../lib/businessKinds'
-import { createOwnerSignupDetails } from '../../lib/ownerSignup'
+import { createOwnerSignupDetails, storeOwnerOAuthIntent } from '../../lib/ownerSignup'
 
 export type AuthMode = 'login' | 'signup'
 
@@ -149,6 +149,11 @@ export function LoginForm({
     onMessage('')
     setBusy(true)
     try {
+      if (!login) {
+        // Retain the user's activity choice through the external OAuth redirect.
+        const company = (document.querySelector('input[name="business-name"]') as HTMLInputElement | null)?.value ?? ''
+        storeOwnerOAuthIntent(selectedKind, company)
+      }
       const desktop = isTauriApp()
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
