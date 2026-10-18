@@ -119,7 +119,7 @@ describe('isolated QR/social gateway', () => {
     expect(transport).not.toHaveBeenCalled()
   })
 
-  it('serves only public categories via two atomic quotas; no client secret', async () => {
+  it('serves only public categories with global and scoped quotas; no client secret', async () => {
     const { transport, calls } = fakeBackend()
     const request = new Request(
       'https://example.supabase.co/functions/v1/public-checkout?token=' + token,
@@ -130,8 +130,50 @@ describe('isolated QR/social gateway', () => {
     const catalog = await result.json()
     expect(catalog.categories).toEqual([{ id: categoryId, label: 'Robes' }])
     expect(result.headers.get('cache-control')).toBe('no-store')
-    expect(calls.filter((call) => call.address.includes('gateway_quota'))).toHaveLength(2)
+    expect(calls.filter((call) => call.address.includes('gateway_quota'))).toHaveLength(3)
     expect(JSON.stringify(catalog)).not.toContain(env.COVI_SUPABASE_SECRET_KEY)
+  })
+
+
+  it('shares global and source ceilings across different guessed tokens', async () => {
+    const { transport, calls } = fakeBackend()
+    const gateway = createPublicCheckoutGateway(env, transport)
+    const guestUrl = (t, ip) => new Request(
+      'https://example.supabase.co/functions/v1/public-checkout?token=' + t,
+      { headers: { ...origin, 'x-forwarded-for': ip } },
+    )
+    const secondToken = 'ffffffff-0000-4000-8000-000000000002'
+    expect((await gateway(guestUrl(token, '192.0.2.10'))).status).toBe(200)
+    expect((await gateway(guestUrl(secondToken, '192.0.2.10'))).status).toBe(200)
+    expect((await gateway(guestUrl(secondToken, '192.0.2.11'))).status).toBe(200)
+
+    const quotas = calls.filter(call => call.address.endsWith('consume_checkout_gateway_quota'))
+      .map(call => JSON.parse(call.init.body))
+    const global = quotas.filter(call => call.p_kind === 'catalog_global_minute')
+    const source = quotas.filter(call => call.p_kind === 'catalog_source_minute')
+    const links = quotas.filter(call => call.p_kind === 'catalog_link_minute')
+    expect(global).toHaveLength(3)
+    expect(new Set(global.map(call => call.p_digest)).size).toBe(1)
+    expect(source).toHaveLength(3)
+    expect(source[0].p_digest).toBe(source[1].p_digest)
+    expect(source[0].p_digest).not.toBe(source[2].p_digest)
+    expect(links[0].p_digest).not.toBe(links[1].p_digest)
+    expect(links[1].p_digest).toBe(links[2].p_digest)
+  })
+
+  it('applies one global ceiling even when forged proxy IP headers change', async () => {
+    const { transport, calls } = fakeBackend()
+    const gateway = createPublicCheckoutGateway(env, transport)
+    for (const ip of ['198.51.100.4', '203.0.113.88']) {
+      expect((await gateway(guestPost(order, {
+        'x-forwarded-for': ip,
+      }))).status).toBe(200)
+    }
+    const quotas = calls.filter(call => call.address.endsWith('consume_checkout_gateway_quota'))
+      .map(call => JSON.parse(call.init.body))
+    const globals = quotas.filter(call => call.p_kind === 'order_global_minute')
+    expect(globals).toHaveLength(2)
+    expect(globals[0].p_digest).toBe(globals[1].p_digest)
   })
 
   it('uses legacy service-role bearer headers only for JWT keys', async () => {
@@ -173,7 +215,7 @@ describe('isolated QR/social gateway', () => {
     expect(payload.p_lines).toEqual(order.lines)
     expect(payload.p_channel).toBe('qr')
     expect(payload.p_customer_phone).toBeNull()
-    expect(calls.filter((c) => c.address.includes('gateway_quota'))).toHaveLength(3)
+    expect(calls.filter((c) => c.address.includes('gateway_quota'))).toHaveLength(4)
     expect(calls.some((c) => c.address.includes('siteverify'))).toBe(true)
   })
 
@@ -262,7 +304,7 @@ describe('isolated QR/social gateway', () => {
     const kinds = calls
       .filter((c) => c.address.includes('consume_checkout_gateway_quota'))
       .map((c) => JSON.parse(c.init.body).p_kind)
-    expect(kinds).toEqual(['status_source_minute', 'status_token_minute'])
+    expect(kinds).toEqual(['status_global_minute', 'status_source_minute', 'status_token_minute'])
     expect(calls.some((c) => c.address.includes('get_checkout_guest_status'))).toBe(true)
     expect(calls.some((c) => c.address.includes('confirm_manual_checkout_payment'))).toBe(false)
     expect(calls.some((c) => c.address.includes('siteverify'))).toBe(false)
