@@ -6,13 +6,13 @@ Le pays de la **nouvelle entreprise** (et non la nationalité du propriétaire) 
 la monnaie comptable du commerce. Catalogue unique `src/lib/africanMarkets.ts` :
 26 pays, 5 groupes de présentation.
 
-| Groupe | Pays / devises |
-| --- | --- |
-| CEMAC (6) | Congo-Brazzaville, Cameroun, Gabon, RCA, Guinée équatoriale, Tchad : **XAF** |
-| UEMOA (8) | Côte d’Ivoire, Bénin, Sénégal, Togo, Guinée-Bissau, Burkina Faso, Mali, Niger : **XOF** |
-| CEDEAO hors UEMOA (7) | Ghana GHS, Nigeria NGN, Guinée GNF, Gambie GMD, Libéria LRD, Sierra Leone SLE, Cap-Vert CVE |
-| Afrique centrale hors CEMAC (3) | RDC CDF (USD secondaire à terme), Angola AOA, São Tomé-et-Príncipe STN |
-| Grands Lacs complémentaires (2) | Burundi BIF, Rwanda RWF |
+| Groupe                          | Pays / devises                                                                              |
+| ------------------------------- | ------------------------------------------------------------------------------------------- |
+| CEMAC (6)                       | Congo-Brazzaville, Cameroun, Gabon, RCA, Guinée équatoriale, Tchad : **XAF**                |
+| UEMOA (8)                       | Côte d’Ivoire, Bénin, Sénégal, Togo, Guinée-Bissau, Burkina Faso, Mali, Niger : **XOF**     |
+| CEDEAO hors UEMOA (7)           | Ghana GHS, Nigeria NGN, Guinée GNF, Gambie GMD, Libéria LRD, Sierra Leone SLE, Cap-Vert CVE |
+| Afrique centrale hors CEMAC (3) | RDC CDF (USD secondaire à terme), Angola AOA, São Tomé-et-Príncipe STN                      |
+| Grands Lacs complémentaires (2) | Burundi BIF, Rwanda RWF                                                                     |
 
 **Attention à l'appartenance institutionnelle :** Burkina Faso, Mali et Niger ont
 quitté la CEDEAO le 29 janvier 2025 mais demeurent dans l'UEMOA et continuent
@@ -25,10 +25,11 @@ dans la même monnaie. Ne jamais fusionner les montants XAF et XOF dans une
 statistique sans conversion sourcée et horodatée.
 
 **RDC :** monnaie légale et référence comptable CDF. Le dollar USD est stocké
-comme une *capacité future de règlement* (`secondary_currency = 'USD'`),
+comme une _capacité future de règlement_ (`secondary_currency = 'USD'`),
 **pas** comme des paiements USD déjà acceptés ni comme une deuxième comptabilité.
 
 Sources :
+
 - [BEAC : deux monnaies CFA](https://www.beac.int/billets-pieces/histoire-franc-cfa/)
 - [BCEAO : pays UEMOA](https://www.bceao.int/en/content/presentation-wamu)
 - [CEDEAO : départ des trois pays du Sahel](https://www.ecowas.int/press-statement-2/)
