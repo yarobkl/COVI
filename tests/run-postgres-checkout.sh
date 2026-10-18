@@ -128,6 +128,7 @@ echo "Testing private owner queue and rate-limit controls..."
 run tests/postgres/public-order-rate-limit.sql
 run tests/postgres/gateway-limits.sql
 run tests/postgres/gateway-global-limits.sql
+run tests/postgres/gateway-retention.sql
 echo "PASS: Anonymous request ceiling and contact protection verified."
 
 echo "Auditing PostgreSQL grants, RLS and SECURITY DEFINER ownership contract..."
