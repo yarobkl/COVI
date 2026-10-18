@@ -49,6 +49,45 @@ begin
  exception when insufficient_privilege then null;end;
 end $cook_register$;
 reset role;
+-- Shared browser endpoint: changing to another restaurant must never leave
+-- two active subscribers (and cross-shop alerts) on a single device.
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000b4',true);
+set local role authenticated;
+do $switch_device$
+begin
+ if not public.restaurant_kitchen_push_register(
+   '10000000-0000-0000-0000-0000000000b4',
+   'https://fcm.googleapis.com/fcm/send/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+   repeat('C',87),repeat('D',22))
+ then raise exception 'New restaurant owner could not take over same browser endpoint';end if;
+end $switch_device$;
+reset role;
+do $unique_device$
+begin
+ if (select count(*) from public.restaurant_kitchen_push_subscriptions)<>1
+ or (select shop_id from public.restaurant_kitchen_push_subscriptions limit 1)
+   <> '10000000-0000-0000-0000-0000000000b4'::uuid
+ then raise exception 'Same browser endpoint delivers to multiple restaurants';end if;
+end $unique_device$;
+-- Returning to the first restaurant must re-bind this endpoint and its event cursor.
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000b2',true);
+set local role authenticated;
+do $restore_device$
+begin
+ if not public.restaurant_kitchen_push_register(
+   '10000000-0000-0000-0000-0000000000b1',
+   'https://fcm.googleapis.com/fcm/send/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+   repeat('A',87),repeat('B',22))
+ then raise exception 'Kitchen staff could not reclaim browser endpoint';end if;
+end $restore_device$;
+reset role;
+do $restored_device$
+begin
+ if (select count(*) from public.restaurant_kitchen_push_subscriptions)<>1
+ or (select shop_id from public.restaurant_kitchen_push_subscriptions limit 1)
+   <> '10000000-0000-0000-0000-0000000000b1'::uuid
+ then raise exception 'Device ownership was not restored';end if;
+end $restored_device$;
 select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000b3',true);
 set local role authenticated;
 do $waiter$
