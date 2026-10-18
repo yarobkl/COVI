@@ -40,6 +40,10 @@ test('fail closed without secret, config or valid bearer', async () => {
   }
   const enabled = createKitchenPushDispatcher(config, deps)
   assert.equal((await enabled(req('wrong'))).status, 401)
+  assert.equal((await enabled(new Request(req().url, {
+    method: 'POST',
+    headers: { authorization: config.secret },
+  }))).status, 401)
   assert.equal((await enabled(req(undefined, 'GET'))).status, 405)
   assert.equal(
     (await createKitchenPushDispatcher({ ...config, enabled: 'false' }, deps)(req())).status,
@@ -104,6 +108,24 @@ test('treats expired endpoints as gone and transient outages as retry, never as 
   assert.equal(response.status, 200)
   assert.deepEqual(finish, ['gone', 'retry'])
 })
+test('refuses malformed leased push keys before any external delivery', async () => {
+  let sent = 0
+  let acknowledgements = 0
+  const handler = createKitchenPushDispatcher(config, {
+    rpc: async (name) => {
+      if (name.endsWith('_claim')) return [{ ...task, p256dh: 'A'.repeat(256) }]
+      acknowledgements++
+      return true
+    },
+    sendPush: async () => { sent++ },
+  })
+  const response = await handler(req())
+  assert.equal(response.status, 503)
+  assert.equal(sent, 0)
+  assert.equal(acknowledgements, 0)
+  assert.equal((await response.json()).failedAcks, 1)
+})
+
 test('invalid destination is never fetched, and a failed DB acknowledgement is not success', async () => {
   let sent = 0
   const handler = createKitchenPushDispatcher(config, {
