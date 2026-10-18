@@ -56,7 +56,7 @@ export function ownerOnboardingHints(metadata: Record<string, unknown> | null | 
   const value = (key: string) =>
     typeof metadata?.[key] === 'string' ? (metadata[key] as string).trim() : ''
   const fullName = value('full_name') || value('name')
-  const pieces = fullName.split(/\\s+/).filter(Boolean)
+  const pieces = fullName.split(/\s+/).filter(Boolean)
   const oauthIntent = readOwnerOAuthIntent()
   const fromAuthKind = value('business_kind')
   return {
