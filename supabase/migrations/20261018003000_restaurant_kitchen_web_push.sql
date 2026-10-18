@@ -5,7 +5,7 @@ create table public.restaurant_kitchen_push_subscriptions (
   shop_id uuid not null references public.shops(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
   endpoint text not null check(length(endpoint) between 50 and 1500),
-  p256dh text not null check(length(p256dh) between 40 and 256),
+  p256dh text not null check(length(p256dh) between 40 and 255),
   auth_secret text not null check(length(auth_secret) between 12 and 128),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -14,7 +14,8 @@ create table public.restaurant_kitchen_push_subscriptions (
   lease_until timestamptz,
   next_retry_at timestamptz not null default now(),
   failures integer not null default 0 check(failures between 0 and 32),
-  unique(shop_id,user_id,endpoint)
+  -- One browser endpoint belongs to only one active account/shop at a time.
+  unique(endpoint)
 );
 create index restaurant_push_due on public.restaurant_kitchen_push_subscriptions(next_retry_at,lease_until);
 create index restaurant_push_user on public.restaurant_kitchen_push_subscriptions(shop_id,user_id);
@@ -59,8 +60,17 @@ begin
  insert into public.restaurant_kitchen_push_subscriptions(
    shop_id,user_id,endpoint,p256dh,auth_secret,last_delivered_event_id)
  values(p_shop,v_uid,p_endpoint,p_p256dh,p_auth,v_cursor)
- on conflict(shop_id,user_id,endpoint) do update
-  set p256dh=excluded.p256dh,auth_secret=excluded.auth_secret,updated_at=now();
+ on conflict(endpoint) do update
+  set shop_id=excluded.shop_id,user_id=excluded.user_id,
+      p256dh=excluded.p256dh,auth_secret=excluded.auth_secret,
+      -- Preserve the cursor only when the same person reconnects to the same shop.
+      last_delivered_event_id=case
+        when restaurant_kitchen_push_subscriptions.shop_id=excluded.shop_id
+         and restaurant_kitchen_push_subscriptions.user_id=excluded.user_id
+        then restaurant_kitchen_push_subscriptions.last_delivered_event_id
+        else excluded.last_delivered_event_id end,
+      lease_token=null,lease_until=null,failures=0,next_retry_at=now(),
+      updated_at=now();
  return true;
 end; $$;
 revoke all on function public.restaurant_kitchen_push_register(uuid,text,text,text)
