@@ -43,6 +43,21 @@ export function allowedOrigins(value) {
     })
 }
 
+/** Deployment defaults must FAIL CLOSED. Never derive rate-limit secrets
+ * from the privileged service-role credential or auto-enable public access.
+ * This pure adapter is tested without invoking Deno.env or touching Supabase.
+ */
+export function configuredPublicGatewayEnv(env) {
+  return {
+    COVI_GATEWAY_ENABLED: env.COVI_GATEWAY_ENABLED === 'true' ? 'true' : 'false',
+    COVI_PUBLIC_ORIGIN: env.COVI_PUBLIC_ORIGIN ?? '',
+    SUPABASE_URL: env.SUPABASE_URL ?? '',
+    SUPABASE_SERVICE_ROLE_KEY: env.SUPABASE_SERVICE_ROLE_KEY ?? '',
+    COVI_GATEWAY_PEPPER: env.COVI_GATEWAY_PEPPER ?? '',
+    COVI_TURNSTILE_SECRET: env.COVI_TURNSTILE_SECRET ?? '',
+  }
+}
+
 function readSettings(env) {
   const origins = allowedOrigins(env.COVI_PUBLIC_ORIGIN)
   let apiOk = false
