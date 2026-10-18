@@ -338,16 +338,37 @@ export function createPublicCheckoutGateway(env, fetchImpl = fetch) {
 
       // Fixed database ceilings, enforced atomically across edge instances.
       const source = sourceFingerprint(request)
-      const sourceDigest = await hmac(env.COVI_GATEWAY_PEPPER, 'source:' + token + ':' + source)
+      // A caller can invent unlimited random token UUIDs. Source quotas MUST
+      // stay the same when a token changes, otherwise each guessed token
+      // obtains a fresh quota bucket and grows the quota table without bound.
+      const sourceDigest = await hmac(env.COVI_GATEWAY_PEPPER, 'source:' + source)
       const linkDigest = await hmac(env.COVI_GATEWAY_PEPPER, 'link:' + token)
-      const limits = isTracking
-        ? [['status_source_minute', sourceDigest], ['status_token_minute', linkDigest]]
+      // Proxy IP headers can also be spoofed. A token-independent global
+      // ceiling is a second backstop: it prevents forged source headers from
+      // creating unbounded quota rows / backend calls.
+      const globalKind = isTracking
+        ? 'status_global_minute'
         : isCatalog
-          ? [['catalog_source_minute', sourceDigest], ['catalog_link_minute', linkDigest]]
-          : [
-            ['order_source_minute', sourceDigest],
-            ['order_source_day', sourceDigest],
+          ? 'catalog_global_minute'
+          : 'order_global_minute'
+      const globalDigest = await hmac(env.COVI_GATEWAY_PEPPER, 'global:' + globalKind)
+      const limits = isTracking
+        ? [
+            [globalKind, globalDigest],
+            ['status_source_minute', sourceDigest],
+            ['status_token_minute', linkDigest],
           ]
+        : isCatalog
+          ? [
+              [globalKind, globalDigest],
+              ['catalog_source_minute', sourceDigest],
+              ['catalog_link_minute', linkDigest],
+            ]
+          : [
+              [globalKind, globalDigest],
+              ['order_source_minute', sourceDigest],
+              ['order_source_day', sourceDigest],
+            ]
       for (const [kind, digest] of limits) {
         const accepted = await backendRpc(env, fetchImpl, 'consume_checkout_gateway_quota', {
           p_digest: digest,
