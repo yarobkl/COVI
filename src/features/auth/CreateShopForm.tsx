@@ -82,11 +82,15 @@ export function CreateShopForm({
       return
     }
     if (businessKind !== 'retail') {
-      onMessage('Le module Restaurant ou Salon est encore en préparation. Votre compte est conservé ; l’ouverture de cet établissement sera disponible après validation.')
+      onMessage(
+        'Le module Restaurant ou Salon est encore en préparation. Votre compte est conservé ; l’ouverture de cet établissement sera disponible après validation.',
+      )
       return
     }
     if (currency !== 'XAF') {
-      onMessage('Le pays et sa monnaie sont enregistrés dans votre choix, mais la caisse de ce pays n’est pas encore validée. Les ouvertures actives sont limitées à la zone CEMAC (XAF).')
+      onMessage(
+        'Le pays et sa monnaie sont enregistrés dans votre choix, mais la caisse de ce pays n’est pas encore validée. Les ouvertures actives sont limitées à la zone CEMAC (XAF).',
+      )
       return
     }
     setBusy(true)
@@ -274,7 +278,14 @@ export function CreateShopForm({
             <p>{message}</p>
           </Notice>
         )}
-        <Button variant="primary" size="lg" block type="submit" busy={busy} disabled={businessKind !== 'retail' || currency !== 'XAF'}>
+        <Button
+          variant="primary"
+          size="lg"
+          block
+          type="submit"
+          busy={busy}
+          disabled={businessKind !== 'retail' || currency !== 'XAF'}
+        >
           Créer mon établissement
         </Button>
       </form>
