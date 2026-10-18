@@ -171,7 +171,10 @@ export function CemacBusinessAddressFields({
         </Field>
       )}
       {!!areaName && quartiers.length > 0 && (
-        <Field label="Rechercher un quartier" hint="Filtre les quartiers proposés pour cet arrondissement.">
+        <Field
+          label="Rechercher un quartier"
+          hint="Filtre les quartiers proposés pour cet arrondissement."
+        >
           {(control) => (
             <Input
               {...control}
@@ -193,9 +196,7 @@ export function CemacBusinessAddressFields({
             value={value.neighborhood}
             required
             disabled={!areaName}
-            onChange={(e) =>
-              change({ neighborhood: e.target.value, customNeighborhood: '' })
-            }
+            onChange={(e) => change({ neighborhood: e.target.value, customNeighborhood: '' })}
           >
             <option value="">Choisir un quartier</option>
             {quartiers
