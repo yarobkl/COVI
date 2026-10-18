@@ -265,7 +265,7 @@ export function CreateShopForm({
         />
         <ShopGpsControl value={gps} onChange={setGps} />
         {(businessKind !== 'retail' || currency !== 'XAF') && (
-          <Notice tone="info">
+          <Notice tone="calm">
             <p>
               {businessKind !== 'retail'
                 ? 'Le module Restaurant / Salon est en préparation : votre compte existe, mais cet établissement ne peut pas encore être créé.'
