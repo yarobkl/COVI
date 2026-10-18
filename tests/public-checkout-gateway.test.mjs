@@ -110,6 +110,50 @@ describe('isolated QR/social gateway', () => {
     expect(transport).not.toHaveBeenCalled()
   })
 
+  it('sets a deadline on every privileged external request, including uploads and Turnstile', async () => {
+    const { transport, calls } = fakeBackend()
+    const gateway = createPublicCheckoutGateway(env, transport)
+    const result = await gateway(guestPost({ ...order, referenceImage: validImage }))
+    expect(result.status).toBe(200)
+
+    const privileged = calls.filter(call =>
+      call.address.includes('/rest/v1/rpc/') ||
+      call.address.includes('/storage/v1/object/') ||
+      call.address.includes('siteverify'),
+    )
+    expect(privileged.length).toBeGreaterThan(4)
+    expect(privileged.every(call => call.init.signal instanceof AbortSignal)).toBe(true)
+    expect(privileged.every(call => !call.init.signal.aborted)).toBe(true)
+  })
+
+  it('fails closed when the privileged database waits indefinitely', async () => {
+    // Reduce the timeout only inside this isolated test; production deadlines
+    // remain bounded by the gateway's fixed code constants.
+    const original = AbortSignal.timeout.bind(AbortSignal)
+    const spy = vi.spyOn(AbortSignal, 'timeout').mockImplementation(() => original(20))
+    try {
+      const neverResponds = vi.fn((_url, init) =>
+        new Promise((_resolve, reject) => {
+          init.signal.addEventListener(
+            'abort',
+            () => reject(new Error('upstream aborted')),
+            { once: true },
+          )
+        }),
+      )
+      const gateway = createPublicCheckoutGateway(env, neverResponds)
+      const result = await gateway(guestPost())
+      expect(result.status).toBe(503)
+      expect(await result.json()).toEqual({
+        error: 'Service temporairement indisponible.',
+      })
+      expect(neverResponds).toHaveBeenCalledTimes(1)
+      expect(neverResponds.mock.calls[0][1].signal.aborted).toBe(true)
+    } finally {
+      spy.mockRestore()
+    }
+  })
+
   it('rejects foreign origins without reflecting permissive CORS', async () => {
     const { transport } = fakeBackend()
     const request = guestPost(order, { Origin: 'https://attacker.example' })
