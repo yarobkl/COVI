@@ -56,8 +56,7 @@ export function CreateShopForm({
     streetAddress: '',
   })
   const [gps, setGps] = useState<ShopGpsPosition | null>(null)
-  const selectedCity =
-    location.city === OTHER_CITY ? location.customCity.trim() : location.city
+  const selectedCity = location.city === OTHER_CITY ? location.customCity.trim() : location.city
   const selectedArea =
     location.area === OTHER_ADMIN_AREA ? location.customArea.trim() : location.area.trim()
   const selectedNeighborhood =
