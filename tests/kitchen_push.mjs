@@ -40,10 +40,11 @@ test('fail closed without secret, config or valid bearer', async () => {
   }
   const enabled = createKitchenPushDispatcher(config, deps)
   assert.equal((await enabled(req('wrong'))).status, 401)
-  assert.equal((await enabled(new Request(req().url, {
+  const bareSecret = new Request(req().url, {
     method: 'POST',
     headers: { authorization: config.secret },
-  }))).status, 401)
+  })
+  assert.equal((await enabled(bareSecret)).status, 401)
   assert.equal((await enabled(req(undefined, 'GET'))).status, 405)
   assert.equal(
     (await createKitchenPushDispatcher({ ...config, enabled: 'false' }, deps)(req())).status,
@@ -117,7 +118,9 @@ test('refuses malformed leased push keys before any external delivery', async ()
       acknowledgements++
       return true
     },
-    sendPush: async () => { sent++ },
+    sendPush: async () => {
+      sent++
+    },
   })
   const response = await handler(req())
   assert.equal(response.status, 503)
