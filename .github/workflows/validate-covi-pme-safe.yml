@@ -1,0 +1,57 @@
+name: COVI — safe PME onboarding release
+
+on:
+  push:
+    branches:
+      - release/covi-onboarding-pme-safe-20261018
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Prettier formatting
+        run: |
+          npm run format:check || {
+            npx prettier --write src/features/auth/LoginForm.tsx src/features/auth/LoginForm.test.tsx src/features/auth/CreateShopForm.tsx src/features/auth/AuthPage.tsx src/features/auth/AuthGate.tsx src/styles/app/auth.css src/lib/ownerSignup.ts src/lib/ownerSignup.test.ts src/lib/businessKinds.ts src/lib/businessKinds.test.ts src/lib/africanMarkets.ts src/lib/africanMarkets.test.ts src/lib/cemacAreas.ts src/lib/cemacAreas.test.ts src/lib/centralAfricaLocations.ts src/features/locations/CemacBusinessAddressFields.tsx src/features/locations/CemacBusinessAddressFields.test.tsx
+            git diff
+            exit 1
+          }
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm test
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - run: command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+      - run: bash tests/sql/run.sh
