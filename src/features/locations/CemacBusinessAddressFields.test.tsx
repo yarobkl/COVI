@@ -37,7 +37,7 @@ describe('CEMAC business address onboarding', () => {
     fireEvent.change(screen.getByRole('combobox', { name: 'Arrondissement / commune' }), {
       target: { value: 'Moungali' },
     })
-    fireEvent.change(screen.getByRole('textbox', { name: 'Rechercher un quartier' }), {
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Rechercher un quartier' }), {
       target: { value: 'Mouk' },
     })
     expect(screen.getByRole('option', { name: 'Moukondo' })).toBeTruthy()
