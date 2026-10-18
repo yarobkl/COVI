@@ -111,30 +111,35 @@ describe('passerelle publique des commandes', () => {
     expect(settings.SUPABASE_SERVICE_ROLE_KEY).toBe(env.SUPABASE_SERVICE_ROLE_KEY)
 
     const { transport } = backend()
-    const result = await createPublicCheckoutGateway(settings, transport)(
-      post(order, { Origin: 'https://covi.example' }),
-    )
+    const result = await createPublicCheckoutGateway(
+      settings,
+      transport,
+    )(post(order, { Origin: 'https://covi.example' }))
     expect([403, 503]).toContain(result.status)
     expect(transport).not.toHaveBeenCalled()
 
     const enabled = resolvePublicCheckoutEnvironment((name) => env[name])
     expect(enabled.COVI_GATEWAY_ENABLED).toBe('true')
     expect(enabled.COVI_GATEWAY_PEPPER).toBe(env.COVI_GATEWAY_PEPPER)
-    expect(resolvePublicCheckoutEnvironment((name) =>
-      ({ ...env, COVI_GATEWAY_ENABLED: 'unexpected' })[name],
-    ).COVI_GATEWAY_ENABLED).toBe('false')
+    expect(
+      resolvePublicCheckoutEnvironment(
+        (name) => ({ ...env, COVI_GATEWAY_ENABLED: 'unexpected' })[name],
+      ).COVI_GATEWAY_ENABLED,
+    ).toBe('false')
   })
 
   it('borne tous les appels privilégiés vers la base, Turnstile et les photos privées', async () => {
     const { calls, transport } = backend()
-    const response = await createPublicCheckoutGateway(env, transport)(
-      post({ ...order, referenceImage: jpeg }),
-    )
+    const response = await createPublicCheckoutGateway(
+      env,
+      transport,
+    )(post({ ...order, referenceImage: jpeg }))
     expect(response.status).toBe(200)
-    const upstream = calls.filter(({ address }) =>
-      address.includes('/rest/v1/rpc/') ||
-      address.includes('/storage/v1/object/') ||
-      address.includes('siteverify'),
+    const upstream = calls.filter(
+      ({ address }) =>
+        address.includes('/rest/v1/rpc/') ||
+        address.includes('/storage/v1/object/') ||
+        address.includes('siteverify'),
     )
     expect(upstream.length).toBeGreaterThan(4)
     expect(upstream.every(({ init }) => init.signal instanceof AbortSignal)).toBe(true)
@@ -144,14 +149,17 @@ describe('passerelle publique des commandes', () => {
     const realTimeout = AbortSignal.timeout.bind(AbortSignal)
     const stub = vi.spyOn(AbortSignal, 'timeout').mockImplementation(() => realTimeout(20))
     try {
-      const hung = vi.fn((_url, init) => new Promise((_resolve, reject) => {
-        init.signal.addEventListener('abort', () => reject(new Error('timeout')), {
-          once: true,
-        })
-      }))
+      const hung = vi.fn(
+        (_url, init) =>
+          new Promise((_resolve, reject) => {
+            init.signal.addEventListener('abort', () => reject(new Error('timeout')), {
+              once: true,
+            })
+          }),
+      )
       const response = await createPublicCheckoutGateway(env, hung)(post(order))
       expect(response.status).toBe(503)
-      expect((await response.text())).not.toContain(env.SUPABASE_SERVICE_ROLE_KEY)
+      expect(await response.text()).not.toContain(env.SUPABASE_SERVICE_ROLE_KEY)
       expect(hung).toHaveBeenCalledTimes(1)
       expect(hung.mock.calls[0][1].signal.aborted).toBe(true)
     } finally {
