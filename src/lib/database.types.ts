@@ -8,6 +8,605 @@ export type Database = {
   }
   public: {
     Tables: {
+      restaurant_cash_refunds: {
+        Row: {
+          id: string
+          shop_id: string
+          session_id: string
+          line_id: string
+          incident_id: string
+          operation_id: string
+          amount_xaf: number
+          method: string
+          reason: string
+          confirmed_by: string
+          confirmed_at: string
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          session_id: string
+          line_id: string
+          incident_id: string
+          operation_id: string
+          amount_xaf: number
+          method?: string
+          reason: string
+          confirmed_by: string
+          confirmed_at?: string
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          session_id?: string
+          line_id?: string
+          incident_id?: string
+          operation_id?: string
+          amount_xaf?: number
+          method?: string
+          reason?: string
+          confirmed_by?: string
+          confirmed_at?: string
+        }
+        Relationships: []
+      }
+      restaurant_served_incidents: {
+        Row: {
+          id: string
+          shop_id: string
+          session_id: string
+          line_id: string
+          reported_by: string
+          operation_id: string
+          description: string
+          state: string
+          owner_note: string | null
+          reviewed_by: string | null
+          created_at: string
+          reviewed_at: string | null
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          session_id: string
+          line_id: string
+          reported_by: string
+          operation_id: string
+          description: string
+          state?: string
+          owner_note?: string | null
+          reviewed_by?: string | null
+          created_at?: string
+          reviewed_at?: string | null
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          session_id?: string
+          line_id?: string
+          reported_by?: string
+          operation_id?: string
+          description?: string
+          state?: string
+          owner_note?: string | null
+          reviewed_by?: string | null
+          created_at?: string
+          reviewed_at?: string | null
+        }
+        Relationships: []
+      }
+      restaurant_staff_members: {
+        Row: {
+          id: string
+          shop_id: string
+          user_id: string
+          display_name: string
+          staff_role: string
+          active: boolean
+          created_by: string
+          created_at: string
+          disabled_at: string | null
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          user_id: string
+          display_name: string
+          staff_role: string
+          active?: boolean
+          created_by: string
+          created_at?: string
+          disabled_at?: string | null
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          user_id?: string
+          display_name?: string
+          staff_role?: string
+          active?: boolean
+          created_by?: string
+          created_at?: string
+          disabled_at?: string | null
+        }
+        Relationships: []
+      }
+      restaurant_staff_events: {
+        Row: {
+          id: number
+          shop_id: string
+          actor_user_id: string
+          session_id: string | null
+          line_id: string | null
+          event_type: string
+          details: Json
+          occurred_at: string
+        }
+        Insert: {
+          id?: number
+          shop_id: string
+          actor_user_id: string
+          session_id?: string | null
+          line_id?: string | null
+          event_type: string
+          details?: Json
+          occurred_at?: string
+        }
+        Update: {
+          id?: number
+          shop_id?: string
+          actor_user_id?: string
+          session_id?: string | null
+          line_id?: string | null
+          event_type?: string
+          details?: Json
+          occurred_at?: string
+        }
+        Relationships: []
+      }
+      restaurant_drink_adjustments: {
+        Row: {
+          id: string
+          shop_id: string
+          menu_item_id: string
+          quantity_delta: number
+          stock_after: number
+          reason: string
+          created_by: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          menu_item_id: string
+          quantity_delta: number
+          stock_after: number
+          reason: string
+          created_by: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          menu_item_id?: string
+          quantity_delta?: number
+          stock_after?: number
+          reason?: string
+          created_by?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      restaurant_table_sessions: {
+        Row: {
+          id: string
+          shop_id: string
+          table_id: string
+          status: string
+          guest_count: number
+          order_number: number | null
+          order_reference: string | null
+          created_at: string
+          submitted_at: string | null
+          closed_at: string | null
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          table_id: string
+          status?: string
+          guest_count?: number
+          order_number?: number | null
+          order_reference?: string | null
+          created_at?: string
+          submitted_at?: string | null
+          closed_at?: string | null
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          table_id?: string
+          status?: string
+          guest_count?: number
+          order_number?: number | null
+          order_reference?: string | null
+          created_at?: string
+          submitted_at?: string | null
+          closed_at?: string | null
+        }
+        Relationships: []
+      }
+      restaurant_participants: {
+        Row: {
+          id: string
+          shop_id: string
+          session_id: string
+          participant_token: string
+          ready: boolean
+          is_leader: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          session_id: string
+          participant_token?: string
+          ready?: boolean
+          is_leader?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          session_id?: string
+          participant_token?: string
+          ready?: boolean
+          is_leader?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      restaurant_session_lines: {
+        Row: {
+          id: string
+          shop_id: string
+          session_id: string
+          participant_id: string | null
+          menu_item_id: string
+          quantity: number
+          unit_price_xaf: number
+          status: string
+          created_by: string | null
+          created_at: string
+          served_at: string | null
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          session_id: string
+          participant_id?: string | null
+          menu_item_id: string
+          quantity: number
+          unit_price_xaf: number
+          status?: string
+          created_by?: string | null
+          created_at?: string
+          served_at?: string | null
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          session_id?: string
+          participant_id?: string | null
+          menu_item_id?: string
+          quantity?: number
+          unit_price_xaf?: number
+          status?: string
+          created_by?: string | null
+          created_at?: string
+          served_at?: string | null
+        }
+        Relationships: []
+      }
+      restaurant_order_counters: {
+        Row: {
+          shop_id: string
+          next_number: number
+        }
+        Insert: {
+          shop_id: string
+          next_number: number
+        }
+        Update: {
+          shop_id?: string
+          next_number?: number
+        }
+        Relationships: []
+      }
+      restaurant_cash_payments: {
+        Row: {
+          id: string
+          shop_id: string
+          session_id: string
+          operation_id: string
+          amount_xaf: number
+          method: string
+          confirmed_by: string
+          confirmed_at: string
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          session_id: string
+          operation_id: string
+          amount_xaf: number
+          method: string
+          confirmed_by: string
+          confirmed_at?: string
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          session_id?: string
+          operation_id?: string
+          amount_xaf?: number
+          method?: string
+          confirmed_by?: string
+          confirmed_at?: string
+        }
+        Relationships: []
+      }
+      restaurant_drink_movements: {
+        Row: {
+          id: string
+          shop_id: string
+          session_id: string
+          line_id: string
+          menu_item_id: string
+          quantity_delta: number
+          stock_after: number
+          created_by: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          session_id: string
+          line_id: string
+          menu_item_id: string
+          quantity_delta: number
+          stock_after: number
+          created_by: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          session_id?: string
+          line_id?: string
+          menu_item_id?: string
+          quantity_delta?: number
+          stock_after?: number
+          created_by?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      restaurant_tables: {
+        Row: {
+          id: string
+          shop_id: string
+          label: string
+          zone: string
+          capacity: number
+          pos_x: number
+          pos_y: number
+          qr_token: string
+          active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          label: string
+          zone?: string
+          capacity?: number
+          pos_x?: number
+          pos_y?: number
+          qr_token?: string
+          active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          label?: string
+          zone?: string
+          capacity?: number
+          pos_x?: number
+          pos_y?: number
+          qr_token?: string
+          active?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      restaurant_menu_items: {
+        Row: {
+          id: string
+          shop_id: string
+          name: string
+          category: string
+          kind: string
+          price_xaf: number
+          available: boolean
+          drink_stock: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          name: string
+          category: string
+          kind: string
+          price_xaf: number
+          available?: boolean
+          drink_stock?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          name?: string
+          category?: string
+          kind?: string
+          price_xaf?: number
+          available?: boolean
+          drink_stock?: number | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      salon_services: {
+        Row: {
+          id: string
+          shop_id: string
+          name: string
+          price_xaf: number
+          duration_minutes: number
+          active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          name: string
+          price_xaf: number
+          duration_minutes: number
+          active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          name?: string
+          price_xaf?: number
+          duration_minutes?: number
+          active?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      salon_booking_links: {
+        Row: {
+          shop_id: string
+          public_token: string
+          enabled: boolean
+          created_at: string
+        }
+        Insert: {
+          shop_id: string
+          public_token?: string
+          enabled?: boolean
+          created_at?: string
+        }
+        Update: {
+          shop_id?: string
+          public_token?: string
+          enabled?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      salon_booking_requests: {
+        Row: {
+          duration_minutes: number | null
+          id: string
+          shop_id: string
+          service_id: string | null
+          first_name: string
+          last_name: string
+          phone: string
+          requested_at: string
+          status: string
+          created_at: string
+        }
+        Insert: {
+          duration_minutes?: number | null
+          id?: string
+          shop_id: string
+          service_id?: string | null
+          first_name: string
+          last_name: string
+          phone: string
+          requested_at: string
+          status?: string
+          created_at?: string
+        }
+        Update: {
+          duration_minutes?: number | null
+          id?: string
+          shop_id?: string
+          service_id?: string | null
+          first_name?: string
+          last_name?: string
+          phone?: string
+          requested_at?: string
+          status?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
+      employees: {
+        Row: {
+          id: string
+          shop_id: string
+          full_name: string
+          job_title: string
+          compensation_mode: string
+          monthly_salary: number
+          commission_percent: number
+          hired_on: string | null
+          active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          shop_id: string
+          full_name: string
+          job_title: string
+          compensation_mode?: string
+          monthly_salary?: number
+          commission_percent?: number
+          hired_on?: string | null
+          active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          shop_id?: string
+          full_name?: string
+          job_title?: string
+          compensation_mode?: string
+          monthly_salary?: number
+          commission_percent?: number
+          hired_on?: string | null
+          active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'employees_shop_id_fkey'
+            columns: ['shop_id']
+            isOneToOne: false
+            referencedRelation: 'shops'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       arrivals: {
         Row: {
           code: string
@@ -276,6 +875,7 @@ export type Database = {
         Row: {
           administrative_area: string | null
           address_line: string | null
+          business_kind: string
           city: string | null
           country: string | null
           latitude: number | null
@@ -291,6 +891,7 @@ export type Database = {
         Insert: {
           administrative_area?: string | null
           address_line?: string | null
+          business_kind?: string
           city?: string | null
           country?: string | null
           latitude?: number | null
@@ -306,6 +907,7 @@ export type Database = {
         Update: {
           administrative_area?: string | null
           address_line?: string | null
+          business_kind?: string
           city?: string | null
           country?: string | null
           latitude?: number | null
@@ -325,6 +927,131 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      restaurant_kitchen_push_register: {
+        Args: { p_shop: string; p_endpoint: string; p_p256dh: string; p_auth: string }
+        Returns: boolean
+      }
+      restaurant_kitchen_push_unregister: {
+        Args: { p_shop: string; p_endpoint: string }
+        Returns: boolean
+      }
+      restaurant_kitchen_inbox: {
+        Args: { p_shop: string }
+        Returns: Json
+      }
+      restaurant_kitchen_acknowledge: {
+        Args: { p_shop: string; p_through: string }
+        Returns: string
+      }
+      restaurant_cash_refund_quote: {
+        Args: { p_shop: string; p_incident: string }
+        Returns: Json
+      }
+      restaurant_confirm_cash_refund: {
+        Args: {
+          p_shop: string
+          p_incident: string
+          p_amount: number
+          p_reason: string
+          p_operation_id: string
+          p_cash_handed_over: boolean
+        }
+        Returns: Json
+      }
+      restaurant_report_served_issue: {
+        Args: { p_shop: string; p_line: string; p_description: string; p_operation_id: string }
+        Returns: Json
+      }
+      restaurant_review_served_issue: {
+        Args: { p_shop: string; p_ticket: string; p_decision: string; p_note: string }
+        Returns: boolean
+      }
+      restaurant_cancel_order_line: {
+        Args: { p_shop: string; p_line: string; p_reason: string }
+        Returns: Json
+      }
+      restaurant_cancel_empty_table: {
+        Args: { p_shop: string; p_session: string; p_reason: string }
+        Returns: boolean
+      }
+      restaurant_issue_group_code: {
+        Args: { p_shop: string; p_session: string }
+        Returns: string
+      }
+      restaurant_staff_my_spaces: {
+        Args: Record<PropertyKey, never>
+        Returns: { shop_id: string; shop_name: string; staff_role: string; display_name: string }[]
+      }
+      restaurant_staff_create_invite: {
+        Args: { p_shop: string; p_name: string; p_role: string }
+        Returns: Json
+      }
+      restaurant_staff_join: {
+        Args: { p_code: string }
+        Returns: Json
+      }
+      restaurant_staff_pending_invites: {
+        Args: { p_shop: string }
+        Returns: { id: string; display_name: string; staff_role: string; expires_at: string }[]
+      }
+      restaurant_staff_revoke_invite: {
+        Args: { p_shop: string; p_invite: string }
+        Returns: boolean
+      }
+      restaurant_staff_disable: {
+        Args: { p_shop: string; p_member: string }
+        Returns: boolean
+      }
+      restaurant_staff_room: {
+        Args: { p_shop: string }
+        Returns: Json
+      }
+      salon_change_booking_status: {
+        Args: { p_shop: string; p_booking: string; p_status: string }
+        Returns: string
+      }
+      restaurant_adjust_drink_stock: {
+        Args: { p_shop: string; p_item: string; p_delta: number; p_reason: string }
+        Returns: number
+      }
+      restaurant_open_table: {
+        Args: { p_shop: string; p_table: string; p_guest_count: number }
+        Returns: string
+      }
+      restaurant_add_participant: {
+        Args: { p_shop: string; p_session: string }
+        Returns: string
+      }
+      restaurant_choose_item: {
+        Args: {
+          p_shop: string
+          p_session: string
+          p_participant: string
+          p_item: string
+          p_quantity: number
+        }
+        Returns: string | null
+      }
+      restaurant_mark_ready: {
+        Args: { p_shop: string; p_session: string; p_participant: string }
+        Returns: boolean
+      }
+      restaurant_submit_group: {
+        Args: { p_shop: string; p_session: string; p_leader: string }
+        Returns: string
+      }
+      restaurant_staff_add_item: {
+        Args: { p_shop: string; p_session: string; p_item: string; p_quantity: number }
+        Returns: string
+      }
+      restaurant_mark_served: {
+        Args: { p_shop: string; p_line: string }
+        Returns: void
+      }
+      restaurant_capture_cash: {
+        Args: { p_shop: string; p_session: string; p_amount: number; p_operation_id: string }
+        Returns: boolean
+      }
       create_my_shop: {
         Args: {
           p_city?: string
@@ -333,6 +1060,7 @@ export type Database = {
           p_name: string
         }
         Returns: {
+          business_kind: string
           city: string | null
           country: string | null
           latitude: number | null
@@ -361,6 +1089,7 @@ export type Database = {
           p_neighborhood: string
         }
         Returns: {
+          business_kind: string
           city: string | null
           country: string | null
           latitude: number | null
@@ -427,6 +1156,40 @@ export type Database = {
           p_location_accuracy_m?: number
         }
         Returns: {
+          business_kind: string
+          city: string | null
+          country: string | null
+          created_at: string
+          currency: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          location_accuracy_m: number | null
+          name: string
+          neighborhood: string | null
+          owner_id: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'shops'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_my_business_with_location: {
+        Args: {
+          p_name: string
+          p_city: string
+          p_country: string
+          p_neighborhood: string
+          p_business_kind: string
+          p_currency?: string
+          p_latitude?: number
+          p_longitude?: number
+          p_location_accuracy_m?: number
+        }
+        Returns: {
+          business_kind: string
           city: string | null
           country: string | null
           created_at: string
