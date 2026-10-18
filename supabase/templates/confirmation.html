@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Confirmez votre compte COVI</title>
+  </head>
+  <body style="margin:0;padding:24px 12px;background:#fcfbf8;color:#282623;font-family:Arial,Helvetica,sans-serif;">
+    <main style="max-width:540px;margin:auto;padding:30px 24px;border:1px solid #d9d5c9;border-radius:12px;background:#fff;">
+      <p style="margin:0 0 10px;font-size:13px;letter-spacing:0.08em;">COVI — COMMERCE &amp; VIE</p>
+      <h1 style="margin:0 0 20px;font-size:26px;line-height:1.25;">Confirmez votre adresse e-mail</h1>
+      <p style="line-height:1.6;">Bienvenue sur COVI, l’outil de gestion opérationnelle, financière et humaine des PME.</p>
+      <p style="line-height:1.6;">Pour activer votre compte et terminer la création de votre établissement, confirmez votre adresse e-mail en cliquant sur le lien suivant :</p>
+      <p style="margin:28px 0;">
+        <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 20px;background:#17408b;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;">Confirmer mon compte COVI</a>
+      </p>
+      <p style="font-size:13px;line-height:1.5;color:#58554d;">Si le bouton ne fonctionne pas, ouvrez directement ce lien :</p>
+      <p style="font-size:12px;line-height:1.5;overflow-wrap:anywhere;"><a href="{{ .ConfirmationURL }}" style="color:#17408b;">{{ .ConfirmationURL }}</a></p>
+      <hr style="border:0;border-top:1px solid #e1ded7;margin:28px 0;">
+      <p style="font-size:13px;line-height:1.6;color:#58554d;">Vous n’avez pas demandé la création d’un compte COVI ? Ignorez ce message. Ne communiquez jamais votre lien de confirmation.</p>
+      <p style="font-size:12px;color:#6f6a5f;">COVI — Le système d’exploitation de votre commerce.</p>
+    </main>
+  </body>
+</html>
