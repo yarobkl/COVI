@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  createOwnerSignupDetails,
-  isValidOwnerPhone,
-  ownerOnboardingHints,
-} from './ownerSignup'
+import { createOwnerSignupDetails, isValidOwnerPhone, ownerOnboardingHints } from './ownerSignup'
 
 describe('owner signup details', () => {
   it('normalizes the owner profile while keeping business sector as a hint only', () => {
