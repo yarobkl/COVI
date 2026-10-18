@@ -29,7 +29,7 @@ as $$
 declare v_host text;
 begin
  if p_endpoint is null or length(p_endpoint) not between 50 and 1500
-   or p_endpoint !~ '^https://[^/?#]+/[^#]+$' then return false;end if;
+   or p_endpoint !~ '^https://[A-Za-z0-9.-]+/[^/?#][^#]*$' then return false;end if;
  v_host:=lower(split_part(split_part(p_endpoint,'/',3),':',1));
  return v_host in ('fcm.googleapis.com','updates.push.services.mozilla.com',
   'web.push.apple.com')
@@ -95,12 +95,12 @@ revoke all on function public.restaurant_kitchen_push_unregister(uuid,text)
 grant execute on function public.restaurant_kitchen_push_unregister(uuid,text)
  to authenticated;
 
--- Remove push subscriptions immediately if a kitchen employee is disabled.
+-- Revoke kitchen push when an employee is disabled or leaves the kitchen role.
 create function public.restaurant_kitchen_push_revoke_staff()
 returns trigger language plpgsql security definer set search_path=''
 as $$
 begin
- if old.active and not new.active then
+ if old.staff_role='kitchen' and (not new.active or new.staff_role<>'kitchen') then
   delete from public.restaurant_kitchen_push_subscriptions
    where shop_id=new.shop_id and user_id=new.user_id;
  end if;
@@ -109,8 +109,8 @@ end; $$;
 revoke all on function public.restaurant_kitchen_push_revoke_staff()
  from public,anon,authenticated;
 create trigger restaurant_kitchen_push_staff_revoked
- after update of active on public.restaurant_staff_members
- for each row when (old.active=true and new.active=false)
+ after update of active,staff_role on public.restaurant_staff_members
+ for each row when (old.staff_role='kitchen' and (new.active=false or new.staff_role<>'kitchen'))
  execute function public.restaurant_kitchen_push_revoke_staff();
 
 -- Service-only leasing of eligible events; stale leases expire and are retried.
