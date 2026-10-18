@@ -81,9 +81,9 @@ export function CreateShopForm({
       onMessage('L’adresse physique de votre établissement est obligatoire (10 à 240 caractères).')
       return
     }
-    if (businessKind !== 'retail') {
+    if (businessKind === 'salon') {
       onMessage(
-        'Le module Restaurant ou Salon est encore en préparation. Votre compte est conservé ; l’ouverture de cet établissement sera disponible après validation.',
+        'Le module Salon est encore en préparation. Votre compte est conservé ; l’ouverture sera possible après validation.',
       )
       return
     }
@@ -117,7 +117,9 @@ export function CreateShopForm({
         })
         if (profileError) throw profileError
       }
-      const { data, error } = await supabase.rpc('create_my_retail_shop_with_address', {
+      const { data, error } = await supabase.rpc(
+        businessKind === 'restaurant' ? 'create_my_restaurant_with_address' : 'create_my_retail_shop_with_address',
+        {
         p_name: String(f.get('name')).trim(),
         p_city: selectedCity.trim(),
         p_administrative_area: selectedArea,
@@ -128,7 +130,8 @@ export function CreateShopForm({
         p_latitude: gps?.latitude ?? undefined,
         p_longitude: gps?.longitude ?? undefined,
         p_location_accuracy_m: gps?.accuracy ?? undefined,
-      })
+        },
+      )
       if (error) onMessage(authError(error))
       else {
         clearOwnerOAuthIntent()
@@ -264,12 +267,12 @@ export function CreateShopForm({
           }}
         />
         <ShopGpsControl value={gps} onChange={setGps} />
-        {(businessKind !== 'retail' || currency !== 'XAF') && (
+        {(businessKind === 'salon' || currency !== 'XAF') && (
           <Notice tone="calm">
             <p>
-              {businessKind !== 'retail'
-                ? 'Le module Restaurant / Salon est en préparation : votre compte existe, mais cet établissement ne peut pas encore être créé.'
-                : 'COVI prépare les calculs financiers pour cette devise. Les ouvertures actuellement actives concernent les boutiques de la zone CEMAC (XAF).'}
+              {businessKind === 'salon'
+                ? 'Le module Salon est en préparation. Les restaurants et boutiques XAF peuvent déjà créer leur établissement.'
+                : 'Les calculs financiers pour cette devise ne sont pas encore validés. Les boutiques et restaurants de la zone CEMAC (XAF) sont pris en charge.'}
             </p>
           </Notice>
         )}
@@ -284,7 +287,7 @@ export function CreateShopForm({
           block
           type="submit"
           busy={busy}
-          disabled={businessKind !== 'retail' || currency !== 'XAF'}
+          disabled={businessKind === 'salon' || currency !== 'XAF'}
         >
           Créer mon établissement
         </Button>
