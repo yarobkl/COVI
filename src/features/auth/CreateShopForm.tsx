@@ -2,7 +2,12 @@ import { useState, type FormEvent } from 'react'
 import { Button, Field, Input, LabelCard, Notice } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
 import { BUSINESS_KINDS, businessKindInfo, type BusinessKind } from '../../lib/businessKinds'
-import { clearOwnerOAuthIntent, createOwnerSignupDetails, isValidOwnerPhone, ownerOnboardingHints } from '../../lib/ownerSignup'
+import {
+  clearOwnerOAuthIntent,
+  createOwnerSignupDetails,
+  isValidOwnerPhone,
+  ownerOnboardingHints,
+} from '../../lib/ownerSignup'
 import type { Shop } from '../../lib/types'
 import { OTHER_CITY } from '../../lib/centralAfricaLocations'
 import { OTHER_NEIGHBORHOOD } from '../../lib/neighborhoods'
@@ -34,8 +39,7 @@ export function CreateShopForm({
   const [firstName, setFirstName] = useState(hints.firstName)
   const [lastName, setLastName] = useState(hints.lastName)
   const [phone, setPhone] = useState(hints.phone)
-  const needsOwnerIdentity =
-    !hints.firstName || !hints.lastName || !isValidOwnerPhone(hints.phone)
+  const needsOwnerIdentity = !hints.firstName || !hints.lastName || !isValidOwnerPhone(hints.phone)
   const kindInfo = businessKindInfo(businessKind)
   const [city, setCity] = useState('')
   const [country, setCountry] = useState<string>('République du Congo')
@@ -148,17 +152,46 @@ export function CreateShopForm({
           <>
             <Field label="Prénom du propriétaire">
               {(control) => (
-                <Input {...control} name="first-name" autoComplete="given-name" required minLength={2} maxLength={80} value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+                <Input
+                  {...control}
+                  name="first-name"
+                  autoComplete="given-name"
+                  required
+                  minLength={2}
+                  maxLength={80}
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                />
               )}
             </Field>
             <Field label="Nom du propriétaire">
               {(control) => (
-                <Input {...control} name="last-name" autoComplete="family-name" required minLength={2} maxLength={80} value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                <Input
+                  {...control}
+                  name="last-name"
+                  autoComplete="family-name"
+                  required
+                  minLength={2}
+                  maxLength={80}
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                />
               )}
             </Field>
-            <Field label="Téléphone du propriétaire" hint="Indiquez un numéro international, par exemple +242061234567.">
+            <Field
+              label="Téléphone du propriétaire"
+              hint="Indiquez un numéro international, par exemple +242061234567."
+            >
               {(control) => (
-                <Input {...control} name="phone" autoComplete="tel" type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} />
+                <Input
+                  {...control}
+                  name="phone"
+                  autoComplete="tel"
+                  type="tel"
+                  required
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
               )}
             </Field>
           </>
