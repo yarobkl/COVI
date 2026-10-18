@@ -86,6 +86,7 @@ test('sends generic payload, sends no customer data, and finishes claimed event'
   assert.deepEqual(await res.json(), { claimed: 1, sent: 1, gone: 0, retry: 0, failedAcks: 0 })
   assert.equal(sends.length, 1)
   assert.equal(JSON.parse(sends[0][1]).title, 'COVI — Nouvelle préparation')
+  assert.deepEqual(calls[0][1], { p_limit: 5 })
   assert.equal(calls[1][1].p_through, '9007199254740993')
   assert.equal(calls[1][1].p_outcome, 'sent')
   assert.equal(sends[0][1].includes('restaurant'), false)
