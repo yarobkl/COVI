@@ -2,10 +2,36 @@ import { supabase } from './supabase'
 import { prepareManualOrderLines, type ManualOrderLineInput } from './manualOrder'
 import { validateReferencePhotoDataUri } from './orderReferencePhoto'
 
-const gatewayUrl = new URL(
-  '/functions/v1/public-checkout',
-  import.meta.env.VITE_SUPABASE_URL ?? 'https://bmbwmwgfzrijglzcgjut.supabase.co',
-)
+/**
+ * Fail closed when an isolated build forgets its Supabase endpoint.
+ * A hardcoded production fallback could otherwise send customer requests
+ * from a test frontend to COVI's production Edge Function.
+ */
+function configuredGuestGatewayUrl(): URL {
+  const endpoint: unknown = import.meta.env.VITE_SUPABASE_URL
+  if (typeof endpoint !== 'string' || !endpoint.trim()) {
+    throw new Error('Passerelle de commande non configurée pour cet environnement.')
+  }
+
+  let base: URL
+  try {
+    base = new URL(endpoint)
+  } catch {
+    throw new Error('Adresse Supabase de la passerelle invalide.')
+  }
+  if (
+    (base.protocol !== 'https:' &&
+      !(base.protocol === 'http:' && base.hostname === 'localhost')) ||
+    base.username ||
+    base.password ||
+    base.search ||
+    base.hash ||
+    base.pathname !== '/'
+  ) {
+    throw new Error('Adresse Supabase de la passerelle non sécurisée.')
+  }
+  return new URL('/functions/v1/public-checkout', base)
+}
 
 async function fetchGuestGateway(url: URL, options?: RequestInit): Promise<unknown> {
   let response: Response
@@ -168,7 +194,7 @@ export function parsePublicCatalog(value: unknown): PublicCatalog {
 
 export async function getPublicCatalog(token: string): Promise<PublicCatalog> {
   if (!UUID.test(token)) throw new Error('Lien public invalide.')
-  const url = new URL(gatewayUrl)
+  const url = configuredGuestGatewayUrl()
   url.searchParams.set('token', token)
   return parsePublicCatalog(await fetchGuestGateway(url))
 }
@@ -265,7 +291,7 @@ export async function submitPublicOrder(
   if (typeof input.challenge !== 'string' || input.challenge.length < 10)
     throw new Error('Terminez la vérification anti-robot avant de continuer.')
   return parseRecordedPublicRequest(
-    await fetchGuestGateway(gatewayUrl, {
+    await fetchGuestGateway(configuredGuestGatewayUrl(), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -472,7 +498,7 @@ export function parseGuestCheckoutStatus(value: unknown): GuestCheckoutStatus {
 
 export async function getGuestCheckoutStatus(trackingToken: string): Promise<GuestCheckoutStatus> {
   if (!UUID.test(trackingToken)) throw new Error('Lien de suivi invalide.')
-  const url = new URL(gatewayUrl)
+  const url = configuredGuestGatewayUrl()
   url.searchParams.set('tracking', trackingToken)
   return parseGuestCheckoutStatus(await fetchGuestGateway(url))
 }
