@@ -11,3 +11,18 @@ verify_jwt = false
 # Purge nocturne des comptes supprimés : appelée par pg_cron avec son propre jeton (Vault).
 [functions.account-purge]
 verify_jwt = false
+
+# Restaurant : QR d'une table, catalogue et statut uniquement. Accès public en lecture,
+# strictement via la fonction Edge, désactivée par défaut jusqu'à validation.
+[functions.restaurant-qr]
+verify_jwt = false
+
+# Paniers collectifs : fonction invitée sécurisée, jamais de JWT direct au client.
+# Elle ne peut fonctionner qu'avec Turnstile, secret HMAC et activation explicite.
+[functions.restaurant-guest]
+verify_jwt = false
+
+# Push Cuisine : seul un ordonnanceur serveur muni du secret peut exécuter
+# les envois. La passerelle contrôle son propre bearer avant toute lecture.
+[functions.restaurant-kitchen-push]
+verify_jwt = false

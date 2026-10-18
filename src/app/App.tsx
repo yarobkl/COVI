@@ -12,6 +12,13 @@ import { HistoryPage } from '../features/history/HistoryPage'
 import { NotificationBell } from '../features/notifications/NotificationBell'
 import { useShopNotifications } from '../features/notifications/useShopNotifications'
 import { OrdersPage } from '../features/orders/OrdersPage'
+import { RestaurantTablesPage } from '../features/restaurant/RestaurantTablesPage'
+import { RestaurantMenuPage } from '../features/restaurant/RestaurantMenuPage'
+import { RestaurantOrdersPage } from '../features/restaurant/RestaurantOrdersPage'
+import { RestaurantStaffPanel } from '../features/restaurant/RestaurantStaffPanel'
+import { SalonServicesPage } from '../features/salon/SalonServicesPage'
+import { SalonBookingsPage } from '../features/salon/SalonBookingsPage'
+import { SectorHomePage } from '../features/sectors/SectorHomePage'
 import { TillSwitch } from '../features/team/TillSwitch'
 import { SettingsPage } from '../features/settings/SettingsPage'
 import { StatisticsPage } from '../features/statistics/StatisticsPage'
@@ -24,7 +31,8 @@ import { plural } from '../lib/format'
 import { legalLinks } from '../lib/legal'
 import type { Shop } from '../lib/types'
 import { initials, ownerName, shortName } from './identity'
-import { bottomBar, morePages, pages, sommaire } from './navigation'
+import { pages } from './navigation'
+import { availableInSector, navigationFor, sectorOf } from './sectorNavigation'
 import { routeHash, routeKey, type ArrivalFilter, type PageId, type Route } from './routes'
 import { useHashRoute } from './useHashRoute'
 
@@ -73,9 +81,30 @@ function ArrivalsScreen({ shopId, filter }: { shopId: string; filter?: ArrivalFi
 }
 
 function renderPage(route: Route, { shop, updateShop, onSimulation, ownerId }: PageContext) {
+  const sector = sectorOf(shop.business_kind)
+  if (!availableInSector(sector, route.page))
+    return sector === 'retail' ? (
+      <DashboardPage shop={shop} onSimulation={onSimulation} />
+    ) : (
+      <SectorHomePage shop={shop} />
+    )
   switch (route.page) {
     case 'accueil':
-      return <DashboardPage shop={shop} onSimulation={onSimulation} />
+      return sector === 'retail' ? (
+        <DashboardPage shop={shop} onSimulation={onSimulation} />
+      ) : (
+        <SectorHomePage shop={shop} />
+      )
+    case 'restaurant-orders':
+      return <RestaurantOrdersPage shopId={shop.id} />
+    case 'restaurant-tables':
+      return <RestaurantTablesPage shopId={shop.id} />
+    case 'restaurant-menu':
+      return <RestaurantMenuPage shopId={shop.id} />
+    case 'salon-services':
+      return <SalonServicesPage shopId={shop.id} />
+    case 'salon-bookings':
+      return <SalonBookingsPage shopId={shop.id} />
     case 'vendre':
       return <TillSwitch shopId={shop.id} />
     case 'stock':
@@ -101,8 +130,13 @@ function renderPage(route: Route, { shop, updateShop, onSimulation, ownerId }: P
       return (
         <div className="page-stack">
           <SettingsPage shopId={shop.id} onShopUpdated={updateShop} />
-          <SharedCashiersPanel shopId={shop.id} />
-          <TeamPanel shopId={shop.id} shopName={shop.name} />
+          {sector === 'restaurant' && <RestaurantStaffPanel shopId={shop.id} />}
+          {sector === 'retail' && (
+            <>
+              <SharedCashiersPanel shopId={shop.id} />
+              <TeamPanel shopId={shop.id} shopName={shop.name} />
+            </>
+          )}
           <AccountDeletionPanel
             shopId={shop.id}
             shopName={shop.name}
@@ -130,7 +164,9 @@ function LegalLinks() {
 function ShopLabel({ shop, owner }: { shop: Shop; owner: string | null }) {
   return (
     <LabelCard className="shop-label">
-      <p className="sommaire__shop-kicker">Cahier de caisse</p>
+      <p className="sommaire__shop-kicker">
+        {sectorOf(shop.business_kind) === 'retail' ? 'Cahier de caisse' : 'Cahier de gestion'}
+      </p>
       <p className="sommaire__shop-name">{shop.name}</p>
       {shop.city ? (
         <p className="sommaire__shop-place">{shop.city}</p>
@@ -223,6 +259,8 @@ export function App({
   onSimulation: () => void
 }) {
   const { route, navigate } = useHashRoute()
+  const sector = sectorOf(shop.business_kind)
+  const visibleNavigation = navigationFor(sector)
   const sync = useSyncState()
   const notifications = useShopNotifications(shop.id)
   const user = useCurrentUser()
@@ -289,17 +327,21 @@ export function App({
         <div className="sommaire__sale">
           <ButtonLink
             variant="sale"
-            href={routeHash({ page: 'vendre' })}
-            aria-current={current('vendre')}
+            href={routeHash({ page: visibleNavigation.primary })}
+            aria-current={current(visibleNavigation.primary)}
             icon={<PlusIcon />}
           >
-            Nouvelle vente
+            {sector === 'retail'
+              ? 'Nouvelle vente'
+              : sector === 'restaurant'
+                ? 'Mes tables'
+                : 'Mes prestations'}
           </ButtonLink>
         </div>
         <NotificationBell state={notifications} className="bell--sommaire" withLabel />
         <h2 className="sommaire__title">Sommaire</h2>
         <ul className="sommaire__list">
-          {sommaire.map(({ page, label, icon: Icon }) => (
+          {visibleNavigation.sommaire.map(({ page, label, icon: Icon }) => (
             <li key={page}>
               <a className="sommaire__link" href={routeHash({ page })} aria-current={current(page)}>
                 <Icon />
@@ -310,9 +352,11 @@ export function App({
         </ul>
         <div className="sommaire__foot">
           <NetStatus state={sync} shopId={shop.id} />
-          <button type="button" className="btn btn--ghost sommaire__quiet" onClick={onSimulation}>
-            Voir une boutique d’exemple
-          </button>
+          {sector === 'retail' && (
+            <button type="button" className="btn btn--ghost sommaire__quiet" onClick={onSimulation}>
+              Voir une boutique d’exemple
+            </button>
+          )}
           <button type="button" className="btn btn--ghost sommaire__quiet" onClick={askSignOut}>
             Se déconnecter
           </button>
@@ -332,7 +376,7 @@ export function App({
       </main>
 
       <nav className="bottom-nav" aria-label="Navigation principale">
-        {bottomBar.map(({ page, label, icon: Icon }) =>
+        {visibleNavigation.bottomBar.map(({ page, label, icon: Icon }) =>
           page === 'vendre' ? (
             <a
               key={page}
@@ -362,7 +406,9 @@ export function App({
           className="bottom-nav__item"
           aria-haspopup="dialog"
           aria-expanded={menuOpen}
-          aria-current={morePages.some((p) => p.page === route.page) ? 'page' : undefined}
+          aria-current={
+            visibleNavigation.morePages.some((p) => p.page === route.page) ? 'page' : undefined
+          }
           onClick={() => setMenuOpen(true)}
         >
           <MenuIcon />
@@ -377,7 +423,7 @@ export function App({
           </h2>
           <ShopLabel shop={shop} owner={owner} />
           <ul className="sommaire__list">
-            {morePages.map(({ page, label, icon: Icon }) => (
+            {visibleNavigation.morePages.map(({ page, label, icon: Icon }) => (
               <li key={page}>
                 <a
                   className="sommaire__link"
@@ -392,16 +438,18 @@ export function App({
             ))}
           </ul>
           <div className="menu-sheet__foot">
-            <button
-              type="button"
-              className="btn btn--ghost"
-              onClick={() => {
-                setMenuOpen(false)
-                onSimulation()
-              }}
-            >
-              Voir une boutique d’exemple
-            </button>
+            {sector === 'retail' && (
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={() => {
+                  setMenuOpen(false)
+                  onSimulation()
+                }}
+              >
+                Voir une boutique d’exemple
+              </button>
+            )}
             <Button variant="danger" onClick={askSignOut}>
               Se déconnecter
             </Button>
