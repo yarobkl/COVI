@@ -22,6 +22,7 @@ const rpc = async (name: string, args: Record<string, unknown>): Promise<unknown
       'content-type': 'application/json',
     },
     body: JSON.stringify(args),
+    signal: AbortSignal.timeout(5_000),
   })
   if (!response.ok) throw Error('Kitchen push RPC unavailable')
   return response.json()
@@ -31,6 +32,6 @@ const sendPush = async (
   payload: string,
 ): Promise<void> => {
   webpush.setVapidDetails(config.subject, config.publicKey, config.privateKey)
-  await webpush.sendNotification(subscription, payload, { TTL: 120, urgency: 'high' })
+  await webpush.sendNotification(subscription, payload, { TTL: 120, urgency: 'high', timeout: 8_000 })
 }
 Deno.serve(createKitchenPushDispatcher(config, { rpc, sendPush }))
