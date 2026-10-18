@@ -48,6 +48,21 @@ export function allowedOrigins(value) {
     })
 }
 
+/** Resolve runtime settings without implicit public-order activation or
+ * deriving rate-limit secrets from the Supabase service-role credential.
+ * readEnv is injected for unit tests; Deno.env.get is used only at runtime.
+ */
+export function resolvePublicCheckoutEnvironment(readEnv) {
+  return {
+    COVI_GATEWAY_ENABLED: readEnv('COVI_GATEWAY_ENABLED') === 'true' ? 'true' : 'false',
+    COVI_PUBLIC_ORIGIN: readEnv('COVI_PUBLIC_ORIGIN') ?? '',
+    SUPABASE_URL: readEnv('SUPABASE_URL'),
+    SUPABASE_SERVICE_ROLE_KEY: readEnv('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    COVI_GATEWAY_PEPPER: readEnv('COVI_GATEWAY_PEPPER') ?? '',
+    COVI_TURNSTILE_SECRET: readEnv('COVI_TURNSTILE_SECRET'),
+  }
+}
+
 function readSettings(env) {
   const origins = allowedOrigins(env.COVI_PUBLIC_ORIGIN)
   let apiOk = false
