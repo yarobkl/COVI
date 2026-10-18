@@ -39,5 +39,5 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - run: deno check supabase/functions/covi-welcome/index.ts
+      - run: cd supabase/functions/covi-welcome && deno check index.ts
       - run: node --test tests/covi_welcome.mjs
