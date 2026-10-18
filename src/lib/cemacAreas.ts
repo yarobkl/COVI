@@ -50,14 +50,7 @@ const ADMINISTRATIVE_AREAS: Readonly<Record<string, readonly string[]>> = {
     'Yaoundé VII',
   ],
   // Cameroun INS: https://stat.cm/nada/index.php/catalog/114/download/973
-  'Cameroun|Douala': [
-    'Douala I',
-    'Douala II',
-    'Douala III',
-    'Douala IV',
-    'Douala V',
-    'Douala VI',
-  ],
+  'Cameroun|Douala': ['Douala I', 'Douala II', 'Douala III', 'Douala IV', 'Douala V', 'Douala VI'],
 }
 
 /** Certified suggestions for a few known arrondissements, not exhaustive. */
@@ -81,12 +74,7 @@ const NEIGHBORHOODS: Readonly<Record<string, readonly string[]>> = {
     'Ngamakosso',
     'Manianga',
   ],
-  'République du Congo|Brazzaville|Bacongo': [
-    'Dahomey',
-    'Mbama',
-    'Mpissa',
-    'Moukoundzi-Ngouaka',
-  ],
+  'République du Congo|Brazzaville|Bacongo': ['Dahomey', 'Mbama', 'Mpissa', 'Moukoundzi-Ngouaka'],
 }
 
 /** Returns only the known divisions for the requested city (no cross-city mixing). */
