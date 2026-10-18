@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from 'vitest'
 import {
+  configuredPublicGatewayEnv,
   createPublicCheckoutGateway,
   decodeReferenceJpeg,
   parseOrder,
@@ -260,5 +261,44 @@ describe('fichiers JPEG envoyés par un client', () => {
     huge[15] = 0x10
     huge[16] = 0x01
     expect(decodeReferenceJpeg(jpegData(huge))).toBeNull()
+  })
+})
+
+describe('public checkout deployment configuration fails closed', () => {
+  it('never enables the public gateway from an absent or unexpected value', () => {
+    for (const value of [undefined, null, '', 'TRUE', '1', 'false']) {
+      expect(configuredPublicGatewayEnv({
+        ...env,
+        COVI_GATEWAY_ENABLED: value,
+      }).COVI_GATEWAY_ENABLED).toBe('false')
+    }
+    expect(configuredPublicGatewayEnv(env).COVI_GATEWAY_ENABLED).toBe('true')
+  })
+
+  it('never silently selects production origin or derives a pepper from service credentials', () => {
+    const settings = configuredPublicGatewayEnv({
+      COVI_GATEWAY_ENABLED: 'true',
+      SUPABASE_URL: env.SUPABASE_URL,
+      SUPABASE_SERVICE_ROLE_KEY: env.SUPABASE_SERVICE_ROLE_KEY,
+    })
+    expect(settings.COVI_PUBLIC_ORIGIN).toBe('')
+    expect(settings.COVI_GATEWAY_PEPPER).toBe('')
+    expect(settings.COVI_SUPABASE_SECRET_KEY).toBeUndefined()
+    expect(settings.SUPABASE_SERVICE_ROLE_KEY).toBe(env.SUPABASE_SERVICE_ROLE_KEY)
+  })
+
+  it('rejects requests before privileged backend calls when pepper is missing', async () => {
+    const transport = vi.fn()
+    const settings = configuredPublicGatewayEnv({
+      ...env,
+      COVI_GATEWAY_PEPPER: undefined,
+    })
+    const handle = createPublicCheckoutGateway(settings, transport)
+    const response = await handle(new Request('https://test.example/functions/v1/public-checkout', {
+      method: 'GET',
+      headers: { Origin: 'https://covi.example' },
+    }))
+    expect(response.status).toBe(503)
+    expect(transport).not.toHaveBeenCalled()
   })
 })
