@@ -23,8 +23,8 @@ jobs:
       - name: Formatage
         run: |
           npm run format:check || {
-            npx prettier --write src/features/auth/LoginForm.tsx src/features/auth/CreateShopForm.tsx src/lib/ownerSignup.ts src/lib/ownerSignup.test.ts src/features/auth/LoginForm.test.tsx src/features/auth/AuthGate.tsx
-            git diff -- src/features/auth/LoginForm.tsx src/features/auth/CreateShopForm.tsx src/lib/ownerSignup.ts src/lib/ownerSignup.test.ts src/features/auth/LoginForm.test.tsx src/features/auth/AuthGate.tsx
+            npx prettier --write src/features/auth/LoginForm.tsx src/features/auth/CreateShopForm.tsx src/lib/ownerSignup.ts src/lib/ownerSignup.test.ts src/features/auth/LoginForm.test.tsx src/features/auth/AuthGate.tsx tests/covi_welcome.mjs
+            git diff -- src/features/auth/LoginForm.tsx src/features/auth/CreateShopForm.tsx src/lib/ownerSignup.ts src/lib/ownerSignup.test.ts src/features/auth/LoginForm.test.tsx src/features/auth/AuthGate.tsx tests/covi_welcome.mjs
             exit 1
           }
       - run: npm run lint
