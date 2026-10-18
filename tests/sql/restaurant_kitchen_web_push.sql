@@ -24,6 +24,8 @@ begin
   or public.restaurant_push_endpoint_allowed('https://127.0.0.1/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
   or public.restaurant_push_endpoint_allowed('https://fcm.googleapis.com.attacker.com/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
   or public.restaurant_push_endpoint_allowed('http://fcm.googleapis.com/fcm/send/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+  or public.restaurant_push_endpoint_allowed('https://user:pass@fcm.googleapis.com/fcm/send/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
+  or public.restaurant_push_endpoint_allowed('https://fcm.googleapis.com:8080/fcm/send/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
  then raise exception 'SSRF host list defective';end if;
  if has_function_privilege('anon','public.restaurant_kitchen_push_register(uuid,text,text,text)','execute')
   or has_function_privilege('authenticated','public.restaurant_kitchen_push_claim(integer)','execute')
@@ -206,4 +208,31 @@ begin
  if (select count(*) from public.restaurant_kitchen_push_subscriptions)>0
  then raise exception 'Revoked chef still has a remote push endpoint';end if;
 end $check_revocation$;
+-- Restoring an authorized kitchen user and changing role to waiter
+-- must remove device keys immediately; later claims must remain empty.
+update public.restaurant_staff_members
+ set active=true
+ where shop_id='10000000-0000-0000-0000-0000000000b1'
+   and user_id='00000000-0000-0000-0000-0000000000b2';
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-0000000000b2',true);
+set local role authenticated;
+do $register_again$
+begin
+ if not public.restaurant_kitchen_push_register(
+  '10000000-0000-0000-0000-0000000000b1',
+  'https://fcm.googleapis.com/fcm/send/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+  repeat('A',87),repeat('B',22))
+ then raise exception 'Re-enabled kitchen worker cannot register';end if;
+end $register_again$;
+reset role;
+update public.restaurant_staff_members
+ set staff_role='waiter'
+ where shop_id='10000000-0000-0000-0000-0000000000b1'
+   and user_id='00000000-0000-0000-0000-0000000000b2';
+do $role_downgrade$
+begin
+ if exists(select 1 from public.restaurant_kitchen_push_subscriptions
+     where user_id='00000000-0000-0000-0000-0000000000b2')
+ then raise exception 'Waiter still has kitchen push keys after role downgrade';end if;
+end $role_downgrade$;
 rollback;
