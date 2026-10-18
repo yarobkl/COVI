@@ -33,7 +33,7 @@ const validJob = (x) => x && typeof x === 'object' &&
   typeof x.through === 'string' && /^[1-9][0-9]{0,18}$/.test(x.through) &&
   Number.isInteger(x.count) && x.count >= 1 && x.count <= 999 &&
   typeof x.endpoint === 'string' &&
-  typeof x.p256dh === 'string' && /^[A-Za-z0-9_-]{40,256}$/.test(x.p256dh) &&
+  typeof x.p256dh === 'string' && /^[A-Za-z0-9_-]{40,255}$/.test(x.p256dh) &&
   typeof x.auth === 'string' && /^[A-Za-z0-9_-]{12,128}$/.test(x.auth)
 
 export function createKitchenPushDispatcher(config, { rpc, sendPush }) {
@@ -43,7 +43,7 @@ export function createKitchenPushDispatcher(config, { rpc, sendPush }) {
     if (!config.secret || config.secret.length < 32 || !config.publicKey ||
         !config.privateKey || !config.subject || !config.serviceKey)
       return json({ error: 'not_configured' }, 503)
-    const token = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '') ?? ''
+    const token = request.headers.get('authorization')?.match(/^Bearer[ \t]+([^\s]+)$/i)?.[1] ?? ''
     if (!constantTimeTokenEquals(token, config.secret))
       return json({ error: 'unauthorized' }, 401)
     let tasks
