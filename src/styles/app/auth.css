@@ -31,6 +31,35 @@
     color: var(--ink-soft);
     font-size: var(--step--1);
   }
+  .auth__identity {
+    color: var(--ink);
+    font-weight: var(--weight-bold);
+    font-size: var(--step--1);
+  }
+  .auth__sectors {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+  }
+  .auth__sector {
+    display: inline-flex;
+    min-height: 1.95rem;
+    align-items: center;
+    padding: 0.2rem 0.65rem;
+    border: var(--border-hair) solid var(--line);
+    border-radius: 999px;
+    font-size: var(--step--2);
+    color: var(--ink-soft);
+    background: var(--sheet);
+  }
+  .auth__sector--active {
+    color: var(--action);
+    border-color: var(--action);
+    font-weight: var(--weight-bold);
+  }
+
   .auth__grid {
     display: grid;
     gap: var(--space-8);
