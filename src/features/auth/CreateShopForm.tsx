@@ -118,18 +118,20 @@ export function CreateShopForm({
         if (profileError) throw profileError
       }
       const { data, error } = await supabase.rpc(
-        businessKind === 'restaurant' ? 'create_my_restaurant_with_address' : 'create_my_retail_shop_with_address',
+        businessKind === 'restaurant'
+          ? 'create_my_restaurant_with_address'
+          : 'create_my_retail_shop_with_address',
         {
-        p_name: String(f.get('name')).trim(),
-        p_city: selectedCity.trim(),
-        p_administrative_area: selectedArea,
-        p_neighborhood: selectedNeighborhood,
-        p_address_line: location.streetAddress.trim(),
-        p_country: location.country,
-        p_currency: currency,
-        p_latitude: gps?.latitude ?? undefined,
-        p_longitude: gps?.longitude ?? undefined,
-        p_location_accuracy_m: gps?.accuracy ?? undefined,
+          p_name: String(f.get('name')).trim(),
+          p_city: selectedCity.trim(),
+          p_administrative_area: selectedArea,
+          p_neighborhood: selectedNeighborhood,
+          p_address_line: location.streetAddress.trim(),
+          p_country: location.country,
+          p_currency: currency,
+          p_latitude: gps?.latitude ?? undefined,
+          p_longitude: gps?.longitude ?? undefined,
+          p_location_accuracy_m: gps?.accuracy ?? undefined,
         },
       )
       if (error) onMessage(authError(error))
