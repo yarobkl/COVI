@@ -3,6 +3,7 @@ import '../styles/index.css'
 import { AuthGate } from '../features/auth/AuthGate'
 import { CounterGate } from '../features/team/CounterGate'
 import { parsePublicHash } from '../lib/publicOrders'
+import { parseRestaurantQrHash } from '../lib/restaurantQr'
 import { App } from './App'
 
 // The example shop is only opened on demand: kept out of the first download.
@@ -13,6 +14,11 @@ const DemoMode = lazy(() =>
 // Customer pages opened by a shop's QR code or WhatsApp / TikTok link: no account, no app shell.
 const PublicOrderPage = lazy(() =>
   import('../features/orders/PublicOrderPage').then((m) => ({ default: m.PublicOrderPage })),
+)
+const PublicRestaurantTablePage = lazy(() =>
+  import('../features/restaurant/PublicRestaurantTablePage').then((m) => ({
+    default: m.PublicRestaurantTablePage,
+  })),
 )
 const PrivacyPage = lazy(() =>
   import('../features/legal/PrivacyPage').then((m) => ({ default: m.PrivacyPage })),
@@ -36,7 +42,9 @@ const legalPages: Record<string, LegalRoute> = {
 }
 const publicRoute = (hash: string) => {
   const legalPage = /^#\/(confidentialite|conditions|aide)\/?$/.exec(hash)
-  return legalPage ? legalPages[legalPage[1]] : parsePublicHash(hash)
+  return legalPage
+    ? legalPages[legalPage[1]]
+    : (parseRestaurantQrHash(hash) ?? parsePublicHash(hash))
 }
 
 function usePublicRoute() {
@@ -73,6 +81,8 @@ export function Root() {
           <SupportPage />
         ) : route.kind === 'order' ? (
           <PublicOrderPage key={route.token} token={route.token} channel={route.channel} />
+        ) : route.kind === 'restaurantTable' ? (
+          <PublicRestaurantTablePage key={route.token} token={route.token} />
         ) : (
           <PublicTrackingPage key={route.trackingToken} trackingToken={route.trackingToken} />
         )}

@@ -5,6 +5,24 @@ import type { Shop } from '../lib/types'
 import { App } from './App'
 
 // The shell is tested on its own: pages are replaced by stubs showing their props.
+vi.mock('../features/sectors/SectorHomePage', () => ({
+  SectorHomePage: () => <p>page:sector-home</p>,
+}))
+vi.mock('../features/restaurant/RestaurantOrdersPage', () => ({
+  RestaurantOrdersPage: () => <p>page:restaurant-orders</p>,
+}))
+vi.mock('../features/restaurant/RestaurantTablesPage', () => ({
+  RestaurantTablesPage: () => <p>page:restaurant-tables</p>,
+}))
+vi.mock('../features/restaurant/RestaurantMenuPage', () => ({
+  RestaurantMenuPage: () => <p>page:restaurant-menu</p>,
+}))
+vi.mock('../features/salon/SalonServicesPage', () => ({
+  SalonServicesPage: () => <p>page:salon-services</p>,
+}))
+vi.mock('../features/salon/SalonBookingsPage', () => ({
+  SalonBookingsPage: () => <p>page:salon-bookings</p>,
+}))
 vi.mock('../features/dashboard/DashboardPage', () => ({
   DashboardPage: ({ shop }: { shop: { id: string } }) => <p>page:dashboard:{shop.id}</p>,
 }))
@@ -22,6 +40,7 @@ vi.mock('../features/arrivals/ArrivalsPage', () => ({
   },
 }))
 vi.mock('../features/expenses/ExpensesPage', () => ({ ExpensesPage: () => <p>page:expenses</p> }))
+vi.mock('../features/staff/EmployeesPage', () => ({ EmployeesPage: () => <p>page:staff</p> }))
 vi.mock('../features/history/HistoryPage', () => ({ HistoryPage: () => <p>page:history</p> }))
 vi.mock('../features/statistics/StatisticsPage', () => ({
   StatisticsPage: () => <p>page:statistics</p>,
@@ -69,6 +88,30 @@ function renderApp(overrides: Partial<Shop> = {}) {
 }
 
 describe('App shell', () => {
+  it('isolates restaurant navigation from clothing sales', async () => {
+    const { sommaire } = renderApp({ business_kind: 'restaurant' })
+    expect(screen.getByText('page:sector-home')).toBeTruthy()
+    expect(within(sommaire).getByText('Plan de salle')).toBeTruthy()
+    expect(within(sommaire).getByText('Service & caisse')).toBeTruthy()
+    expect(within(sommaire).getByText('Carte & boissons')).toBeTruthy()
+    expect(within(sommaire).queryByText('Arrivages')).toBeNull()
+    await go('#/restaurant-menu')
+    expect(screen.getByText('page:restaurant-menu')).toBeTruthy()
+    await go('#/salon-bookings')
+    expect(screen.getByText('page:sector-home')).toBeTruthy()
+  })
+
+  it('isolates salon navigation and keeps the clothing interface intact', async () => {
+    const { sommaire } = renderApp({ business_kind: 'salon' })
+    expect(within(sommaire).getByText('Prestations')).toBeTruthy()
+    expect(within(sommaire).getByText('Rendez-vous')).toBeTruthy()
+    expect(within(sommaire).queryByText('Stock')).toBeNull()
+    await go('#/salon-services')
+    expect(screen.getByText('page:salon-services')).toBeTruthy()
+    await go('#/vendre')
+    expect(screen.getByText('page:sector-home')).toBeTruthy()
+  })
+
   it('shows the notebook label, the navigation and Accueil first', () => {
     const { sommaire, bottom } = renderApp()
     expect(within(sommaire).getByText('Chez Mama Grâce')).toBeTruthy()
@@ -85,6 +128,7 @@ describe('App shell', () => {
       'Arrivages',
       'Ventes',
       'Charges',
+      'Personnel',
       'Bilan',
       'Ma boutique',
       'Conditions d’utilisation',
@@ -137,6 +181,8 @@ describe('App shell', () => {
         .getByRole('navigation', { name: 'Filtrer les arrivages' })
         .querySelector('[aria-current="page"]')?.textContent,
     ).toBe('Tous')
+    await go('#/personnel')
+    expect(screen.getByText('page:staff')).toBeTruthy()
     await go('#/boutique')
     expect(screen.getByText('page:settings')).toBeTruthy()
     expect(document.title).toBe('Ma boutique · COVI')

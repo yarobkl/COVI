@@ -6,6 +6,7 @@ import {
   HangerIcon,
   HomeIcon,
   NotebookIcon,
+  PeopleIcon,
   ReceiptIcon,
   ShopIcon,
   type IconProps,
@@ -23,8 +24,14 @@ export const pages: Record<PageId, NavEntry> = {
   arrivages: { page: 'arrivages', label: 'Arrivages', icon: BoxIcon },
   ventes: { page: 'ventes', label: 'Ventes', icon: NotebookIcon },
   charges: { page: 'charges', label: 'Charges', icon: BillIcon },
+  personnel: { page: 'personnel', label: 'Personnel', icon: PeopleIcon },
   bilan: { page: 'bilan', label: 'Bilan', icon: BarsIcon },
   boutique: { page: 'boutique', label: 'Ma boutique', icon: ShopIcon },
+  'restaurant-orders': { page: 'restaurant-orders', label: 'Service & caisse', icon: ReceiptIcon },
+  'restaurant-tables': { page: 'restaurant-tables', label: 'Plan de salle', icon: BoxIcon },
+  'restaurant-menu': { page: 'restaurant-menu', label: 'Carte & boissons', icon: NotebookIcon },
+  'salon-services': { page: 'salon-services', label: 'Prestations', icon: ReceiptIcon },
+  'salon-bookings': { page: 'salon-bookings', label: 'Rendez-vous', icon: NotebookIcon },
 }
 
 /** Computer « Sommaire », under the « Nouvelle vente » key (which leads to Vendre). */
@@ -35,6 +42,7 @@ export const sommaire: readonly NavEntry[] = [
   pages.arrivages,
   pages.ventes,
   pages.charges,
+  pages.personnel,
   pages.bilan,
   pages.boutique,
 ]
@@ -48,6 +56,7 @@ export const morePages: readonly NavEntry[] = [
   pages.arrivages,
   pages.ventes,
   pages.charges,
+  pages.personnel,
   pages.bilan,
   pages.boutique,
 ]
