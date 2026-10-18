@@ -138,23 +138,36 @@ function RestaurantHome({ shop }: { shop: Shop }) {
       <Sheet>
         <h2 className="section-title">Une fois installé, comment ça marche ?</h2>
         <ol className="sector-guide__journey" aria-label="Déroulement d’un service">
-          <li><b>1. Table</b><span>Un client arrive. Ouvrez sa table.</span></li>
-          <li><b>2. Commande</b><span>Notez ses plats et boissons.</span></li>
-          <li><b>3. Service</b><span>Indiquez ce qui a été servi.</span></li>
-          <li><b>4. Caisse</b><span>Enregistrez l’argent reçu en espèces.</span></li>
+          <li>
+            <b>1. Table</b>
+            <span>Un client arrive. Ouvrez sa table.</span>
+          </li>
+          <li>
+            <b>2. Commande</b>
+            <span>Notez ses plats et boissons.</span>
+          </li>
+          <li>
+            <b>3. Service</b>
+            <span>Indiquez ce qui a été servi.</span>
+          </li>
+          <li>
+            <b>4. Caisse</b>
+            <span>Enregistrez l’argent reçu en espèces.</span>
+          </li>
         </ol>
         <p className="sector-guide__footnote">
-          La table se libère après le service et le règlement complet. Les montants proviennent des opérations enregistrées.
+          La table se libère après le service et le règlement complet. Les montants proviennent des
+          opérations enregistrées.
         </p>
       </Sheet>
 
       <details className="sector-guide__help">
         <summary>Besoin d’une explication ?</summary>
         <p>
-          Commencez par « Plan de salle » pour ajouter les tables et leurs capacités.
-          Puis ouvrez « Carte & boissons » pour inscrire les articles et leurs prix.
-          Pendant le service, « Service & caisse » permet d’ouvrir une table, de suivre
-          les commandes et d’enregistrer les paiements en espèces.
+          Commencez par « Plan de salle » pour ajouter les tables et leurs capacités. Puis ouvrez «
+          Carte & boissons » pour inscrire les articles et leurs prix. Pendant le service, « Service &
+          caisse » permet d’ouvrir une table, de suivre les commandes et d’enregistrer les paiements
+          en espèces.
         </p>
       </details>
     </div>
@@ -174,13 +187,16 @@ function SalonHome({ shop }: { shop: Shop }) {
           Commencez par vos prestations, puis préparez votre lien de réservation et votre agenda.
         </p>
         <div className="row-actions">
-          <ButtonLink variant="primary" href="#/salon-services">Mes prestations</ButtonLink>
+          <ButtonLink variant="primary" href="#/salon-services">
+            Mes prestations
+          </ButtonLink>
           <ButtonLink href="#/salon-bookings">Mes rendez-vous</ButtonLink>
         </div>
       </Sheet>
       <Notice tone="calm">
         <p>
-          Les bénéfices et les encaissements ne seront affichés qu’après confirmation de transactions réelles.
+          Les bénéfices et les encaissements ne seront affichés qu’après confirmation de
+          transactions réelles.
         </p>
       </Notice>
     </div>
