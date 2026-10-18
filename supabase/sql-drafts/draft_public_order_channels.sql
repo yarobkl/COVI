@@ -541,6 +541,7 @@ grant execute on function public.submit_checkout_public_order(
 create table if not exists public.checkout_gateway_rate_windows (
   digest text not null check (digest ~ '^[0-9a-f]{64}$'),
   bucket_kind text not null check (bucket_kind in (
+    'catalog_global_minute', 'status_global_minute', 'order_global_minute',
     'catalog_source_minute', 'catalog_link_minute',
     'order_source_minute', 'order_source_day', 'order_link_minute',
     'status_source_minute', 'status_token_minute'
