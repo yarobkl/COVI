@@ -47,7 +47,7 @@ export function createKitchenPushDispatcher(config, { rpc, sendPush }) {
     if (!constantTimeTokenEquals(token, config.secret))
       return json({ error: 'unauthorized' }, 401)
     let tasks
-    try { tasks = await rpc('restaurant_kitchen_push_claim', { p_limit: 25 }) }
+    try { tasks = await rpc('restaurant_kitchen_push_claim', { p_limit: 5 }) }
     catch { return json({ error: 'queue_unavailable' }, 503) }
     if (!Array.isArray(tasks) || tasks.length > 25)
       return json({ error: 'invalid_queue_response' }, 503)
