@@ -20,8 +20,7 @@ function configuredGuestGatewayUrl(): URL {
     throw new Error('Adresse Supabase de la passerelle invalide.')
   }
   if (
-    (base.protocol !== 'https:' &&
-      !(base.protocol === 'http:' && base.hostname === 'localhost')) ||
+    (base.protocol !== 'https:' && !(base.protocol === 'http:' && base.hostname === 'localhost')) ||
     base.username ||
     base.password ||
     base.search ||

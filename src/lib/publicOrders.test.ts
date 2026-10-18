@@ -83,14 +83,16 @@ describe('public checkout links and restricted requests', () => {
     vi.stubGlobal('fetch', guestFetch)
     vi.stubEnv('VITE_SUPABASE_URL', '')
     await expect(getPublicCatalog(token)).rejects.toThrow('non configurée')
-    await expect(submitPublicOrder({
-      token,
-      channel: 'qr',
-      operationId,
-      lines: [{ categoryId, quantity: 1, negotiatedUnitPriceXaf: 2000 }],
-      fulfillment: 'pickup',
-      challenge: 'valid-human-challenge-token',
-    })).rejects.toThrow('non configurée')
+    await expect(
+      submitPublicOrder({
+        token,
+        channel: 'qr',
+        operationId,
+        lines: [{ categoryId, quantity: 1, negotiatedUnitPriceXaf: 2000 }],
+        fulfillment: 'pickup',
+        challenge: 'valid-human-challenge-token',
+      }),
+    ).rejects.toThrow('non configurée')
     expect(guestFetch).not.toHaveBeenCalled()
   })
 
