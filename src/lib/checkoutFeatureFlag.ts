@@ -7,20 +7,25 @@ export function checkoutFeatureConfigured(
   supabaseUrl: unknown,
   publicKey: unknown,
 ): boolean {
-  if (enabled !== 'true' || typeof supabaseUrl !== 'string' ||
-      typeof publicKey !== 'string') return false
+  if (enabled !== 'true' || typeof supabaseUrl !== 'string' || typeof publicKey !== 'string')
+    return false
 
   try {
     const url = new URL(supabaseUrl)
     const local = ['localhost', '127.0.0.1'].includes(url.hostname)
-    if ((!local && url.protocol !== 'https:') ||
-        (local && !['http:', 'https:'].includes(url.protocol)) ||
-        url.username || url.password || url.pathname !== '/' ||
-        url.search || url.hash) return false
+    if (
+      (!local && url.protocol !== 'https:') ||
+      (local && !['http:', 'https:'].includes(url.protocol)) ||
+      url.username ||
+      url.password ||
+      url.pathname !== '/' ||
+      url.search ||
+      url.hash
+    )
+      return false
 
     if (publicKey.startsWith('sb_secret_')) return false
-    if (publicKey.startsWith('sb_publishable_'))
-      return publicKey.length >= 28
+    if (publicKey.startsWith('sb_publishable_')) return publicKey.length >= 28
 
     // Older Supabase configurations use a JWT anon key. Reject service_role
     // JWTs from VITE_* configuration: those must never enter a browser bundle.
@@ -28,8 +33,9 @@ export function checkoutFeatureConfigured(
     if (parts.length !== 3) return false
     const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
     const payload: unknown = JSON.parse(atob(base64))
-    return Boolean(payload && typeof payload === 'object' &&
-      'role' in payload && payload.role === 'anon')
+    return Boolean(
+      payload && typeof payload === 'object' && 'role' in payload && payload.role === 'anon',
+    )
   } catch {
     return false
   }

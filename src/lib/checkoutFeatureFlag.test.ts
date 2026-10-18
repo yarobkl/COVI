@@ -38,7 +38,9 @@ describe('experimental checkout deployment gate', () => {
   })
 
   it('never enables experimental checkout with a secret or service_role JWT', () => {
-    expect(checkoutFeatureConfigured('true', url, 'sb_secret_must_never_be_public_123456')).toBe(false)
+    expect(checkoutFeatureConfigured('true', url, 'sb_secret_must_never_be_public_123456')).toBe(
+      false,
+    )
     expect(checkoutFeatureConfigured('true', url, jwt('service_role'))).toBe(false)
     expect(checkoutFeatureConfigured('true', url, 'short')).toBe(false)
     expect(checkoutFeatureConfigured('true', url, 'eyJ.invalid.not-json')).toBe(false)

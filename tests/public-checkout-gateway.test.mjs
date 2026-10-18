@@ -116,14 +116,15 @@ describe('isolated QR/social gateway', () => {
     const result = await gateway(guestPost({ ...order, referenceImage: validImage }))
     expect(result.status).toBe(200)
 
-    const privileged = calls.filter(call =>
-      call.address.includes('/rest/v1/rpc/') ||
-      call.address.includes('/storage/v1/object/') ||
-      call.address.includes('siteverify'),
+    const privileged = calls.filter(
+      (call) =>
+        call.address.includes('/rest/v1/rpc/') ||
+        call.address.includes('/storage/v1/object/') ||
+        call.address.includes('siteverify'),
     )
     expect(privileged.length).toBeGreaterThan(4)
-    expect(privileged.every(call => call.init.signal instanceof AbortSignal)).toBe(true)
-    expect(privileged.every(call => !call.init.signal.aborted)).toBe(true)
+    expect(privileged.every((call) => call.init.signal instanceof AbortSignal)).toBe(true)
+    expect(privileged.every((call) => !call.init.signal.aborted)).toBe(true)
   })
 
   it('fails closed when the privileged database waits indefinitely', async () => {
@@ -132,14 +133,13 @@ describe('isolated QR/social gateway', () => {
     const original = AbortSignal.timeout.bind(AbortSignal)
     const spy = vi.spyOn(AbortSignal, 'timeout').mockImplementation(() => original(20))
     try {
-      const neverResponds = vi.fn((_url, init) =>
-        new Promise((_resolve, reject) => {
-          init.signal.addEventListener(
-            'abort',
-            () => reject(new Error('upstream aborted')),
-            { once: true },
-          )
-        }),
+      const neverResponds = vi.fn(
+        (_url, init) =>
+          new Promise((_resolve, reject) => {
+            init.signal.addEventListener('abort', () => reject(new Error('upstream aborted')), {
+              once: true,
+            })
+          }),
       )
       const gateway = createPublicCheckoutGateway(env, neverResponds)
       const result = await gateway(guestPost())
