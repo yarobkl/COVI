@@ -570,7 +570,13 @@ begin
   if p_digest is null or p_digest !~ '^[0-9a-f]{64}$' then
     raise exception 'Quota source invalide';
   end if;
+  -- Global backstops stop untrusted proxy headers / random guessed tokens
+  -- from generating unlimited distinct rate-limit rows. These ceilings are
+  -- per installation, independent of shop, source and guest bearer token.
   v_limit := case p_kind
+    when 'catalog_global_minute' then 1200
+    when 'status_global_minute' then 1200
+    when 'order_global_minute' then 300
     when 'catalog_source_minute' then 30
     when 'catalog_link_minute' then 120
     when 'order_source_minute' then 5
