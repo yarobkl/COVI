@@ -27,8 +27,8 @@ function Harness() {
 describe('CEMAC business address onboarding', () => {
   it('displays Congo-first CEMAC countries and cascading Brazzaville districts', () => {
     render(<Harness />)
-    const country = screen.getByRole('combobox', { name: 'Pays (zone CEMAC)' })
-    expect(country.querySelectorAll('option')).toHaveLength(6)
+    const country = screen.getByRole('combobox', { name: 'Pays de l’établissement' })
+    expect(country.querySelectorAll('option')).toHaveLength(26)
     fireEvent.change(screen.getByRole('combobox', { name: 'Ville' }), {
       target: { value: 'Brazzaville' },
     })
@@ -52,6 +52,26 @@ describe('CEMAC business address onboarding', () => {
     expect(screen.getByTestId('address').textContent).toContain('Avenue de la Paix')
   })
 
+  it('chooses a country-specific currency and preserves separate CFA zones', () => {
+    render(<Harness />)
+    expect(screen.getByText(/Franc CFA d’Afrique centrale \(XAF\)/)).toBeTruthy()
+    fireEvent.change(screen.getByRole('combobox', { name: 'Pays de l’établissement' }), {
+      target: { value: 'Côte d’Ivoire' },
+    })
+    expect(screen.getByText(/Franc CFA d’Afrique de l’Ouest \(XOF\)/)).toBeTruthy()
+    expect(screen.getByRole('option', { name: 'Abidjan' })).toBeTruthy()
+    fireEvent.change(screen.getByRole('combobox', { name: 'Pays de l’établissement' }), {
+      target: { value: 'République démocratique du Congo' },
+    })
+    expect(screen.getByText(/Franc congolais \(CDF\)/)).toBeTruthy()
+    expect(screen.getByText(/les paiements en USD seront pris en charge/)).toBeTruthy()
+    expect(screen.getByRole('option', { name: 'Kinshasa' })).toBeTruthy()
+    fireEvent.change(screen.getByRole('combobox', { name: 'Pays de l’établissement' }), {
+      target: { value: 'Nigeria' },
+    })
+    expect(screen.getByText(/Naira nigérian \(NGN\)/)).toBeTruthy()
+  })
+
   it('clears dependent geographic data when the selected CEMAC country changes', () => {
     render(<Harness />)
     fireEvent.change(screen.getByRole('combobox', { name: 'Ville' }), {
@@ -60,7 +80,7 @@ describe('CEMAC business address onboarding', () => {
     fireEvent.change(screen.getByRole('combobox', { name: 'Arrondissement / commune' }), {
       target: { value: 'Moungali' },
     })
-    fireEvent.change(screen.getByRole('combobox', { name: 'Pays (zone CEMAC)' }), {
+    fireEvent.change(screen.getByRole('combobox', { name: 'Pays de l’établissement' }), {
       target: { value: 'Cameroun' },
     })
     expect(screen.getByRole('combobox', { name: 'Ville' })).toHaveProperty('value', '')
