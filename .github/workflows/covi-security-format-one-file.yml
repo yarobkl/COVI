@@ -1,0 +1,39 @@
+name: Format one gateway security test
+
+on:
+  push:
+    branches:
+      - security/covi-gateway-fail-closed-20261018
+    paths:
+      - '.github/workflows/covi-security-format-one-file.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.repository == 'yarobkl/COVI' && github.ref == 'refs/heads/security/covi-gateway-fail-closed-20261018'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Format only new gateway security test
+        run: npx prettier --write tests/public-checkout-edge-config.test.mjs
+      - name: Commit solely to isolated security branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tests/public-checkout-edge-config.test.mjs
+          if git diff --cached --quiet; then
+            echo "Already formatted"
+          else
+            git commit -m "style(security): Prettier format gateway configuration tests"
+            git push origin HEAD:refs/heads/security/covi-gateway-fail-closed-20261018
+          fi
