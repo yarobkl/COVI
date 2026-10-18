@@ -78,7 +78,7 @@ export function AuthGate({
     // A failed welcome email is never interpreted as a failed sign-in.
     // Backend verifies this JWT and the actual server-side account timestamp.
     void supabase.functions.invoke('covi-welcome', { body: {} }).catch(() => undefined)
-  }, [session?.user.id, session?.user.created_at])
+  }, [session?.user])
   useEffect(() => {
     let dispose: () => void = () => {}
     let active = true
