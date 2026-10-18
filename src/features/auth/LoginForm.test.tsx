@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { supabase } from '../../lib/supabase'
@@ -53,6 +53,86 @@ describe('LoginForm', () => {
       email: 'grace@exemple.cg',
       password: 'secret1',
     })
+  })
+
+  it('requires the owner identity, company, sector and sends a verification link request', async () => {
+    vi.mocked(supabase.auth.signUp).mockResolvedValue({
+      data: { user: { id: 'signup-1' }, session: null },
+      error: null,
+    } as never)
+    render(<Harness />)
+    fireEvent.click(screen.getByRole('button', { name: 'Créer un compte' }))
+    expect(screen.getByRole('radio', { name: 'Restaurant' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('radio', { name: 'Restaurant' }))
+    fireEvent.change(screen.getByLabelText('Prénom du propriétaire'), {
+      target: { value: 'Marie' },
+    })
+    fireEvent.change(screen.getByLabelText('Nom du propriétaire'), {
+      target: { value: 'Balossa' },
+    })
+    fireEvent.change(screen.getByLabelText('Téléphone du propriétaire'), {
+      target: { value: '+242061234567' },
+    })
+    fireEvent.change(screen.getByLabelText('Nom de votre établissement'), {
+      target: { value: 'Chez Marie' },
+    })
+    fireEvent.change(screen.getByLabelText('Adresse e-mail'), {
+      target: { value: 'marie@exemple.cg' },
+    })
+    fireEvent.change(screen.getByLabelText('Mot de passe'), {
+      target: { value: 'Secret123!' },
+    })
+    fireEvent.change(screen.getByLabelText('Confirmer le mot de passe'), {
+      target: { value: 'Secret123!' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Créer mon compte' }))
+    await waitFor(() => expect(supabase.auth.signUp).toHaveBeenCalledTimes(1))
+    expect(supabase.auth.signUp).toHaveBeenCalledWith({
+      email: 'marie@exemple.cg',
+      password: 'Secret123!',
+      options: {
+        emailRedirectTo: window.location.origin,
+        data: {
+          first_name: 'Marie',
+          last_name: 'Balossa',
+          full_name: 'Marie Balossa',
+          phone_number: '+242061234567',
+          business_kind: 'restaurant',
+          business_name: 'Chez Marie',
+        },
+      },
+    })
+    expect(screen.getByText(/e-mail de confirmation est envoyé/)).toBeTruthy()
+  })
+
+  it('refuses a mismatched password before contacting Supabase', async () => {
+    vi.mocked(supabase.auth.signUp).mockClear()
+    render(<Harness />)
+    fireEvent.click(screen.getByRole('button', { name: 'Créer un compte' }))
+    fireEvent.change(screen.getByLabelText('Prénom du propriétaire'), {
+      target: { value: 'Awa' },
+    })
+    fireEvent.change(screen.getByLabelText('Nom du propriétaire'), {
+      target: { value: 'Koumba' },
+    })
+    fireEvent.change(screen.getByLabelText('Téléphone du propriétaire'), {
+      target: { value: '+242061234567' },
+    })
+    fireEvent.change(screen.getByLabelText('Nom de votre établissement'), {
+      target: { value: 'Awa Boutique' },
+    })
+    fireEvent.change(screen.getByLabelText('Adresse e-mail'), {
+      target: { value: 'awa@exemple.cg' },
+    })
+    fireEvent.change(screen.getByLabelText('Mot de passe'), {
+      target: { value: 'Secret123!' },
+    })
+    fireEvent.change(screen.getByLabelText('Confirmer le mot de passe'), {
+      target: { value: 'Different123!' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Créer mon compte' }))
+    expect(screen.getByText('Les deux mots de passe ne correspondent pas.')).toBeTruthy()
+    expect(supabase.auth.signUp).not.toHaveBeenCalled()
   })
 
   it('switches to sign-up, shows the password and opens the example shop', () => {
