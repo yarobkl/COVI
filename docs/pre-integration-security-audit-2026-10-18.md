@@ -82,7 +82,7 @@ uniques dans chaque sens). **La PR #22 n'est jamais un candidat à une fusion gl
 ### Décision sur les risques qui subsistent
 
 1. **Bloquant :** brancher la caisse sur la source réelle de production
-   uniquement après comparaison *fonctionnelle* avec le système multicaissiers
+   uniquement après comparaison _fonctionnelle_ avec le système multicaissiers
    existant. Les tables, RPC et routes expérimentales sont une architecture
    alternative et ne peuvent être empilées telles quelles.
 2. **Bloquant :** vérifier en staging réel le proxy IP, Turnstile, la fonction
