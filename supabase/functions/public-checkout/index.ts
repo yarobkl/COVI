@@ -1,4 +1,4 @@
-import { createPublicCheckoutGateway } from './gateway.mjs'
+import { createPublicCheckoutGateway, resolvePublicCheckoutEnvironment } from './gateway.mjs'
 
 // Fonction publique au niveau HTTP (pas de JWT client) : la passerelle contrôle l'origine, les
 // quotas, Turnstile et chaque champ avant d'appeler les fonctions SQL réservées à la clé serveur.
@@ -12,15 +12,6 @@ import { createPublicCheckoutGateway } from './gateway.mjs'
 //   COVI_GATEWAY_PEPPER    secret aléatoire indépendant >= 32 caractères, obligatoire
 // Important : configurer ces trois réglages AVANT tout futur déploiement.
 // Sans eux, le canal est volontairement fermé : aucun service n'est activé implicitement.
-const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-
 Deno.serve(
-  createPublicCheckoutGateway({
-    COVI_GATEWAY_ENABLED: Deno.env.get('COVI_GATEWAY_ENABLED') === 'true' ? 'true' : 'false',
-    COVI_PUBLIC_ORIGIN: Deno.env.get('COVI_PUBLIC_ORIGIN'),
-    SUPABASE_URL: Deno.env.get('SUPABASE_URL'),
-    SUPABASE_SERVICE_ROLE_KEY: serviceKey,
-    COVI_GATEWAY_PEPPER: Deno.env.get('COVI_GATEWAY_PEPPER'),
-    COVI_TURNSTILE_SECRET: Deno.env.get('COVI_TURNSTILE_SECRET'),
-  }),
+  createPublicCheckoutGateway(resolvePublicCheckoutEnvironment((name) => Deno.env.get(name))),
 )
