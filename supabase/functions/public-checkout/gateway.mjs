@@ -1,5 +1,9 @@
 // Public guest gateway. This file is runnable in both Deno Edge and Node tests.
 // No owner action, payment confirmation, or inventory mutation is exposed here.
+// Bound external dependency waits to prevent stalled privileged Edge requests.
+const RPC_TIMEOUT_MS = 8000
+const IMAGE_UPLOAD_TIMEOUT_MS = 12000
+const TURNSTILE_TIMEOUT_MS = 8000
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const encoder = new TextEncoder()
 const corsMethods = 'GET, POST, OPTIONS'
@@ -217,6 +221,7 @@ function sourceFingerprint(request) {
 async function backendRpc(env, fetchImpl, name, payload) {
   const url = new URL('/rest/v1/rpc/' + name, env.SUPABASE_URL)
   const response = await fetchImpl(url, {
+    signal: AbortSignal.timeout(RPC_TIMEOUT_MS),
     method: 'POST',
     headers: {
       apikey: env.COVI_SUPABASE_SECRET_KEY,
@@ -244,6 +249,7 @@ async function saveCheckoutReference(env, fetchImpl, result, body) {
     env.SUPABASE_URL,
   )
   const response = await fetchImpl(endpoint, {
+    signal: AbortSignal.timeout(IMAGE_UPLOAD_TIMEOUT_MS),
     method: 'POST',
     headers: {
       apikey: env.COVI_SUPABASE_SECRET_KEY,
@@ -278,6 +284,7 @@ async function verifyTurnstile(env, fetchImpl, challenge) {
     response: challenge,
   })
   const response = await fetchImpl('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+    signal: AbortSignal.timeout(TURNSTILE_TIMEOUT_MS),
     method: 'POST',
     body,
   })
