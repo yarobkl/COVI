@@ -569,3 +569,136 @@
     color: var(--ink);
   }
 }
+
+/* Guided Restaurant home: short, scan-friendly steps, same Cahier paper and blue ink. */
+@layer app {
+  .sector-guide__eyebrow {
+    font-size: var(--step--1);
+    font-weight: var(--weight-bold);
+    color: var(--action);
+    letter-spacing: 0.04em;
+    margin-bottom: var(--space-2);
+  }
+  .sector-guide__lead {
+    max-width: 36rem;
+    color: var(--ink-soft);
+    line-height: var(--leading-relaxed);
+  }
+  .sector-guide__progress {
+    margin-block: var(--space-4) var(--space-2);
+    padding-block: var(--space-2);
+    color: var(--action);
+    font-weight: var(--weight-bold);
+    font-size: var(--step--1);
+    border-block: 1px dashed var(--line-dotted);
+  }
+  .sector-guide__checklist,
+  .sector-guide__journey {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .sector-guide__checklist li {
+    display: grid;
+    grid-template-columns: 2.2rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-3);
+    padding-block: var(--space-3);
+  }
+  .sector-guide__checklist li + li {
+    border-top: 1px dashed var(--line-dotted);
+  }
+  .sector-guide__number {
+    display: grid;
+    place-items: center;
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: 50%;
+    border: 2px solid var(--action);
+    background: var(--sheet);
+    color: var(--action);
+    font-weight: var(--weight-bold);
+  }
+  .sector-guide__step {
+    display: grid;
+    min-width: 0;
+    gap: var(--space-1);
+  }
+  .sector-guide__step strong {
+    color: var(--ink);
+    font-size: var(--step-0);
+  }
+  .sector-guide__step span,
+  .sector-guide__footnote {
+    color: var(--ink-soft);
+    font-size: var(--step--1);
+  }
+  .sector-guide__done {
+    color: var(--action);
+    font-size: var(--step--1);
+    font-weight: var(--weight-bold);
+  }
+  .sector-guide__actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+  }
+  .sector-guide__actions .btn {
+    min-width: 0;
+    white-space: normal;
+    text-align: center;
+  }
+  .sector-guide__secondary {
+    font-weight: var(--weight-bold);
+    color: var(--action);
+    text-underline-offset: 3px;
+  }
+  .sector-guide__journey {
+    display: grid;
+    gap: var(--space-3);
+  }
+  .sector-guide__journey li {
+    display: grid;
+    grid-template-columns: minmax(6rem, 7.5rem) minmax(0, 1fr);
+    align-items: baseline;
+    gap: var(--space-2);
+    border-bottom: 1px dashed var(--line-dotted);
+    padding-bottom: var(--space-2);
+  }
+  .sector-guide__journey b {
+    color: var(--action);
+  }
+  .sector-guide__footnote {
+    margin-top: var(--space-4);
+  }
+  .sector-guide__help {
+    padding: var(--space-3);
+    color: var(--ink-soft);
+    border: 1px dashed var(--line-dotted);
+    border-radius: var(--radius-3);
+  }
+  .sector-guide__help summary {
+    cursor: pointer;
+    color: var(--action);
+    font-weight: var(--weight-bold);
+    min-height: 44px;
+    align-content: center;
+  }
+  .sector-guide__help p {
+    margin-top: var(--space-2);
+  }
+  @media (max-width: 479px) {
+    .sector-guide__actions {
+      align-items: stretch;
+      flex-direction: column;
+    }
+    .sector-guide__actions .btn {
+      width: 100%;
+    }
+    .sector-guide__journey li {
+      grid-template-columns: minmax(5.8rem, 6.5rem) minmax(0, 1fr);
+    }
+  }
+}
