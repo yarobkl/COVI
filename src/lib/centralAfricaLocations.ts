@@ -111,6 +111,22 @@ export const CENTRAL_AFRICA = [
     country: 'Rwanda',
     cities: ['Kigali', 'Huye', 'Musanze', 'Rubavu', 'Muhanga', 'Rusizi', 'Nyagatare'],
   },
+  // Starting city suggestions for West Africa. All countries retain 'Autre ville'.
+  { country: 'Côte d’Ivoire', cities: ['Abidjan', 'Yamoussoukro', 'Bouaké', 'San-Pédro', 'Korhogo', 'Daloa'] },
+  { country: 'Bénin', cities: ['Cotonou', 'Porto-Novo', 'Parakou', 'Ouidah', 'Abomey-Calavi'] },
+  { country: 'Sénégal', cities: ['Dakar', 'Thiès', 'Saint-Louis', 'Touba', 'Kaolack', 'Ziguinchor'] },
+  { country: 'Togo', cities: ['Lomé', 'Kara', 'Sokodé', 'Kpalimé', 'Atakpamé'] },
+  { country: 'Guinée-Bissau', cities: ['Bissau', 'Bafatá', 'Gabú', 'Bissorã'] },
+  { country: 'Burkina Faso', cities: ['Ouagadougou', 'Bobo-Dioulasso', 'Koudougou', 'Ouahigouya'] },
+  { country: 'Mali', cities: ['Bamako', 'Sikasso', 'Ségou', 'Mopti', 'Kayes'] },
+  { country: 'Niger', cities: ['Niamey', 'Maradi', 'Zinder', 'Tahoua', 'Agadez'] },
+  { country: 'Ghana', cities: ['Accra', 'Kumasi', 'Tamale', 'Takoradi', 'Cape Coast'] },
+  { country: 'Nigeria', cities: ['Lagos', 'Abuja', 'Kano', 'Ibadan', 'Port Harcourt', 'Enugu'] },
+  { country: 'Guinée', cities: ['Conakry', 'Kankan', 'Kindia', 'Labé', 'Nzérékoré'] },
+  { country: 'Gambie', cities: ['Banjul', 'Serekunda', 'Brikama', 'Bakau'] },
+  { country: 'Libéria', cities: ['Monrovia', 'Gbarnga', 'Buchanan', 'Kakata'] },
+  { country: 'Sierra Leone', cities: ['Freetown', 'Bo', 'Kenema', 'Makeni'] },
+  { country: 'Cap-Vert', cities: ['Praia', 'Mindelo', 'Santa Maria', 'Assomada'] },
 ] as const
 
 export const OTHER_CITY = '__other__'
