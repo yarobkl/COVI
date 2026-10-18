@@ -17,8 +17,8 @@
 **Ne saisir aucune valeur réelle dans le code ou un commit GitHub.**
 
 - Supabase Edge : `COVI_KITCHEN_PUSH_ENABLED=true` (laisser absent/false tant qu'aucun test de préproduction n'a réussi).
-- Supabase Edge : `COVI_KITCHEN_PUSH_VAPID_PUBLIC_KEY` et `COVI_KITCHEN_PUSH_VAPID_PRIVATE_KEY`, générées en paire par l'outillage Web Push; la clé privée doit rester secrète.
-- Supabase Edge : `COVI_KITCHEN_PUSH_VAPID_SUBJECT`, adresse mail de contact sous forme `mailto:`.
+- Supabase Edge : `COVI_KITCHEN_VAPID_PUBLIC_KEY` et `COVI_KITCHEN_VAPID_PRIVATE_KEY`, générées en paire par l'outillage Web Push; la clé privée doit rester secrète.
+- Supabase Edge : `COVI_KITCHEN_VAPID_SUBJECT`, adresse mail de contact sous forme `mailto:`.
 - Supabase Edge : `COVI_KITCHEN_PUSH_DISPATCH_SECRET` (au moins 32 caractères aléatoires, indépendant de la clé Supabase).
 - Variables publiques front : `VITE_COVI_KITCHEN_VAPID_PUBLIC_KEY` égale à la clé publique ci-dessus. **Jamais** la clé privée.
 - Variables Supabase existantes `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` accessibles seulement au processus Edge.
@@ -39,3 +39,56 @@
 **Aucune nouvelle migration appliquée à Supabase production; aucun secret de production configuré; aucune fonction Edge publiée, aucune tâche cron installée, aucune fusion et aucun changement sur Vercel.**
 
 Ce lot doit encore passer la revue de sécurité, les vérifications de l'environnement Edge et une recette réelle multi-appareils avant un déploiement autorisé. La DA « Le Cahier » demeure inchangée.
+
+## Revue supplémentaire — 18 octobre 2026
+
+- La regex de la clé Web Push est bornée à 255 caractères **dans la RPC, la contrainte PostgreSQL et le dispatcher**. La correction historique de l'erreur PostgreSQL `invalid repetition count(s)` est bien présente dans GitHub.
+- L'Edge Function n'accepte plus qu'une en-tête `Authorization: Bearer <secret>` correctement formée, et reste désactivée si la configuration manque.
+- Un **endpoint de navigateur ne peut appartenir qu'à un compte/restaurant à la fois** : la reconnexion sur un autre établissement déplace l'abonnement et initialise le curseur de ce nouvel établissement. Une reconnexion du même compte conserve son curseur. Cela évite les alertes croisées en cas d'appareil partagé.
+- Les tests SQL contrôlent le passage d'un endpoint d'un restaurant à l'autre, sans recourir à la base réelle; les tests Node couvrent la clé invalide et l'en-tête d'authentification.
+- Les secrets de VAPID et de cron restent uniquement côté Edge ou Vault. Aucune valeur secrète n'est enregistrée dans le dépôt.
+- **Reste à valider en préproduction** : arrivée d'un vrai Web Push à un téléphone hors application, redémarrage de navigateur, expiration des abonnements, limites des OS et tableau de bord des erreurs.
+
+## Ordonnanceur sécurisé — mode d'emploi pour une future préproduction seulement
+
+**Ne pas exécuter le SQL ci-dessous sur le projet de production.** Le cron n'est pas installé, et `COVI_KITCHEN_PUSH_ENABLED` doit rester absent ou `false`. Faire valider séparément la configuration d'un projet Supabase de préproduction isolé, ses permissions, ses migrations, son pare-feu et sa procédure de retour arrière.
+
+1. Générer une paire VAPID et un secret d'invocation aléatoire de 32 octets minimum **en dehors du dépôt**. Configurer `COVI_KITCHEN_VAPID_PUBLIC_KEY`, `COVI_KITCHEN_VAPID_PRIVATE_KEY`, `COVI_KITCHEN_VAPID_SUBJECT`, `COVI_KITCHEN_PUSH_DISPATCH_SECRET` sur la fonction Edge de préproduction, sans les imprimer dans les logs.
+2. Enregistrer dans Supabase Vault une URL HTTPS **fixe et vérifiée** de la fonction de préproduction (nom `covi_kitchen_push_url`) et le même secret d'invocation (nom `covi_kitchen_push_dispatch_secret`). Ne jamais mettre de secret en clair dans l'instruction cron.
+3. Installer `pg_cron` et `pg_net` sur la seule base isolée. Vérifier que seule une personne autorisée peut lire les secrets Vault et modifier les jobs. Tester d'abord l'invocation manuelle avec le service **désactivé**, qui doit renvoyer HTTP 503 sans réclamer de travaux.
+4. Une fois tous les prérequis et tests validés, **et seulement dans la préproduction**, créer ce job par une session PostgreSQL privilégiée :
+
+```sql
+-- EXEMPLE PRÉPRODUCTION SEULEMENT. NE PAS EXÉCUTER EN PRODUCTION.
+select cron.schedule(
+  'covi-kitchen-push-staging',
+  '* * * * *',
+  $job$
+    select net.http_post(
+      url := (select decrypted_secret from vault.decrypted_secrets
+              where name = 'covi_kitchen_push_url'),
+      headers := jsonb_build_object(
+        'Content-Type', 'application/json',
+        'Authorization', 'Bearer ' || (select decrypted_secret
+          from vault.decrypted_secrets
+          where name = 'covi_kitchen_push_dispatch_secret')
+      ),
+      body := '{}'::jsonb,
+      timeout_milliseconds := 10000
+    );
+  $job$
+);
+```
+
+5. Sur cette préproduction, activer `COVI_KITCHEN_PUSH_ENABLED=true` seulement le temps de la recette : tester 401 sans Bearer, 503 en mode désactivé, 200 avec secret et jobs valides, expiration 404/410, échecs 5xx, reprises de bail et absence de notification croisée.
+6. Consulter `cron.job_run_details`, les statuts des requêtes `pg_net` et les logs de la fonction (sans données client ni secrets). Une exécution cron réussie ne garantit **pas** qu'un Push a été distribué : contrôler les accusés serveur et la réception des appareils.
+7. Procédure de désactivation : mettre `COVI_KITCHEN_PUSH_ENABLED=false`, puis `select cron.unschedule('covi-kitchen-push-staging');` sur la préproduction. Ne jamais traiter un événement Push comme une preuve de préparation, service ou encaissement.
+
+Documentation Supabase : https://supabase.com/docs/guides/functions/schedule-functions et https://supabase.com/docs/guides/cron/quickstart
+
+## Prérequis de compatibilité appareil
+
+- **iPhone/iPad** : iOS/iPadOS 16.4 ou version ultérieure, PWA ajoutée à l'écran d'accueil, permission déclenchée par une action de l'utilisateur et origine HTTPS. Vérifier le bon Service Worker et la réception après fermeture avec un appareil réel.
+- **Android** : navigateur prenant en charge Push API + notifications autorisées par Android; limitations de batterie et restrictions d'arrière-plan susceptibles de retarder les avis.
+- **Windows, macOS et Linux** : navigateur compatible, autorisation système et navigateur, politique d'économie d'énergie et service Push accessible. Faire un essai avec la fenêtre fermée et un autre après reconnexion.
+- Une PWA retirée de l'écran d'accueil, une permission révoquée ou un endpoint 404/410 impose une nouvelle souscription via le bouton utilisateur. Aucune garantie de livraison temps réel.
