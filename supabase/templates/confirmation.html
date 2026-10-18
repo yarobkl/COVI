@@ -3,22 +3,54 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Confirmez votre compte COVI</title>
+    <title>COVI — Confirmez la création de votre espace</title>
   </head>
-  <body style="margin:0;padding:24px 12px;background:#fcfbf8;color:#282623;font-family:Arial,Helvetica,sans-serif;">
-    <main style="max-width:540px;margin:auto;padding:30px 24px;border:1px solid #d9d5c9;border-radius:12px;background:#fff;">
-      <p style="margin:0 0 10px;font-size:13px;letter-spacing:0.08em;">COVI — COMMERCE &amp; VIE</p>
-      <h1 style="margin:0 0 20px;font-size:26px;line-height:1.25;">Confirmez votre adresse e-mail</h1>
-      <p style="line-height:1.6;">Bienvenue sur COVI, l’outil de gestion opérationnelle, financière et humaine des PME.</p>
-      <p style="line-height:1.6;">Pour activer votre compte et terminer la création de votre établissement, confirmez votre adresse e-mail en cliquant sur le lien suivant :</p>
-      <p style="margin:28px 0;">
-        <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 20px;background:#17408b;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;">Confirmer mon compte COVI</a>
-      </p>
-      <p style="font-size:13px;line-height:1.5;color:#58554d;">Si le bouton ne fonctionne pas, ouvrez directement ce lien :</p>
-      <p style="font-size:12px;line-height:1.5;overflow-wrap:anywhere;"><a href="{{ .ConfirmationURL }}" style="color:#17408b;">{{ .ConfirmationURL }}</a></p>
-      <hr style="border:0;border-top:1px solid #e1ded7;margin:28px 0;">
-      <p style="font-size:13px;line-height:1.6;color:#58554d;">Vous n’avez pas demandé la création d’un compte COVI ? Ignorez ce message. Ne communiquez jamais votre lien de confirmation.</p>
-      <p style="font-size:12px;color:#6f6a5f;">COVI — Le système d’exploitation de votre commerce.</p>
+  <body style="margin:0;padding:32px 12px;background:#f5f2ea;color:#272826;font-family:Arial,Helvetica,sans-serif;">
+    <main style="max-width:560px;margin:0 auto;border:1px solid #e0dccf;border-radius:16px;background:#fffdf8;overflow:hidden;">
+      <header style="padding:28px 30px 18px;border-bottom:1px solid #e8e2d7;background:#faf5e9;">
+        <p style="font-weight:700;letter-spacing:0.16em;color:#92723b;margin:0 0 8px;font-size:13px;">COVI · COMMERCE &amp; VIE</p>
+        <p style="margin:0;color:#676258;font-size:12px;line-height:1.6;">OUTILS DE GESTION OPÉRATIONNELLE, FINANCIÈRE ET HUMAINE DES PME</p>
+      </header>
+      <section style="padding:30px;">
+        <p style="margin:0 0 12px;color:#655d53;font-size:15px;">Bonjour{{ if .Data.first_name }} {{ .Data.first_name }}{{ end }},</p>
+        <h1 style="font-size:26px;line-height:1.25;margin:0 0 20px;">Votre nouvel espace COVI prend forme.</h1>
+        <p style="font-size:15px;line-height:1.7;margin:0 0 17px;">
+          Merci de nous faire confiance pour vous accompagner dans la gestion de votre activité.
+          Avec COVI, votre établissement, vos opérations et vos chiffres trouvent leur place dans un même outil, simple au quotidien.
+        </p>
+        <div style="padding:18px;background:#f8f4ec;border:1px solid #e9e2d4;border-radius:10px;margin:23px 0;">
+          <p style="font-size:11px;letter-spacing:0.12em;color:#8a6b40;font-weight:bold;margin:0 0 9px;">VOTRE FUTUR ÉTABLISSEMENT</p>
+          <p style="font-size:18px;font-weight:bold;margin:0 0 8px;">{{ if .Data.business_name }}{{ .Data.business_name }}{{ else }}Votre établissement{{ end }}</p>
+          <p style="font-size:13px;color:#5b554c;margin:0;">
+            {{ if eq .Data.business_kind "restaurant" }}Secteur : restaurant — tables, commandes, cuisine et caisse.
+            {{ else if eq .Data.business_kind "salon" }}Secteur : salon de coiffure — prestations, rendez-vous, équipe et caisse.
+            {{ else }}Secteur : boutique de vêtements — articles, stock, ventes et caisse.{{ end }}
+          </p>
+        </div>
+        <h2 style="font-size:18px;line-height:1.4;margin:25px 0 10px;">Une dernière étape pour ouvrir votre compte</h2>
+        <p style="font-size:15px;line-height:1.7;margin:0;">
+          Pour protéger votre espace professionnel, confirmez l'adresse e-mail utilisée lors de l'inscription.
+          Vous pourrez ensuite compléter l'adresse physique de votre établissement et finaliser sa configuration.
+        </p>
+        <p style="text-align:center;margin:28px 0;">
+          <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:16px 24px;background:#233b33;color:#ffffff;text-decoration:none;border-radius:9px;font-size:15px;font-weight:700;">Confirmer mon adresse e-mail</a>
+        </p>
+        <p style="font-size:13px;line-height:1.65;color:#766f64;text-align:center;margin:0;">
+          Cette confirmation sécurise votre inscription. Aucun paiement n'est demandé pour confirmer l'adresse e-mail.
+        </p>
+        <hr style="border:0;border-top:1px solid #e7e1d4;margin:28px 0;">
+        <p style="font-size:13px;line-height:1.6;color:#676258;margin:0 0 8px;">Le bouton ne s'ouvre pas ? Copiez ce lien dans votre navigateur :</p>
+        <p style="font-size:12px;line-height:1.55;overflow-wrap:anywhere;margin:0 0 24px;">
+          <a href="{{ .ConfirmationURL }}" style="color:#233b33;">{{ .ConfirmationURL }}</a>
+        </p>
+        <p style="font-size:13px;line-height:1.65;color:#676258;margin:0;">
+          Si vous n'avez pas demandé ce compte, ignorez ce message. Ne transférez jamais votre lien de confirmation.
+        </p>
+      </section>
+      <footer style="background:#f8f5ed;padding:20px 30px;border-top:1px solid #e8e2d7;">
+        <p style="font-size:13px;font-weight:700;margin:0 0 6px;">COVI — Le système d’exploitation de votre commerce.</p>
+        <p style="font-size:12px;color:#766f64;margin:0;">Puissant derrière. Extrêmement simple devant.</p>
+      </footer>
     </main>
   </body>
 </html>
