@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Button, Field, Input, LabelCard, Notice } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
 import { BUSINESS_KINDS, businessKindInfo, type BusinessKind } from '../../lib/businessKinds'
+import { createOwnerSignupDetails, isValidOwnerPhone, ownerOnboardingHints } from '../../lib/ownerSignup'
 import type { Shop } from '../../lib/types'
 import { OTHER_CITY } from '../../lib/centralAfricaLocations'
 import { OTHER_NEIGHBORHOOD } from '../../lib/neighborhoods'
@@ -17,6 +18,7 @@ export function CreateShopForm({
   onCreated,
   onJoin,
   onRestaurantJoin,
+  accountMetadata,
 }: {
   message: string
   onMessage: (message: string) => void
@@ -24,9 +26,16 @@ export function CreateShopForm({
   /** « J’ai un code de caissier » : opens the join page instead of creating a shop. */
   onJoin?: () => void
   onRestaurantJoin?: () => void
+  accountMetadata?: Record<string, unknown> | null
 }) {
-  const [name, setName] = useState('')
-  const [businessKind, setBusinessKind] = useState<BusinessKind>('retail')
+  const hints = ownerOnboardingHints(accountMetadata)
+  const [name, setName] = useState(hints.businessName)
+  const [businessKind, setBusinessKind] = useState<BusinessKind>(hints.businessKind)
+  const [firstName, setFirstName] = useState(hints.firstName)
+  const [lastName, setLastName] = useState(hints.lastName)
+  const [phone, setPhone] = useState(hints.phone)
+  const needsOwnerIdentity =
+    !hints.firstName || !hints.lastName || !isValidOwnerPhone(hints.phone)
   const kindInfo = businessKindInfo(businessKind)
   const [city, setCity] = useState('')
   const [country, setCountry] = useState<string>('République du Congo')
@@ -49,6 +58,28 @@ export function CreateShopForm({
     }
     setBusy(true)
     try {
+      // Google/Facebook and older users may need to complete their owner profile.
+      // Metadata is profile-only, NEVER a tenant authorization source.
+      if (needsOwnerIdentity) {
+        const details = createOwnerSignupDetails({
+          firstName,
+          lastName,
+          phone,
+          businessKind,
+          businessName: name,
+        })
+        const { error: profileError } = await supabase.auth.updateUser({
+          data: {
+            first_name: details.first_name,
+            last_name: details.last_name,
+            full_name: details.full_name,
+            phone_number: details.phone_number,
+            business_kind: details.business_kind,
+            business_name: details.business_name,
+          },
+        })
+        if (profileError) throw profileError
+      }
       const { data, error } = await supabase.rpc('create_my_business_with_location', {
         p_business_kind: businessKind,
         p_name: String(f.get('name')).trim(),
@@ -62,6 +93,8 @@ export function CreateShopForm({
       })
       if (error) onMessage(authError(error))
       else onCreated(data)
+    } catch (error) {
+      onMessage(error instanceof Error ? error.message : 'Création impossible. Réessayez.')
     } finally {
       setBusy(false)
     }
@@ -71,7 +104,7 @@ export function CreateShopForm({
   const preview = (
     <figure className="auth__preview">
       <LabelCard>
-        <p className="sommaire__shop-kicker">Cahier de caisse</p>
+        <p className="sommaire__shop-kicker">Cahier de gestion</p>
         <p className="sommaire__shop-name">{name.trim() || kindInfo.preview}</p>
         <p className="sommaire__shop-place">{selectedCity || 'Votre ville'}</p>
       </LabelCard>
@@ -83,8 +116,8 @@ export function CreateShopForm({
 
   return (
     <AuthPage
-      title="Parlez-nous de votre activité"
-      lead="Choisissez votre métier et donnez un nom à votre établissement."
+      title="Finalisez votre établissement"
+      lead="Votre compte est connecté. Vérifiez votre activité et indiquez où se trouve votre établissement."
       aside={
         <>
           {preview}
@@ -108,6 +141,25 @@ export function CreateShopForm({
       }
     >
       <form className="auth__form" onSubmit={createShop}>
+        {needsOwnerIdentity && (
+          <>
+            <Field label="Prénom du propriétaire">
+              {(control) => (
+                <Input {...control} name="first-name" autoComplete="given-name" required minLength={2} maxLength={80} value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+              )}
+            </Field>
+            <Field label="Nom du propriétaire">
+              {(control) => (
+                <Input {...control} name="last-name" autoComplete="family-name" required minLength={2} maxLength={80} value={lastName} onChange={(e) => setLastName(e.target.value)} />
+              )}
+            </Field>
+            <Field label="Téléphone du propriétaire" hint="Indiquez un numéro international, par exemple +242061234567.">
+              {(control) => (
+                <Input {...control} name="phone" autoComplete="tel" type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} />
+              )}
+            </Field>
+          </>
+        )}
         <fieldset>
           <legend>Que gérez-vous avec COVI ?</legend>
           {BUSINESS_KINDS.map((kind) => (
