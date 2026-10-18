@@ -39,7 +39,12 @@ export const AFRICAN_MARKETS = [
   { country: 'Libéria', region: 'ecowas_other', currency: 'LRD' },
   { country: 'Sierra Leone', region: 'ecowas_other', currency: 'SLE' },
   { country: 'Cap-Vert', region: 'ecowas_other', currency: 'CVE' },
-  { country: 'République démocratique du Congo', region: 'central_other', currency: 'CDF', secondary: 'USD' },
+  {
+    country: 'République démocratique du Congo',
+    region: 'central_other',
+    currency: 'CDF',
+    secondary: 'USD',
+  },
   { country: 'Angola', region: 'central_other', currency: 'AOA' },
   { country: 'São Tomé-et-Príncipe', region: 'central_other', currency: 'STN' },
   { country: 'Burundi', region: 'great_lakes', currency: 'BIF' },
@@ -60,9 +65,7 @@ export function officialCurrencyForCountry(country: string): AfricanCurrency | n
 export function paymentCurrenciesForCountry(country: string): readonly AfricanCurrency[] {
   const market = marketForCountry(country)
   if (!market) return []
-  return 'secondary' in market
-    ? [market.currency, market.secondary]
-    : [market.currency]
+  return 'secondary' in market ? [market.currency, market.secondary] : [market.currency]
 }
 
 export function currencyLabel(currency: AfricanCurrency): string {
