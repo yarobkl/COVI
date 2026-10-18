@@ -58,7 +58,9 @@ describe('SectorHomePage — comprendre la logique restaurant', () => {
     expect(screen.getByText('Créer la carte')).toBeTruthy()
     expect(screen.getByText('Un client arrive. Ouvrez sa table.')).toBeTruthy()
     expect(screen.getByText('Enregistrez l’argent reçu en espèces.')).toBeTruthy()
-    expect(screen.getByText(/La table se libère après le service et le règlement complet/)).toBeTruthy()
+    expect(
+      screen.getByText(/La table se libère après le service et le règlement complet/),
+    ).toBeTruthy()
   })
 
   it('advances to the menu when real active tables exist', async () => {
@@ -85,7 +87,9 @@ describe('SectorHomePage — comprendre la logique restaurant', () => {
   it('never mistakes failed database reads for an empty restaurant', async () => {
     setup.fails = true
     render(<SectorHomePage shop={shop} />)
-    expect(await screen.findByText('Impossible de vérifier votre installation pour le moment.')).toBeTruthy()
+    expect(
+      await screen.findByText('Impossible de vérifier votre installation pour le moment.'),
+    ).toBeTruthy()
     expect(screen.queryByText(/Préparation : 0 étape/)).toBeNull()
     expect(screen.getByRole('link', { name: 'Voir mes tables' }).getAttribute('href')).toBe(
       '#/restaurant-tables',
