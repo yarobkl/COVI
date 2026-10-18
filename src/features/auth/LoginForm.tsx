@@ -153,9 +153,7 @@ export function LoginForm({
             <h2 className="sheet__title" id="exemple-titre">
               Vous découvrez COVI ?
             </h2>
-            <p>
-              COVI — Le système d’exploitation de votre commerce.
-            </p>
+            <p>COVI — Le système d’exploitation de votre commerce.</p>
             <p>
               Boutiques et commerces : déjà disponibles. Les espaces Restaurant et Salon de
               coiffure sont en préparation et seront ouverts après validation.
