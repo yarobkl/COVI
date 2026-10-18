@@ -44,3 +44,63 @@ Lors du premier run du correctif, le test SQL échouait sur `checkout_gateway_ra
 - COVI et GaspardNZ demeurent actifs, sans nouveau coût Supabase.
 
 **État des modifications :** corrections et tests enregistrés sur la branche expérimentale uniquement ; aucun déploiement, fusion ni application de SQL en production.
+
+## Reprise de l'audit — corrections additionnelles du 18 octobre 2026
+
+**Périmètre :** branche expérimentale uniquement. La source Vercel production
+`covi-snowy.vercel.app` a été revérifiée en lecture seule : branche
+`claude/caisse-multi-caissiers`, commit `2e48893ad0d5171c51c6f316814961260a4a218c`.
+La comparaison GitHub révèle une forte divergence (plusieurs centaines de commits
+uniques dans chaque sens). **La PR #22 n'est jamais un candidat à une fusion globale.**
+
+### Protections corrigées et documentées
+
+- `supabase/functions/public-checkout/gateway.mjs` : chaque appel privilégié
+  à PostgREST est limité à **8 secondes**, la vérification Turnstile à
+  **8 secondes**, et l'envoi d'une photo privée à **12 secondes**. Une
+  dépendance bloquée entraîne une réponse générique sans fuite de secrets.
+  Des tests simulent une dépendance qui ne répond jamais.
+- `src/lib/checkoutFeatureFlag.ts` : pour activer le nouveau parcours,
+  la variable de fonctionnalité ne suffit plus. Il faut une URL Supabase
+  explicite et valide et une **clé publique**. Les clés `sb_secret_`,
+  JWT `service_role`, URL non sécurisée ou configuration absente sont
+  refusées. Cela bloque l'activation expérimentale avec le fallback de
+  production défini pour l'ancienne application.
+- `supabase/sql-drafts/draft_public_order_channels.sql` : ajout d'une
+  fonction de maintenance `prune_checkout_rate_windows()`, exécutable
+  **uniquement par `service_role`**. Elle supprime les anciennes fenêtres
+  de limitation de requêtes après 72 heures (empreintes HMAC) et les
+  fenêtres de quotas par boutique après 8 jours. Elle ne touche jamais
+  aux transactions, reçus, ventes, stocks, photos ni données clients.
+  **Cette maintenance n'est pas programmée ou déployée**.
+- `tests/postgres/gateway-retention.sql` : contrôle l'absence d'accès
+  par `anon` ou `authenticated`, la conservation des compteurs courants
+  et de l'historique financier ; intégré au banc PostgreSQL jetable.
+- Le workflow temporaire doté de la permission GitHub `contents: write`
+  a été supprimé après le formatage des trois fichiers corrigés.
+
+### Décision sur les risques qui subsistent
+
+1. **Bloquant :** brancher la caisse sur la source réelle de production
+   uniquement après comparaison *fonctionnelle* avec le système multicaissiers
+   existant. Les tables, RPC et routes expérimentales sont une architecture
+   alternative et ne peuvent être empilées telles quelles.
+2. **Bloquant :** vérifier en staging réel le proxy IP, Turnstile, la fonction
+   Edge, la configuration des secrets, les permissions PostgREST et le
+   fonctionnement des photos privées. Des tests locaux réussis ne prouvent
+   pas l'hébergement distant.
+3. **Bloquant :** gestion des comptes partagés et PIN de la caisse réellement
+   déployée : un PIN seul ne doit pas fournir une isolation des permissions
+   si l'utilisateur possède la session du compte gestionnaire.
+4. **À cadrer :** durée de conservation, information des clients, purge des
+   téléphones, adresses de livraison et photos, sous réserve des obligations
+   légales de conservation des preuves de vente. Le présent changement ne
+   définit **aucune purge de données clients**.
+5. **À réaliser :** accord explicite du client si le vendeur modifie les prix
+   proposés, alignement des rapports financiers catégoriels, accessibilité
+   et recette mobile réelle.
+
+**Décision maintenue : NO-GO.** Rien de cette branche n'a été migré,
+fusionné ou déployé sur COVI production. Aucun projet Supabase ni
+GaspardNZ n'a été suspendu. Toutes les corrections présentes ici
+restent expérimentales jusqu'à audit de compatibilité et validation.
