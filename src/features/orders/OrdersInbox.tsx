@@ -38,6 +38,12 @@ import {
 import { pinResultMessage, type TillSession } from '../../lib/team'
 import { supabase } from '../../lib/supabase'
 
+const orderChannelLabels = {
+  qr: 'QR code',
+  social: 'Lien réseaux sociaux',
+  website: 'Site internet',
+} as const
+
 const POLL_LIVE_MS = 60_000
 const POLL_FALLBACK_MS = 15_000
 
@@ -296,11 +302,7 @@ function OrderCard({
       </p>
       <p className="muted">
         {dateTime(order.createdAt)} ·{' '}
-        {order.channel === 'website'
-          ? 'Site internet'
-          : order.channel === 'social'
-            ? 'Lien réseaux sociaux'
-            : 'QR code'} ·{' '}
+        {orderChannelLabels[order.channel]} ·{' '}
         {order.fulfillment === 'delivery'
           ? `Livraison : ${order.deliveryAddress ?? ''}`
           : 'Retrait en boutique'}
