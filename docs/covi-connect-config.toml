@@ -1,0 +1,4 @@
+# Website connections: custom JWT for COVI management and strong server-side site tokens.
+# The function verifies both itself. The site key is NEVER used in a web browser.
+[functions.covi-connect]
+verify_jwt = false
