@@ -322,6 +322,19 @@
   .sale-done__actions .btn--ghost {
     justify-self: center;
   }
+  /* PDF sharing uses the existing notebook's ink and tactile buttons. */
+  .receipt-pdf-actions {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    gap: var(--space-2);
+  }
+  .receipt-pdf-actions .btn {
+    min-height: 48px;
+  }
+  .receipt-pdf-actions .field__hint {
+    overflow-wrap: anywhere;
+  }
   .sale-page > .sale-done {
     margin-inline-start: calc((var(--margin-offset) + var(--space-3)) * -1);
   }
