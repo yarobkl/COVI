@@ -12,7 +12,9 @@ vi.mock('../../lib/supabase', () => ({
         realtime.trigger = callback
         return this
       },
-      subscribe() { return this },
+      subscribe() {
+        return this
+      },
     })),
     removeChannel: vi.fn(async () => 'ok'),
   },
