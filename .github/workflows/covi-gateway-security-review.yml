@@ -1,0 +1,33 @@
+name: COVI gateway security review
+
+on:
+  push:
+    branches:
+      - security/covi-gateway-fail-closed-20261018
+  pull_request:
+    branches:
+      - claude/caisse-multi-caissiers
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Confirm format
+        run: npm run format:check
+      - name: Verify lint
+        run: npm run lint
+      - name: Typecheck and build
+        run: npm run build
+      - name: Unit and offline tests
+        run: npm test

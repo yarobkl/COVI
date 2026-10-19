@@ -282,7 +282,7 @@ async function verifyTurnstile(env, fetchImpl, challenge, hostnames) {
   return (
     outcome?.success === true &&
     hostnames.includes(outcome.hostname) &&
-    (outcome.action == null || outcome.action === 'covi_order')
+    outcome.action === 'covi_order'
   )
 }
 

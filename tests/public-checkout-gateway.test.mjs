@@ -50,6 +50,7 @@ function backend({
   quota = true,
   captcha = true,
   hostname = 'covi.example',
+  action = 'covi_order',
   submitError = null,
   uploadStatus = 200,
 } = {}) {
@@ -58,7 +59,7 @@ function backend({
     const address = String(url)
     calls.push({ address, init })
     if (address.includes('siteverify'))
-      return Response.json({ success: captcha, hostname, action: 'covi_order' })
+      return Response.json({ success: captcha, hostname, ...(action === null ? {} : { action }) })
     if (address.endsWith('consume_public_order_quota')) return Response.json(quota)
     if (address.endsWith('get_public_order_catalog'))
       return Response.json({
@@ -173,6 +174,15 @@ describe('passerelle publique des commandes', () => {
       const res = await createPublicCheckoutGateway(env, transport)(post(order))
       expect(res.status).toBe(403)
       expect(calls.some((c) => c.address.endsWith('submit_public_order'))).toBe(false)
+    }
+  })
+
+  it('refuse un jeton Turnstile sans action ou émis pour une autre action', async () => {
+    for (const action of [null, 'profile', 'another_action']) {
+      const { transport, calls } = backend({ action })
+      const response = await createPublicCheckoutGateway(env, transport)(post(order))
+      expect(response.status).toBe(403)
+      expect(calls.some((call) => call.address.endsWith('submit_public_order'))).toBe(false)
     }
   })
 
