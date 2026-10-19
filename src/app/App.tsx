@@ -117,7 +117,12 @@ function renderPage(route: Route, { shop, updateShop, onSimulation, ownerId }: P
         />
       )
     case 'commandes':
-      return <OrdersPage shop={shop} tab={route.filter === 'qr' || route.filter === 'sites' ? route.filter : undefined} />
+      return (
+        <OrdersPage
+          shop={shop}
+          tab={route.filter === 'qr' || route.filter === 'sites' ? route.filter : undefined}
+        />
+      )
     case 'ventes':
       return <HistoryPage shopId={shop.id} ownerId={ownerId} />
     case 'charges':

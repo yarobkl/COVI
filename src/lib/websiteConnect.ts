@@ -12,20 +12,30 @@ export type WebsiteConnection = {
   lastUsedAt: string | null
 }
 
-export type CreatedWebsiteConnection = Pick<WebsiteConnection, 'id' | 'label' | 'siteUrl' | 'createdAt'> & {
+export type CreatedWebsiteConnection = Pick<
+  WebsiteConnection,
+  'id' | 'label' | 'siteUrl' | 'createdAt'
+> & {
   secret: string
 }
 
-async function authenticatedWebsiteRequest<T>(method: 'GET' | 'POST', query: string, payload?: unknown) {
-  const { data: { session }, error } = await supabase.auth.getSession()
+async function authenticatedWebsiteRequest<T>(
+  method: 'GET' | 'POST',
+  query: string,
+  payload?: unknown,
+) {
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession()
   if (error || !session?.access_token) throw new Error('Reconnectez-vous à COVI.')
   const response = await fetch(websiteConnectUrl + query, {
     method,
     headers: {
       authorization: `Bearer ${session.access_token}`,
-      ...(payload ? { 'content-type': 'application/json' } : {})
+      ...(payload ? { 'content-type': 'application/json' } : {}),
     },
-    ...(payload ? { body: JSON.stringify(payload) } : {})
+    ...(payload ? { body: JSON.stringify(payload) } : {}),
   })
   const data = await response.json().catch(() => null)
   if (!response.ok) {
@@ -37,11 +47,17 @@ async function authenticatedWebsiteRequest<T>(method: 'GET' | 'POST', query: str
 }
 
 export const listWebsiteConnections = (shopId: string) =>
-  authenticatedWebsiteRequest<WebsiteConnection[]>('GET', `/manage?shop_id=${encodeURIComponent(shopId)}`)
+  authenticatedWebsiteRequest<WebsiteConnection[]>(
+    'GET',
+    `/manage?shop_id=${encodeURIComponent(shopId)}`,
+  )
 
 export const createWebsiteConnection = (shopId: string, label: string, siteUrl: string) =>
   authenticatedWebsiteRequest<CreatedWebsiteConnection>('POST', '/manage', {
-    action: 'create', shopId, label, siteUrl
+    action: 'create',
+    shopId,
+    label,
+    siteUrl,
   })
 
 export const revokeWebsiteConnection = (connectionId: string) =>
