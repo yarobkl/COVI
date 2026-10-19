@@ -296,7 +296,11 @@ function OrderCard({
       </p>
       <p className="muted">
         {dateTime(order.createdAt)} ·{' '}
-        {order.channel === 'social' ? 'Lien réseaux sociaux' : 'QR code'} ·{' '}
+        {order.channel === 'website'
+          ? 'Site internet'
+          : order.channel === 'social'
+            ? 'Lien réseaux sociaux'
+            : 'QR code'} ·{' '}
         {order.fulfillment === 'delivery'
           ? `Livraison : ${order.deliveryAddress ?? ''}`
           : 'Retrait en boutique'}
