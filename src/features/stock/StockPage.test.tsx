@@ -1,14 +1,32 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { listProducts } from '../../lib/covi'
 import type { Product } from '../../lib/types'
 import { StockPage } from './StockPage'
 
+const realtime = vi.hoisted(() => ({ trigger: null as null | (() => void) }))
+vi.mock('../../lib/supabase', () => ({
+  supabase: {
+    channel: vi.fn(() => ({
+      on(_type: string, _filter: unknown, callback: () => void) {
+        realtime.trigger = callback
+        return this
+      },
+      subscribe() { return this },
+    })),
+    removeChannel: vi.fn(async () => 'ok'),
+  },
+}))
+
 vi.mock('../../lib/covi', () => ({ addProduct: vi.fn(), listProducts: vi.fn() }))
 vi.mock('../../lib/operations', () => ({ listArrivals: vi.fn().mockResolvedValue([]) }))
 vi.mock('../../lib/offline', () => ({ stockCacheDate: () => null }))
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.clearAllMocks()
+  realtime.trigger = null
+})
 
 const product = (id: string, name: string, extra: Partial<Product> = {}): Product => ({
   id,
@@ -49,5 +67,19 @@ describe('StockPage search', () => {
     fireEvent.change(search, { target: { value: '' } })
     expect(screen.getByText('Veste vintage')).toBeTruthy()
     expect(listProducts).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('StockPage realtime', () => {
+  it('reloads server state when this shop receives a products event', async () => {
+    vi.mocked(listProducts).mockResolvedValue([product('p1', 'Pantalon')])
+    render(<StockPage shopId="shop-1" />)
+    expect(await screen.findByText('Pantalon')).toBeTruthy()
+    expect(realtime.trigger).toBeTypeOf('function')
+    realtime.trigger?.()
+    await waitFor(() => {
+      expect(listProducts).toHaveBeenCalledWith('shop-1', false, true)
+      expect(listProducts).toHaveBeenCalledWith('shop-1', true, true)
+    })
   })
 })
