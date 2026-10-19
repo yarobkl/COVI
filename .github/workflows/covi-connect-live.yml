@@ -1,0 +1,39 @@
+name: COVI Connect HTTP smoke
+on:
+  push:
+    branches: [feature/covi-connect-websites-20261019, main]
+    paths:
+      - 'supabase/functions/covi-connect/**'
+      - '.github/workflows/covi-connect-live.yml'
+      - 'supabase/migrations/*covi_connect_websites.sql'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  security-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Anonymous product access must be denied
+        run: |
+          set -euo pipefail
+          url="https://bmbwmwgfzrijglzcgjut.supabase.co/functions/v1/covi-connect/products"
+          code="$(curl -sS --max-time 20 -o /tmp/covi-connect-anon -w '%{http_code}' "$url")"
+          echo "Anonymous products status: $code"
+          test "$code" = "401"
+      - name: Invalid website key must be denied
+        run: |
+          set -euo pipefail
+          url="https://bmbwmwgfzrijglzcgjut.supabase.co/functions/v1/covi-connect/products"
+          code="$(curl -sS --max-time 20 -o /tmp/covi-connect-invalid -w '%{http_code}' -H "x-covi-key: invalid" "$url")"
+          echo "Invalid website key status: $code"
+          test "$code" = "401"
+      - name: Official origin owner preflight should work
+        run: |
+          set -euo pipefail
+          url="https://bmbwmwgfzrijglzcgjut.supabase.co/functions/v1/covi-connect/manage"
+          code="$(curl -sS --max-time 20 -o /tmp/covi-connect-options -w '%{http_code}' -X OPTIONS -H "Origin: https://covi-snowy.vercel.app" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: authorization,content-type" "$url")"
+          echo "CORS status: $code"
+          test "$code" = "204"

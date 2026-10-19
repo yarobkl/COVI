@@ -22,7 +22,7 @@ export type PageId =
 export type ArrivalFilter = 'commandes' | 'ballons'
 
 /** « QR & liens » of Commandes. */
-export type OrdersTab = 'qr'
+export type OrdersTab = 'qr' | 'sites'
 
 export type Route = { page: PageId; filter?: ArrivalFilter | OrdersTab }
 
@@ -52,7 +52,7 @@ export function parseHash(hash: string): Route {
   if (!isPage(page)) return { page: 'accueil' }
   if (page === 'arrivages' && (filter === 'commandes' || filter === 'ballons'))
     return { page, filter }
-  if (page === 'commandes' && filter === 'qr') return { page, filter }
+  if (page === 'commandes' && (filter === 'qr' || filter === 'sites')) return { page, filter }
   return { page }
 }
 

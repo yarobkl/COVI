@@ -6,9 +6,10 @@ import { OpenPaySettingsPanel } from './OpenPaySettingsPanel'
 import { BlockedCustomersPanel } from './BlockedCustomersPanel'
 import { OrderChannelPanel } from './OrderChannelPanel'
 import { OrdersInbox } from './OrdersInbox'
+import { WebsiteConnectPanel } from './WebsiteConnectPanel'
 
 /** « Commandes » : les demandes reçues des clients, et le QR code / les liens de la boutique. */
-export function OrdersPage({ shop, tab }: { shop: Shop; tab?: 'qr' }) {
+export function OrdersPage({ shop, tab }: { shop: Shop; tab?: 'qr' | 'sites' }) {
   return (
     <>
       <nav className="tabs page-tabs" aria-label="Commandes">
@@ -26,13 +27,22 @@ export function OrdersPage({ shop, tab }: { shop: Shop; tab?: 'qr' }) {
         >
           QR &amp; liens
         </a>
+        <a
+          className="tabs__tab"
+          href={routeHash({ page: 'commandes', filter: 'sites' })}
+          aria-current={tab === 'sites' ? 'page' : undefined}
+        >
+          Sites web
+        </a>
       </nav>
       <div className="orders-page">
         <PageHead
           title="Commandes"
-          sub="Les demandes reçues par le QR, WhatsApp et TikTok, et vos liens à partager."
+          sub="Demandes par QR, réseaux sociaux ou sites web, avec les connexions à gérer."
         />
-        {tab === 'qr' ? (
+        {tab === 'sites' ? (
+          <WebsiteConnectPanel shopId={shop.id} />
+        ) : tab === 'qr' ? (
           <>
             <OrderChannelPanel shopId={shop.id} shopName={shop.name} />
             <BlockedCustomersPanel shopId={shop.id} />
