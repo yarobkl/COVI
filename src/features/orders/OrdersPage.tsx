@@ -38,7 +38,7 @@ export function OrdersPage({ shop, tab }: { shop: Shop; tab?: 'qr' | 'sites' }) 
       <div className="orders-page">
         <PageHead
           title="Commandes"
-          sub="Les demandes reçues par le QR, WhatsApp et TikTok, et vos liens à partager."
+          sub="Demandes par QR, réseaux sociaux ou sites web, avec les connexions à gérer."
         />
         {tab === 'sites' ? (
           <WebsiteConnectPanel shopId={shop.id} />
