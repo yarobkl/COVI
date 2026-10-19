@@ -28,6 +28,8 @@ describe('parseHash / routeHash', () => {
         filter,
       })
     expect(routeHash({ page: 'accueil' })).toBe('#/')
+    expect(parseHash('#/commandes/sites')).toEqual({ page: 'commandes', filter: 'sites' })
+    expect(routeHash({ page: 'commandes', filter: 'sites' })).toBe('#/commandes/sites')
   })
 
   it('gives each arrival filter its own key', () => {
