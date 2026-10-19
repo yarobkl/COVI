@@ -70,3 +70,9 @@ entre-temps ; le site doit traiter la confirmation manuelle et les cas de ruptur
 - `verify_jwt=false` sur cette fonction car la gateway vérifie séparément JWT propriétaire
   et clés fortes du serveur du partenaire. Toutes les RPC sensibles appliquent des droits
   explicites et les vérifications de propriétaire.
+
+## État du connecteur
+
+La passerelle COVI Connect et son interface sont génériques. Chaque site externe doit
+encore installer son intégration côté serveur. Sans ce paramétrage, aucune synchronisation
+ne s'exécute automatiquement. La clé n'est affichée qu'au moment de sa création.
