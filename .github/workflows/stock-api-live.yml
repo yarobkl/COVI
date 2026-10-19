@@ -1,0 +1,37 @@
+name: COVI Stock API live smoke
+on:
+  push:
+    branches: [feature/api-stock-realtime-20261019, main]
+    paths:
+      - 'supabase/functions/stock-api/**'
+      - '.github/workflows/stock-api-live.yml'
+      - 'supabase/migrations/*stock_api_realtime.sql'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-edge-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify anonymous requests cannot read inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://bmbwmwgfzrijglzcgjut.supabase.co/functions/v1/stock-api?shop_id=11111111-1111-4111-8111-111111111111"
+          status="$(curl -sS --retry 2 --max-time 20 -o /tmp/stock-response -w '%{http_code}' "$url")"
+          echo "Unauthenticated GET: HTTP $status"
+          test "$status" = "401" || { echo "::error::Expected 401 unauthorized" ; exit 1; }
+      - name: Verify browser CORS preflight is accepted for official origin
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://bmbwmwgfzrijglzcgjut.supabase.co/functions/v1/stock-api"
+          status="$(curl -sS --max-time 20 -o /tmp/stock-preflight -w '%{http_code}' -X OPTIONS \
+            -H "Origin: https://covi-snowy.vercel.app" \
+            -H "Access-Control-Request-Method: POST" \
+            -H "Access-Control-Request-Headers: authorization,apikey,content-type" "$url")"
+          echo "CORS preflight: HTTP $status"
+          test "$status" = "204" || { echo "::error::CORS preflight failed" ; exit 1; }
