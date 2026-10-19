@@ -4,7 +4,7 @@
 // Le client ne parle qu'à la fonction Edge « public-checkout ». Le choix d'un moyen de règlement
 // par le client n'est qu'une intention : seul un caissier, après vérification, confirme le
 // règlement réellement reçu (confirm_public_order_payment), ce qui enregistre la vente.
-import { supabase, supabaseUrl } from './supabase'
+import { supabase } from './supabase'
 
 export type PaymentMethod = 'cash' | 'mobile_money' | 'card' | 'bank_transfer'
 export type Fulfillment = 'pickup' | 'delivery'
@@ -30,8 +30,51 @@ export const statusLabels: Record<OrderStatus, string> = {
 export const turnstileSiteKey =
   import.meta.env.VITE_COVI_TURNSTILE_SITE_KEY || '0x4AAAAAAFU8yQ48U2pGx18Z'
 
-export const gatewayUrl =
-  import.meta.env.VITE_COVI_PUBLIC_CHECKOUT_URL || `${supabaseUrl}/functions/v1/public-checkout`
+/**
+ * Fail closed on incomplete or unsafe build configuration. A preview/test
+ * build must NEVER silently contact production through supabase.ts's fallback.
+ * The existing auth client remains untouched.
+ */
+export function resolvePublicGatewayUrl(
+  explicitGateway: unknown,
+  configuredSupabaseUrl: unknown,
+): string {
+  const direct = typeof explicitGateway === 'string' ? explicitGateway.trim() : ''
+  const base = typeof configuredSupabaseUrl === 'string' ? configuredSupabaseUrl.trim() : ''
+  let url: URL
+
+  try {
+    if (direct) {
+      url = new URL(direct)
+    } else if (base) {
+      const root = new URL(base)
+      if (root.pathname !== '/' || root.search || root.hash || root.username || root.password)
+        return ''
+      url = new URL('/functions/v1/public-checkout', root)
+    } else {
+      return ''
+    }
+    const local = ['localhost', '127.0.0.1'].includes(url.hostname)
+    if (
+      (url.protocol !== 'https:' && !(local && url.protocol === 'http:')) ||
+      url.username ||
+      url.password ||
+      url.search ||
+      url.hash ||
+      url.pathname !== '/functions/v1/public-checkout'
+    )
+      return ''
+    return url.toString()
+  } catch {
+    return ''
+  }
+}
+
+/** Empty means the guest channel is disabled, not redirected to production. */
+export const gatewayUrl = resolvePublicGatewayUrl(
+  import.meta.env.VITE_COVI_PUBLIC_CHECKOUT_URL,
+  import.meta.env.VITE_SUPABASE_URL,
+)
 
 // Adresses publiques ------------------------------------------------------------------------------
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -138,6 +181,9 @@ export class GatewayError extends Error {
 }
 
 async function gateway<T>(init: RequestInit & { query?: string }): Promise<T> {
+  if (!gatewayUrl) {
+    throw new GatewayError('Service de commande non configuré pour cet environnement.', 503)
+  }
   let response: Response
   try {
     response = await fetch(gatewayUrl + (init.query ?? ''), {
