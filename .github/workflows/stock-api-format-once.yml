@@ -1,0 +1,27 @@
+name: Format Stock API once
+on:
+  push:
+    branches: [feature/api-stock-realtime-20261019]
+permissions:
+  contents: write
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/api-stock-realtime-20261019
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - name: Format only changed source and tests
+        run: npx prettier --write docs/api-stock.md src/features/stock/StockPage.test.tsx tests/stock-api-handler.test.mjs
+      - name: Commit formatting and remove temporary workflow
+        run: |
+          rm .github/workflows/stock-api-format-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/api-stock.md src/features/stock/StockPage.test.tsx tests/stock-api-handler.test.mjs .github/workflows/stock-api-format-once.yml
+          git diff --cached --quiet || (git commit -m "style(stock): format API and tests" && git push)
