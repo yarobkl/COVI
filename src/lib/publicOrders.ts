@@ -237,7 +237,7 @@ export type InboxOrder = {
   id: string
   reference: string
   status: OrderStatus
-  channel: OrderChannel
+  channel: OrderChannel | 'website'
   createdAt: string
   customerName: string
   customerPhone: string
