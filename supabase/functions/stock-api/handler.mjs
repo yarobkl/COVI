@@ -8,7 +8,8 @@ const readJson = async (response) => response.json().catch(() => null)
 const validQuantity = (value) => Number.isInteger(value) && value >= 0 && value <= 100000
 
 export function createStockApiHandler(env, transport = fetch) {
-  const base = String(env.SUPABASE_URL || '').replace(/\\/$/, '')
+  const rawBase = String(env.SUPABASE_URL || '')
+  const base = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase
   const key = env.SUPABASE_ANON_KEY || ''
   const origins = new Set(
     (env.COVI_STOCK_API_ORIGINS || 'https://covi-snowy.vercel.app')
@@ -36,7 +37,7 @@ export function createStockApiHandler(env, transport = fetch) {
     if (!base.startsWith('https://') || !key) return respond({ error: 'unavailable' }, 503)
 
     const auth = request.headers.get('authorization') || ''
-    if (!/^Bearer [^\\s]+$/i.test(auth)) return respond({ error: 'authentication_required' }, 401)
+    if (!auth.startsWith('Bearer ') || auth.length <= 7 || auth.slice(7).includes(' ')) return respond({ error: 'authentication_required' }, 401)
     const headers = { apikey: key, authorization: auth, accept: 'application/json' }
     try {
       // Verification du JWT par GoTrue. Le jeton utilisateur reste utilise pour toutes
@@ -48,14 +49,16 @@ export function createStockApiHandler(env, transport = fetch) {
       }
 
       const url = new URL(request.url)
-      const isAdjust = url.pathname.endsWith('/adjust')
-      if (request.method === 'GET' && !isAdjust) {
+      const isAdjust = url.pathname.endsWith('/stock-api/adjust')
+      const isRoot = url.pathname.endsWith('/stock-api') || url.pathname === '/'
+      if (request.method === 'GET' && isRoot) {
         const shopId = url.searchParams.get('shop_id') || ''
         const status = url.searchParams.get('status') || 'all'
         const limitRaw = url.searchParams.get('limit') || '50'
         const offsetRaw = url.searchParams.get('offset') || '0'
         if (!uuid.test(shopId) || !statuses.has(status) ||
-            !/^\\d+$/.test(limitRaw) || !/^\\d+$/.test(offsetRaw)) {
+            !Array.from(limitRaw).every((c) => c >= '0' && c <= '9') ||
+            !Array.from(offsetRaw).every((c) => c >= '0' && c <= '9')) {
           return respond({ error: 'invalid_parameters' }, 400)
         }
         const limit = Number(limitRaw), offset = Number(offsetRaw)
@@ -101,7 +104,8 @@ export function createStockApiHandler(env, transport = fetch) {
           !uuid.test(body.product_id || '') ||
           !validQuantity(body.quantity) || !validQuantity(body.expected_quantity) ||
           !reasons.has(body.reason) ||
-          (body.note != null && (typeof body.note !== 'string' || body.note.length > 200 || /[\\x00-\\x1f\\x7f]/.test(body.note)))) {
+          (body.note != null && (typeof body.note !== 'string' || body.note.length > 200 ||
+            Array.from(body.note).some((c) => c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127)))) {
         return respond({ error: 'invalid_stock_adjustment' }, 400)
       }
       const result = await transport(base + '/rest/v1/rpc/adjust_product_stock_if_unchanged', {
