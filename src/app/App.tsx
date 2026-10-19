@@ -113,7 +113,7 @@ function renderPage(route: Route, { shop, updateShop, onSimulation, ownerId }: P
       return (
         <ArrivalsScreen
           shopId={shop.id}
-          filter={route.filter === 'qr' ? undefined : route.filter}
+          filter={route.filter === 'commandes' || route.filter === 'ballons' ? route.filter : undefined}
         />
       )
     case 'commandes':
