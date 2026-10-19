@@ -12,6 +12,7 @@ import {
 import { addProduct, listProducts } from '../../lib/covi'
 import { stockCacheDate } from '../../lib/offline'
 import { listArrivals } from '../../lib/operations'
+import { supabase } from '../../lib/supabase'
 import type { Arrival, Product } from '../../lib/types'
 import { ProductEditor } from './ProductEditor'
 import { StockProductForm } from './StockProductForm'
@@ -69,6 +70,26 @@ export function StockPage({ shopId }: { shopId: string }) {
       window.removeEventListener('offline', status)
     }
   }, [shopId, load])
+  // Mise a jour entre plusieurs appareils : le serveur reste la source de verite.
+  // La RLS de products restreint les evenements aux boutiques autorisees.
+  useEffect(() => {
+    if (!online) return
+    const channel = supabase
+      .channel('covi-stock-' + shopId)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'products', filter: 'shop_id=eq.' + shopId },
+        () => {
+          void load()
+          void loadOthers()
+        },
+      )
+      .subscribe()
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  }, [shopId, online, load, loadOthers])
+
   async function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const f = new FormData(e.currentTarget),
