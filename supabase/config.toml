@@ -30,3 +30,7 @@ verify_jwt = false
 # API Stock privee : JWT utilisateur obligatoire; acces et corrections sous RLS/RPC.
 [functions.stock-api]
 verify_jwt = true
+
+# Owner JWT and per-website server-side API keys are validated by the gateway itself.
+[functions.covi-connect]
+verify_jwt = false
