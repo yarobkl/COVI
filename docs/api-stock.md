@@ -44,3 +44,6 @@ chaque evenement et desabonne la connexion a la fermeture.
 
 Le site actuel COVI est une application **Vite/React**, pas Next.js ; l'API
 s'execute dans Supabase Edge Functions et le front conserve son architecture.
+
+Note : la fonctionnalité reste désactivée en production tant que la migration et
+l'Edge Function n'ont pas été validées et déployées explicitement.
