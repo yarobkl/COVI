@@ -301,8 +301,7 @@ function OrderCard({
         )}
       </p>
       <p className="muted">
-        {dateTime(order.createdAt)} ·{' '}
-        {orderChannelLabels[order.channel]} ·{' '}
+        {dateTime(order.createdAt)} · {orderChannelLabels[order.channel]} ·{' '}
         {order.fulfillment === 'delivery'
           ? `Livraison : ${order.deliveryAddress ?? ''}`
           : 'Retrait en boutique'}
