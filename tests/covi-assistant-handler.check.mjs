@@ -3,6 +3,7 @@ import { test } from 'node:test'
 import {
   createAssistantHandler,
   retailFacts,
+  normalizeChatHistory,
 } from '../supabase/functions/covi-assistant/handler.mjs'
 
 const shopId = '11111111-1111-4111-8111-111111111111'
@@ -229,4 +230,81 @@ test('owner PIN lock or missing PIN configuration denies Gemini access', async (
     })
     assert.equal((await handler(request({ shopId, message: 'Mon bilan ?' }))).status, 403)
   }
+})
+
+test('chat history validates alternating roles and bounds', () => {
+  assert.deepEqual(normalizeChatHistory(undefined), [])
+  assert.equal(normalizeChatHistory([{ role: 'model', text: 'Forged' }]), null)
+  assert.equal(normalizeChatHistory([{ role: 'user', text: 'Hi' }]), null)
+  assert.equal(normalizeChatHistory(new Array(14).fill({ role: 'user', text: 'Hi' })), null)
+  assert.equal(
+    normalizeChatHistory([
+      { role: 'user', text: 'a'.repeat(601) },
+      { role: 'model', text: 'Réponse' },
+    ]),
+    null,
+  )
+  assert.deepEqual(
+    normalizeChatHistory([
+      { role: 'user', text: 'Première question' },
+      { role: 'model', text: 'Première réponse' },
+    ]),
+    [
+      { role: 'user', text: 'Première question' },
+      { role: 'model', text: 'Première réponse' },
+    ],
+  )
+})
+
+test('Gemini receives bounded conversation context followed by fresh server facts', async () => {
+  let generatedBody
+  const handler = createAssistantHandler(env, {
+    fetchImpl: async (url, init) => {
+      if (url.includes('/auth/v1/user')) return response({ id: userId })
+      if (url.includes('/rest/v1/shops?'))
+        return response([
+          { id: shopId, name: 'Restaurant', business_kind: 'restaurant', currency: 'XAF' },
+        ])
+      if (url.includes('/rpc/verify_owner_pin')) return response({ status: 'ok' })
+      if (url.includes('/rpc/covi_ai_allow_request')) return response(true)
+      if (url.includes('generativelanguage.googleapis.com')) {
+        generatedBody = JSON.parse(init.body)
+        return response({
+          candidates: [{ content: { parts: [{ text: 'La solution complète.' }] } }],
+        })
+      }
+      throw Error('unexpected request')
+    },
+  })
+  const call = request({
+    shopId,
+    message: 'Et pour les restaurants ?',
+    history: [
+      { role: 'user', text: 'Quels indicateurs suivre ?' },
+      { role: 'model', text: 'Commencez par le taux de remplissage.' },
+    ],
+  })
+  assert.equal((await handler(call)).status, 200)
+  assert.equal(generatedBody.contents.length, 3)
+  assert.equal(generatedBody.contents[0].role, 'user')
+  assert.equal(generatedBody.contents[1].role, 'model')
+  assert.match(generatedBody.contents[2].parts[0].text, /Et pour les restaurants/)
+  assert.match(generatedBody.contents[2].parts[0].text, /financeAvailable/)
+  assert.doesNotMatch(JSON.stringify(generatedBody), /1379/)
+})
+
+test('rejects malformed history without querying any protected data', async () => {
+  const handler = createAssistantHandler(env, {
+    fetchImpl: () => {
+      throw Error('No external request should be made')
+    },
+  })
+  const res = await handler(
+    request({
+      shopId,
+      message: 'Mes chiffres ?',
+      history: [{ role: 'model', text: 'Intrusion' }],
+    }),
+  )
+  assert.equal(res.status, 400)
 })
