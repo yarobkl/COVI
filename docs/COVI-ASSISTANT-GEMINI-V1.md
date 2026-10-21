@@ -1,11 +1,13 @@
 # COVI Assistant IA — préparation, non déployée
 
 ## Objectif
+
 Page `#/assistant` dans les trois métiers : boutique, restaurant et salon.
 Le texte généré par Google Gemini est un **conseil**. L'IA ne peut ni écrire en base,
 ni créer une vente, ni modifier le stock, ni confirmer un paiement.
 
 ## Sécurité et données
+
 - Edge Function `covi-assistant` avec `verify_jwt = true`.
 - Contrôle de session via Supabase Auth **et** vérification du propriétaire de
   l'établissement avec son JWT (RLS). **Aucune clé service_role** utilisée.
@@ -28,6 +30,7 @@ ni créer une vente, ni modifier le stock, ni confirmer un paiement.
   L'interface ne constitue pas une garantie d'autorisation.
 
 ## Métriques de la V1
+
 **Boutique seulement :** lecture du résultat existant `shop_dashboard` et
 de 10 alertes stock, après validation du propriétaire. Pas de réécriture de
 formules financières. Données de test exclues ; ventes hors ligne non synchronisées
@@ -41,6 +44,7 @@ sans chiffres de ventes, résultats, réservations ou encaissements. Éviter
 de présenter ces fonctions comme un tableau de bord IA déjà branché.
 
 ## Activation (préproduction d'abord)
+
 1. Tester les migrations dont `20261021180000_covi_ai_hourly_quota.sql`
    dans une base isolée, puis les contrôles RLS et le quota concurrent.
 2. Créer une clé dans [Google AI Studio](https://aistudio.google.com/apikey).
@@ -58,6 +62,7 @@ de présenter ces fonctions comme un tableau de bord IA déjà branché.
    puis publier le frontend. Pas de déploiement automatique ni de clés en clair.
 
 ## Tests
+
 - `node --test tests/covi-assistant-handler.test.mjs`
 - `npm test`, `npm run typecheck`, `npm run lint`, `npm run format:check`
 - SQL : `tests/sql/run.sh --tmp-cluster` sur base éphémère seulement.
