@@ -1,6 +1,7 @@
 # COVI Assistant IA — conversation continue (V2)
 
 ## Quoi de neuf ?
+
 - Interface de **chat** mobile : bulles utilisateur/assistant, composition en bas,
   validation Entrée, Maj+Entrée pour un retour à la ligne, bouton « Nouvelle conversation ».
 - **Mémoire contextuelle éphémère** : les 6 derniers échanges réussis (max. 12 messages)
@@ -16,6 +17,7 @@
   indépendant des limites de Google ; des coûts et autres limites Gemini restent possibles.
 
 ## Sécurité & justesse
+
 - Aucun des messages d'historique n'est considéré comme une source de données
   financière fiable. À chaque réponse, le serveur transmet les seuls indicateurs
   à jour et contrôlés sous la session du propriétaire.
@@ -34,6 +36,7 @@
   et de conservation, et un consentement adapté.
 
 ## Activation
+
 1. Tester la migration `20261021193000_covi_ai_chat_hourly_quota.sql` sur
    base isolée avec toute la suite SQL, vérifier la contrainte `used <= 60`.
 2. Déployer la migration via Supabase ; l'ancienne limite reste tant que ce
@@ -46,5 +49,6 @@
    possibilité `COVI_AI_ENABLED=false` pour arrêter les appels.
 
 ## Tests
+
 - `npm test`, `npm run lint`, `npm run typecheck`, `npm run format:check`
 - `tests/sql/run.sh --tmp-cluster`

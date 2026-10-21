@@ -60,7 +60,8 @@ export function AssistantPage({ shop }: { shop: Shop }) {
       !/^[0-9]{4,6}$/.test(ownerPin) ||
       text.length < 2 ||
       text.length > 600
-    ) return
+    )
+      return
 
     // Les réponses en échec ne sont jamais injectées dans le contexte de Gemini.
     const history: ChatTurn[] = exchanges
@@ -104,10 +105,10 @@ export function AssistantPage({ shop }: { shop: Shop }) {
       <PageHead title="COVI Assistant IA" sub="Votre copilote de gestion, en conversation." />
       <Notice live={false}>
         <p>
-          Vous pouvez discuter naturellement avec COVI et lui poser des questions de suivi.
-          Les indicateurs proviennent de vos données enregistrées, mais les conseils de l'IA
-          peuvent comporter des erreurs. Aucune vente, aucun stock ou paiement ne peut être
-          modifié par cet assistant.
+          Vous pouvez discuter naturellement avec COVI et lui poser des questions de suivi. Les
+          indicateurs proviennent de vos données enregistrées, mais les conseils de l'IA peuvent
+          comporter des erreurs. Aucune vente, aucun stock ou paiement ne peut être modifié par cet
+          assistant.
         </p>
       </Notice>
       <section aria-label="Chat COVI" className="covi-assistant__chat">
@@ -117,12 +118,23 @@ export function AssistantPage({ shop }: { shop: Shop }) {
             <p className="muted">Conseiller en gestion · {shop.name}</p>
           </div>
           {exchanges.length > 0 && (
-            <Button variant="ghost" onClick={() => { setExchanges([]); setQuestion('') }} disabled={busy}>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setExchanges([])
+                setQuestion('')
+              }}
+              disabled={busy}
+            >
               Nouvelle conversation
             </Button>
           )}
         </div>
-        <div className="covi-assistant__conversation" aria-label="Messages du chat" aria-live="polite">
+        <div
+          className="covi-assistant__conversation"
+          aria-label="Messages du chat"
+          aria-live="polite"
+        >
           {exchanges.length === 0 && (
             <div className="covi-assistant__welcome">
               <h2>Bonjour ! Comment puis-je vous aider ?</h2>
@@ -133,23 +145,39 @@ export function AssistantPage({ shop }: { shop: Shop }) {
               </p>
               <div className="covi-assistant__ideas" aria-label="Suggestions de questions">
                 {ideas[sector].map((idea) => (
-                  <button type="button" className="covi-assistant__suggestion" key={idea}
-                    onClick={() => setQuestion(idea)} disabled={busy}>{idea}</button>
+                  <button
+                    type="button"
+                    className="covi-assistant__suggestion"
+                    key={idea}
+                    onClick={() => setQuestion(idea)}
+                    disabled={busy}
+                  >
+                    {idea}
+                  </button>
                 ))}
               </div>
             </div>
           )}
           {exchanges.map(({ id, question: sent, answer, error }) => (
             <div className="covi-assistant__exchange" key={id}>
-              <div className="covi-assistant__question"><strong>Vous</strong><p>{sent}</p></div>
+              <div className="covi-assistant__question">
+                <strong>Vous</strong>
+                <p>{sent}</p>
+              </div>
               {answer ? (
-                <div className="covi-assistant__answer"><strong>COVI</strong><p>{answer}</p></div>
+                <div className="covi-assistant__answer">
+                  <strong>COVI</strong>
+                  <p>{answer}</p>
+                </div>
               ) : error ? (
                 <div className="covi-assistant__answer covi-assistant__error" role="alert">
-                  <strong>COVI</strong><p>{error}</p>
+                  <strong>COVI</strong>
+                  <p>{error}</p>
                 </div>
               ) : (
-                <div className="covi-assistant__answer" role="status">COVI réfléchit…</div>
+                <div className="covi-assistant__answer" role="status">
+                  COVI réfléchit…
+                </div>
               )}
             </div>
           ))}
@@ -194,15 +222,22 @@ export function AssistantPage({ shop }: { shop: Shop }) {
                 disabled={busy}
               />
               <span>
-                J'accepte l'envoi de mes messages et des indicateurs utiles à Google Gemini.
-                Évitez les données personnelles de clients. Cette conversation n'est conservée
-                que sur cette page et sera perdue si vous la quittez.
+                J'accepte l'envoi de mes messages et des indicateurs utiles à Google Gemini. Évitez
+                les données personnelles de clients. Cette conversation n'est conservée que sur
+                cette page et sera perdue si vous la quittez.
               </span>
             </label>
             <div className="covi-assistant__actions">
               <p className="muted">60 messages par heure et par boutique · Entrée pour envoyer</p>
-              <Button type="submit" variant="primary" busy={busy} busyLabel="COVI réfléchit…"
-                disabled={!accepted || busy || !/^[0-9]{4,6}$/.test(ownerPin) || question.trim().length < 2}>
+              <Button
+                type="submit"
+                variant="primary"
+                busy={busy}
+                busyLabel="COVI réfléchit…"
+                disabled={
+                  !accepted || busy || !/^[0-9]{4,6}$/.test(ownerPin) || question.trim().length < 2
+                }
+              >
                 Envoyer
               </Button>
             </div>

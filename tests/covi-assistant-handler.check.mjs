@@ -237,17 +237,23 @@ test('chat history validates alternating roles and bounds', () => {
   assert.equal(normalizeChatHistory([{ role: 'model', text: 'Forged' }]), null)
   assert.equal(normalizeChatHistory([{ role: 'user', text: 'Hi' }]), null)
   assert.equal(normalizeChatHistory(new Array(14).fill({ role: 'user', text: 'Hi' })), null)
-  assert.equal(normalizeChatHistory([
-    { role: 'user', text: 'a'.repeat(601) },
-    { role: 'model', text: 'Réponse' },
-  ]), null)
-  assert.deepEqual(normalizeChatHistory([
-    { role: 'user', text: 'Première question' },
-    { role: 'model', text: 'Première réponse' },
-  ]), [
-    { role: 'user', text: 'Première question' },
-    { role: 'model', text: 'Première réponse' },
-  ])
+  assert.equal(
+    normalizeChatHistory([
+      { role: 'user', text: 'a'.repeat(601) },
+      { role: 'model', text: 'Réponse' },
+    ]),
+    null,
+  )
+  assert.deepEqual(
+    normalizeChatHistory([
+      { role: 'user', text: 'Première question' },
+      { role: 'model', text: 'Première réponse' },
+    ]),
+    [
+      { role: 'user', text: 'Première question' },
+      { role: 'model', text: 'Première réponse' },
+    ],
+  )
 })
 
 test('Gemini receives bounded conversation context followed by fresh server facts', async () => {
@@ -256,12 +262,16 @@ test('Gemini receives bounded conversation context followed by fresh server fact
     fetchImpl: async (url, init) => {
       if (url.includes('/auth/v1/user')) return response({ id: userId })
       if (url.includes('/rest/v1/shops?'))
-        return response([{ id: shopId, name: 'Restaurant', business_kind: 'restaurant', currency: 'XAF' }])
+        return response([
+          { id: shopId, name: 'Restaurant', business_kind: 'restaurant', currency: 'XAF' },
+        ])
       if (url.includes('/rpc/verify_owner_pin')) return response({ status: 'ok' })
       if (url.includes('/rpc/covi_ai_allow_request')) return response(true)
       if (url.includes('generativelanguage.googleapis.com')) {
         generatedBody = JSON.parse(init.body)
-        return response({ candidates: [{ content: { parts: [{ text: 'La solution complète.' }] } }] })
+        return response({
+          candidates: [{ content: { parts: [{ text: 'La solution complète.' }] } }],
+        })
       }
       throw Error('unexpected request')
     },
@@ -285,10 +295,16 @@ test('Gemini receives bounded conversation context followed by fresh server fact
 
 test('rejects malformed history without querying any protected data', async () => {
   const handler = createAssistantHandler(env, {
-    fetchImpl: () => { throw Error('No external request should be made') },
+    fetchImpl: () => {
+      throw Error('No external request should be made')
+    },
   })
-  const res = await handler(request({
-    shopId, message: 'Mes chiffres ?', history: [{ role: 'model', text: 'Intrusion' }],
-  }))
+  const res = await handler(
+    request({
+      shopId,
+      message: 'Mes chiffres ?',
+      history: [{ role: 'model', text: 'Intrusion' }],
+    }),
+  )
   assert.equal(res.status, 400)
 })

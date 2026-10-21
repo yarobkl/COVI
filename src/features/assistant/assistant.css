@@ -16,7 +16,9 @@
     padding-bottom: var(--space-2);
     border-bottom: 1px solid var(--ink-soft);
   }
-  .covi-assistant__chat-head p { margin-top: var(--space-1); }
+  .covi-assistant__chat-head p {
+    margin-top: var(--space-1);
+  }
   .covi-assistant__welcome {
     text-align: center;
     padding: clamp(1rem, 5vw, 2.5rem) var(--space-3);
@@ -88,8 +90,12 @@
     white-space: pre-wrap;
     margin-top: var(--space-2);
   }
-  .covi-assistant__error { color: var(--danger); }
-  .covi-assistant__hint { font-size: var(--step--1); }
+  .covi-assistant__error {
+    color: var(--danger);
+  }
+  .covi-assistant__hint {
+    font-size: var(--step--1);
+  }
   .covi-assistant__actions {
     display: flex;
     align-items: center;
@@ -97,11 +103,20 @@
     flex-wrap: wrap;
     gap: var(--space-2);
   }
-  .covi-assistant__actions .btn { min-width: 8rem; }
+  .covi-assistant__actions .btn {
+    min-width: 8rem;
+  }
   @media (max-width: 420px) {
-    .covi-assistant__chat-head .btn { width: 100%; }
-    .covi-assistant__question, .covi-assistant__answer { max-width: 95%; }
-    .covi-assistant__actions .btn { width: 100%; }
+    .covi-assistant__chat-head .btn {
+      width: 100%;
+    }
+    .covi-assistant__question,
+    .covi-assistant__answer {
+      max-width: 95%;
+    }
+    .covi-assistant__actions .btn {
+      width: 100%;
+    }
   }
   .covi-assistant__form {
     display: grid;

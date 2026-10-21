@@ -37,7 +37,8 @@ describe('AssistantPage', () => {
   })
 
   it('retains six previous exchanges for follow-up questions, without restarting the chat', async () => {
-    vi.mocked(askCoviAssistant).mockResolvedValueOnce('Vos ventes sont de 1 000 XAF.')
+    vi.mocked(askCoviAssistant)
+      .mockResolvedValueOnce('Vos ventes sont de 1 000 XAF.')
       .mockResolvedValueOnce('Le chiffre est celui de ce mois, pas un bénéfice net.')
     render(<AssistantPage shop={shop} />)
     fireEvent.click(screen.getByRole('checkbox'))
@@ -52,12 +53,18 @@ describe('AssistantPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Envoyer' }))
     await waitFor(() => expect(askCoviAssistant).toHaveBeenCalledTimes(2))
     expect(askCoviAssistant).toHaveBeenNthCalledWith(
-      2, shop.id, 'Et par rapport au mois dernier ?', '1379', [
+      2,
+      shop.id,
+      'Et par rapport au mois dernier ?',
+      '1379',
+      [
         { role: 'user', text: 'Mes ventes ?' },
         { role: 'model', text: 'Vos ventes sont de 1 000 XAF.' },
       ],
     )
-    expect(await screen.findByText('Le chiffre est celui de ce mois, pas un bénéfice net.')).toBeTruthy()
+    expect(
+      await screen.findByText('Le chiffre est celui de ce mois, pas un bénéfice net.'),
+    ).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Nouvelle conversation' }))
     expect(screen.queryByText('Vos ventes sont de 1 000 XAF.')).toBeNull()
   })
