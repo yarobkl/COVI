@@ -8,18 +8,15 @@ export async function askCoviAssistant(shopId: string, message: string): Promise
   if (error) {
     const response = 'context' in error ? error.context : null
     if (response instanceof Response) {
+      let payload: unknown
       try {
-        const payload: unknown = await response.json()
-        if (payload && typeof payload === 'object' && 'error' in payload) {
-          const detail = (payload as { error?: unknown }).error
-          if (typeof detail === 'string') throw new Error(detail)
-        }
-      } catch (cause) {
-        if (cause instanceof Error && cause.message !== 'Unexpected end of JSON input') {
-          // Ne laisse pas une erreur de parsing cacher le vrai état, mais conserve le message serveur.
-          if (cause instanceof SyntaxError) throw new Error("L'assistant est indisponible.")
-          throw cause
-        }
+        payload = await response.json()
+      } catch {
+        // La réponse serveur n'est pas du JSON exploitable.
+      }
+      if (payload && typeof payload === 'object' && 'error' in payload) {
+        const detail = (payload as { error?: unknown }).error
+        if (typeof detail === 'string') throw new Error(detail)
       }
     }
     throw new Error("L'assistant est indisponible. Vérifiez votre connexion et réessayez.")
