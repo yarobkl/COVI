@@ -63,7 +63,7 @@ de présenter ces fonctions comme un tableau de bord IA déjà branché.
 
 ## Tests
 
-- `node --test tests/covi-assistant-handler.test.mjs`
+- `node --test tests/covi-assistant-handler.check.mjs`
 - `npm test`, `npm run typecheck`, `npm run lint`, `npm run format:check`
 - SQL : `tests/sql/run.sh --tmp-cluster` sur base éphémère seulement.
 
