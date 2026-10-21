@@ -1,6 +1,6 @@
 -- Quota persistant pour les appels IA, par boutique et heure UTC.
 -- La fonction ne fait aucune écriture dans les ventes, paiements ou stocks.
-create table public.covi_ai_hourly_quota (
+create table if not exists public.covi_ai_hourly_quota (
   shop_id uuid not null references public.shops(id) on delete cascade,
   hour_start timestamptz not null,
   used integer not null default 0 check (used between 0 and 12),
