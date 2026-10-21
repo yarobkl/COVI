@@ -1,6 +1,6 @@
-import { useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Button, Notice, PageHead, Sheet } from '../../components/ui'
-import { askCoviAssistant } from '../../lib/assistant'
+import { askCoviAssistant, type ChatTurn } from '../../lib/assistant'
 import type { Shop } from '../../lib/types'
 import './assistant.css'
 
@@ -24,7 +24,7 @@ const ideas: Record<string, string[]> = {
   ],
 }
 
-/** Assistant consultatif : pas de modification d'opérations, pas d'historique conservé à distance. */
+/** Vrai chat multi-tour, local à la page. Pas de stockage durable ni de données entre boutiques. */
 export function AssistantPage({ shop }: { shop: Shop }) {
   const [question, setQuestion] = useState('')
   const [ownerPin, setOwnerPin] = useState('')
@@ -33,10 +33,24 @@ export function AssistantPage({ shop }: { shop: Shop }) {
   const [exchanges, setExchanges] = useState<Exchange[]>([])
   const nextId = useRef(0)
   const pending = useRef(false)
+  const endRef = useRef<HTMLDivElement | null>(null)
   const sector =
     shop.business_kind === 'restaurant' || shop.business_kind === 'salon'
       ? shop.business_kind
       : 'retail'
+
+  // Un PIN reste uniquement en mémoire pendant 10 min. Le serveur le vérifie à CHAQUE requête.
+  useEffect(() => {
+    if (!/^[0-9]{4,6}$/.test(ownerPin)) return
+    const timeout = window.setTimeout(() => setOwnerPin(''), 10 * 60 * 1000)
+    return () => window.clearTimeout(timeout)
+  }, [ownerPin])
+
+  useEffect(() => {
+    if (typeof endRef.current?.scrollIntoView === 'function') {
+      endRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' })
+    }
+  }, [exchanges])
 
   const send = async (value: string) => {
     const text = value.trim()
@@ -46,16 +60,24 @@ export function AssistantPage({ shop }: { shop: Shop }) {
       !/^[0-9]{4,6}$/.test(ownerPin) ||
       text.length < 2 ||
       text.length > 600
-    )
-      return
+    ) return
+
+    // Les réponses en échec ne sont jamais injectées dans le contexte de Gemini.
+    const history: ChatTurn[] = exchanges
+      .filter((exchange) => typeof exchange.answer === 'string' && exchange.answer.length > 0)
+      .slice(-6)
+      .flatMap((exchange) => [
+        { role: 'user' as const, text: exchange.question },
+        { role: 'model' as const, text: (exchange.answer ?? '').slice(0, 2000) },
+      ])
+
     pending.current = true
     setBusy(true)
     const id = ++nextId.current
     setQuestion('')
-    setOwnerPin('')
     setExchanges((old) => [...old, { id, question: text }])
     try {
-      const answer = await askCoviAssistant(shop.id, text, ownerPin)
+      const answer = await askCoviAssistant(shop.id, text, ownerPin, history)
       setExchanges((old) => old.map((e) => (e.id === id ? { ...e, answer } : e)))
     } catch (error) {
       const message = error instanceof Error ? error.message : "L'assistant est indisponible."
@@ -70,119 +92,123 @@ export function AssistantPage({ shop }: { shop: Shop }) {
     event.preventDefault()
     void send(question)
   }
+  const onComposerKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+      event.preventDefault()
+      void send(question)
+    }
+  }
 
   return (
     <div className="page-stack covi-assistant">
-      <PageHead title="COVI Assistant IA" sub="Posez vos questions à votre copilote de gestion." />
+      <PageHead title="COVI Assistant IA" sub="Votre copilote de gestion, en conversation." />
       <Notice live={false}>
         <p>
-          Conseils en lecture seule : l'IA ne peut ni vendre, ni changer le stock, ni valider un
-          paiement. Ses réponses peuvent comporter des erreurs : vérifiez toujours vos chiffres dans
-          le Bilan et les opérations enregistrées.
+          Vous pouvez discuter naturellement avec COVI et lui poser des questions de suivi.
+          Les indicateurs proviennent de vos données enregistrées, mais les conseils de l'IA
+          peuvent comporter des erreurs. Aucune vente, aucun stock ou paiement ne peut être
+          modifié par cet assistant.
         </p>
       </Notice>
-      <Sheet>
-        <h2 className="section-title">Une question sur votre activité ?</h2>
-        <p className="muted">
-          {sector === 'retail'
-            ? "L'assistant utilise les chiffres enregistrés de cette boutique, hors données de démonstration et ventes non synchronisées. « Ventes moins charges » n'est pas un bénéfice net."
-            : 'Pour votre métier, cette première version donne des conseils généraux. Les chiffres financiers du restaurant ou du salon ne sont pas encore connectés.'}
-        </p>
-        <div className="covi-assistant__ideas" aria-label="Suggestions de questions">
-          {ideas[sector].map((idea) => (
-            <button
-              type="button"
-              className="covi-assistant__suggestion"
-              key={idea}
-              onClick={() => setQuestion(idea)}
-              disabled={busy}
-            >
-              {idea}
-            </button>
-          ))}
+      <section aria-label="Chat COVI" className="covi-assistant__chat">
+        <div className="covi-assistant__chat-head">
+          <div>
+            <strong>COVI Assistant</strong>
+            <p className="muted">Conseiller en gestion · {shop.name}</p>
+          </div>
+          {exchanges.length > 0 && (
+            <Button variant="ghost" onClick={() => { setExchanges([]); setQuestion('') }} disabled={busy}>
+              Nouvelle conversation
+            </Button>
+          )}
         </div>
-      </Sheet>
-      {exchanges.length > 0 && (
-        <section aria-label="Conversation avec COVI" className="covi-assistant__conversation">
+        <div className="covi-assistant__conversation" aria-label="Messages du chat" aria-live="polite">
+          {exchanges.length === 0 && (
+            <div className="covi-assistant__welcome">
+              <h2>Bonjour ! Comment puis-je vous aider ?</h2>
+              <p className="muted">
+                {sector === 'retail'
+                  ? "Parlons de votre chiffre d'affaires, de votre stock ou de vos charges. « Ventes moins charges » n'est pas un bénéfice net."
+                  : "Parlons de votre activité. Les chiffres financiers de ce métier ne sont pas encore connectés à l'IA."}
+              </p>
+              <div className="covi-assistant__ideas" aria-label="Suggestions de questions">
+                {ideas[sector].map((idea) => (
+                  <button type="button" className="covi-assistant__suggestion" key={idea}
+                    onClick={() => setQuestion(idea)} disabled={busy}>{idea}</button>
+                ))}
+              </div>
+            </div>
+          )}
           {exchanges.map(({ id, question: sent, answer, error }) => (
             <div className="covi-assistant__exchange" key={id}>
-              <p className="covi-assistant__question">
-                <strong>Vous :</strong> {sent}
-              </p>
+              <div className="covi-assistant__question"><strong>Vous</strong><p>{sent}</p></div>
               {answer ? (
-                <div className="covi-assistant__answer">
-                  <strong>COVI :</strong>
-                  <p>{answer}</p>
-                </div>
+                <div className="covi-assistant__answer"><strong>COVI</strong><p>{answer}</p></div>
               ) : error ? (
-                <p className="covi-assistant__error" role="alert">
-                  {error}
-                </p>
+                <div className="covi-assistant__answer covi-assistant__error" role="alert">
+                  <strong>COVI</strong><p>{error}</p>
+                </div>
               ) : (
-                <p className="muted" role="status">
-                  COVI prépare une réponse…
-                </p>
+                <div className="covi-assistant__answer" role="status">COVI réfléchit…</div>
               )}
             </div>
           ))}
-        </section>
-      )}
-      <Sheet>
-        <form onSubmit={onSubmit} className="covi-assistant__form">
-          <label htmlFor="covi-assistant-question">Votre question</label>
-          <textarea
-            id="covi-assistant-question"
-            value={question}
-            onChange={(event) => setQuestion(event.target.value)}
-            maxLength={600}
-            rows={3}
-            disabled={busy}
-            placeholder="Ex. Pourquoi mes ventes ont-elles diminué ?"
-          />
-          <label htmlFor="covi-assistant-owner-pin">Code PIN responsable</label>
-          <input
-            id="covi-assistant-owner-pin"
-            type="password"
-            inputMode="numeric"
-            autoComplete="off"
-            pattern="[0-9]{4,6}"
-            maxLength={6}
-            value={ownerPin}
-            onChange={(event) => setOwnerPin(event.target.value.replace(/\D/g, ''))}
-            disabled={busy}
-            placeholder="Votre code de responsable"
-            required
-          />
-          <p className="muted">
-            Le code est vérifié par COVI pour chaque question, sans être communiqué à Google Gemini.
-            Sur un appareil partagé, il protège vos données de gestion.
-          </p>
-          <label className="covi-assistant__consent">
-            <input
-              type="checkbox"
-              checked={accepted}
-              onChange={(event) => setAccepted(event.target.checked)}
+          <div ref={endRef} />
+        </div>
+        <Sheet>
+          <form onSubmit={onSubmit} className="covi-assistant__form">
+            <label htmlFor="covi-assistant-question">Votre message</label>
+            <textarea
+              id="covi-assistant-question"
+              value={question}
+              onChange={(event) => setQuestion(event.target.value)}
+              onKeyDown={onComposerKeyDown}
+              maxLength={600}
+              rows={2}
               disabled={busy}
+              placeholder="Posez une question, puis continuez la discussion…"
             />
-            <span>
-              J'accepte l'envoi de ma question et des indicateurs utiles de mon établissement à
-              Google Gemini pour générer une réponse. Évitez les données personnelles de clients.
-              Aucun historique de conversation n'est enregistré par COVI dans cette version.
-            </span>
-          </label>
-          <Button
-            type="submit"
-            variant="primary"
-            busy={busy}
-            busyLabel="COVI réfléchit…"
-            disabled={
-              !accepted || busy || !/^[0-9]{4,6}$/.test(ownerPin) || question.trim().length < 2
-            }
-          >
-            Envoyer ma question
-          </Button>
-        </form>
-      </Sheet>
+            <label htmlFor="covi-assistant-owner-pin">Code PIN responsable</label>
+            <input
+              id="covi-assistant-owner-pin"
+              type="password"
+              inputMode="numeric"
+              autoComplete="off"
+              pattern="[0-9]{4,6}"
+              maxLength={6}
+              value={ownerPin}
+              onChange={(event) => setOwnerPin(event.target.value.replace(/\D/g, ''))}
+              disabled={busy}
+              placeholder="4 à 6 chiffres"
+              required
+            />
+            <p className="muted covi-assistant__hint">
+              Le PIN reste temporairement dans cette page (10 minutes maximum), puis sera redemandé.
+              COVI le vérifie côté serveur à chaque message ; il n'est jamais envoyé à Gemini.
+            </p>
+            <label className="covi-assistant__consent">
+              <input
+                type="checkbox"
+                checked={accepted}
+                onChange={(event) => setAccepted(event.target.checked)}
+                disabled={busy}
+              />
+              <span>
+                J'accepte l'envoi de mes messages et des indicateurs utiles à Google Gemini.
+                Évitez les données personnelles de clients. Cette conversation n'est conservée
+                que sur cette page et sera perdue si vous la quittez.
+              </span>
+            </label>
+            <div className="covi-assistant__actions">
+              <p className="muted">60 messages par heure et par boutique · Entrée pour envoyer</p>
+              <Button type="submit" variant="primary" busy={busy} busyLabel="COVI réfléchit…"
+                disabled={!accepted || busy || !/^[0-9]{4,6}$/.test(ownerPin) || question.trim().length < 2}>
+                Envoyer
+              </Button>
+            </div>
+          </form>
+        </Sheet>
+      </section>
     </div>
   )
 }
