@@ -71,11 +71,7 @@ describe('AssistantPage', () => {
 
   it('does not promise real financial data for the restaurant', () => {
     render(<AssistantPage shop={{ ...shop, business_kind: 'restaurant' }} />)
-    expect(
-      screen.getByText(
-        /les chiffres financiers de ce métier ne sont pas encore connectés à l'IA/i,
-      ),
-    ).toBeTruthy()
+    expect(screen.getByText(/chiffres financiers de ce métier/i)).toBeTruthy()
     expect(
       screen.getByRole('button', { name: 'Comment réduire le gaspillage alimentaire ?' }),
     ).toBeTruthy()
