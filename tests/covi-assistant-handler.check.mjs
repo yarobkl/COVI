@@ -26,7 +26,7 @@ const request = (body, headers = {}) =>
       'content-type': 'application/json',
       ...headers,
     },
-    body: JSON.stringify({ ownerPin: '1379', ...body }),
+    body: JSON.stringify(body),
   })
 const response = (data, status = 200) =>
   new Response(JSON.stringify(data), {
@@ -84,7 +84,7 @@ test('rejects quota exhaustion without calling Gemini', async () => {
       if (url.includes('/auth/v1/user')) return response({ id: userId })
       if (url.includes('/rest/v1/shops?'))
         return response([{ id: shopId, name: 'Test', business_kind: 'retail', currency: 'XAF' }])
-      if (url.includes('/rpc/verify_owner_pin')) return response({ status: 'ok' })
+      if (url.includes('/rpc/covi_ai_owner_session_allowed')) return response(true)
       if (url.includes('/rpc/covi_ai_allow_request')) return response(false)
       calledGemini = true
       throw new Error('blocked')
@@ -103,7 +103,7 @@ test('passes only limited SQL facts to Gemini; no fake net profit', async () => 
         return response([
           { id: shopId, name: 'Boutique', business_kind: 'retail', currency: 'XAF' },
         ])
-      if (url.includes('/rpc/verify_owner_pin')) return response({ status: 'ok' })
+      if (url.includes('/rpc/covi_ai_owner_session_allowed')) return response(true)
       if (url.includes('/rpc/covi_ai_allow_request')) return response(true)
       if (url.includes('/rpc/shop_dashboard'))
         return response({
@@ -137,7 +137,7 @@ test('passes only limited SQL facts to Gemini; no fake net profit', async () => 
   assert.equal(result.status, 200)
   const facts = geminiRequest.contents[0].parts[0].text
   assert.match(facts, /monthRevenue/)
-  assert.doesNotMatch(facts, /1379/)
+  assert.doesNotMatch(facts, /ownerPin/)
   assert.match(facts, /lowStockProducts/)
   assert.doesNotMatch(facts, /9900000/)
   assert.match(facts, /NI le bénéfice net/)
@@ -152,7 +152,7 @@ test('restaurant answer has no fabricated financial amounts', async () => {
         return response([
           { id: shopId, name: 'Restaurant', business_kind: 'restaurant', currency: 'XAF' },
         ])
-      if (url.includes('/rpc/verify_owner_pin')) return response({ status: 'ok' })
+      if (url.includes('/rpc/covi_ai_owner_session_allowed')) return response(true)
       if (url.includes('/rpc/covi_ai_allow_request')) return response(true)
       if (url.includes('generativelanguage.googleapis.com')) {
         sent = JSON.parse(init.body)
@@ -189,47 +189,34 @@ test('the curated retail facts are explicit about missing costs and offline sale
   assert.equal('netProfit' in facts, false)
 })
 
-test('invalid or missing owner PIN cannot access management figures or Gemini', async () => {
-  let calledDashboard = false
-  let calledGemini = false
+test('shared till owner session is blocked before quota, metrics, or Gemini', async () => {
+  let calledSensitive = false
   const handler = createAssistantHandler(env, {
-    fetchImpl: async (url, init) => {
+    fetchImpl: async (url) => {
       if (url.includes('/auth/v1/user')) return response({ id: userId })
       if (url.includes('/rest/v1/shops?'))
-        return response([
-          { id: shopId, name: 'Boutique', business_kind: 'retail', currency: 'XAF' },
-        ])
-      if (url.includes('/rpc/verify_owner_pin')) {
-        assert.equal(JSON.parse(init.body).p_pin, '1379')
-        return response({ status: 'invalid', attempts_left: 4 })
-      }
-      if (url.includes('/rpc/shop_dashboard')) calledDashboard = true
-      if (url.includes('generativelanguage.googleapis.com')) calledGemini = true
-      throw Error('Unauthorized data access')
+        return response([{ id: shopId, name: 'Boutique', business_kind: 'retail', currency: 'XAF' }])
+      if (url.includes('/rpc/covi_ai_owner_session_allowed')) return response(false)
+      calledSensitive = true
+      throw Error('No protected metrics without owner session')
     },
   })
-  assert.equal(
-    (await handler(request({ shopId, message: 'Mes ventes ?', ownerPin: '' }))).status,
-    403,
-  )
-  assert.equal((await handler(request({ shopId, message: 'Mes ventes ?' }))).status, 403)
-  assert.equal(calledDashboard, false)
-  assert.equal(calledGemini, false)
+  const result = await handler(request({ shopId, message: 'Quel est mon chiffre d\'affaires ?' }))
+  assert.equal(result.status, 403)
+  assert.equal(calledSensitive, false)
 })
 
-test('owner PIN lock or missing PIN configuration denies Gemini access', async () => {
-  for (const status of ['locked', 'not_set']) {
-    const handler = createAssistantHandler(env, {
-      fetchImpl: async (url) => {
-        if (url.includes('/auth/v1/user')) return response({ id: userId })
-        if (url.includes('/rest/v1/shops?'))
-          return response([{ id: shopId, name: 'Test', business_kind: 'retail', currency: 'XAF' }])
-        if (url.includes('/rpc/verify_owner_pin')) return response({ status })
-        throw Error('No metrics or Gemini when PIN is denied')
-      },
-    })
-    assert.equal((await handler(request({ shopId, message: 'Mon bilan ?' }))).status, 403)
-  }
+test('missing session guard fails closed', async () => {
+  const handler = createAssistantHandler(env, {
+    fetchImpl: async (url) => {
+      if (url.includes('/auth/v1/user')) return response({ id: userId })
+      if (url.includes('/rest/v1/shops?'))
+        return response([{ id: shopId, name: 'Boutique', business_kind: 'retail', currency: 'XAF' }])
+      if (url.includes('/rpc/covi_ai_owner_session_allowed')) return response({}, 404)
+      throw Error('No further operation allowed')
+    },
+  })
+  assert.equal((await handler(request({ shopId, message: 'Mon bilan ?' }))).status, 503)
 })
 
 test('chat history validates alternating roles and bounds', () => {
@@ -265,7 +252,7 @@ test('Gemini receives bounded conversation context followed by fresh server fact
         return response([
           { id: shopId, name: 'Restaurant', business_kind: 'restaurant', currency: 'XAF' },
         ])
-      if (url.includes('/rpc/verify_owner_pin')) return response({ status: 'ok' })
+      if (url.includes('/rpc/covi_ai_owner_session_allowed')) return response(true)
       if (url.includes('/rpc/covi_ai_allow_request')) return response(true)
       if (url.includes('generativelanguage.googleapis.com')) {
         generatedBody = JSON.parse(init.body)
@@ -290,7 +277,7 @@ test('Gemini receives bounded conversation context followed by fresh server fact
   assert.equal(generatedBody.contents[1].role, 'model')
   assert.match(generatedBody.contents[2].parts[0].text, /Et pour les restaurants/)
   assert.match(generatedBody.contents[2].parts[0].text, /financeAvailable/)
-  assert.doesNotMatch(JSON.stringify(generatedBody), /1379/)
+  assert.doesNotMatch(JSON.stringify(generatedBody), /ownerPin/)
 })
 
 test('rejects malformed history without querying any protected data', async () => {
