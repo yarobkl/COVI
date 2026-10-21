@@ -27,6 +27,7 @@ const ideas: Record<string, string[]> = {
 /** Assistant consultatif : pas de modification d'opérations, pas d'historique conservé à distance. */
 export function AssistantPage({ shop }: { shop: Shop }) {
   const [question, setQuestion] = useState('')
+  const [ownerPin, setOwnerPin] = useState('')
   const [accepted, setAccepted] = useState(false)
   const [busy, setBusy] = useState(false)
   const [exchanges, setExchanges] = useState<Exchange[]>([])
@@ -39,14 +40,15 @@ export function AssistantPage({ shop }: { shop: Shop }) {
 
   const send = async (value: string) => {
     const text = value.trim()
-    if (pending.current || !accepted || text.length < 2 || text.length > 600) return
+    if (pending.current || !accepted || !/^[0-9]{4,6}$/.test(ownerPin) || text.length < 2 || text.length > 600) return
     pending.current = true
     setBusy(true)
     const id = ++nextId.current
     setQuestion('')
+    setOwnerPin('')
     setExchanges((old) => [...old, { id, question: text }])
     try {
-      const answer = await askCoviAssistant(shop.id, text)
+      const answer = await askCoviAssistant(shop.id, text, ownerPin)
       setExchanges((old) => old.map((e) => (e.id === id ? { ...e, answer } : e)))
     } catch (error) {
       const message = error instanceof Error ? error.message : "L'assistant est indisponible."
@@ -130,6 +132,24 @@ export function AssistantPage({ shop }: { shop: Shop }) {
             disabled={busy}
             placeholder="Ex. Pourquoi mes ventes ont-elles diminué ?"
           />
+          <label htmlFor="covi-assistant-owner-pin">Code PIN responsable</label>
+          <input
+            id="covi-assistant-owner-pin"
+            type="password"
+            inputMode="numeric"
+            autoComplete="off"
+            pattern="[0-9]{4,6}"
+            maxLength={6}
+            value={ownerPin}
+            onChange={(event) => setOwnerPin(event.target.value.replace(/\D/g, ''))}
+            disabled={busy}
+            placeholder="Votre code de responsable"
+            required
+          />
+          <p className="muted">
+            Le code est vérifié par COVI pour chaque question, sans être communiqué à Google Gemini.
+            Sur un appareil partagé, il protège vos données de gestion.
+          </p>
           <label className="covi-assistant__consent">
             <input
               type="checkbox"
@@ -148,7 +168,7 @@ export function AssistantPage({ shop }: { shop: Shop }) {
             variant="primary"
             busy={busy}
             busyLabel="COVI réfléchit…"
-            disabled={!accepted || busy || question.trim().length < 2}
+            disabled={!accepted || busy || !/^[0-9]{4,6}$/.test(ownerPin) || question.trim().length < 2}
           >
             Envoyer ma question
           </Button>
