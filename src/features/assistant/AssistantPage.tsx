@@ -27,7 +27,6 @@ const ideas: Record<string, string[]> = {
 /** Vrai chat multi-tour, local à la page. Pas de stockage durable ni de données entre boutiques. */
 export function AssistantPage({ shop }: { shop: Shop }) {
   const [question, setQuestion] = useState('')
-
   const [accepted, setAccepted] = useState(false)
   const [busy, setBusy] = useState(false)
   const [exchanges, setExchanges] = useState<Exchange[]>([])
@@ -47,13 +46,7 @@ export function AssistantPage({ shop }: { shop: Shop }) {
 
   const send = async (value: string) => {
     const text = value.trim()
-    if (
-      pending.current ||
-      !accepted ||
-      text.length < 2 ||
-      text.length > 600
-    )
-      return
+    if (pending.current || !accepted || text.length < 2 || text.length > 600) return
 
     // Les réponses en échec ne sont jamais injectées dans le contexte de Gemini.
     const history: ChatTurn[] = exchanges
@@ -70,7 +63,7 @@ export function AssistantPage({ shop }: { shop: Shop }) {
     setQuestion('')
     setExchanges((old) => [...old, { id, question: text }])
     try {
-
+      const answer = await askCoviAssistant(shop.id, text, history)
       setExchanges((old) => old.map((e) => (e.id === id ? { ...e, answer } : e)))
     } catch (error) {
       const message = error instanceof Error ? error.message : "L'assistant est indisponible."
@@ -188,7 +181,7 @@ export function AssistantPage({ shop }: { shop: Shop }) {
               disabled={busy}
               placeholder="Posez une question, puis continuez la discussion…"
             />
-      const answer = await askCoviAssistant(shop.id, text, history)            <label className="covi-assistant__consent">
+            <label className="covi-assistant__consent">
               <input
                 type="checkbox"
                 checked={accepted}
@@ -208,9 +201,7 @@ export function AssistantPage({ shop }: { shop: Shop }) {
                 variant="primary"
                 busy={busy}
                 busyLabel="COVI réfléchit…"
-                disabled={
-
-                }
+                disabled={!accepted || busy || question.trim().length < 2}
               >
                 Envoyer
               </Button>
