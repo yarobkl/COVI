@@ -34,3 +34,7 @@ verify_jwt = true
 # Owner JWT and per-website server-side API keys are validated by the gateway itself.
 [functions.covi-connect]
 verify_jwt = false
+
+# Assistant Gemini : JWT obligatoire, propriétaire validé par RLS et quota serveur.
+[functions.covi-assistant]
+verify_jwt = true
