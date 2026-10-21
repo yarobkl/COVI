@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AssistantPage } from './AssistantPage'
 import { askCoviAssistant } from '../../lib/assistant'
 
@@ -16,6 +16,7 @@ const shop = {
 
 describe('AssistantPage', () => {
   beforeEach(() => vi.clearAllMocks())
+  afterEach(cleanup)
 
   it('requires explicit consent before sending a question to Gemini', async () => {
     vi.mocked(askCoviAssistant).mockResolvedValue('Ce montant ne représente pas le bénéfice net.')
@@ -35,7 +36,7 @@ describe('AssistantPage', () => {
     render(<AssistantPage shop={{ ...shop, business_kind: 'restaurant' }} />)
     expect(
       screen.getByText(
-        /les chiffres financiers du restaurant ou du salon ne sont pas encore connectés/,
+        /les chiffres financiers du restaurant ou du salon ne sont pas encore connectés/i,
       ),
     ).toBeTruthy()
     expect(
