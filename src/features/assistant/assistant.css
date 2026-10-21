@@ -93,9 +93,6 @@
   .covi-assistant__error {
     color: var(--danger);
   }
-  .covi-assistant__hint {
-    font-size: var(--step--1);
-  }
   .covi-assistant__actions {
     display: flex;
     align-items: center;
@@ -123,8 +120,7 @@
     gap: var(--space-3);
     min-width: 0;
   }
-  .covi-assistant__form textarea,
-  .covi-assistant__form input[type='password'] {
+  .covi-assistant__form textarea {
     font: inherit;
     color: var(--ink);
     background: var(--paper, #fffaf0);
@@ -135,11 +131,7 @@
     padding: var(--space-3);
     resize: vertical;
   }
-  .covi-assistant__form input[type='password'] {
-    max-width: 18rem;
-  }
-  .covi-assistant__form textarea:focus-visible,
-  .covi-assistant__form input[type='password']:focus-visible {
+  .covi-assistant__form textarea:focus-visible {
     outline: 3px solid var(--action);
     outline-offset: 2px;
   }

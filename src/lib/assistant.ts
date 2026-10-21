@@ -3,16 +3,15 @@ import { supabase } from './supabase'
 export type ChatTurn = { role: 'user' | 'model'; text: string }
 
 /** Pas de clé Gemini côté navigateur : uniquement la fonction Edge authentifiée.
- * Le contexte de 6 échanges précédents est éphémère et ne contient pas de PIN.
+ * Le contexte de 6 échanges précédents est éphémère, sans PIN.
  */
 export async function askCoviAssistant(
   shopId: string,
   message: string,
-  ownerPin: string,
   history: ChatTurn[] = [],
 ): Promise<string> {
   const { data, error } = await supabase.functions.invoke('covi-assistant', {
-    body: { shopId, message, ownerPin, history },
+    body: { shopId, message, history },
   })
   if (error) {
     const response = 'context' in error ? error.context : null
