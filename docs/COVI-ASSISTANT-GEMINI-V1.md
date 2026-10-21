@@ -50,7 +50,8 @@ de présenter ces fonctions comme un tableau de bord IA déjà branché.
 2. Créer une clé dans [Google AI Studio](https://aistudio.google.com/apikey).
    **Ne pas partager sa valeur par chat** ; la renseigner dans les secrets Edge
    Supabase : `GEMINI_API_KEY`. Coûts éventuels facturés par Google.
-3. Définir `COVI_AI_ENABLED=true` et
+3. La présence de `GEMINI_API_KEY` active l'assistant après déploiement ;
+   définir `COVI_AI_ENABLED=false` pour l'arrêter. Définir également
    `COVI_AI_ALLOWED_ORIGINS=https://covi-snowy.vercel.app`
    dans les secrets Edge ; modèle `GEMINI_MODEL` facultatif, par défaut
    `gemini-2.5-flash`.
