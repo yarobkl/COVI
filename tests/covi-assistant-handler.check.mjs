@@ -195,13 +195,15 @@ test('shared till owner session is blocked before quota, metrics, or Gemini', as
     fetchImpl: async (url) => {
       if (url.includes('/auth/v1/user')) return response({ id: userId })
       if (url.includes('/rest/v1/shops?'))
-        return response([{ id: shopId, name: 'Boutique', business_kind: 'retail', currency: 'XAF' }])
+        return response([
+          { id: shopId, name: 'Boutique', business_kind: 'retail', currency: 'XAF' },
+        ])
       if (url.includes('/rpc/covi_ai_owner_session_allowed')) return response(false)
       calledSensitive = true
       throw Error('No protected metrics without owner session')
     },
   })
-  const result = await handler(request({ shopId, message: 'Quel est mon chiffre d\'affaires ?' }))
+  const result = await handler(request({ shopId, message: "Quel est mon chiffre d'affaires ?" }))
   assert.equal(result.status, 403)
   assert.equal(calledSensitive, false)
 })
@@ -211,7 +213,9 @@ test('missing session guard fails closed', async () => {
     fetchImpl: async (url) => {
       if (url.includes('/auth/v1/user')) return response({ id: userId })
       if (url.includes('/rest/v1/shops?'))
-        return response([{ id: shopId, name: 'Boutique', business_kind: 'retail', currency: 'XAF' }])
+        return response([
+          { id: shopId, name: 'Boutique', business_kind: 'retail', currency: 'XAF' },
+        ])
       if (url.includes('/rpc/covi_ai_owner_session_allowed')) return response({}, 404)
       throw Error('No further operation allowed')
     },

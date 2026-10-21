@@ -5,6 +5,7 @@ responsable. Cette évolution est limitée **au chatbot** : elle ne supprime pas
 les codes PIN de caisse ni le contrôle de sortie du mode comptoir.
 
 ## Sécurité et sessions
+
 - JWT Supabase valide, session propriétaire de la boutique vérifiée deux fois
   (Edge et RPC SQL dédiée), session_id du JWT obligatoire.
 - Le serveur refuse le chatbot si un magasin a une session de caisse partagée
@@ -24,6 +25,7 @@ les codes PIN de caisse ni le contrôle de sortie du mode comptoir.
   changement des PIN collaborateurs existants.
 
 ## Publication
+
 1. Tester en CI (format, lint, compilation, JS/TS, SQL complet).
 2. Appliquer la migration 20261021194500_covi_ai_owner_session_guard.sql.
 3. Vérifier covi_ai_owner_session_allowed et les triggers.

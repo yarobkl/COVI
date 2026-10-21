@@ -28,9 +28,7 @@ describe('AssistantPage', () => {
     fireEvent.click(screen.getByRole('checkbox'))
     expect((send as HTMLButtonElement).disabled).toBe(false)
     fireEvent.click(send)
-    await waitFor(() =>
-      expect(askCoviAssistant).toHaveBeenCalledWith(shop.id, 'Mes ventes ?', []),
-    )
+    await waitFor(() => expect(askCoviAssistant).toHaveBeenCalledWith(shop.id, 'Mes ventes ?', []))
     expect(await screen.findByText('Ce montant ne représente pas le bénéfice net.')).toBeTruthy()
     expect(screen.queryByLabelText('Code PIN responsable')).toBeNull()
   })
