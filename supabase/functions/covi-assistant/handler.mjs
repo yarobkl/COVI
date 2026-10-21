@@ -76,7 +76,7 @@ export function createAssistantHandler(env, { fetchImpl = fetch } = {}) {
     } : {}
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors })
     if (request.method !== 'POST') return json(405, { error: 'Méthode non autorisée.' }, cors)
-    if (env.COVI_AI_ENABLED !== 'true' || !env.GEMINI_API_KEY) {
+    if (env.COVI_AI_ENABLED === 'false' || !env.GEMINI_API_KEY) {
       return json(503, { error: "L'assistant IA n'est pas encore activé." }, cors)
     }
     if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
