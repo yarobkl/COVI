@@ -1,0 +1,32 @@
+# Script CI transitoire : normaliser uniquement les 5 fichiers du contrôle PIN IA.
+name: COVI Assistant PIN formatter
+on:
+  push:
+    branches: [feature/covi-assistant-gemini-v1]
+permissions:
+  contents: write
+jobs:
+  format-ai-pin:
+    if: github.repository == 'yarobkl/COVI'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Prettier ciblé
+        run: npx prettier --write src/features/assistant/assistant.css src/features/assistant/AssistantPage.test.tsx src/features/assistant/AssistantPage.tsx src/lib/assistant.ts tests/covi-assistant-handler.check.mjs
+      - name: Commit du formatage seulement
+        shell: bash
+        run: |
+          if ! git diff --quiet; then
+            git config user.name "COVI format bot"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add src/features/assistant/assistant.css src/features/assistant/AssistantPage.test.tsx src/features/assistant/AssistantPage.tsx src/lib/assistant.ts tests/covi-assistant-handler.check.mjs
+            git commit -m "style(ai): format owner PIN protection"
+            git push origin HEAD:feature/covi-assistant-gemini-v1
+          fi
