@@ -26,14 +26,13 @@ describe('AssistantPage', () => {
     expect((send as HTMLButtonElement).disabled).toBe(true)
     expect(askCoviAssistant).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('checkbox'))
-    fireEvent.change(screen.getByLabelText('Code PIN responsable'), { target: { value: '1379' } })
     expect((send as HTMLButtonElement).disabled).toBe(false)
     fireEvent.click(send)
     await waitFor(() =>
-      expect(askCoviAssistant).toHaveBeenCalledWith(shop.id, 'Mes ventes ?', '1379', []),
+      expect(askCoviAssistant).toHaveBeenCalledWith(shop.id, 'Mes ventes ?', []),
     )
     expect(await screen.findByText('Ce montant ne représente pas le bénéfice net.')).toBeTruthy()
-    expect(screen.getByLabelText('Code PIN responsable')).toHaveProperty('value', '1379')
+    expect(screen.queryByLabelText('Code PIN responsable')).toBeNull()
   })
 
   it('retains six previous exchanges for follow-up questions, without restarting the chat', async () => {
@@ -42,7 +41,6 @@ describe('AssistantPage', () => {
       .mockResolvedValueOnce('Le chiffre est celui de ce mois, pas un bénéfice net.')
     render(<AssistantPage shop={shop} />)
     fireEvent.click(screen.getByRole('checkbox'))
-    fireEvent.change(screen.getByLabelText('Code PIN responsable'), { target: { value: '1379' } })
     fireEvent.change(screen.getByLabelText('Votre message'), { target: { value: 'Mes ventes ?' } })
     fireEvent.click(screen.getByRole('button', { name: 'Envoyer' }))
     expect(await screen.findByText('Vos ventes sont de 1 000 XAF.')).toBeTruthy()
@@ -56,7 +54,6 @@ describe('AssistantPage', () => {
       2,
       shop.id,
       'Et par rapport au mois dernier ?',
-      '1379',
       [
         { role: 'user', text: 'Mes ventes ?' },
         { role: 'model', text: 'Vos ventes sont de 1 000 XAF.' },
