@@ -9,7 +9,7 @@ ni créer une vente, ni modifier le stock, ni confirmer un paiement.
 ## Sécurité et données
 
 - Edge Function `covi-assistant` avec `verify_jwt = true`.
-- Contrôle de session via Supabase Auth **et** vérification du propriétaire de
+- Contrôle de session via Supabase Auth, **vérification du code PIN responsable pour chaque question**, **et** vérification du propriétaire de
   l'établissement avec son JWT (RLS). **Aucune clé service_role** utilisée.
 - Quota atomique SQL de 12 questions par établissement et heure UTC ;
   refus fermé si RPC absente ou indisponible. Les lignes de quota restent
@@ -27,7 +27,7 @@ ni créer une vente, ni modifier le stock, ni confirmer un paiement.
 - **Attention caisse partagée :** le JWT propriétaire peut être utilisé sur un
   terminal partagé. Avant mise en production, contrôler le cloisonnement
   serveur du mode PIN ou interdire l'assistant depuis une session caisse partagée.
-  L'interface ne constitue pas une garantie d'autorisation.
+  Le serveur contrôle désormais le PIN responsable via la RPC existante et verrouillage après échecs. Tester en préproduction les appareils partagés et le verrouillage ; le PIN doit rester confidentiel.
 
 ## Métriques de la V1
 
