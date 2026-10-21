@@ -27,6 +27,7 @@ export const pages: Record<PageId, NavEntry> = {
   personnel: { page: 'personnel', label: 'Personnel', icon: PeopleIcon },
   bilan: { page: 'bilan', label: 'Bilan', icon: BarsIcon },
   boutique: { page: 'boutique', label: 'Ma boutique', icon: ShopIcon },
+  assistant: { page: 'assistant', label: 'Assistant IA', icon: NotebookIcon },
   'restaurant-orders': { page: 'restaurant-orders', label: 'Service & caisse', icon: ReceiptIcon },
   'restaurant-tables': { page: 'restaurant-tables', label: 'Plan de salle', icon: BoxIcon },
   'restaurant-menu': { page: 'restaurant-menu', label: 'Carte & boissons', icon: NotebookIcon },
@@ -44,6 +45,7 @@ export const sommaire: readonly NavEntry[] = [
   pages.charges,
   pages.personnel,
   pages.bilan,
+  pages.assistant,
   pages.boutique,
 ]
 
@@ -58,5 +60,6 @@ export const morePages: readonly NavEntry[] = [
   pages.charges,
   pages.personnel,
   pages.bilan,
+  pages.assistant,
   pages.boutique,
 ]
