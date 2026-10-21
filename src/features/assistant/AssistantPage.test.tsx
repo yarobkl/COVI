@@ -21,7 +21,7 @@ describe('AssistantPage', () => {
   it('requires explicit consent before sending a question to Gemini', async () => {
     vi.mocked(askCoviAssistant).mockResolvedValue('Ce montant ne représente pas le bénéfice net.')
     render(<AssistantPage shop={shop} />)
-    fireEvent.change(screen.getByLabelText('Votre question'), { target: { value: 'Mes ventes ?' } })
+    fireEvent.change(screen.getByLabelText('Votre message'), { target: { value: 'Mes ventes ?' } })
     const send = screen.getByRole('button', { name: 'Envoyer' })
     expect((send as HTMLButtonElement).disabled).toBe(true)
     expect(askCoviAssistant).not.toHaveBeenCalled()
@@ -73,7 +73,7 @@ describe('AssistantPage', () => {
     render(<AssistantPage shop={{ ...shop, business_kind: 'restaurant' }} />)
     expect(
       screen.getByText(
-        /les chiffres financiers du restaurant ou du salon ne sont pas encore connectés/i,
+        /les chiffres financiers de ce métier ne sont pas encore connectés à l'IA/i,
       ),
     ).toBeTruthy()
     expect(
