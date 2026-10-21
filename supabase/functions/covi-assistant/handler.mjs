@@ -99,9 +99,15 @@ export function createAssistantHandler(env, { fetchImpl = fetch } = {}) {
     }
     const shopId = payload && payload.shopId
     const message = payload && payload.message
+    const ownerPin = payload && payload.ownerPin
     if (!uuidPattern.test(shopId || '') ||
         typeof message !== 'string' || message.trim().length < 2 || message.length > 600) {
       return json(400, { error: 'Choisissez votre boutique et posez une question de 2 à 600 caractères.' }, cors)
+    }
+    // Contrôle obligatoire et ponctuel du code responsable, même avec un JWT propriétaire.
+    // Sur un terminal caisse partagé, le JWT seul n'est pas une frontière de sécurité.
+    if (typeof ownerPin !== 'string' || !/^[0-9]{4,6}$/.test(ownerPin)) {
+      return json(403, { error: 'Saisissez votre code PIN responsable (4 à 6 chiffres).' }, cors)
     }
     const url = env.SUPABASE_URL.replace(/\/$/, '')
     if (!/^https:\/\//.test(url)) {
@@ -132,7 +138,20 @@ export function createAssistantHandler(env, { fetchImpl = fetch } = {}) {
       if (!Array.isArray(shops) || shops.length !== 1) {
         return json(403, { error: 'Vous ne pouvez pas consulter cet établissement.' }, cors)
       }
-      // Un propriétaire authentifié uniquement ; limite persistante, refus si RPC absente.
+      const verifiedPin = await db('/rest/v1/rpc/verify_owner_pin', 'POST', {
+        p_shop_id: shopId,
+        p_pin: ownerPin,
+      })
+      if (verifiedPin?.status !== 'ok') {
+        const detail = verifiedPin?.status === 'locked'
+          ? 'Code responsable verrouillé. Réessayez après le délai indiqué dans COVI.'
+          : verifiedPin?.status === 'not_set'
+            ? 'Configurez votre code PIN responsable dans COVI avant d’utiliser l’assistant.'
+            : 'Code PIN responsable incorrect.'
+        return json(403, { error: detail }, cors)
+      }
+      // Ne transmettre le PIN ni à Gemini ni à une conversation enregistrée.
+      // Quota persistant ; refus si RPC absente.
       const permitted = await db('/rest/v1/rpc/covi_ai_allow_request', 'POST', { p_shop_id: shopId })
       if (permitted !== true) {
         return json(429, { error: 'Limite de 12 questions par heure atteinte. Réessayez plus tard.' }, cors)
