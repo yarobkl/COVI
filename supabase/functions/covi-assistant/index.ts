@@ -2,7 +2,7 @@ import { createAssistantHandler } from './handler.mjs'
 
 // Le secret Gemini doit vivre exclusivement dans Supabase Edge Secrets.
 // La fonction est protégée par verify_jwt=true + authentification et contrôles propriétaire.
-// Ne pas déployer sans COVI_AI_ENABLED=true, GEMINI_API_KEY et migration quota.
+// Active si GEMINI_API_KEY est présente ; arrêt d'urgence via COVI_AI_ENABLED=false.
 Deno.serve(
   createAssistantHandler({
     SUPABASE_URL: Deno.env.get('SUPABASE_URL'),
