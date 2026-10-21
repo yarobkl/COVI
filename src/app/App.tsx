@@ -3,6 +3,7 @@ import { MenuIcon, PlusIcon } from '../components/icons'
 import { Button, ButtonLink, cx, Dialog, LabelCard } from '../components/ui'
 import { AccountDeletionPanel } from '../features/account/AccountDeletionPanel'
 import { ArrivalsPage } from '../features/arrivals/ArrivalsPage'
+import { AssistantPage } from '../features/assistant/AssistantPage'
 import { useCurrentUser } from '../features/auth/useCurrentUser'
 import { DashboardPage } from '../features/dashboard/DashboardPage'
 import { useProfilePhoto } from '../features/profile/useProfilePhoto'
@@ -133,6 +134,8 @@ function renderPage(route: Route, { shop, updateShop, onSimulation, ownerId }: P
       return <EmployeesPage shopId={shop.id} />
     case 'bilan':
       return <StatisticsPage shopId={shop.id} />
+    case 'assistant':
+      return <AssistantPage shop={shop} />
     case 'boutique':
       return (
         <div className="page-stack">

@@ -13,6 +13,7 @@ const restaurantPages = [
   pages['restaurant-menu'],
   pages.personnel,
   pages.charges,
+  pages.assistant,
   pages.boutique,
 ] as const
 const salonPages = [
@@ -21,6 +22,7 @@ const salonPages = [
   pages['salon-bookings'],
   pages.personnel,
   pages.charges,
+  pages.assistant,
   pages.boutique,
 ] as const
 

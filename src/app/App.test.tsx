@@ -130,6 +130,7 @@ describe('App shell', () => {
       'Charges',
       'Personnel',
       'Bilan',
+      'Assistant IA',
       'Ma boutique',
       'Conditions d’utilisation',
       'Confidentialité',
