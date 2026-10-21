@@ -27,7 +27,7 @@ const ideas: Record<string, string[]> = {
 /** Vrai chat multi-tour, local à la page. Pas de stockage durable ni de données entre boutiques. */
 export function AssistantPage({ shop }: { shop: Shop }) {
   const [question, setQuestion] = useState('')
-  const [ownerPin, setOwnerPin] = useState('')
+
   const [accepted, setAccepted] = useState(false)
   const [busy, setBusy] = useState(false)
   const [exchanges, setExchanges] = useState<Exchange[]>([])
@@ -38,13 +38,6 @@ export function AssistantPage({ shop }: { shop: Shop }) {
     shop.business_kind === 'restaurant' || shop.business_kind === 'salon'
       ? shop.business_kind
       : 'retail'
-
-  // Un PIN reste uniquement en mémoire pendant 10 min. Le serveur le vérifie à CHAQUE requête.
-  useEffect(() => {
-    if (!/^[0-9]{4,6}$/.test(ownerPin)) return
-    const timeout = window.setTimeout(() => setOwnerPin(''), 10 * 60 * 1000)
-    return () => window.clearTimeout(timeout)
-  }, [ownerPin])
 
   useEffect(() => {
     if (typeof endRef.current?.scrollIntoView === 'function') {
@@ -57,7 +50,6 @@ export function AssistantPage({ shop }: { shop: Shop }) {
     if (
       pending.current ||
       !accepted ||
-      !/^[0-9]{4,6}$/.test(ownerPin) ||
       text.length < 2 ||
       text.length > 600
     )
@@ -78,7 +70,7 @@ export function AssistantPage({ shop }: { shop: Shop }) {
     setQuestion('')
     setExchanges((old) => [...old, { id, question: text }])
     try {
-      const answer = await askCoviAssistant(shop.id, text, ownerPin, history)
+
       setExchanges((old) => old.map((e) => (e.id === id ? { ...e, answer } : e)))
     } catch (error) {
       const message = error instanceof Error ? error.message : "L'assistant est indisponible."
@@ -196,25 +188,7 @@ export function AssistantPage({ shop }: { shop: Shop }) {
               disabled={busy}
               placeholder="Posez une question, puis continuez la discussion…"
             />
-            <label htmlFor="covi-assistant-owner-pin">Code PIN responsable</label>
-            <input
-              id="covi-assistant-owner-pin"
-              type="password"
-              inputMode="numeric"
-              autoComplete="off"
-              pattern="[0-9]{4,6}"
-              maxLength={6}
-              value={ownerPin}
-              onChange={(event) => setOwnerPin(event.target.value.replace(/\D/g, ''))}
-              disabled={busy}
-              placeholder="4 à 6 chiffres"
-              required
-            />
-            <p className="muted covi-assistant__hint">
-              Le PIN reste temporairement dans cette page (10 minutes maximum), puis sera redemandé.
-              COVI le vérifie côté serveur à chaque message ; il n'est jamais envoyé à Gemini.
-            </p>
-            <label className="covi-assistant__consent">
+      const answer = await askCoviAssistant(shop.id, text, history)            <label className="covi-assistant__consent">
               <input
                 type="checkbox"
                 checked={accepted}
@@ -235,7 +209,7 @@ export function AssistantPage({ shop }: { shop: Shop }) {
                 busy={busy}
                 busyLabel="COVI réfléchit…"
                 disabled={
-                  !accepted || busy || !/^[0-9]{4,6}$/.test(ownerPin) || question.trim().length < 2
+
                 }
               >
                 Envoyer
