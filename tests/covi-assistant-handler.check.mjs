@@ -25,7 +25,7 @@ const request = (body, headers = {}) =>
       'content-type': 'application/json',
       ...headers,
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ ownerPin: '1379', ...body }),
   })
 const response = (data, status = 200) =>
   new Response(JSON.stringify(data), {
@@ -83,6 +83,7 @@ test('rejects quota exhaustion without calling Gemini', async () => {
       if (url.includes('/auth/v1/user')) return response({ id: userId })
       if (url.includes('/rest/v1/shops?'))
         return response([{ id: shopId, name: 'Test', business_kind: 'retail', currency: 'XAF' }])
+      if (url.includes('/rpc/verify_owner_pin')) return response({ status: 'ok' })
       if (url.includes('/rpc/covi_ai_allow_request')) return response(false)
       calledGemini = true
       throw new Error('blocked')
@@ -101,6 +102,7 @@ test('passes only limited SQL facts to Gemini; no fake net profit', async () => 
         return response([
           { id: shopId, name: 'Boutique', business_kind: 'retail', currency: 'XAF' },
         ])
+      if (url.includes('/rpc/verify_owner_pin')) return response({ status: 'ok' })
       if (url.includes('/rpc/covi_ai_allow_request')) return response(true)
       if (url.includes('/rpc/shop_dashboard'))
         return response({
@@ -134,6 +136,7 @@ test('passes only limited SQL facts to Gemini; no fake net profit', async () => 
   assert.equal(result.status, 200)
   const facts = geminiRequest.contents[0].parts[0].text
   assert.match(facts, /monthRevenue/)
+  assert.doesNotMatch(facts, /1379/)
   assert.match(facts, /lowStockProducts/)
   assert.doesNotMatch(facts, /9900000/)
   assert.match(facts, /NI le bénéfice net/)
@@ -148,6 +151,7 @@ test('restaurant answer has no fabricated financial amounts', async () => {
         return response([
           { id: shopId, name: 'Restaurant', business_kind: 'restaurant', currency: 'XAF' },
         ])
+      if (url.includes('/rpc/verify_owner_pin')) return response({ status: 'ok' })
       if (url.includes('/rpc/covi_ai_allow_request')) return response(true)
       if (url.includes('generativelanguage.googleapis.com')) {
         sent = JSON.parse(init.body)
@@ -182,4 +186,42 @@ test('the curated retail facts are explicit about missing costs and offline sale
   assert.equal(facts.revenueMinusRecordedCharges, 50)
   assert.equal(facts.excludeOfflinePendingSales, true)
   assert.equal('netProfit' in facts, false)
+})
+
+test('invalid or missing owner PIN cannot access management figures or Gemini', async () => {
+  let calledDashboard = false
+  let calledGemini = false
+  const handler = createAssistantHandler(env, {
+    fetchImpl: async (url, init) => {
+      if (url.includes('/auth/v1/user')) return response({ id: userId })
+      if (url.includes('/rest/v1/shops?'))
+        return response([{ id: shopId, name: 'Boutique', business_kind: 'retail', currency: 'XAF' }])
+      if (url.includes('/rpc/verify_owner_pin')) {
+        assert.equal(JSON.parse(init.body).p_pin, '1379')
+        return response({ status: 'invalid', attempts_left: 4 })
+      }
+      if (url.includes('/rpc/shop_dashboard')) calledDashboard = true
+      if (url.includes('generativelanguage.googleapis.com')) calledGemini = true
+      throw Error('Unauthorized data access')
+    },
+  })
+  assert.equal((await handler(request({ shopId, message: 'Mes ventes ?', ownerPin: '' }))).status, 403)
+  assert.equal((await handler(request({ shopId, message: 'Mes ventes ?' }))).status, 403)
+  assert.equal(calledDashboard, false)
+  assert.equal(calledGemini, false)
+})
+
+test('owner PIN lock or missing PIN configuration denies Gemini access', async () => {
+  for (const status of ['locked', 'not_set']) {
+    const handler = createAssistantHandler(env, {
+      fetchImpl: async (url) => {
+        if (url.includes('/auth/v1/user')) return response({ id: userId })
+        if (url.includes('/rest/v1/shops?'))
+          return response([{ id: shopId, name: 'Test', business_kind: 'retail', currency: 'XAF' }])
+        if (url.includes('/rpc/verify_owner_pin')) return response({ status })
+        throw Error('No metrics or Gemini when PIN is denied')
+      },
+    })
+    assert.equal((await handler(request({ shopId, message: 'Mon bilan ?' }))).status, 403)
+  }
 })
