@@ -1,9 +1,9 @@
 import { supabase } from './supabase'
 
 /** Pas de clé Gemini côté navigateur : uniquement la fonction Edge authentifiée. */
-export async function askCoviAssistant(shopId: string, message: string): Promise<string> {
+export async function askCoviAssistant(shopId: string, message: string, ownerPin: string): Promise<string> {
   const { data, error } = await supabase.functions.invoke('covi-assistant', {
-    body: { shopId, message },
+    body: { shopId, message, ownerPin },
   })
   if (error) {
     const response = 'context' in error ? error.context : null
