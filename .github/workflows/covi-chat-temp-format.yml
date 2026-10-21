@@ -1,0 +1,26 @@
+name: COVI chat temporary formatter
+on:
+  push:
+    branches: [feature/covi-assistant-chat-continu]
+permissions:
+  contents: write
+jobs:
+  format-chat:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx prettier --write docs/COVI-ASSISTANT-CHAT-V2.md src/features/assistant/assistant.css src/features/assistant/AssistantPage.test.tsx src/features/assistant/AssistantPage.tsx tests/covi-assistant-handler.check.mjs
+      - shell: bash
+        run: |
+          if ! git diff --quiet; then
+            git config user.name "COVI format bot"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add docs/COVI-ASSISTANT-CHAT-V2.md src/features/assistant/assistant.css src/features/assistant/AssistantPage.test.tsx src/features/assistant/AssistantPage.tsx tests/covi-assistant-handler.check.mjs
+            git commit -m "style(ai): format conversational assistant"
+            git push origin HEAD:feature/covi-assistant-chat-continu
+          fi
