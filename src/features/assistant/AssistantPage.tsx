@@ -40,7 +40,14 @@ export function AssistantPage({ shop }: { shop: Shop }) {
 
   const send = async (value: string) => {
     const text = value.trim()
-    if (pending.current || !accepted || !/^[0-9]{4,6}$/.test(ownerPin) || text.length < 2 || text.length > 600) return
+    if (
+      pending.current ||
+      !accepted ||
+      !/^[0-9]{4,6}$/.test(ownerPin) ||
+      text.length < 2 ||
+      text.length > 600
+    )
+      return
     pending.current = true
     setBusy(true)
     const id = ++nextId.current
@@ -168,7 +175,9 @@ export function AssistantPage({ shop }: { shop: Shop }) {
             variant="primary"
             busy={busy}
             busyLabel="COVI réfléchit…"
-            disabled={!accepted || busy || !/^[0-9]{4,6}$/.test(ownerPin) || question.trim().length < 2}
+            disabled={
+              !accepted || busy || !/^[0-9]{4,6}$/.test(ownerPin) || question.trim().length < 2
+            }
           >
             Envoyer ma question
           </Button>

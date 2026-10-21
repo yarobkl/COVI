@@ -29,7 +29,9 @@ describe('AssistantPage', () => {
     fireEvent.change(screen.getByLabelText('Code PIN responsable'), { target: { value: '1379' } })
     expect((send as HTMLButtonElement).disabled).toBe(false)
     fireEvent.click(send)
-    await waitFor(() => expect(askCoviAssistant).toHaveBeenCalledWith(shop.id, 'Mes ventes ?', '1379'))
+    await waitFor(() =>
+      expect(askCoviAssistant).toHaveBeenCalledWith(shop.id, 'Mes ventes ?', '1379'),
+    )
     expect(await screen.findByText('Ce montant ne représente pas le bénéfice net.')).toBeTruthy()
   })
 

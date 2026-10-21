@@ -195,7 +195,9 @@ test('invalid or missing owner PIN cannot access management figures or Gemini', 
     fetchImpl: async (url, init) => {
       if (url.includes('/auth/v1/user')) return response({ id: userId })
       if (url.includes('/rest/v1/shops?'))
-        return response([{ id: shopId, name: 'Boutique', business_kind: 'retail', currency: 'XAF' }])
+        return response([
+          { id: shopId, name: 'Boutique', business_kind: 'retail', currency: 'XAF' },
+        ])
       if (url.includes('/rpc/verify_owner_pin')) {
         assert.equal(JSON.parse(init.body).p_pin, '1379')
         return response({ status: 'invalid', attempts_left: 4 })
@@ -205,7 +207,10 @@ test('invalid or missing owner PIN cannot access management figures or Gemini', 
       throw Error('Unauthorized data access')
     },
   })
-  assert.equal((await handler(request({ shopId, message: 'Mes ventes ?', ownerPin: '' }))).status, 403)
+  assert.equal(
+    (await handler(request({ shopId, message: 'Mes ventes ?', ownerPin: '' }))).status,
+    403,
+  )
   assert.equal((await handler(request({ shopId, message: 'Mes ventes ?' }))).status, 403)
   assert.equal(calledDashboard, false)
   assert.equal(calledGemini, false)

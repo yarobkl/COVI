@@ -72,7 +72,9 @@
     padding: var(--space-3);
     resize: vertical;
   }
-  .covi-assistant__form input[type='password'] { max-width: 18rem; }
+  .covi-assistant__form input[type='password'] {
+    max-width: 18rem;
+  }
   .covi-assistant__form textarea:focus-visible,
   .covi-assistant__form input[type='password']:focus-visible {
     outline: 3px solid var(--action);
