@@ -104,8 +104,49 @@ Les comptes collaborateurs utilisent le même mécanisme que le restaurant : cod
   comptable, ni bénéfice fiscal.
 - **Flux de trésorerie estimé** = encaissements nets − commissions versées − autres charges −
   achats de produits enregistrés.
+- **Remboursement après la clôture d'une période** : le CA, les coûts et les commissions restent
+  rattachés à la **date de la vente**, hors lignes remboursées. Un remboursement tardif modifie donc
+  les chiffres de la période d'origine (son CA baisse), tandis que l'argent rendu apparaît dans les
+  encaissements de la période du remboursement. Une commission déjà versée sur une prestation
+  ensuite remboursée laisse un **solde négatif** visible, rien n'est repris automatiquement.
+  Testé dans `tests/sql/salon_pro.sql` § 11. Autre choix possible (à décider par le propriétaire) :
+  déduire le remboursement dans la période où il a lieu, sans toucher aux périodes passées.
+- **Périodes** : calculées dans le fuseau réglé pour le salon (`salon_settings.time_zone`), côté
+  base comme dans l'écran Rapports ; une page laissée ouverte passe d'elle-même au jour suivant à
+  minuit.
 
-## 3. Retour arrière
+## 3. Recette avant activation
+
+Couvert par les tests automatiques (CI GitHub `test-web` et `test-db`, et en local) :
+
+- droits par rôle et isolation entre salons (`salon_pro.sql` § 1 à 8, § 6 bis : accès direct aux
+  tables refusé) ;
+- réservations et encaissements simultanés (`salon_concurrency.sh`) ;
+- scénario financier exact, paiements mixtes, remboursement après clôture, commissions
+  (`salon_pro.sql` § 9 et § 11) ;
+- caisse : clé d'opération réutilisée après coupure, rafraîchissement des ventes dès le paiement
+  (`TicketEditor.test.tsx`, `SalonCheckoutPage.test.tsx`) ; jour courant dans le fuseau du salon
+  (`useSalonToday.test.ts`).
+
+`test-db` installe `btree_gist` et rejoue **toutes** les migrations sur un Postgres vierge : la
+migration est donc vérifiée sur Postgres, pas sur un projet Supabase.
+
+**Reste à faire par le propriétaire, avant la production** (non réalisable depuis cette branche) :
+
+1. Appliquer les 6 migrations sur un environnement de **staging** Supabase (branche ou projet de
+   test), après `create extension if not exists btree_gist with schema extensions`.
+2. Y refaire à la main : un rendez-vous, un paiement mixte espèces + Mobile Money, un
+   remboursement, un rapport du mois, et un essai de connexion d'un deuxième salon (il ne doit rien
+   voir du premier).
+3. Décider de la règle « remboursement après clôture » (§ 2, définitions).
+
+**Statuts à ne pas confondre** : le statut Vercel (« Preview » vert) indique seulement que le front
+se construit et se déploie en aperçu ; il ne teste ni la base ni les règles métier. Ce sont les
+checks GitHub `test-web` (typage, lint, tests du front, build) et `test-db` (toutes les migrations
+et toutes les suites SQL) qui valident le fonctionnement. Le check Cloudflare « Workers Builds » échoue
+aussi sur `main` : réglage du projet Cloudflare, sans lien avec le code.
+
+## 4. Retour arrière
 
 Les migrations sont additives. Pour annuler avant toute donnée réelle : supprimer les objets
 `salon_*` créés par `20261024090000` à `20261024095000` (aucune table existante n'est touchée,

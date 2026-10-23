@@ -165,7 +165,8 @@ export function SalonCheckoutPage({ shopId, role }: { shopId: string; role: Salo
             setTicket(null)
             data.reload()
           }}
-          onChanged={() => undefined}
+          // Totaux et listes à jour dès un paiement ou un remboursement, sans attendre la fermeture.
+          onChanged={data.reload}
         />
       )}
     </div>

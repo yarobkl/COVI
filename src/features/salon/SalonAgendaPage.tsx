@@ -567,7 +567,7 @@ export function SalonAgendaPage({ shopId, role }: { shopId: string; role: SalonR
             setTicket(null)
             agenda.reload()
           }}
-          onChanged={() => undefined}
+          onChanged={agenda.reload}
         />
       )}
       {role === 'stylist' && (

@@ -375,5 +375,57 @@ begin
     'privilèges : aucune écriture directe, anon exclu');
 end $d$;
 
+-- 11. Paiement mixte et remboursement après la clôture de la période (comportement documenté).
+do $m$
+declare
+  c uuid := '10000000-0000-0000-0000-00000000a00c';
+  owner_c uuid := '00000000-0000-0000-0000-00000000a00c';
+  tz text := 'Africa/Brazzaville';
+  today date := (now() at time zone 'Africa/Brazzaville')::date;
+  paul uuid; svc uuid; tk uuid; line uuid; r jsonb;
+begin
+  insert into auth.users(id) values (owner_c);
+  insert into public.shops(id, owner_id, name, business_kind) values (c, owner_c, 'Salon C', 'salon');
+  perform pg_temp.as_user(owner_c);
+  perform public.salon_settings_save(c, 'mixed', 'Mme C', null, 1, tz,
+    (select jsonb_agg(jsonb_build_object('weekday', d, 'opens_at', '08:00', 'closes_at', '20:00'))
+     from generate_series(1, 7) d));
+  paul := public.salon_staff_save(c, null, 'Paul C', 'Coiffeur', null, 'percent', 20, 0, '#17408b', true, null);
+  svc := public.salon_service_save(c, null, 'Tresses', 'Coiffure', null, 20000, 60, 3000, true, null);
+  r := public.salon_ticket_open(c, null, null, 'Mixte', 'tk-mixte-0001');
+  tk := (r ->> 'id')::uuid;
+  perform public.salon_ticket_add_line(c, tk, 'service', svc, paul, 1, null);
+  perform public.salon_ticket_pay(c, tk,
+    '[{"method":"cash","amount_xaf":5000},{"method":"mobile_money","amount_xaf":15000,"reference":"MP1"}]'::jsonb,
+    'pay-mixte-0001');
+  perform pg_temp.check((select count(*) = 2 and bool_and(confirmation = 'manual') from public.salon_payments where ticket_id = tk),
+    'paiement mixte : deux moyens, confirmés à la caisse');
+  -- La vente date du mois dernier (période déjà clôturée).
+  update public.salon_tickets set paid_at = paid_at - interval '35 days' where id = tk;
+  update public.salon_payments set recorded_at = recorded_at - interval '35 days' where ticket_id = tk;
+  r := public.salon_report(c, today - 40, today - 30) -> 'finance';
+  perform pg_temp.check((r ->> 'revenue_xaf')::bigint = 20000 and (r ->> 'service_direct_costs_xaf')::bigint = 3000
+    and (r ->> 'commissions_due_xaf')::bigint = 4000 and (r ->> 'estimated_result_xaf')::bigint = 13000,
+    'période passée : CA 20 000, coûts 3 000, commission 4 000, résultat 13 000');
+  perform public.salon_commission_pay(c, paul, 4000, 'cash', null, 'payout-c-0001');
+  select id into line from public.salon_ticket_lines where ticket_id = tk;
+  perform public.salon_ticket_refund(c, tk, array[line], 'cash', false, 'client mécontent', 'refund-late-0001');
+  -- Définition retenue : le CA est rattaché à la date de la vente, hors lignes remboursées. Un
+  -- remboursement tardif modifie donc le CA de la période d'origine ; l'argent rendu apparaît
+  -- dans les encaissements de la période du remboursement.
+  r := public.salon_report(c, today - 40, today - 30) -> 'finance';
+  perform pg_temp.check((r ->> 'revenue_xaf')::bigint = 0 and (r ->> 'payments_xaf')::bigint = 20000
+    and (r ->> 'estimated_result_xaf')::bigint = 0,
+    'remboursement tardif : CA de la période d''origine recalculé, encaissement d''origine inchangé');
+  r := public.salon_report(c, today, today) -> 'finance';
+  perform pg_temp.check((r ->> 'refunds_xaf')::bigint = 20000 and (r ->> 'net_collected_xaf')::bigint = -20000
+    and (r ->> 'commissions_paid_xaf')::bigint = 4000,
+    'remboursement tardif : argent rendu compté dans la période du remboursement');
+  perform pg_temp.check((select (e ->> 'balance_xaf')::bigint = -4000
+      from jsonb_array_elements(to_jsonb(public.salon_commission_balances(c))) e
+      where e ->> 'employee_id' = paul::text),
+    'commission déjà versée puis prestation remboursée : solde négatif visible, rien n''est reversé automatiquement');
+end $m$;
+
 select 'ok salon_pro : droits, agenda, caisse, stock, commissions, finances';
 rollback;

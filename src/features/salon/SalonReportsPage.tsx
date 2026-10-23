@@ -9,11 +9,10 @@ import {
   downloadCsv,
   methodLabels,
   mondayOf,
-  salonDay,
   unitLabels,
   weekdayLabels,
 } from './salonFormat'
-import { useSalonLoad } from './useSalonLoad'
+import { useSalonLoad, useSalonToday } from './useSalonLoad'
 
 type Period = 'today' | 'week' | 'month' | 'custom'
 const periods = [
@@ -25,7 +24,21 @@ const periods = [
 
 /** Rapports : finances avec leur méthode de calcul, activité, équipe, clients, export CSV. */
 export function SalonReportsPage({ shopId }: { shopId: string }) {
-  const today = salonDay(new Date(), 'Africa/Brazzaville')
+  // Les périodes se calculent dans le fuseau réglé pour le salon, comme les rapports SQL.
+  const loadTz = useCallback(
+    () => salonApi.settings(shopId).then((s) => s.settings.time_zone),
+    [shopId],
+  )
+  const tz = useSalonLoad(loadTz)
+  return (
+    <Loaded loading={tz.loading} error={tz.error}>
+      {tz.data && <SalonReports shopId={shopId} tz={tz.data} />}
+    </Loaded>
+  )
+}
+
+function SalonReports({ shopId, tz }: { shopId: string; tz: string }) {
+  const today = useSalonToday(tz)
   const [period, setPeriod] = useState<Period>('month')
   const [from, setFrom] = useState(addDays(today, -29))
   const [to, setTo] = useState(today)
