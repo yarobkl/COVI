@@ -1,0 +1,282 @@
+/* Module Salon : agenda par collaborateur, notes de caisse, réglages. Même écriture que le cahier :
+   feuilles posées, encre bleue pour les actions, lignes de cahier, rien qui déborde sur téléphone. */
+@layer app {
+  .salon-link {
+    min-height: var(--tap-min);
+    margin-inline-start: var(--space-2);
+    padding: 0 var(--space-1);
+    border: 0;
+    background: none;
+    color: var(--action);
+    font: inherit;
+    font-size: var(--step--1);
+    font-weight: var(--weight-bold);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+  .salon-link:disabled {
+    color: var(--disabled-ink);
+    cursor: not-allowed;
+  }
+  .salon-fieldset {
+    min-width: 0;
+    margin: var(--space-4) 0 0;
+    padding: var(--space-3) var(--space-3) var(--space-4);
+    border: var(--border-hair) solid var(--line);
+    border-radius: var(--radius-3);
+  }
+  .salon-fieldset > legend {
+    padding: 0 var(--space-2);
+    font-weight: var(--weight-bold);
+  }
+  /* Ajouts repliés sur la note : l'encaissement reste en haut, à portée de pouce. */
+  .salon-fold {
+    margin: var(--space-3) 0 0;
+    border-top: var(--border-hair) solid var(--line);
+  }
+  .salon-fold > summary {
+    min-height: var(--tap-min);
+    display: flex;
+    align-items: center;
+    color: var(--action);
+    font-weight: var(--weight-bold);
+    cursor: pointer;
+  }
+  .salon-fold > .salon-fieldset {
+    margin-top: 0;
+  }
+  .salon-fold > .salon-fieldset > legend {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .salon-checks {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+    gap: 0 var(--space-4);
+  }
+  .salon-suggest {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+  }
+  .salon-hours {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+    min-height: var(--tap-min);
+  }
+  .salon-hours .form-check {
+    flex: 0 0 9rem;
+  }
+  .salon-hours input[type='time'] {
+    height: var(--field-height);
+    padding: 0 var(--space-2);
+    border: var(--border-field) solid var(--line-field);
+    border-radius: var(--radius-3);
+    background: var(--sheet);
+    color: var(--ink);
+    font: inherit;
+  }
+  .salon-dot {
+    display: inline-block;
+    width: 0.75rem;
+    height: 0.75rem;
+    margin-inline-end: var(--space-2);
+    border-radius: 50%;
+    vertical-align: middle;
+  }
+  .salon-code {
+    margin: var(--space-4) 0;
+    padding: var(--space-3);
+    border: 2px dashed var(--action);
+    border-radius: var(--radius-3);
+    font-family: var(--font-figures);
+    font-size: var(--step-1);
+    letter-spacing: 0.08em;
+    text-align: center;
+    overflow-wrap: anywhere;
+    user-select: all;
+  }
+
+  /* Barre d'outils de l'agenda : période, date, collaborateur. */
+  .salon-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+  }
+  .salon-toolbar .row-actions {
+    margin-top: 0;
+  }
+  .salon-toolbar__date {
+    font-weight: var(--weight-bold);
+    text-transform: capitalize;
+  }
+  .salon-toolbar__filter {
+    display: grid;
+    gap: var(--space-1);
+    font-size: var(--step--1);
+    font-weight: var(--weight-bold);
+  }
+  .salon-toolbar__filter select {
+    height: var(--field-height);
+    padding: 0 var(--space-3);
+    border: var(--border-field) solid var(--line-field);
+    border-radius: var(--radius-3);
+    background: var(--sheet);
+    color: var(--ink);
+    font: inherit;
+  }
+
+  /* Journée : une colonne par collaborateur sur ordinateur, empilées sur téléphone. */
+  .salon-columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+    gap: var(--space-4);
+  }
+  .salon-column__name {
+    padding-inline-start: var(--space-2);
+    border-inline-start: 4px solid var(--action);
+  }
+  .salon-week {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+    gap: var(--space-3);
+  }
+  .salon-week__day.is-today {
+    outline: 2px solid var(--action);
+    outline-offset: -2px;
+  }
+  .salon-week__day h2 {
+    text-transform: capitalize;
+  }
+  .salon-appts {
+    display: grid;
+    gap: var(--space-2);
+    margin: var(--space-2) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .salon-appt {
+    display: grid;
+    gap: var(--space-1);
+    min-width: 0;
+  }
+  .salon-appt__open {
+    display: grid;
+    gap: 2px;
+    width: 100%;
+    min-height: var(--tap-comfort);
+    padding: var(--space-2) var(--space-3);
+    border: var(--border-hair) solid var(--line);
+    border-inline-start: 4px solid var(--action);
+    border-radius: var(--radius-2);
+    background: var(--sheet);
+    color: var(--ink);
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+  }
+  .salon-appt__open:hover {
+    background: var(--action-tint);
+  }
+  .salon-appt__open:focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .salon-appt[data-status='cancelled'] .salon-appt__open,
+  .salon-appt[data-status='no_show'] .salon-appt__open {
+    border-inline-start-color: var(--danger);
+    opacity: 0.7;
+  }
+  .salon-appt[data-status='completed'] .salon-appt__open {
+    border-inline-start-color: var(--success);
+  }
+  .salon-appt[data-status='pending'] .salon-appt__open {
+    border-inline-start-style: dashed;
+  }
+  .salon-appt__time {
+    font-family: var(--font-figures);
+    font-size: var(--step--1);
+  }
+  .salon-appt__client {
+    font-weight: var(--weight-bold);
+    overflow-wrap: anywhere;
+  }
+  .salon-appt__meta {
+    color: var(--ink-muted);
+    font-size: var(--step--1);
+    overflow-wrap: anywhere;
+  }
+  .salon-appt .badge {
+    justify-self: start;
+  }
+
+  /* Barres du chiffre d'affaires par jour. */
+  .salon-bars {
+    display: grid;
+    gap: var(--space-2);
+    margin: var(--space-3) 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .salon-bars li {
+    display: grid;
+    grid-template-columns: 4.5rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .salon-bars__label {
+    font-size: var(--step--1);
+    color: var(--ink-soft);
+  }
+  .salon-bars__track {
+    height: 0.75rem;
+    border-radius: var(--radius-pill);
+    background: var(--action-tint);
+    overflow: hidden;
+  }
+  .salon-bars__fill {
+    display: block;
+    height: 100%;
+    background: var(--action);
+  }
+
+  .salon-ticket .stamp {
+    margin: var(--space-2) 0;
+  }
+
+  /* Espace d'un collaborateur : pas de sommaire latéral, la page prend toute la largeur. */
+  .shell.salon-staff {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--gutter) 0;
+  }
+  .salon-staff__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: start;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+  .salon-staff .salon-staff__page {
+    padding-inline: 0;
+  }
+  @media (min-width: 1024px) {
+    .shell.salon-staff {
+      display: flex;
+      padding: var(--space-6);
+    }
+    .salon-staff .salon-staff__page {
+      padding: var(--space-8) var(--space-10) var(--space-12);
+    }
+  }
+}

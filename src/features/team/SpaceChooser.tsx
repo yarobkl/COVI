@@ -1,6 +1,7 @@
 import { Button } from '../../components/ui'
 import type { MemberShop } from '../../lib/team'
 import type { RestaurantStaffSpace } from '../../lib/restaurantStaff'
+import type { SalonSpace } from '../../lib/salon'
 import type { Shop } from '../../lib/types'
 import { AuthPage } from '../auth/AuthPage'
 
@@ -9,21 +10,26 @@ export type SpaceChoice =
   | { kind: 'owner' }
   | { kind: 'cashier'; shopId: string }
   | { kind: 'restaurant-staff'; shopId: string }
+  | { kind: 'salon-staff'; shopId: string }
 
 /** « Où travaillez-vous aujourd’hui ? » : the owned shop, then each cashier membership. */
 export function SpaceChooser({
   shop,
   memberships,
   restaurantSpaces = [],
+  salonSpaces = [],
   onChoose,
   onJoin,
   onRestaurantJoin,
+  onSalonJoin,
   onSignOut,
 }: {
   shop: Shop | null
   memberships: MemberShop[]
   restaurantSpaces?: RestaurantStaffSpace[]
+  salonSpaces?: SalonSpace[]
   onRestaurantJoin?: () => void
+  onSalonJoin?: () => void
   onChoose: (choice: SpaceChoice) => void
   onJoin: () => void
   onSignOut: () => void
@@ -67,6 +73,23 @@ export function SpaceChooser({
             </Button>
           </li>
         ))}
+        {salonSpaces.map((space) => (
+          <li key={space.shop_id}>
+            <Button
+              variant="secondary"
+              block
+              size="lg"
+              onClick={() => onChoose({ kind: 'salon-staff', shopId: space.shop_id })}
+            >
+              {space.shop_name} ·{' '}
+              {space.role === 'stylist'
+                ? 'Coiffeur'
+                : space.role === 'cashier'
+                  ? 'Caisse du salon'
+                  : 'Responsable du salon'}
+            </Button>
+          </li>
+        ))}
         <li>
           <Button variant="ghost" block onClick={onJoin}>
             J’ai un code de caissier
@@ -76,6 +99,13 @@ export function SpaceChooser({
           <li>
             <Button variant="ghost" block onClick={onRestaurantJoin}>
               J’ai un code d’employé de restaurant
+            </Button>
+          </li>
+        )}
+        {onSalonJoin && (
+          <li>
+            <Button variant="ghost" block onClick={onSalonJoin}>
+              J’ai un code d’accès à un salon
             </Button>
           </li>
         )}
