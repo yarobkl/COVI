@@ -372,10 +372,9 @@ export class SalonError extends Error {}
 type RpcResult = { data: unknown; error: { message: string; code?: string } | null }
 // Les fonctions salon ne figurent pas dans database.types.ts (générés depuis la production, où
 // ces migrations ne sont pas encore appliquées) : appel non typé, résultat typé ici.
-const rpc = supabase.rpc.bind(supabase) as unknown as (
-  fn: string,
-  args?: Record<string, unknown>,
-) => PromiseLike<RpcResult>
+type RpcFn = (fn: string, args?: Record<string, unknown>) => PromiseLike<RpcResult>
+// Lu à chaque appel (et non au chargement du module) : un client simulé sans rpc ne casse rien.
+const rpc: RpcFn = (fn, args) => (supabase.rpc as unknown as RpcFn).call(supabase, fn, args)
 
 const messages: [RegExp, string][] = [
   [/already booked/i, 'Ce collaborateur a déjà un rendez-vous sur ce créneau.'],

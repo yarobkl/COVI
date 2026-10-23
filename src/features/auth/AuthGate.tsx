@@ -13,6 +13,9 @@ import { CashierApp } from '../team/CashierApp'
 import { myRestaurantStaffSpaces, type RestaurantStaffSpace } from '../../lib/restaurantStaff'
 import { RestaurantStaffJoinPage } from '../restaurant/RestaurantStaffJoinPage'
 import { RestaurantStaffApp } from '../restaurant/RestaurantStaffApp'
+import { salonApi, type SalonSpace } from '../../lib/salon'
+import { SalonStaffApp } from '../salon/SalonStaffApp'
+import { SalonStaffJoinPage } from '../salon/SalonStaffJoinPage'
 import { JoinPage } from '../team/JoinPage'
 import { SpaceChooser, type SpaceChoice } from '../team/SpaceChooser'
 import { CreateShopForm } from './CreateShopForm'
@@ -56,11 +59,13 @@ export function AuthGate({
   const [showPassword, setShowPassword] = useState(false)
   const [memberships, setMemberships] = useState<MemberShop[]>([])
   const [restaurantSpaces, setRestaurantSpaces] = useState<RestaurantStaffSpace[]>([])
+  const [salonSpaces, setSalonSpaces] = useState<SalonSpace[]>([])
   // Suppression du compte programmée : seul l'écran d'annulation reste accessible.
   const [deletion, setDeletion] = useState<AccountDeletion>({ pending: false })
   const [choice, setChoice] = useState<SpaceChoice | null>(null)
   const [joining, setJoining] = useState(false)
   const [joiningRestaurant, setJoiningRestaurant] = useState(false)
+  const [joiningSalon, setJoiningSalon] = useState(false)
   const [membershipsVersion, setMembershipsVersion] = useState(0)
   const loadedFor = useRef<string | null>(null)
   const userId = session?.user.id ?? null
@@ -100,9 +105,11 @@ export function AuthGate({
       setShop(null)
       setMemberships([])
       setRestaurantSpaces([])
+      setSalonSpaces([])
       setChoice(null)
       setJoining(false)
       setJoiningRestaurant(false)
+      setJoiningSalon(false)
       setLoading(false)
       return
     }
@@ -120,15 +127,21 @@ export function AuthGate({
       // Cashier memberships. A failure (old server, network) leaves the owner flow unchanged.
       myMemberShops().catch(() => [] as MemberShop[]),
       myRestaurantStaffSpaces().catch(() => [] as RestaurantStaffSpace[]),
+      // Salon : un serveur pas encore à jour (fonction absente) ne bloque rien.
+      salonApi
+        .mySpaces()
+        .then((v) => (Array.isArray(v) ? v : []))
+        .catch(() => [] as SalonSpace[]),
       // A failure (server not migrated yet, network) never blocks the application.
       myAccountDeletion().catch((): AccountDeletion => ({ pending: false })),
-    ]).then(([{ data, error }, members, spaces, pendingDeletion]) => {
+    ]).then(([{ data, error }, members, spaces, salons, pendingDeletion]) => {
       setDeletion(pendingDeletion)
       if (error)
         setMessage('Impossible de charger votre commerce. Vérifiez votre connexion puis réessayez.')
       setShop(data)
       setMemberships(members)
       setRestaurantSpaces(spaces)
+      setSalonSpaces(salons)
       setLoading(false)
       loadedFor.current = userId
     })
@@ -174,6 +187,17 @@ export function AuthGate({
         }}
       />
     )
+  if (joiningSalon)
+    return (
+      <SalonStaffJoinPage
+        onBack={() => setJoiningSalon(false)}
+        onJoined={(joinedShopId) => {
+          setJoiningSalon(false)
+          setChoice({ kind: 'salon-staff', shopId: joinedShopId })
+          reloadMemberships()
+        }}
+      />
+    )
   if (joining)
     return (
       <JoinPage
@@ -189,19 +213,29 @@ export function AuthGate({
   const cashierOf = (shopId: string) => memberships.find((m) => m.shop_id === shopId) ?? null
   const restaurantOf = (shopId: string) =>
     restaurantSpaces.find((m) => m.shop_id === shopId) ?? null
+  const salonOf = (shopId: string) => salonSpaces.find((m) => m.shop_id === shopId) ?? null
   let space: SpaceChoice | null = choice
   if (space?.kind === 'cashier' && !cashierOf(space.shopId)) space = null
   if (space?.kind === 'restaurant-staff' && !restaurantOf(space.shopId)) space = null
+  if (space?.kind === 'salon-staff' && !salonOf(space.shopId)) space = null
   if (space?.kind === 'owner' && !shop) space = null
   if (!space) {
-    if (shop && memberships.length === 0 && restaurantSpaces.length === 0) space = { kind: 'owner' }
-    else if (!shop && memberships.length === 0 && restaurantSpaces.length === 1)
+    const others = memberships.length + restaurantSpaces.length + salonSpaces.length
+    if (shop && others === 0) space = { kind: 'owner' }
+    else if (!shop && others === 1 && restaurantSpaces.length === 1)
       space = { kind: 'restaurant-staff', shopId: restaurantSpaces[0].shop_id }
-    else if (!shop && memberships.length === 1 && restaurantSpaces.length === 0)
+    else if (!shop && others === 1 && memberships.length === 1)
       space = { kind: 'cashier', shopId: memberships[0].shop_id }
+    else if (!shop && others === 1 && salonSpaces.length === 1)
+      space = { kind: 'salon-staff', shopId: salonSpaces[0].shop_id }
   }
   if (!space) {
-    if (!shop && memberships.length === 0 && restaurantSpaces.length === 0)
+    if (
+      !shop &&
+      memberships.length === 0 &&
+      restaurantSpaces.length === 0 &&
+      salonSpaces.length === 0
+    )
       return (
         <CreateShopForm
           message={message}
@@ -209,6 +243,7 @@ export function AuthGate({
           onCreated={setShop}
           onJoin={() => setJoining(true)}
           onRestaurantJoin={() => setJoiningRestaurant(true)}
+          onSalonJoin={() => setJoiningSalon(true)}
           accountMetadata={session.user.user_metadata}
         />
       )
@@ -217,10 +252,31 @@ export function AuthGate({
         shop={shop}
         memberships={memberships}
         restaurantSpaces={restaurantSpaces}
+        salonSpaces={salonSpaces}
         onRestaurantJoin={() => setJoiningRestaurant(true)}
+        onSalonJoin={() => setJoiningSalon(true)}
         onChoose={setChoice}
         onJoin={() => setJoining(true)}
         onSignOut={() => void signOutEverywhere()}
+      />
+    )
+  }
+  if (space.kind === 'salon-staff') {
+    const salonSpace = salonOf(space.shopId)!
+    return (
+      <SalonStaffApp
+        key={salonSpace.shop_id}
+        space={salonSpace}
+        signOut={signOutEverywhere}
+        onLostAccess={reloadMemberships}
+        onSwitch={
+          shop || memberships.length > 0 || restaurantSpaces.length > 0 || salonSpaces.length > 1
+            ? () => {
+                setChoice(null)
+                reloadMemberships()
+              }
+            : undefined
+        }
       />
     )
   }
