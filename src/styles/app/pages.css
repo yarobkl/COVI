@@ -702,3 +702,68 @@
     }
   }
 }
+
+/* Restaurant: stable mobile grid by default; physical positions remain unchanged in DB. */
+@layer app {
+  .floor-plan--grid {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+    align-content: start;
+    gap: var(--space-3);
+    min-height: 0;
+    padding: var(--space-3);
+    overflow: visible;
+  }
+  .floor-plan--grid .floor-plan__table {
+    position: static;
+    width: 100%;
+    min-width: 0;
+    min-height: 6.5rem;
+    height: auto;
+    overflow-wrap: anywhere;
+  }
+  .floor-plan--physical {
+    min-height: 27rem;
+    overflow: hidden;
+  }
+  .floor-plan__qr-panel {
+    display: grid;
+    justify-items: start;
+    gap: var(--space-3);
+    margin-block: var(--space-3);
+    padding: var(--space-3);
+    border: var(--border-hair) solid var(--line);
+    border-radius: var(--radius-4);
+    background: var(--sheet);
+    min-width: 0;
+  }
+  .floor-plan__qr-image {
+    display: block;
+    max-width: min(100%, 220px);
+    height: auto;
+    background: white;
+    padding: var(--space-2);
+    border-radius: var(--radius-2);
+  }
+  .floor-plan__qr-panel label {
+    display: grid;
+    gap: var(--space-2);
+    width: 100%;
+    min-width: 0;
+  }
+  .floor-plan__qr-panel input {
+    min-width: 0;
+    width: 100%;
+    font-size: 0.9rem;
+    padding: var(--space-2);
+    border: var(--border-field) solid var(--line-field);
+    border-radius: var(--radius-2);
+  }
+  @media print {
+    .floor-plan__qr-panel {
+      page-break-inside: avoid;
+    }
+    .floor-plan__qr-panel .row-actions { display: none; }
+  }
+}
