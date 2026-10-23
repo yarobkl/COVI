@@ -256,125 +256,6 @@ export function TicketEditor({
 
         {open && (
           <>
-            <fieldset className="salon-fieldset">
-              <legend>Ajouter une prestation</legend>
-              {services.length === 0 ? (
-                <p className="entry__meta">Aucune prestation active dans le catalogue.</p>
-              ) : (
-                <div className="form-grid">
-                  <label>
-                    Prestation
-                    <select
-                      value={serviceId}
-                      onChange={(e) => {
-                        setServiceId(e.target.value)
-                        setEmployeeId(firstStaff(e.target.value)?.employee_id ?? '')
-                      }}
-                    >
-                      {services.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name} — {fcfa(s.price_xaf)} F
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Réalisée par
-                    <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
-                      {qualified.length === 0 && <option value="">Personne n’est habilité</option>}
-                      {qualified.map((m) => (
-                        <option key={m.employee_id} value={m.employee_id}>
-                          {m.full_name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  {canManage && (
-                    <label>
-                      Prix final <small>(laisser vide = prix du catalogue)</small>
-                      <input
-                        inputMode="numeric"
-                        value={price}
-                        onChange={(e) => setPrice(e.target.value)}
-                        placeholder="Prix du catalogue"
-                      />
-                    </label>
-                  )}
-                  <div className="form-grid__actions">
-                    <Button
-                      onClick={() => void addService()}
-                      busy={action.busy}
-                      disabled={!employeeId}
-                    >
-                      Ajouter la prestation
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </fieldset>
-
-            {products.length > 0 && (
-              <fieldset className="salon-fieldset">
-                <legend>Vendre un produit</legend>
-                <div className="form-grid">
-                  <label>
-                    Produit
-                    <select value={productId} onChange={(e) => setProductId(e.target.value)}>
-                      {products.map((p) => (
-                        <option key={p.id} value={p.id} disabled={p.quantity_on_hand <= 0}>
-                          {p.name} — {fcfa(p.sale_price_xaf ?? 0)} F (
-                          {p.quantity_on_hand.toLocaleString('fr-FR')} en stock)
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Quantité
-                    <input
-                      inputMode="decimal"
-                      value={productQty}
-                      onChange={(e) => setProductQty(e.target.value)}
-                    />
-                  </label>
-                  <div className="form-grid__actions">
-                    <Button onClick={() => void addProduct()} busy={action.busy}>
-                      Ajouter le produit
-                    </Button>
-                  </div>
-                </div>
-              </fieldset>
-            )}
-
-            {canManage && ticket.subtotal_xaf > 0 && (
-              <fieldset className="salon-fieldset">
-                <legend>Remise</legend>
-                <div className="form-grid">
-                  <label>
-                    Montant de la remise (FCFA)
-                    <input
-                      inputMode="numeric"
-                      value={discount}
-                      onChange={(e) => setDiscount(e.target.value)}
-                    />
-                  </label>
-                  <div className="form-grid__actions">
-                    <Button
-                      busy={action.busy}
-                      onClick={() =>
-                        void action
-                          .run(() =>
-                            salonApi.setDiscount(shopId, ticket.id, parseAmount(discount) ?? 0),
-                          )
-                          .then(apply)
-                      }
-                    >
-                      Appliquer la remise
-                    </Button>
-                  </div>
-                </div>
-              </fieldset>
-            )}
-
             {ticket.lines.length > 0 && (
               <fieldset className="salon-fieldset">
                 <legend>Encaisser</legend>
@@ -472,6 +353,136 @@ export function TicketEditor({
                     : `La somme des paiements (${fcfa(paySum)}) doit faire ${fcfa(ticket.total_xaf)}`}
                 </Button>
               </fieldset>
+            )}
+
+            <details className="salon-fold" open={ticket.lines.length === 0}>
+              <summary>Ajouter une prestation</summary>
+              <fieldset className="salon-fieldset">
+                <legend>Ajouter une prestation</legend>
+                {services.length === 0 ? (
+                  <p className="entry__meta">Aucune prestation active dans le catalogue.</p>
+                ) : (
+                  <div className="form-grid">
+                    <label>
+                      Prestation
+                      <select
+                        value={serviceId}
+                        onChange={(e) => {
+                          setServiceId(e.target.value)
+                          setEmployeeId(firstStaff(e.target.value)?.employee_id ?? '')
+                        }}
+                      >
+                        {services.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name} — {fcfa(s.price_xaf)} F
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Réalisée par
+                      <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
+                        {qualified.length === 0 && (
+                          <option value="">Personne n’est habilité</option>
+                        )}
+                        {qualified.map((m) => (
+                          <option key={m.employee_id} value={m.employee_id}>
+                            {m.full_name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    {canManage && (
+                      <label>
+                        Prix final <small>(laisser vide = prix du catalogue)</small>
+                        <input
+                          inputMode="numeric"
+                          value={price}
+                          onChange={(e) => setPrice(e.target.value)}
+                          placeholder="Prix du catalogue"
+                        />
+                      </label>
+                    )}
+                    <div className="form-grid__actions">
+                      <Button
+                        onClick={() => void addService()}
+                        busy={action.busy}
+                        disabled={!employeeId}
+                      >
+                        Ajouter la prestation
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </fieldset>
+            </details>
+
+            {products.length > 0 && (
+              <details className="salon-fold">
+                <summary>Vendre un produit</summary>
+                <fieldset className="salon-fieldset">
+                  <legend>Vendre un produit</legend>
+                  <div className="form-grid">
+                    <label>
+                      Produit
+                      <select value={productId} onChange={(e) => setProductId(e.target.value)}>
+                        {products.map((p) => (
+                          <option key={p.id} value={p.id} disabled={p.quantity_on_hand <= 0}>
+                            {p.name} — {fcfa(p.sale_price_xaf ?? 0)} F (
+                            {p.quantity_on_hand.toLocaleString('fr-FR')} en stock)
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Quantité
+                      <input
+                        inputMode="decimal"
+                        value={productQty}
+                        onChange={(e) => setProductQty(e.target.value)}
+                      />
+                    </label>
+                    <div className="form-grid__actions">
+                      <Button onClick={() => void addProduct()} busy={action.busy}>
+                        Ajouter le produit
+                      </Button>
+                    </div>
+                  </div>
+                </fieldset>
+              </details>
+            )}
+
+            {canManage && ticket.subtotal_xaf > 0 && (
+              <details className="salon-fold">
+                <summary>Remise</summary>
+                <fieldset className="salon-fieldset">
+                  <legend>Remise</legend>
+                  <div className="form-grid">
+                    <label>
+                      Montant de la remise (FCFA)
+                      <input
+                        inputMode="numeric"
+                        value={discount}
+                        onChange={(e) => setDiscount(e.target.value)}
+                      />
+                    </label>
+                    <div className="form-grid__actions">
+                      <Button
+                        busy={action.busy}
+                        onClick={() =>
+                          void action
+                            .run(() =>
+                              salonApi.setDiscount(shopId, ticket.id, parseAmount(discount) ?? 0),
+                            )
+                            .then(apply)
+                        }
+                      >
+                        Appliquer la remise
+                      </Button>
+                    </div>
+                  </div>
+                </fieldset>
+              </details>
             )}
           </>
         )}

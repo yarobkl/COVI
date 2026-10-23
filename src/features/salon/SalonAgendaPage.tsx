@@ -97,6 +97,8 @@ export function SalonAgendaPage({ shopId, role }: { shopId: string; role: SalonR
   const today = salonDay(new Date(), tz)
 
   const [reason, setReason] = useState('')
+  // Annuler ou noter une absence se fait en deux temps : le motif n'apparaît qu'après le clic.
+  const [confirming, setConfirming] = useState<AppointmentStatus | null>(null)
   async function changeStatus(a: Appointment, status: AppointmentStatus) {
     const done = await action.run(
       () => salonApi.setStatus(shopId, a.id, status, reason),
@@ -105,6 +107,7 @@ export function SalonAgendaPage({ shopId, role }: { shopId: string; role: SalonR
     if (done) {
       setOpened(null)
       setReason('')
+      setConfirming(null)
       agenda.reload()
     }
   }
@@ -128,7 +131,15 @@ export function SalonAgendaPage({ shopId, role }: { shopId: string; role: SalonR
 
   const card = (a: Appointment) => (
     <li key={a.id} className="salon-appt" data-status={a.status}>
-      <button type="button" className="salon-appt__open" onClick={() => setOpened(a)}>
+      <button
+        type="button"
+        className="salon-appt__open"
+        onClick={() => {
+          setOpened(a)
+          setConfirming(null)
+          setReason('')
+        }}
+      >
         <span className="salon-appt__time">
           {salonTime(a.starts_at, tz)} – {salonTime(a.ends_at, tz)}
         </span>
@@ -387,54 +398,79 @@ export function SalonAgendaPage({ shopId, role }: { shopId: string; role: SalonR
               Le bouton WhatsApp ouvre l’application avec un message prêt : rien n’est envoyé tant
               que vous ne l’envoyez pas vous-même.
             </p>
-            {nextStatuses(opened.status, role).some(
-              (s) => s === 'cancelled' || s === 'no_show',
-            ) && (
-              <label className="field">
-                <span className="field__label">Motif d’annulation ou d’absence (facultatif)</span>
-                <input
-                  className="input"
-                  value={reason}
-                  maxLength={200}
-                  onChange={(e) => setReason(e.target.value)}
-                />
-              </label>
-            )}
-            <div className="row-actions">
-              {nextStatuses(opened.status, role).map((s) => (
-                <Button
-                  key={s}
-                  variant={s === 'cancelled' || s === 'no_show' ? 'danger' : 'secondary'}
-                  busy={action.busy}
-                  onClick={() => void changeStatus(opened, s)}
-                >
-                  {statusAction[s]}
-                </Button>
-              ))}
-              {canWrite &&
-                ['pending', 'confirmed', 'arrived'].includes(opened.status) &&
-                !opened.ticket && (
+            {confirming ? (
+              <>
+                <label className="field">
+                  <span className="field__label">
+                    Motif {confirming === 'no_show' ? 'de l’absence' : 'de l’annulation'}{' '}
+                    (facultatif)
+                  </span>
+                  <input
+                    className="input"
+                    value={reason}
+                    maxLength={200}
+                    onChange={(e) => setReason(e.target.value)}
+                  />
+                </label>
+                <div className="row-actions">
+                  <Button
+                    variant="danger"
+                    busy={action.busy}
+                    onClick={() => void changeStatus(opened, confirming)}
+                  >
+                    {confirming === 'no_show' ? 'Confirmer l’absence' : 'Confirmer l’annulation'}
+                  </Button>
                   <Button
                     onClick={() => {
-                      setForm({ editing: opened, walkIn: false })
-                      setOpened(null)
+                      setConfirming(null)
+                      setReason('')
                     }}
                   >
-                    Modifier / reporter
+                    Ne rien changer
                   </Button>
-                )}
-              {canCheckout &&
-                ['confirmed', 'arrived', 'in_progress', 'completed'].includes(opened.status) &&
-                (!opened.ticket || opened.ticket.status === 'open') && (
+                </div>
+              </>
+            ) : (
+              <div className="row-actions">
+                {nextStatuses(opened.status, role).map((s) => (
                   <Button
-                    variant="primary"
+                    key={s}
+                    variant={s === 'cancelled' || s === 'no_show' ? 'danger' : 'secondary'}
                     busy={action.busy}
-                    onClick={() => void checkout(opened)}
+                    onClick={() =>
+                      s === 'cancelled' || s === 'no_show'
+                        ? setConfirming(s)
+                        : void changeStatus(opened, s)
+                    }
                   >
-                    {opened.ticket ? 'Reprendre la note' : 'Encaisser'}
+                    {statusAction[s]}
                   </Button>
-                )}
-            </div>
+                ))}
+                {canWrite &&
+                  ['pending', 'confirmed', 'arrived'].includes(opened.status) &&
+                  !opened.ticket && (
+                    <Button
+                      onClick={() => {
+                        setForm({ editing: opened, walkIn: false })
+                        setOpened(null)
+                      }}
+                    >
+                      Modifier / reporter
+                    </Button>
+                  )}
+                {canCheckout &&
+                  ['confirmed', 'arrived', 'in_progress', 'completed'].includes(opened.status) &&
+                  (!opened.ticket || opened.ticket.status === 'open') && (
+                    <Button
+                      variant="primary"
+                      busy={action.busy}
+                      onClick={() => void checkout(opened)}
+                    >
+                      {opened.ticket ? 'Reprendre la note' : 'Encaisser'}
+                    </Button>
+                  )}
+              </div>
+            )}
             <ActionMessage message={action.message} isError={action.isError} />
             <div className="dialog__actions">
               <Button onClick={() => setOpened(null)}>Fermer</Button>

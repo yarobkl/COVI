@@ -363,7 +363,7 @@ export function App({
               ? 'Nouvelle vente'
               : sector === 'restaurant'
                 ? 'Mes tables'
-                : 'Mes prestations'}
+                : 'Ouvrir l’agenda'}
           </ButtonLink>
         </div>
         <NotificationBell state={notifications} className="bell--sommaire" withLabel />

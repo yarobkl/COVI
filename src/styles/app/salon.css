@@ -30,6 +30,30 @@
     padding: 0 var(--space-2);
     font-weight: var(--weight-bold);
   }
+  /* Ajouts repliés sur la note : l'encaissement reste en haut, à portée de pouce. */
+  .salon-fold {
+    margin: var(--space-3) 0 0;
+    border-top: var(--border-hair) solid var(--line);
+  }
+  .salon-fold > summary {
+    min-height: var(--tap-min);
+    display: flex;
+    align-items: center;
+    color: var(--action);
+    font-weight: var(--weight-bold);
+    cursor: pointer;
+  }
+  .salon-fold > .salon-fieldset {
+    margin-top: 0;
+  }
+  .salon-fold > .salon-fieldset > legend {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
   .salon-checks {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
@@ -227,5 +251,32 @@
 
   .salon-ticket .stamp {
     margin: var(--space-2) 0;
+  }
+
+  /* Espace d'un collaborateur : pas de sommaire latéral, la page prend toute la largeur. */
+  .shell.salon-staff {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--gutter) 0;
+  }
+  .salon-staff__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: start;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+  .salon-staff .salon-staff__page {
+    padding-inline: 0;
+  }
+  @media (min-width: 1024px) {
+    .shell.salon-staff {
+      display: flex;
+      padding: var(--space-6);
+    }
+    .salon-staff .salon-staff__page {
+      padding: var(--space-8) var(--space-10) var(--space-12);
+    }
   }
 }
