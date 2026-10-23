@@ -33,7 +33,7 @@ sont appliquées (`restaurant_salon_foundation`, `sector_tenant_integrity`,
 `salon_booking_confirmation`, `salon_opening_address`, `salon_owner_manual_booking`).
 **0 salon** existe en production. `btree_gist` est disponible mais pas installé.
 
-Les 5 migrations de cette branche (`20261024090000` à `20261024095000`) sont **préparées, non
+Les 6 migrations de cette branche (`20261024090000` à `20261024095000`) sont **préparées, non
 appliquées**.
 
 ### Risques relevés
