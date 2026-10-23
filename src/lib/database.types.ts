@@ -1006,6 +1006,17 @@ export type Database = {
         Args: { p_shop: string }
         Returns: Json
       }
+      salon_add_manual_booking: {
+        Args: {
+          p_shop: string
+          p_first_name: string
+          p_last_name: string
+          p_phone: string
+          p_requested_at: string
+          p_service_id?: string | null
+        }
+        Returns: string
+      }
       salon_change_booking_status: {
         Args: { p_shop: string; p_booking: string; p_status: string }
         Returns: string
@@ -1101,6 +1112,42 @@ export type Database = {
           name: string
           neighborhood: string | null
           owner_id: string
+        }
+        SetofOptions: {
+          from: '*'
+          to: 'shops'
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_my_salon_with_address: {
+        Args: {
+          p_name: string
+          p_city: string
+          p_country: string
+          p_administrative_area: string
+          p_neighborhood: string
+          p_address_line: string
+          p_currency?: string
+          p_latitude?: number
+          p_longitude?: number
+          p_location_accuracy_m?: number
+        }
+        Returns: {
+          administrative_area: string | null
+          address_line: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          currency: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          location_accuracy_m: number | null
+          name: string
+          neighborhood: string | null
+          owner_id: string
+          business_kind: string
         }
         SetofOptions: {
           from: '*'

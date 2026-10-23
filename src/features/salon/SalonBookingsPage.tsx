@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Button, Notice, PageHead, Sheet } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
 import type { Tables } from '../../lib/database.types'
@@ -20,6 +20,7 @@ export function SalonBookingsPage({ shopId }: { shopId: string }) {
   const [rows, setRows] = useState<Booking[]>([])
   const [link, setLink] = useState<Link | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState(false)
@@ -62,6 +63,48 @@ export function SalonBookingsPage({ shopId }: { shopId: string }) {
       active = false
     }
   }, [shopId])
+
+  async function createManualBooking(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (busy) return
+    const form = new FormData(event.currentTarget)
+    const firstName = String(form.get('first_name') ?? '').trim()
+    const lastName = String(form.get('last_name') ?? '').trim()
+    const phone = String(form.get('phone') ?? '').trim()
+    const time = String(form.get('requested_at') ?? '')
+    const date = new Date(time)
+    if (
+      firstName.length < 1 ||
+      lastName.length < 1 ||
+      !/^\\+?[0-9][0-9 ()-]{5,23}$/.test(phone) ||
+      !Number.isFinite(date.getTime()) ||
+      date.getTime() <= Date.now()
+    ) {
+      setError(true)
+      setMessage('Vérifiez le contact et sélectionnez une date future.')
+      return
+    }
+    setBusy(true)
+    try {
+      const { error: insertError } = await supabase.rpc('salon_add_manual_booking', {
+        p_shop: shopId,
+        p_first_name: firstName,
+        p_last_name: lastName,
+        p_phone: phone,
+        p_requested_at: date.toISOString(),
+      })
+      if (insertError) throw insertError
+      await refresh()
+      setShowForm(false)
+      setError(false)
+      setMessage('Rendez-vous enregistré comme demande. Confirmez-le pour réserver ce créneau.')
+    } catch {
+      setError(true)
+      setMessage('Impossible de créer ce rendez-vous. Vérifiez vos droits et réessayez.')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   async function createLink() {
     if (busy) return
@@ -116,6 +159,39 @@ export function SalonBookingsPage({ shopId }: { shopId: string }) {
         title="Rendez-vous"
         sub="Les demandes sont privées à ce salon. Une demande n’est jamais automatiquement confirmée."
       />
+      <Sheet aria-label="Ajouter un rendez-vous">
+        <h2 className="section-title">Votre agenda au quotidien</h2>
+        <p className="muted">
+          Enregistrez une demande reçue par téléphone ou directement au salon, puis confirmez le
+          créneau. Rien n'est considéré comme payé automatiquement.
+        </p>
+        <Button onClick={() => setShowForm(!showForm)}>
+          {showForm ? 'Fermer le formulaire' : 'Ajouter un rendez-vous'}
+        </Button>
+        {showForm && (
+          <form className="form-grid" onSubmit={(event) => void createManualBooking(event)}>
+            <label>
+              Prénom
+              <input name="first_name" required maxLength={80} />
+            </label>
+            <label>
+              Nom
+              <input name="last_name" required maxLength={80} />
+            </label>
+            <label>
+              Téléphone
+              <input name="phone" type="tel" required placeholder="+242061234567" />
+            </label>
+            <label>
+              Date et heure souhaitées
+              <input name="requested_at" type="datetime-local" required />
+            </label>
+            <Button variant="primary" type="submit" busy={busy}>
+              Enregistrer la demande
+            </Button>
+          </form>
+        )}
+      </Sheet>
       <Sheet aria-label="Lien de réservation">
         <h2 className="section-title">Lien du salon</h2>
         {link ? (
