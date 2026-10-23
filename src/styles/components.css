@@ -62,28 +62,20 @@
     .shell > .bottom-nav {
       display: none;
     }
+    /* Esprit Wave : la page est posée directement sur le fond ; ce sont les cartes qui portent
+       le blanc. */
     .shell__page {
-      border-radius: var(--radius-sheet);
-      box-shadow: var(--shadow-sheet);
-      padding: var(--space-8) var(--space-10) var(--space-12) calc(var(--space-16) + var(--space-8));
-      --margin-offset: var(--space-16);
+      padding: var(--space-2) var(--space-4) var(--space-12);
     }
   }
 
-  /* Titre de section : mot en gras + court trait rouge (le stylo du cahier). */
+  /* Titre de section : gras, sans décor. */
   .section-title {
     font-size: var(--step-2);
     font-weight: var(--weight-bold);
+    letter-spacing: -0.01em;
     color: var(--ink);
     line-height: var(--leading-snug);
-  }
-  .section-title::after {
-    content: '';
-    display: block;
-    width: 44px;
-    height: 2px;
-    margin-top: 3px;
-    background: var(--danger);
   }
 
   /* ==========================================================================
@@ -168,14 +160,10 @@
     --_bg: transparent;
     --_border: transparent;
     padding-inline: var(--space-3);
-    text-decoration: underline;
-    text-decoration-thickness: 1px;
-    text-underline-offset: 3px;
   }
   .btn--ghost:hover,
   .btn--ghost.is-hover {
     --_bg: var(--action-tint);
-    text-decoration-thickness: 2px;
   }
 
   /* Danger : stylo rouge (supprimer). Contour par défaut, plein dans un dialogue de confirmation. */
@@ -197,12 +185,11 @@
     --_border: #8f1e18;
   }
 
-  /* Vente (piste C) : touche tactile qui s'enfonce. Encre bleue + ombre pleine.
-   Réservé : actions de la vente + « Nouvelle vente » (la porte d'entrée). */
+  /* Vente : grande touche pleine. Réservé aux actions de la vente + « Nouvelle vente ». */
   .btn--sale {
     --_bg: var(--action);
     --_ink: var(--action-ink);
-    --_border: var(--ink);
+    --_border: var(--action);
     --_shadow: var(--shadow-press);
     min-height: var(--tap-sale);
     padding-inline: var(--space-6);
@@ -214,6 +201,7 @@
   .btn--sale:hover,
   .btn--sale.is-hover {
     --_bg: var(--action-hover);
+    --_border: var(--action-hover);
   }
   .btn--sale:active,
   .btn--sale.is-pressed {
@@ -224,11 +212,11 @@
     font-size: 1em;
   }
 
-  /* Touche secondaire de vente (−500, Prix affiché…) : blanche, petite ombre */
+  /* Touche secondaire de vente (−500, Prix affiché…) : blanche, bord fin */
   .btn--tactile {
     --_bg: var(--sheet);
     --_ink: var(--ink);
-    --_border: var(--ink);
+    --_border: var(--line-field);
     --_shadow: var(--shadow-press-sm);
     border-width: var(--border-tactile);
     margin-inline-end: var(--press-offset-sm);

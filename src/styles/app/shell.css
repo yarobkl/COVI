@@ -28,17 +28,9 @@
     align-items: center;
     gap: var(--space-3);
     min-height: 60px;
-    padding: var(--space-2) var(--gutter) var(--space-2) calc(var(--margin-offset) + var(--space-3));
+    padding: var(--space-2) var(--gutter);
     border-bottom: var(--border-hair) solid var(--line);
     background: var(--paper);
-  }
-  .topbar::before {
-    content: '';
-    position: absolute;
-    inset-block: 0;
-    inset-inline-start: var(--margin-offset);
-    width: 2px;
-    background: var(--margin-line);
   }
   .topbar__shop {
     flex: 1 1 0;

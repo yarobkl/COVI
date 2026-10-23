@@ -1,15 +1,14 @@
 /* Pages de gestion (Stock, Arrivages, Ventes, Charges, Bilan, Ma boutique) : une seule écriture.
-   Titre souligné au stylo rouge, feuilles posées, formulaires et listes du cahier. */
+   Titres nets, cartes blanches, formulaires et listes (Esprit Wave). */
 @layer app {
-  /* Titre de page : le mot en gras, souligné d'un trait de stylo rouge (comme la date d'Accueil). */
+  /* Titre de page : gras et net, sans décor. */
   .page-title {
     display: inline-block;
     font-size: var(--step-3);
-    font-weight: var(--weight-bold);
+    font-weight: var(--weight-heavy);
+    letter-spacing: -0.02em;
     line-height: var(--leading-snug);
     color: var(--ink);
-    padding-bottom: var(--space-1);
-    border-bottom: 2px solid var(--danger);
   }
   .page-head__text {
     min-width: 0;
