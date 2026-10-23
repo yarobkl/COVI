@@ -1,0 +1,30 @@
+name: COVI Restaurant QR public smoke
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/functions/restaurant-qr/**'
+      - '.github/workflows/restaurant-qr-live-smoke.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  edge-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check owner origin, unknown token, and forbidden origin
+        shell: bash
+        run: |
+          set -euo pipefail
+          api="https://bmbwmwgfzrijglzcgjut.supabase.co/functions/v1/restaurant-qr"
+          token="$(printf '0%.0s' {1..64})"
+          known="$(curl -fsS --max-time 25 -o /tmp/covi_known -w '%{http_code}' -H 'Origin: https://covi-snowy.vercel.app' "$api?table=$token" || true)"
+          echo "Unknown valid-format table: HTTP $known"
+          test "$known" = "404" || { cat /tmp/covi_known; exit 1; }
+          invalid="$(curl -sS --max-time 25 -o /tmp/covi_invalid -w '%{http_code}' -H 'Origin: https://covi.eliebakala.workers.dev' "$api?table=bad" || true)"
+          echo "Malformed QR token: HTTP $invalid"
+          test "$invalid" = "400" || { cat /tmp/covi_invalid; exit 1; }
+          foreign="$(curl -sS --max-time 25 -o /tmp/covi_foreign -w '%{http_code}' -H 'Origin: https://not-covi.example' "$api?table=$token" || true)"
+          echo "Foreign origin: HTTP $foreign"
+          test "$foreign" = "403" || { cat /tmp/covi_foreign; exit 1; }
