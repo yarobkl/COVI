@@ -1,174 +1,417 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { Button, PageHead, Sheet, Notice } from '../../components/ui'
-import { money } from '../../lib/format'
-import { supabase } from '../../lib/supabase'
-import type { Tables } from '../../lib/database.types'
+import { useCallback, useState, type FormEvent } from 'react'
+import {
+  Badge,
+  Button,
+  Dialog,
+  EmptyState,
+  Ledger,
+  LedgerRow,
+  PageHead,
+  Sheet,
+} from '../../components/ui'
+import { fcfa, parseAmount } from '../../lib/format'
+import { salonApi, type SalonRole, type SalonService } from '../../lib/salon'
+import { ActionMessage, Loaded } from './SalonParts'
+import { minutesLabel, unitLabels } from './salonFormat'
+import { useSalonAction, useSalonLoad } from './useSalonLoad'
 
-type Service = Tables<'salon_services'>
+const examples = [
+  'Coupe homme',
+  'Coupe femme',
+  'Coupe enfant',
+  'Barbe',
+  'Shampoing',
+  'Brushing',
+  'Tresses',
+  'Nattes',
+  'Locks',
+  'Défrisage',
+  'Coloration',
+  'Soin capillaire',
+  'Pose de perruque',
+  'Coiffure événementielle',
+]
 
-/** Services of this salon only; no clothing stock reused for appointment services. */
-export function SalonServicesPage({ shopId }: { shopId: string }) {
-  const [rows, setRows] = useState<Service[]>([])
-  const [showForm, setShowForm] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [message, setMessage] = useState('')
-  const [isError, setIsError] = useState(false)
-  const reload = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('salon_services')
-      .select('*')
-      .eq('shop_id', shopId)
-      .order('name')
-    if (error) throw error
-    setRows(data ?? [])
-  }, [shopId])
-  useEffect(() => {
-    let alive = true
-    void supabase
-      .from('salon_services')
-      .select('*')
-      .eq('shop_id', shopId)
-      .order('name')
-      .then(({ data, error }) => {
-        if (!alive) return
-        setLoading(false)
-        if (error) {
-          setIsError(true)
-          setMessage('Chargement impossible. La migration de la base est peut-être en attente.')
-        } else setRows(data ?? [])
-      })
-    return () => {
-      alive = false
-    }
-  }, [shopId])
-  async function add(e: FormEvent<HTMLFormElement>) {
+type Draft = {
+  id: string | null
+  name: string
+  category: string
+  description: string
+  price: string
+  duration: string
+  cost: string
+  active: boolean
+  employeeIds: string[]
+  consumables: { supply_id: string; quantity: string }[]
+}
+
+const blank: Draft = {
+  id: null,
+  name: '',
+  category: '',
+  description: '',
+  price: '',
+  duration: '30',
+  cost: '',
+  active: true,
+  employeeIds: [],
+  consumables: [],
+}
+
+/** Catalogue des prestations : chaque salon écrit les siennes (aucune liste imposée). */
+export function SalonServicesPage({ shopId, role }: { shopId: string; role: SalonRole }) {
+  const canEdit = role === 'owner' || role === 'manager'
+  const load = useCallback(async () => {
+    const [catalog, supplies] = await Promise.all([
+      salonApi.catalog(shopId),
+      canEdit ? salonApi.supplies(shopId) : Promise.resolve([]),
+    ])
+    return { catalog, supplies }
+  }, [shopId, canEdit])
+  const data = useSalonLoad(load)
+  const action = useSalonAction()
+  const [draft, setDraft] = useState<Draft | null>(null)
+  const services = data.data?.catalog.services ?? []
+  const staff = (data.data?.catalog.staff ?? []).filter((s) => s.active)
+  const consumable = (data.data?.supplies ?? []).filter((s) => s.usage !== 'sale' && s.active)
+  const categories = [...new Set(services.map((s) => s.category).filter(Boolean))] as string[]
+
+  async function edit(s: SalonService) {
+    const items = await action.run(() => salonApi.consumables(shopId, s.id))
+    setDraft({
+      id: s.id,
+      name: s.name,
+      category: s.category ?? '',
+      description: s.description ?? '',
+      price: String(s.price_xaf),
+      duration: String(s.duration_minutes),
+      cost: s.direct_cost_xaf ? String(s.direct_cost_xaf) : '',
+      active: s.active,
+      employeeIds: s.employee_ids,
+      consumables: (items ?? []).map((i) => ({
+        supply_id: i.supply_id,
+        quantity: String(i.quantity),
+      })),
+    })
+  }
+
+  async function save(e: FormEvent) {
     e.preventDefault()
-    const form = new FormData(e.currentTarget)
-    const name = String(form.get('name') ?? '').trim()
-    const price = Number(form.get('price'))
-    const duration = Number(form.get('duration'))
+    if (!draft) return
+    const price = parseAmount(draft.price)
+    const duration = Number(draft.duration)
     if (
-      name.length < 2 ||
-      !Number.isSafeInteger(price) ||
-      price < 0 ||
-      price > 1000000000 ||
+      draft.name.trim().length < 2 ||
+      price === null ||
       !Number.isInteger(duration) ||
       duration < 5 ||
       duration > 720
     ) {
-      setMessage('Vérifiez la prestation, son tarif et la durée.')
-      setIsError(true)
+      action.setIsError(true)
+      action.setMessage('Vérifiez le nom, le prix et la durée (5 à 720 minutes).')
       return
     }
-    setBusy(true)
-    try {
-      const { error } = await supabase.from('salon_services').insert({
-        shop_id: shopId,
-        name,
-        price_xaf: price,
-        duration_minutes: duration,
-      })
-      if (error) throw error
-      await reload()
-      setShowForm(false)
-      setIsError(false)
-      setMessage('Prestation ajoutée.')
-    } catch {
-      setIsError(true)
-      setMessage('Enregistrement impossible.')
-    } finally {
-      setBusy(false)
+    const items = draft.consumables
+      .map((c) => ({ supply_id: c.supply_id, quantity: Number(c.quantity.replace(',', '.')) }))
+      .filter((c) => c.supply_id && c.quantity > 0)
+    const ok = await action.run(
+      async () => {
+        const id = await salonApi.saveService(shopId, {
+          id: draft.id,
+          name: draft.name.trim(),
+          category: draft.category.trim(),
+          description: draft.description.trim(),
+          priceXaf: price,
+          durationMinutes: duration,
+          directCostXaf: parseAmount(draft.cost) ?? 0,
+          active: draft.active,
+          employeeIds: draft.employeeIds,
+        })
+        await salonApi.setConsumables(shopId, id, items)
+        return id
+      },
+      draft.id ? 'Prestation mise à jour.' : 'Prestation ajoutée.',
+    )
+    if (ok) {
+      setDraft(null)
+      data.reload()
     }
   }
-  async function toggle(row: Service) {
-    if (busy) return
-    setBusy(true)
-    try {
-      const { error } = await supabase
-        .from('salon_services')
-        .update({ active: !row.active })
-        .eq('id', row.id)
-        .eq('shop_id', shopId)
-      if (error) throw error
-      await reload()
-      setIsError(false)
-      setMessage('Prestation mise à jour.')
-    } catch {
-      setIsError(true)
-      setMessage('Modification impossible.')
-    } finally {
-      setBusy(false)
-    }
-  }
+
+  const grouped = categories.length
+    ? [
+        ...categories.map((c) => ({ title: c, list: services.filter((s) => s.category === c) })),
+        { title: 'Sans catégorie', list: services.filter((s) => !s.category) },
+      ]
+    : [{ title: '', list: services }]
+
   return (
     <div className="page-stack">
       <PageHead
         title="Prestations"
-        sub="Chaque salon choisit ses propres services, durées et prix."
+        sub="Vos prestations, prix et durées. Les durées remplissent l’agenda ; les prix arrivent tout seuls à la caisse."
         action={
-          <Button onClick={() => setShowForm(!showForm)}>
-            {showForm ? 'Fermer' : 'Ajouter une prestation'}
-          </Button>
+          canEdit ? (
+            <Button variant="primary" onClick={() => setDraft({ ...blank })}>
+              Ajouter une prestation
+            </Button>
+          ) : undefined
         }
       />
-      {showForm && (
-        <Sheet>
-          <form className="form-grid" onSubmit={(e) => void add(e)}>
-            <label>
-              Prestation
-              <input name="name" required minLength={2} maxLength={120} placeholder="Ex. Tresses" />
-            </label>
-            <label>
-              Prix en FCFA
-              <input name="price" type="number" required min={0} step={1} max={1000000000} />
-            </label>
-            <label>
-              Durée estimée en minutes
-              <input
-                name="duration"
-                type="number"
-                required
-                min={5}
-                max={720}
-                step={5}
-                defaultValue={45}
-              />
-            </label>
-            <Button type="submit" variant="primary" busy={busy}>
-              Enregistrer
-            </Button>
-          </form>
-        </Sheet>
-      )}
-      {message && (
-        <Notice tone={isError ? 'danger' : 'success'}>
-          <p>{message}</p>
-        </Notice>
-      )}
-      <Sheet aria-label="Liste des prestations">
-        {loading ? (
-          <p>Chargement des prestations…</p>
-        ) : rows.length === 0 ? (
-          <p className="muted">Aucune prestation enregistrée.</p>
-        ) : (
-          <ul className="team-invites">
-            {rows.map((s) => (
-              <li key={s.id}>
-                <div>
-                  <strong>{s.name}</strong>
-                  <p className="muted">
-                    {money(s.price_xaf)} · {s.duration_minutes} min {!s.active && '· indisponible'}
-                  </p>
-                </div>
-                <Button disabled={busy} onClick={() => void toggle(s)}>
-                  {s.active ? 'Masquer' : 'Réactiver'}
+      <ActionMessage message={action.message} isError={action.isError} />
+      <Loaded loading={data.loading} error={data.error}>
+        {services.length === 0 ? (
+          <EmptyState
+            title="Aucune prestation"
+            actions={
+              canEdit ? (
+                <Button variant="primary" onClick={() => setDraft({ ...blank })}>
+                  Ajouter ma première prestation
                 </Button>
-              </li>
-            ))}
-          </ul>
+              ) : undefined
+            }
+          >
+            Exemples : {examples.join(', ')}. Écrivez les vôtres, avec vos prix.
+          </EmptyState>
+        ) : (
+          <Sheet>
+            {grouped
+              .filter((g) => g.list.length > 0)
+              .map((g) => (
+                <section key={g.title || 'all'} className="entry">
+                  {g.title && <h2 className="entry__title">{g.title}</h2>}
+                  <Ledger label={g.title || 'Prestations'}>
+                    {g.list.map((s) => (
+                      <LedgerRow
+                        key={s.id}
+                        variant={canEdit ? 'link' : undefined}
+                        label={
+                          canEdit ? (
+                            <button
+                              type="button"
+                              className="ledger__open"
+                              onClick={() => void edit(s)}
+                            >
+                              {s.name}
+                            </button>
+                          ) : (
+                            s.name
+                          )
+                        }
+                        meta={[
+                          minutesLabel(s.duration_minutes),
+                          s.employee_ids.length
+                            ? `${s.employee_ids.length} habilité${s.employee_ids.length > 1 ? 's' : ''}`
+                            : 'toute l’équipe',
+                          s.active ? null : 'arrêtée',
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                        value={
+                          <>
+                            {!s.active && <Badge tone="low">Arrêtée</Badge>} {fcfa(s.price_xaf)} F
+                          </>
+                        }
+                      />
+                    ))}
+                  </Ledger>
+                </section>
+              ))}
+          </Sheet>
         )}
-      </Sheet>
+      </Loaded>
+
+      {draft && (
+        <Dialog open onClose={() => setDraft(null)} labelledBy="salon-service-title" sheet>
+          <form className="dialog__body" onSubmit={(e) => void save(e)}>
+            <h2 className="dialog__title" id="salon-service-title">
+              {draft.id ? 'Modifier la prestation' : 'Nouvelle prestation'}
+            </h2>
+            <div className="form-grid">
+              <label>
+                Nom
+                <input
+                  value={draft.name}
+                  list="salon-service-examples"
+                  maxLength={120}
+                  required
+                  onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                />
+                <datalist id="salon-service-examples">
+                  {examples.map((x) => (
+                    <option key={x} value={x} />
+                  ))}
+                </datalist>
+              </label>
+              <label>
+                Catégorie <small>(facultatif)</small>
+                <input
+                  value={draft.category}
+                  list="salon-service-categories"
+                  maxLength={60}
+                  onChange={(e) => setDraft({ ...draft, category: e.target.value })}
+                />
+                <datalist id="salon-service-categories">
+                  {categories.map((x) => (
+                    <option key={x} value={x} />
+                  ))}
+                </datalist>
+              </label>
+              <label>
+                Prix (FCFA)
+                <input
+                  inputMode="numeric"
+                  value={draft.price}
+                  required
+                  onChange={(e) => setDraft({ ...draft, price: e.target.value })}
+                />
+              </label>
+              <label>
+                Durée (minutes)
+                <input
+                  inputMode="numeric"
+                  value={draft.duration}
+                  required
+                  onChange={(e) => setDraft({ ...draft, duration: e.target.value })}
+                />
+              </label>
+              <label className="form-grid__full">
+                Description <small>(facultatif)</small>
+                <textarea
+                  value={draft.description}
+                  maxLength={500}
+                  onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                />
+              </label>
+              <fieldset className="salon-fieldset form-grid__full">
+                <legend>Qui peut la faire ?</legend>
+                <p className="entry__meta">Sans case cochée, toute l’équipe peut la faire.</p>
+                <div className="salon-checks">
+                  {staff.map((m) => (
+                    <label className="form-check" key={m.employee_id}>
+                      <input
+                        type="checkbox"
+                        checked={draft.employeeIds.includes(m.employee_id)}
+                        onChange={(e) =>
+                          setDraft({
+                            ...draft,
+                            employeeIds: e.target.checked
+                              ? [...draft.employeeIds, m.employee_id]
+                              : draft.employeeIds.filter((x) => x !== m.employee_id),
+                          })
+                        }
+                      />
+                      {m.full_name}
+                    </label>
+                  ))}
+                  {staff.length === 0 && (
+                    <p className="entry__meta">Ajoutez votre équipe dans « Équipe ».</p>
+                  )}
+                </div>
+              </fieldset>
+              <fieldset className="salon-fieldset form-grid__full">
+                <legend>Produits consommés à chaque prestation</legend>
+                <p className="entry__meta">
+                  Retirés du stock au moment du paiement, une seule fois. Sans produit ici, le coût
+                  direct estimé ci-dessous est utilisé dans les marges.
+                </p>
+                {draft.consumables.map((c, i) => (
+                  <div className="form-grid" key={i}>
+                    <label>
+                      Produit
+                      <select
+                        value={c.supply_id}
+                        onChange={(e) =>
+                          setDraft({
+                            ...draft,
+                            consumables: draft.consumables.map((x, j) =>
+                              j === i ? { ...x, supply_id: e.target.value } : x,
+                            ),
+                          })
+                        }
+                      >
+                        <option value="">Choisir…</option>
+                        {consumable.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name} ({unitLabels[s.unit]})
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Quantité
+                      <input
+                        inputMode="decimal"
+                        value={c.quantity}
+                        onChange={(e) =>
+                          setDraft({
+                            ...draft,
+                            consumables: draft.consumables.map((x, j) =>
+                              j === i ? { ...x, quantity: e.target.value } : x,
+                            ),
+                          })
+                        }
+                      />
+                    </label>
+                  </div>
+                ))}
+                <div className="row-actions">
+                  {consumable.length > 0 ? (
+                    <Button
+                      variant="ghost"
+                      onClick={() =>
+                        setDraft({
+                          ...draft,
+                          consumables: [...draft.consumables, { supply_id: '', quantity: '' }],
+                        })
+                      }
+                    >
+                      Ajouter un produit consommé
+                    </Button>
+                  ) : (
+                    <p className="entry__meta">Créez d’abord vos produits dans « Produits ».</p>
+                  )}
+                  {draft.consumables.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      onClick={() =>
+                        setDraft({ ...draft, consumables: draft.consumables.slice(0, -1) })
+                      }
+                    >
+                      Retirer le dernier
+                    </Button>
+                  )}
+                </div>
+              </fieldset>
+              <label>
+                Coût direct estimé (FCFA) <small>(facultatif)</small>
+                <input
+                  inputMode="numeric"
+                  value={draft.cost}
+                  onChange={(e) => setDraft({ ...draft, cost: e.target.value })}
+                />
+              </label>
+              <label className="form-check">
+                <input
+                  type="checkbox"
+                  checked={draft.active}
+                  onChange={(e) => setDraft({ ...draft, active: e.target.checked })}
+                />
+                Proposée aux clients
+              </label>
+            </div>
+            <ActionMessage message={action.message} isError={action.isError} />
+            <div className="dialog__actions">
+              <Button variant="ghost" onClick={() => setDraft(null)}>
+                Fermer
+              </Button>
+              <Button type="submit" variant="primary" busy={action.busy}>
+                Enregistrer
+              </Button>
+            </div>
+          </form>
+        </Dialog>
+      )}
     </div>
   )
 }

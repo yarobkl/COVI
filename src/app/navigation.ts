@@ -32,7 +32,13 @@ export const pages: Record<PageId, NavEntry> = {
   'restaurant-tables': { page: 'restaurant-tables', label: 'Plan de salle', icon: BoxIcon },
   'restaurant-menu': { page: 'restaurant-menu', label: 'Carte & boissons', icon: NotebookIcon },
   'salon-services': { page: 'salon-services', label: 'Prestations', icon: ReceiptIcon },
-  'salon-bookings': { page: 'salon-bookings', label: 'Rendez-vous', icon: NotebookIcon },
+  'salon-bookings': { page: 'salon-bookings', label: 'Agenda', icon: NotebookIcon },
+  'salon-caisse': { page: 'salon-caisse', label: 'Caisse', icon: ReceiptIcon },
+  'salon-clients': { page: 'salon-clients', label: 'Clients', icon: PeopleIcon },
+  'salon-equipe': { page: 'salon-equipe', label: 'Équipe', icon: PeopleIcon },
+  'salon-stock': { page: 'salon-stock', label: 'Produits', icon: BoxIcon },
+  'salon-rapports': { page: 'salon-rapports', label: 'Rapports', icon: BarsIcon },
+  'salon-reglages': { page: 'salon-reglages', label: 'Réglages du salon', icon: ShopIcon },
 }
 
 /** Computer « Sommaire », under the « Nouvelle vente » key (which leads to Vendre). */
