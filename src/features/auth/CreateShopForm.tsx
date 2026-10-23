@@ -83,12 +83,6 @@ export function CreateShopForm({
       onMessage('L’adresse physique de votre établissement est obligatoire (10 à 240 caractères).')
       return
     }
-    if (businessKind === 'salon') {
-      onMessage(
-        'Le module Salon est encore en préparation. Votre compte est conservé ; l’ouverture sera possible après validation.',
-      )
-      return
-    }
     if (currency !== 'XAF') {
       onMessage(
         'Le pays et sa monnaie sont enregistrés dans votre choix, mais la caisse de ce pays n’est pas encore validée. Les ouvertures actives sont limitées à la zone CEMAC (XAF).',
@@ -122,7 +116,9 @@ export function CreateShopForm({
       const { data, error } = await supabase.rpc(
         businessKind === 'restaurant'
           ? 'create_my_restaurant_with_address'
-          : 'create_my_retail_shop_with_address',
+          : businessKind === 'salon'
+            ? 'create_my_salon_with_address'
+            : 'create_my_retail_shop_with_address',
         {
           p_name: String(f.get('name')).trim(),
           p_city: selectedCity.trim(),
@@ -279,12 +275,10 @@ export function CreateShopForm({
           }}
         />
         <ShopGpsControl value={gps} onChange={setGps} />
-        {(businessKind === 'salon' || currency !== 'XAF') && (
+        {currency !== 'XAF' && (
           <Notice tone="calm">
             <p>
-              {businessKind === 'salon'
-                ? 'Le module Salon est en préparation. Les restaurants et boutiques XAF peuvent déjà créer leur établissement.'
-                : 'Les calculs financiers pour cette devise ne sont pas encore validés. Les boutiques et restaurants de la zone CEMAC (XAF) sont pris en charge.'}
+              Les calculs financiers pour cette devise ne sont pas encore validés. Les ouvertures sont limitées aux boutiques, restaurants et salons de la zone CEMAC (XAF).
             </p>
           </Notice>
         )}
@@ -299,7 +293,7 @@ export function CreateShopForm({
           block
           type="submit"
           busy={busy}
-          disabled={businessKind === 'salon' || currency !== 'XAF'}
+          disabled={currency !== 'XAF'}
         >
           Créer mon établissement
         </Button>
