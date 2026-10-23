@@ -26,7 +26,9 @@ function hoursOf(s: SalonSettings): Hours {
     opens: '08:00',
     closes: '19:00',
   }))
-  if (s.opening_hours.length === 0) return base
+  // Suggested hours only for a salon that has never configured its schedule.
+  // After saving every day as closed, don't silently switch the UI back to "open".
+  if (!s.configured) return base
   return base.map((_, i) => {
     const h = s.opening_hours.find((x) => x.weekday === i + 1)
     return h
