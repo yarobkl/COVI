@@ -99,13 +99,14 @@ begin
   if v_local_end::date <> v_local_start::date and v_local_end::time <> time '00:00' then
     raise exception 'Appointment must stay within one day' using errcode = '22023';
   end if;
-  if exists (select 1 from public.salon_opening_hours where shop_id = p_shop) then
-    select opens_at, closes_at into v_open, v_close
-    from public.salon_opening_hours where shop_id = p_shop and weekday = v_day;
-    if not found or v_local_start::time < v_open
-       or (v_local_end::time > v_close and v_local_end::date = v_local_start::date) then
-      raise exception 'Salon closed at this time' using errcode = '22023';
-    end if;
+  -- No configured opening slot means CLOSED, never 24/7 availability.
+  -- Check the full end instant to also reject appointments crossing midnight
+  -- when the salon has already closed for the starting day.
+  select opens_at, closes_at into v_open, v_close
+  from public.salon_opening_hours where shop_id = p_shop and weekday = v_day;
+  if not found or v_local_start::time < v_open
+     or v_local_end > (v_local_start::date + v_close) then
+    raise exception 'Salon closed at this time' using errcode = '22023';
   end if;
   if exists (select 1 from public.salon_staff_hours where employee_id = p_employee) then
     select starts_at, ends_at into v_open, v_close

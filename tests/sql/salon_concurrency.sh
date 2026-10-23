@@ -27,6 +27,7 @@ delete from public.salon_tickets where shop_id = '$shop';
 delete from public.salon_appointment_services where shop_id = '$shop';
 delete from public.salon_appointments where shop_id = '$shop';
 delete from public.salon_events where shop_id = '$shop';
+delete from public.salon_opening_hours where shop_id = '$shop';
 delete from public.shops where id = '$shop';
 delete from auth.users where id = '$owner';
 SQL
@@ -46,6 +47,9 @@ insert into public.salon_staff_profiles(employee_id, shop_id) values ('$staff', 
 insert into public.salon_services(id, shop_id, name, price_xaf, duration_minutes) values ('$svc', '$shop', 'Coupe', 10000, 60);
 insert into public.salon_supplies(id, shop_id, name, unit, usage, quantity_on_hand, sale_price_xaf)
   values ('$oil', '$shop', 'Huile', 'piece', 'sale', 1, 5000);
+-- The test probes concurrency within actual opening hours, not an unconfigured salon.
+insert into public.salon_opening_hours (shop_id, weekday, opens_at, closes_at)
+select '$shop', d::smallint, '08:00'::time, '20:00'::time from generate_series(1, 7) d;
 SQL
 
 wait_for_lock() {
