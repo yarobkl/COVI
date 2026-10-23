@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Button, PageHead, Sheet, Notice } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
+import { restaurantQrLink } from '../../lib/restaurantQr'
+import qrcode from '../../vendor/qrcode-generator.mjs'
 import type { Tables } from '../../lib/database.types'
 
 type Table = Tables<'restaurant_tables'>
@@ -18,6 +20,7 @@ export function RestaurantTablesPage({ shopId }: { shopId: string }) {
   const [message, setMessage] = useState('')
   const [isError, setIsError] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [planView, setPlanView] = useState<'grid' | 'physical'>('grid')
 
   const reload = useCallback(async () => {
     const [tables, active] = await Promise.all([
@@ -86,6 +89,56 @@ export function RestaurantTablesPage({ shopId }: { shopId: string }) {
   }, [reload, shopId])
 
   const selected = rows.find((row) => row.id === selectedId) ?? rows[0] ?? null
+  const qrLink = selected?.qr_token
+    ? restaurantQrLink(window.location.origin, selected.qr_token)
+    : ''
+  const svgQr = (() => {
+    if (!qrLink) return ''
+    try {
+      const code = qrcode(0, 'M')
+      code.addData(qrLink)
+      code.make()
+      return code.createSvgTag({ cellSize: 7, margin: 5 })
+    } catch {
+      return ''
+    }
+  })()
+  const qrImage = svgQr ? `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgQr)}` : ''
+
+  function downloadQr() {
+    if (!svgQr || !selected) return
+    const objectUrl = URL.createObjectURL(new Blob([svgQr], { type: 'image/svg+xml' }))
+    const a = document.createElement('a')
+    a.href = objectUrl
+    a.download = `COVI-table-${selected.label.replace(/[^a-z0-9-]/gi, '_')}.svg`
+    a.click()
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
+  }
+
+  async function shareQr() {
+    if (!qrLink) return
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `Table ${selected?.label} — COVI`, url: qrLink })
+      } catch {
+        /* Le propriétaire a annulé le partage. */
+      }
+      return
+    }
+    await copyQrLink()
+  }
+
+  async function copyQrLink() {
+    if (!qrLink) return
+    try {
+      await navigator.clipboard.writeText(qrLink)
+      setMessage('Lien client copié.')
+      setIsError(false)
+    } catch {
+      setMessage('Copie impossible : sélectionnez le lien ci-dessous.')
+      setIsError(true)
+    }
+  }
 
   async function savePlace(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -210,7 +263,27 @@ export function RestaurantTablesPage({ shopId }: { shopId: string }) {
             Touchez une table pour la sélectionner. Les occupations proviennent des sessions
             enregistrées, pas de la capacité ni du nombre de personnes réellement présentes.
           </p>
-          <div className="floor-plan" role="group" aria-label="Disposition du restaurant">
+          <div className="row-actions" role="group" aria-label="Mode de présentation des tables">
+            <Button
+              variant={planView === 'grid' ? 'primary' : 'secondary'}
+              aria-pressed={planView === 'grid'}
+              onClick={() => setPlanView('grid')}
+            >
+              Vue lisible
+            </Button>
+            <Button
+              variant={planView === 'physical' ? 'primary' : 'secondary'}
+              aria-pressed={planView === 'physical'}
+              onClick={() => setPlanView('physical')}
+            >
+              Plan physique
+            </Button>
+          </div>
+          <div
+            className={`floor-plan floor-plan--${planView}`}
+            role="group"
+            aria-label="Disposition du restaurant"
+          >
             {rows.map((table) => {
               const session = sessions.find((x) => x.table_id === table.id)
               const state = statusError
@@ -227,10 +300,14 @@ export function RestaurantTablesPage({ shopId }: { shopId: string }) {
                   aria-label={`Table ${table.label}, ${state}, ${table.capacity} places`}
                   aria-pressed={selected?.id === table.id}
                   className={`floor-plan__table${session || statusError ? ' floor-plan__table--occupied' : ''}`}
-                  style={{
-                    left: `${Math.min(80, table.pos_x)}%`,
-                    top: `${Math.min(80, table.pos_y)}%`,
-                  }}
+                  style={
+                    planView === 'physical'
+                      ? {
+                          left: `${Math.min(80, table.pos_x)}%`,
+                          top: `${Math.min(80, table.pos_y)}%`,
+                        }
+                      : undefined
+                  }
                   onClick={() => setSelectedId(table.id)}
                 >
                   Table {table.label}
@@ -240,6 +317,45 @@ export function RestaurantTablesPage({ shopId }: { shopId: string }) {
               )
             })}
           </div>
+          {selected && (
+            <div className="floor-plan__qr-panel">
+              <h3 className="section-title">QR client · Table {selected.label}</h3>
+              <p className="muted">
+                Le lien est unique et permanent pour cette table. La lecture de la carte nécessite
+                l’activation de la passerelle publique Restaurant.
+              </p>
+              {qrImage ? (
+                <>
+                  <img
+                    className="floor-plan__qr-image"
+                    src={qrImage}
+                    alt={`QR code de la table ${selected.label}`}
+                    width={220}
+                    height={220}
+                  />
+                  <label>
+                    Lien client
+                    <input
+                      aria-label="Lien client de la table"
+                      readOnly
+                      value={qrLink}
+                      onFocus={(e) => e.target.select()}
+                    />
+                  </label>
+                  <div className="row-actions">
+                    <Button onClick={() => void copyQrLink()}>Copier le lien</Button>
+                    <Button onClick={() => void shareQr()}>Partager</Button>
+                    <Button onClick={downloadQr}>Télécharger le QR</Button>
+                    <Button onClick={() => window.print()}>Imprimer</Button>
+                  </div>
+                </>
+              ) : (
+                <Notice tone="danger">
+                  <p>QR indisponible pour cette table : vérifiez son identifiant.</p>
+                </Notice>
+              )}
+            </div>
+          )}
           {selected && (
             <form key={selected.id} className="form-grid" onSubmit={(e) => void savePlace(e)}>
               <h3 className="section-title">Position de la table {selected.label}</h3>
