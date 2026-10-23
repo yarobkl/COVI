@@ -66,15 +66,12 @@
     padding: 0;
     margin-inline-start: auto;
     overflow: hidden;
-    border: var(--border-field) solid var(--action);
+    border: 0;
     border-radius: 50%;
-    background: var(--sheet);
+    background: var(--action-tint-strong);
     color: var(--action);
     font-size: var(--step--1);
     font-weight: var(--weight-bold);
-    box-shadow:
-      0 0 0 3px var(--sheet),
-      0 0 0 4.5px #a9b9d8;
     transition: background-color var(--dur-fast) var(--ease-out);
   }
   .avatar img {

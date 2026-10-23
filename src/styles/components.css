@@ -612,7 +612,6 @@
     min-width: 1.5rem;
     align-self: baseline;
     height: 0.3em;
-    border-bottom: 2px dotted var(--line-dotted);
   }
   .ledger__value {
     margin-inline-start: auto;
@@ -683,7 +682,7 @@
     padding: var(--space-5);
   }
   .sheet--seyes {
-    background-color: var(--paper);
+    background-color: var(--sheet);
   }
   .sheet__title {
     font-size: var(--step-1);
@@ -691,23 +690,20 @@
     margin-bottom: var(--space-3);
   }
 
-  /* Étiquette de cahier (nom de la boutique) : double cadre bleu */
+  /* Carte d'identité de la boutique */
   .label-card {
     background: var(--sheet);
-    border: var(--border-field) solid var(--action);
     border-radius: var(--radius-4);
-    padding: var(--space-3) var(--space-4) var(--space-4);
-    box-shadow:
-      0 0 0 4px var(--sheet),
-      0 0 0 5.5px #a9b9d8;
-    margin: 6px;
+    padding: var(--space-4);
+    box-shadow: var(--shadow-sheet);
   }
 
-  /* Ticket de caisse : Courier, dents en bas (CSS pur) */
+  /* Ticket de caisse : carte blanche arrondie */
   .ticket {
     position: relative;
     max-width: 22rem;
     background: var(--sheet);
+    border-radius: var(--radius-3);
     padding: var(--space-4) var(--space-4) var(--space-3);
     font-family: var(--font-figures);
     font-size: 0.9375rem;
@@ -717,18 +713,8 @@
     box-shadow: var(--shadow-ticket);
     margin-bottom: 8px;
   }
-  .ticket::after {
-    content: '';
-    position: absolute;
-    inset-inline: 0;
-    top: 100%;
-    height: 7px;
-    background: conic-gradient(from -45deg at 50% 100%, var(--sheet) 90deg, transparent 0) 0 0 /
-      12px 100% repeat-x;
-    filter: drop-shadow(0 1px 0 rgb(30 36 48 / 0.1));
-  }
   .ticket--tilt {
-    rotate: 0.6deg;
+    rotate: none;
   }
   .ticket__head {
     text-align: center;
@@ -740,7 +726,7 @@
   }
   .ticket__cut {
     border: 0;
-    border-top: 1.5px dashed var(--line-dotted);
+    border-top: var(--border-hair) solid var(--line);
     margin: var(--space-3) 0;
   }
   .ticket__line {
@@ -795,7 +781,7 @@
     color: var(--action);
     font-weight: var(--weight-bold);
   }
-  /* Trait de stylo sous l'onglet choisi : un peu de travers, comme à la main */
+  /* Trait droit sous l'onglet choisi */
   .tabs__tab[aria-selected='true']::after {
     content: '';
     position: absolute;
@@ -803,10 +789,7 @@
     bottom: 4px;
     height: 3px;
     background: currentColor;
-    border-radius: 40% 60% 50% 50% / 100%;
-    rotate: -1deg;
-    transform-origin: left;
-    animation: covi-underline var(--dur-base) var(--ease-out) both;
+    border-radius: var(--radius-pill);
   }
 
   .segmented {
@@ -875,18 +858,8 @@
     color: var(--action);
     font-weight: var(--weight-bold);
   }
-  /* Trait de stylo qui entoure le choix */
-  .segmented__input:checked + .segmented__label::after {
-    content: '';
-    position: absolute;
-    inset: -6px -5px -7px -6px;
-    border: 2.4px solid var(--action);
-    border-radius: 52% 46% 50% 44% / 58% 52% 48% 44%;
-    rotate: -1.5deg;
-    pointer-events: none;
-    -webkit-mask: conic-gradient(from 200deg, #000 var(--covi-sweep), transparent 0);
-    mask: conic-gradient(from 200deg, #000 var(--covi-sweep), transparent 0);
-    animation: covi-pen-circle 320ms var(--ease-out) both;
+  .segmented__input:checked + .segmented__label {
+    box-shadow: inset 0 0 0 1px var(--action);
   }
   .segmented__input:disabled + .segmented__label {
     background: var(--disabled-bg);
@@ -899,14 +872,14 @@
   .is-sale .segmented__label,
   .segmented--sale .segmented__label {
     min-height: var(--tap-sale-lg);
-    border: var(--border-tactile) solid var(--ink);
+    border: var(--border-field) solid var(--line-field);
     font-weight: var(--weight-bold);
     box-shadow: var(--shadow-press);
     margin: 0 var(--press-offset) var(--press-offset) 0;
   }
   .is-sale .segmented__option:hover .segmented__label,
   .segmented--sale .segmented__option:hover .segmented__label {
-    border-color: var(--ink);
+    border-color: var(--action);
     background: var(--sale-accent-tint);
   }
   .is-sale .segmented__option:active .segmented__label,
@@ -919,7 +892,7 @@
   .is-sale .segmented__input:checked + .segmented__label,
   .segmented--sale .segmented__input:checked + .segmented__label {
     background: var(--sale-accent);
-    border-color: var(--ink);
+    border-color: var(--sale-accent);
     color: var(--ink);
   }
 
@@ -933,7 +906,7 @@
     gap: var(--space-1);
     padding: 1px var(--space-2);
     border: var(--border-field) solid var(--_c);
-    border-radius: var(--radius-1) var(--radius-2) var(--radius-1) var(--radius-2);
+    border-radius: var(--radius-pill);
     color: var(--_c);
     background: var(--sheet);
     font-size: var(--step--1);
@@ -1391,8 +1364,9 @@
     display: flex;
     height: calc(var(--bottomnav-height) + env(safe-area-inset-bottom, 0px));
     padding-bottom: env(safe-area-inset-bottom, 0px);
-    background: var(--paper);
+    background: var(--sheet);
     border-top: var(--border-hair) solid var(--line);
+    box-shadow: 0 -4px 16px -12px rgb(15 27 45 / 0.25);
   }
   .bottom-nav__item {
     position: relative;
@@ -1441,19 +1415,18 @@
     content: '';
     position: absolute;
     bottom: 5px;
-    width: 30px;
-    height: 2.5px;
+    width: 20px;
+    height: 3px;
     background: currentColor;
-    border-radius: 40% 60% 50% 50% / 100%;
-    rotate: -2deg;
+    border-radius: var(--radius-pill);
   }
   .bottom-nav__key {
     display: grid;
     place-items: center;
     width: 52px;
     height: 34px;
-    border: var(--border-tactile) solid var(--ink);
-    border-radius: var(--radius-3);
+    border: 0;
+    border-radius: var(--radius-pill);
     background: var(--action);
     color: var(--action-ink);
     box-shadow: var(--shadow-press-sm);
@@ -1507,13 +1480,12 @@
     gap: var(--space-2);
     margin-top: var(--space-3);
     padding-bottom: 2px;
-    border-bottom: 1.5px dotted var(--line-dotted);
     font-size: var(--step--1);
     color: var(--ink-soft);
   }
   .sommaire__shop-owner .hand {
-    font-size: 1.3125rem;
-    line-height: 1;
+    font-size: var(--step-0);
+    line-height: 1.2;
   }
   .sommaire__title {
     margin: var(--space-6) 0 var(--space-2) var(--space-3);
@@ -1562,17 +1534,9 @@
     outline-offset: 0;
   }
   .sommaire__link[aria-current='page'] {
+    background: var(--action-tint);
     color: var(--action);
     font-weight: var(--weight-bold);
-  }
-  .sommaire__link[aria-current='page'] span::after {
-    content: '';
-    display: block;
-    height: 2.5px;
-    margin-top: 1px;
-    background: currentColor;
-    border-radius: 40% 60% 50% 50% / 100%;
-    rotate: -1deg;
   }
   .sommaire__sale {
     margin: var(--space-4) var(--space-3) var(--space-2) 0;

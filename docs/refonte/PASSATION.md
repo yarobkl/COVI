@@ -61,12 +61,12 @@ Légende : ✅ fait · 🔶 en cours · ⬜ à faire
 | Étape                                                                      | État |
 | -------------------------------------------------------------------------- | ---- |
 | Branche, police installée, ce document                                     | ✅   |
-| `tokens.css` : palette, police, arrondis, ombres                           | ⬜   |
-| `base.css` : fond uni, titres, `.seyes`/`.margin-rule`/`.hand` neutralisés | ⬜   |
-| `components.css` : boutons, champs, fiches, listes, dialogues, badges      | ⬜   |
-| `app/shell.css` : en-tête, barre du bas, sommaire ordinateur               | ⬜   |
-| Accueil (`app/dashboard.css`) : carte bleue des ventes du jour             | ⬜   |
-| Vendre et pavé PIN (`app/sale.css`, `app/team.css`) : bleu de nuit         | ⬜   |
+| `tokens.css` : palette, police, arrondis, ombres                           | ✅   |
+| `base.css` : fond uni, titres, `.seyes`/`.margin-rule`/`.hand` neutralisés | ✅   |
+| `components.css` : boutons, champs, fiches, listes, dialogues, badges      | 🔶   |
+| `app/shell.css` : en-tête, barre du bas, sommaire ordinateur               | 🔶   |
+| Accueil (`app/dashboard.css`) : carte bleue des ventes du jour             | ✅   |
+| Vendre et pavé PIN (`app/sale.css`, `app/team.css`) : bleu de nuit         | 🔶   |
 | Stock, arrivages, ventes, charges, bilan (`app/pages.css`)                 | ⬜   |
 | Commandes en ligne et pages client QR (`app/orders.css`)                   | ⬜   |
 | Connexion, création de boutique (`app/auth.css`)                           | ⬜   |
