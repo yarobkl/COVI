@@ -1006,6 +1006,17 @@ export type Database = {
         Args: { p_shop: string }
         Returns: Json
       }
+      salon_add_manual_booking: {
+        Args: {
+          p_shop: string
+          p_first_name: string
+          p_last_name: string
+          p_phone: string
+          p_requested_at: string
+          p_service_id?: string | null
+        }
+        Returns: string
+      }
       salon_change_booking_status: {
         Args: { p_shop: string; p_booking: string; p_status: string }
         Returns: string
