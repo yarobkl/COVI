@@ -13,7 +13,7 @@ begin
   ) then raise exception 'Access denied' using errcode='42501'; end if;
   if char_length(btrim(coalesce(p_first_name,''))) not between 1 and 80
      or char_length(btrim(coalesce(p_last_name,''))) not between 1 and 80
-     or p_phone is null or p_phone !~ '^[+]?[0-9][0-9 ()-]{5,23} then
+     or p_phone is null or p_phone !~ '^[+]?[0-9][0-9 ()-]{5,23}$' then
     raise exception 'Invalid contact information' using errcode='22023';
   end if;
   if p_requested_at is null or p_requested_at <= now()
