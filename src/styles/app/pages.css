@@ -764,6 +764,8 @@
     .floor-plan__qr-panel {
       page-break-inside: avoid;
     }
-    .floor-plan__qr-panel .row-actions { display: none; }
+    .floor-plan__qr-panel .row-actions {
+      display: none;
+    }
   }
 }

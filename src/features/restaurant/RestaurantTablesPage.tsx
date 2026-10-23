@@ -300,10 +300,14 @@ export function RestaurantTablesPage({ shopId }: { shopId: string }) {
                   aria-label={`Table ${table.label}, ${state}, ${table.capacity} places`}
                   aria-pressed={selected?.id === table.id}
                   className={`floor-plan__table${session || statusError ? ' floor-plan__table--occupied' : ''}`}
-                  style={planView === 'physical' ? {
-                    left: `${Math.min(80, table.pos_x)}%`,
-                    top: `${Math.min(80, table.pos_y)}%`,
-                  } : undefined}
+                  style={
+                    planView === 'physical'
+                      ? {
+                          left: `${Math.min(80, table.pos_x)}%`,
+                          top: `${Math.min(80, table.pos_y)}%`,
+                        }
+                      : undefined
+                  }
                   onClick={() => setSelectedId(table.id)}
                 >
                   Table {table.label}
@@ -331,7 +335,12 @@ export function RestaurantTablesPage({ shopId }: { shopId: string }) {
                   />
                   <label>
                     Lien client
-                    <input aria-label="Lien client de la table" readOnly value={qrLink} onFocus={(e) => e.target.select()} />
+                    <input
+                      aria-label="Lien client de la table"
+                      readOnly
+                      value={qrLink}
+                      onFocus={(e) => e.target.select()}
+                    />
                   </label>
                   <div className="row-actions">
                     <Button onClick={() => void copyQrLink()}>Copier le lien</Button>
@@ -341,7 +350,9 @@ export function RestaurantTablesPage({ shopId }: { shopId: string }) {
                   </div>
                 </>
               ) : (
-                <Notice tone="danger"><p>QR indisponible pour cette table : vérifiez son identifiant.</p></Notice>
+                <Notice tone="danger">
+                  <p>QR indisponible pour cette table : vérifiez son identifiant.</p>
+                </Notice>
               )}
             </div>
           )}
