@@ -38,8 +38,9 @@ begin
     values(v.id,'Tresses',5000,60);
   if (select count(*) from public.salon_services where shop_id=v.id)<>1
     then raise exception 'Salon services not available after creation'; end if;
-  insert into public.salon_booking_requests(shop_id,first_name,last_name,phone,requested_at)
-    values(v.id,'Marie','Test','+242060000000',now()+interval '2 days');
+  perform public.salon_add_manual_booking(
+    v.id, 'Marie', 'Test', '+242060000000', now()+interval '2 days'
+  );
   if (select count(*) from public.salon_booking_requests where shop_id=v.id)<>1
     then raise exception 'Owner cannot create appointment'; end if;
   begin
