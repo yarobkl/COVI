@@ -86,13 +86,12 @@ export function SalonBookingsPage({ shopId }: { shopId: string }) {
     }
     setBusy(true)
     try {
-      const { error: insertError } = await supabase.from('salon_booking_requests').insert({
-        shop_id: shopId,
-        first_name: firstName,
-        last_name: lastName,
-        phone,
-        requested_at: date.toISOString(),
-        status: 'pending',
+      const { error: insertError } = await supabase.rpc('salon_add_manual_booking', {
+        p_shop: shopId,
+        p_first_name: firstName,
+        p_last_name: lastName,
+        p_phone: phone,
+        p_requested_at: date.toISOString(),
       })
       if (insertError) throw insertError
       await refresh()
