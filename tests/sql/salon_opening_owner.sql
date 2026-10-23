@@ -3,7 +3,7 @@
 \set ON_ERROR_STOP 1
 begin;
 insert into auth.users(id) values ('00000000-0000-0000-0000-00000000ae29');
-select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-00000000ae22',true);
+select set_config('request.jwt.claim.sub','00000000-0000-0000-0000-00000000ae29',true);
 set local role authenticated;
 do $tests$
 declare v public.shops;
