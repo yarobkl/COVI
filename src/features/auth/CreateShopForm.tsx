@@ -278,7 +278,8 @@ export function CreateShopForm({
         {currency !== 'XAF' && (
           <Notice tone="calm">
             <p>
-              Les calculs financiers pour cette devise ne sont pas encore validés. Les ouvertures sont limitées aux boutiques, restaurants et salons de la zone CEMAC (XAF).
+              Les calculs financiers pour cette devise ne sont pas encore validés. Les ouvertures
+              sont limitées aux boutiques, restaurants et salons de la zone CEMAC (XAF).
             </p>
           </Notice>
         )}

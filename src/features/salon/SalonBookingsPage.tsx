@@ -163,8 +163,8 @@ export function SalonBookingsPage({ shopId }: { shopId: string }) {
       <Sheet aria-label="Ajouter un rendez-vous">
         <h2 className="section-title">Votre agenda au quotidien</h2>
         <p className="muted">
-          Enregistrez une demande reçue par téléphone ou directement au salon, puis confirmez le créneau.
-          Rien n'est considéré comme payé automatiquement.
+          Enregistrez une demande reçue par téléphone ou directement au salon, puis confirmez le
+          créneau. Rien n'est considéré comme payé automatiquement.
         </p>
         <Button onClick={() => setShowForm(!showForm)}>
           {showForm ? 'Fermer le formulaire' : 'Ajouter un rendez-vous'}
