@@ -251,12 +251,10 @@
 
   /* ------------------------------------------------------------------
      SCOPE VENTE — .is-sale (racine du module « Vendre »)
-     Mêmes encres, mêmes polices : seuls la matière et l'énergie changent.
+     Mêmes couleurs et police ; seules les cibles sont plus grandes.
      ------------------------------------------------------------------ */
   .is-sale {
     --field-height: var(--tap-sale);
-    --border-field: var(--border-tactile);
-    --line-field: var(--ink);
     --surface-key: var(--sheet);
     --surface-key-on: var(--sale-accent);
     --surface-total: var(--sale-accent);

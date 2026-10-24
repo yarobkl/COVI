@@ -347,7 +347,7 @@
   .icon-btn--tactile {
     width: 48px;
     height: 48px;
-    border: var(--border-tactile) solid var(--ink);
+    border: var(--border-field) solid var(--line-field);
     background: var(--sheet);
     color: var(--ink);
     box-shadow: var(--shadow-press-sm);
@@ -627,7 +627,7 @@
     margin-top: var(--space-1);
     padding-block: var(--space-3) var(--space-2);
     border-top: var(--border-total) solid var(--line-strong);
-    border-bottom: 4px double var(--line-strong);
+    border-bottom: 0;
     font-weight: var(--weight-bold);
   }
   .ledger__row--total .amount {
@@ -1172,7 +1172,7 @@
     padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
     background: var(--sheet);
     color: var(--ink);
-    border: var(--border-field) solid var(--ink);
+    border: var(--border-field) solid var(--line-field);
     border-radius: var(--radius-2);
     box-shadow: var(--shadow-lift);
     font-size: var(--step--1);
@@ -1569,7 +1569,7 @@
     width: calc(100% - var(--press-offset));
     min-height: 76px;
     padding: var(--space-3) var(--space-4);
-    border: var(--border-tactile) solid var(--ink);
+    border: var(--border-field) solid var(--line-field);
     border-radius: var(--radius-3);
     background: var(--sheet);
     color: var(--ink);
@@ -1628,7 +1628,7 @@
     padding: 0 6px;
     display: grid;
     place-items: center;
-    border: var(--border-tactile) solid var(--ink);
+    border: var(--border-field) solid var(--line-field);
     border-radius: var(--radius-pill);
     background: var(--sale-accent);
     color: var(--ink);
@@ -1663,7 +1663,7 @@
     gap: var(--space-2) var(--space-3);
     padding: var(--space-3) var(--gutter) var(--space-2);
     background: var(--sale-accent);
-    border-top: var(--border-tactile) solid var(--ink);
+    border-top: var(--border-hair) solid var(--line);
     animation: covi-sheet-up var(--dur-base) var(--ease-out) both;
   }
   .sale-bar__count {
@@ -1706,7 +1706,7 @@
     align-items: end;
     gap: var(--space-1) var(--space-3);
     padding: var(--space-3) var(--space-4);
-    border: var(--border-tactile) solid var(--ink);
+    border: var(--border-field) solid var(--line-field);
     border-radius: var(--radius-3);
     background: var(--sale-accent-tint);
     min-height: 84px;
@@ -1776,7 +1776,7 @@
     display: grid;
     place-items: center;
     min-height: var(--tap-sale-lg);
-    border: var(--border-tactile) solid var(--ink);
+    border: var(--border-field) solid var(--line-field);
     border-radius: var(--radius-3);
     background: var(--sheet);
     color: var(--ink);
@@ -1871,7 +1871,7 @@
     width: 100%;
     max-width: 19rem;
     padding-top: var(--space-2);
-    border-top: 3px solid var(--ink); /* la fente de l'imprimante */
+    border-top: var(--border-hair) solid var(--line);
     justify-self: center;
     margin-bottom: var(--space-8); /* place pour le tampon qui déborde */
   }
