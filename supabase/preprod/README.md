@@ -22,6 +22,8 @@ eu-west-3). Production : `bmbwmwgfzrijglzcgjut` — **ne jamais y écrire**.
      `preprod_account_purge_schedule.sql` (aucune tâche planifiée), sous le même nom de migration.
 3. Charger `seed_retail_restaurant.sql` puis `seed_salon.sql` (rejouables, validés en local le 24/10 :
    3 établissements, 2 ventes = 51 000 FCFA, stock robe 5 → 4, 6 tables, 5 plats, 10 rendez-vous salon).
+   Puis exécuter `verify_preprod.sql` (lecture seule) : chiffres attendus, RLS active partout, aucune
+   référence à la production, isolement entre établissements.
 4. Créer les comptes de connexion de test directement dans la préproduction ; ne jamais écrire leurs
    mots de passe dans le dépôt.
 5. Aperçu Vercel de test : définir **`VITE_SUPABASE_URL=https://stcsjwxmmxnjwisqkudz.supabase.co`** et
