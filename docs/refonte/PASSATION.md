@@ -73,7 +73,7 @@ Légende : ✅ fait · 🔶 en cours · ⬜ à faire
 | Notifications (`app/notifications.css`)                                    | ✅   |
 | Restaurant (styles dans `app/pages.css`)                                   | ✅   |
 | Captures avant / après 390 et 1280 px, sans débordement                    | ✅   |
-| Toutes les vérifications vertes, PR brouillon à jour                       | ⬜   |
+| Toutes les vérifications vertes, PR brouillon à jour                       | ✅   |
 
 Mettre à jour ce tableau à chaque commit.
 
@@ -162,3 +162,6 @@ captures « avant » ont été prises sur Accueil, Stock, Vendre, Ventes (390 et
   test) ; impression papier réelle.
 - Vérifications : prettier OK, lint (code 0), `tsc -b` 0 erreur, vitest 347/347, offline OK,
   kitchen_push 6/6, assistant 13/13, build OK.
+
+- CI GitHub sur `064e6d1` : `test-web` et `test-db` **verts** (24/10, 07:38 UTC). Cloudflare en échec
+  comme sur `main` (réglage Cloudflare, sans lien avec le code).
