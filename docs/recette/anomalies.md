@@ -12,3 +12,14 @@ Dernière revue : 24 octobre 2026. **Seules les observations contrôlées en cod
 - `SalonReportsPage.tsx` : fuseau `time_zone` chargé depuis `salonApi.settings` ; tests multizones restant à valider.
 
 Pour clôturer un ticket : joindre une preuve reproductible (version, référence du scénario, attente/observation, résultat serveur), faire corriger par Claude, puis obtenir une contre-vérification GPT-06.
+
+## Nouveaux constats sur `integration/preprod`
+
+| Réf. | Priorité | Domaine | Constats et reproduction | Responsable technique | Décision / statut |
+| --- | --- | --- | --- | --- | --- |
+| ANO-PRE-001 | P0 | Seed Boutique | `seed_retail_restaurant.sql` insère `status='available'` alors que COVI sélectionne `status='active'`. Confirmer contrainte, relancer seed uniquement sur la cible de test. | CLA-02 / CLA-03 | **Issue #68, non exécuté à distance** |
+| ANO-PRE-002 | P0 | Auth de test | `insert into auth.users(id)` crée des UUID de propriétaires sans compte email connecté ; création séparée d'un utilisateur peut fournir un autre UUID. Faire un login réel puis vérifier l'accès propriétaire aux 3 établissements. | CLA-02 | **Issue #68, à confirmer** |
+| ANO-PRE-003 | P0 | Isolation environnement | Le client Vite contient une URL de production de repli si `VITE_SUPABASE_URL` manque. Prouver la cible réelle de l'aperçu Vercel avant toute écriture ; jamais de fallback silencieux sur production. | CLA-07 / CLA-02 | **Issue #68, prévention impérative** |
+| ANO-PRE-004 | P1 | Recette RLS | Le script de vérification teste les privilèges directs mais pas encore l'ensemble des RPC multi-tenant en session A/B. Ajouter preuve de tests négatifs avant GO. | CLA-02 | **Lacune de couverture, non fuite avérée** |
+
+Oracle calculé : `docs/recette/JEU-DONNEES-PREPROD.md`. L'issue [#68](https://github.com/yarobkl/COVI/issues/68) centralise les corrections techniques attendues de Claude.
