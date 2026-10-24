@@ -63,13 +63,13 @@ Légende : ✅ fait · 🔶 en cours · ⬜ à faire
 | Branche, police installée, ce document                                     | ✅   |
 | `tokens.css` : palette, police, arrondis, ombres                           | ✅   |
 | `base.css` : fond uni, titres, `.seyes`/`.margin-rule`/`.hand` neutralisés | ✅   |
-| `components.css` : boutons, champs, fiches, listes, dialogues, badges      | 🔶   |
-| `app/shell.css` : en-tête, barre du bas, sommaire ordinateur               | 🔶   |
+| `components.css` : boutons, champs, fiches, listes, dialogues, badges      | ✅   |
+| `app/shell.css` : en-tête, barre du bas, sommaire ordinateur               | ✅   |
 | Accueil (`app/dashboard.css`) : carte bleue des ventes du jour             | ✅   |
-| Vendre et pavé PIN (`app/sale.css`, `app/team.css`) : bleu de nuit         | 🔶   |
+| Vendre et pavé PIN (`app/sale.css`, `app/team.css`) : bleu de nuit         | ✅   |
 | Stock, arrivages, ventes, charges, bilan (`app/pages.css`)                 | ⬜   |
 | Commandes en ligne et pages client QR (`app/orders.css`)                   | 🔶   |
-| Connexion, création de boutique (`app/auth.css`)                           | 🔶   |
+| Connexion, création de boutique (`app/auth.css`)                           | ✅   |
 | Notifications (`app/notifications.css`)                                    | ⬜   |
 | Restaurant (styles dans `app/pages.css`)                                   | ⬜   |
 | Captures avant / après 390 et 1280 px, sans débordement                    | ⬜   |
@@ -106,3 +106,10 @@ captures « avant » ont été prises sur Accueil, Stock, Vendre, Ventes (390 et
 
 - `src/styles/app/auth.css` : aperçu de boutique aligné, retrait des rotations manuscrites, carte de chargement avec l'ombre de la charte, aucune couleur ajoutée (commit `2871ee7d2bd7c75d7a69c7bb1d53f8c32f5f10bd`).
 - **En cours / validation non acquise** : la revue visuelle à 390/1280 px et les cinq commandes de contrôle restent à exécuter avant toute fusion. Aucun fichier fonctionnel modifié.
+
+### Vérification Claude — 24 octobre 2026
+
+- Connexion (reprise ChatGPT `2871ee7`) vérifiée à 390 et 1280 px : conforme, aucun débordement.
+- Vendre (tuiles, panneau ordinateur) et code caissier bleu de nuit vérifiés à 390 et 1280 px.
+- Page QR publique (`75f1b48`) : pas encore vérifiée en navigateur (il faut une boutique de test
+  avec commandes en ligne) ; reste 🔶.
