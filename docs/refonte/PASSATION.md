@@ -118,3 +118,14 @@ captures « avant » ont été prises sur Accueil, Stock, Vendre, Ventes (390 et
   poignée en haut des feuilles. Vérifié à 390 et 1280 px, aucun débordement.
 - Restaurant (Accueil, Plan de salle, Service & caisse, Carte) vérifié à 390 et 1280 px, écrans
   sans données (le banc local n'a pas de tables d'exemple) : conforme, aucun débordement.
+
+### Lot A — composants communs (Claude, 24 octobre)
+
+- Galerie locale de tous les composants de `src/components/ui` (boutons, champs, choix, compteur,
+  listes, montants, badges, étiquettes, avis, état vide, ticket, squelette, pavé de prix,
+  dialogue) vérifiée à 390 et 1280 px : aucun débordement, **aucune cible tactile sous 44 px**.
+- Corrigé : boutons des lignes de liste (`.row-actions .btn`) à 40 px depuis le 15/10 → 44 px ;
+  étiquettes (`.stamp`) au texte décentré → centré ; barre de progression (`.ruler`) encore en
+  règle graduée → barre arrondie ; animations mortes du stylo supprimées.
+- Vérifications : prettier OK, lint (code 0), `tsc -b` 0 erreur, vitest 347/347, offline OK,
+  kitchen_push 6/6, assistant 13/13, build OK.

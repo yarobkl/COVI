@@ -8,18 +8,11 @@
    preview.html et aux tests visuels : ne pas les poser dans l'app.
    ========================================================================== */
 
-/* Propriété animable pour le trait de stylo qui entoure (cercle dessiné). */
-@property --covi-sweep {
-  syntax: '<percentage>';
-  inherits: false;
-  initial-value: 100%;
-}
-
 @layer components {
   /* ==========================================================================
    0. Mise en page de l'application (shell)
-   Téléphone d'abord : page papier pleine largeur + barre du bas.
-   ≥ 1024 px : sommaire latéral + feuille posée sur la table.
+   Téléphone d'abord : page pleine largeur + barre du bas.
+   ≥ 1024 px : sommaire latéral + page posée sur le fond.
    ========================================================================== */
   .shell {
     min-height: 100dvh;
@@ -953,7 +946,8 @@
 
   .stamp {
     --_c: var(--danger);
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
     padding: 0.1em 0.6em;
     border: 2px solid var(--_c);
     border-radius: var(--radius-pill);
@@ -1003,20 +997,14 @@
     padding-top: 1.5rem;
     height: calc(1.5rem + 22px);
   }
+  /* Barre de progression arrondie (plus de graduations de règle). */
   .ruler__track {
     position: absolute;
     inset-inline: 0;
-    top: 1.5rem;
-    height: 22px;
-    background:
-    /* grandes graduations 0, 50, 100 % */
-      linear-gradient(var(--ink), var(--ink)) 0 2px / 1.5px 16px no-repeat,
-      linear-gradient(var(--ink), var(--ink)) 50% 3px / 1.5px 14px no-repeat,
-      linear-gradient(var(--ink), var(--ink)) 100% 2px / 1.5px 16px no-repeat,
-      /* petites graduations tous les 10 % */
-        repeating-linear-gradient(to right, var(--ink-muted) 0 1px, transparent 1px 10%) 0 6px /
-        100% 8px no-repeat,
-      /* la règle */ linear-gradient(var(--ink), var(--ink)) 0 9.5px / 100% 1.5px no-repeat;
+    top: calc(1.5rem + 5px);
+    height: 10px;
+    border-radius: var(--radius-pill);
+    background: var(--action-tint-strong);
   }
   .ruler__fill {
     position: absolute;
@@ -1025,7 +1013,7 @@
     height: 10px;
     width: min(var(--value, 0%), 100%);
     background: var(--_fill);
-    border-radius: 2px;
+    border-radius: var(--radius-pill);
     transform-origin: left center;
     animation: covi-fill var(--dur-slow) var(--ease-out) both;
   }
@@ -1980,24 +1968,6 @@
   100% {
     opacity: 1;
     scale: 1;
-  }
-}
-/* Trait de stylo qui entoure */
-@keyframes covi-pen-circle {
-  from {
-    --covi-sweep: 0%;
-  }
-  to {
-    --covi-sweep: 100%;
-  }
-}
-/* Trait de stylo sous un onglet */
-@keyframes covi-underline {
-  from {
-    scale: 0 1;
-  }
-  to {
-    scale: 1 1;
   }
 }
 /* Ticket qui sort de l'imprimante */
