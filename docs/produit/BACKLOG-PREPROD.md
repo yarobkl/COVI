@@ -29,3 +29,15 @@ COVI doit permettre à une PME fictive de réaliser les opérations essentielles
 - Exigences et recettes : propriété GPT dans `docs/recette/`, `docs/qa/`, `docs/produit/`, `docs/commercial/`.
 - `docs/PILOTAGE.md` est partagé par sections ; GPT-01 ne créera pas/modifiera la section CLA-01.
 - Les constats techniques sont remontés en commentaire sur la PR concernée. Les documents seuls ne constituent pas des tests exécutés.
+
+## Revue GPT-01 — nouveaux prérequis de l'intégration
+
+**État observé :** la branche `integration/preprod` a été poussée et contient les deux PR métiers/visuelles ainsi que les scripts de seed et de vérification. L'application distante et la base n'ont pas été vérifiées côté GPT.
+
+1. **P0 CLA-02 / CLA-03** — résoudre l'issue [#68](https://github.com/yarobkl/COVI/issues/68) : valeur `status` des produits du seed et capacité de login des propriétaires fictifs.
+2. **P0 CLA-02 / CLA-07** — démontrer la cible réelle `stcsjwxmmxnjwisqkudz` à l'exécution, avec un mécanisme empêchant tout fallback vers la production lors des tests.
+3. **P0 CLA-03 / CLA-05** — comparer les résultats effectivement obtenus à `docs/recette/JEU-DONNEES-PREPROD.md` (51 000 XAF Boutique ; 92 000 XAF Salon, sous réserve du seed entier).
+4. **P0 GPT-05 + propriétaire** — clôturer l'arbitrage FIN-004 avant toute correction des calculs de remboursements.
+5. **P1 CLA-02** — compléter `verify_preprod.sql` par tests authentifiés A/B sur les RPC privilégiées, et archiver les preuves sans secrets.
+
+**Note de responsabilité :** ces lignes sont des exigences de recette, pas une autorisation pour GPT d'écrire dans les fichiers techniques de CLA-02/03/07.
