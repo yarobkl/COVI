@@ -71,7 +71,7 @@ Légende : ✅ fait · 🔶 en cours · ⬜ à faire
 | Commandes en ligne et pages client QR (`app/orders.css`)                   | 🔶   |
 | Connexion, création de boutique (`app/auth.css`)                           | ✅   |
 | Notifications (`app/notifications.css`)                                    | ✅   |
-| Restaurant (styles dans `app/pages.css`)                                   | 🔶   |
+| Restaurant (styles dans `app/pages.css`)                                   | ✅   |
 | Captures avant / après 390 et 1280 px, sans débordement                    | ⬜   |
 | Toutes les vérifications vertes, PR brouillon à jour                       | ⬜   |
 
@@ -116,4 +116,5 @@ captures « avant » ont été prises sur Accueil, Stock, Vendre, Ventes (390 et
 - Pages de gestion (Stock, Arrivages, Ventes, Charges, Bilan, boutique d'exemple) et notifications :
   pointillés, tirets, écriture manuscrite et éléments penchés retirés ; tampon = étiquette droite ;
   poignée en haut des feuilles. Vérifié à 390 et 1280 px, aucun débordement.
-- Restaurant : hérite des mêmes règles, **pas encore vérifié en navigateur** (🔶).
+- Restaurant (Accueil, Plan de salle, Service & caisse, Carte) vérifié à 390 et 1280 px, écrans
+  sans données (le banc local n'a pas de tables d'exemple) : conforme, aucun débordement.
