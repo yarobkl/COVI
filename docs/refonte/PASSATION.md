@@ -68,8 +68,8 @@ Légende : ✅ fait · 🔶 en cours · ⬜ à faire
 | Accueil (`app/dashboard.css`) : carte bleue des ventes du jour             | ✅   |
 | Vendre et pavé PIN (`app/sale.css`, `app/team.css`) : bleu de nuit         | 🔶   |
 | Stock, arrivages, ventes, charges, bilan (`app/pages.css`)                 | ⬜   |
-| Commandes en ligne et pages client QR (`app/orders.css`)                   | ⬜   |
-| Connexion, création de boutique (`app/auth.css`)                           | ⬜   |
+| Commandes en ligne et pages client QR (`app/orders.css`)                   | 🔶   |
+| Connexion, création de boutique (`app/auth.css`)                           | 🔶   |
 | Notifications (`app/notifications.css`)                                    | ⬜   |
 | Restaurant (styles dans `app/pages.css`)                                   | ⬜   |
 | Captures avant / après 390 et 1280 px, sans débordement                    | ⬜   |
@@ -95,3 +95,14 @@ Banc local (hors dépôt) : un faux serveur Supabase renvoie quelques produits e
 l'application tourne avec `VITE_SUPABASE_URL=http://localhost:5321 npx vite --port 5320`. Les
 captures « avant » ont été prises sur Accueil, Stock, Vendre, Ventes (390 et 1280 px). Pour chaque
 écran restylé : capture après, aucun débordement horizontal (`scrollWidth - innerWidth = 0`).
+
+## Reprise ChatGPT — 23 octobre 2026
+
+- Page QR publique : retrait des rotations décoratives, de l'effet adhésif sur l'image et du papillon papier ; utilisation des variables existantes (`--sale-accent-tint`, `--radius-3`, `--shadow-sheet`). Commit `75f1b482734859665b36c67b9aee8e7d4230960c` sur cette branche uniquement.
+- Périmètre : un seul fichier CSS de rendu, aucun fichier métier, migration, secret ou composant de logique modifié.
+- État : **en cours, non validé en navigateur**. La copie locale du dépôt est bloquée (`Could not resolve host: github.com`). Les cinq commandes de vérification et les contrôles 390/1280 px n'ont pas encore été exécutés : ne pas déclarer le lot fini ni fusionner ou déployer.
+
+### Reprise suivante — style connexion
+
+- `src/styles/app/auth.css` : aperçu de boutique aligné, retrait des rotations manuscrites, carte de chargement avec l'ombre de la charte, aucune couleur ajoutée (commit `2871ee7d2bd7c75d7a69c7bb1d53f8c32f5f10bd`).
+- **En cours / validation non acquise** : la revue visuelle à 390/1280 px et les cinq commandes de contrôle restent à exécuter avant toute fusion. Aucun fichier fonctionnel modifié.
