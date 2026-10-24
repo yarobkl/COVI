@@ -81,7 +81,7 @@
     gap: var(--space-3);
     min-width: 0;
     padding-block: var(--space-2) var(--space-4);
-    border-bottom: 1.5px dashed var(--line-dotted);
+    border-bottom: var(--border-hair) solid var(--line);
   }
   .order-guest__num {
     float: left;
@@ -121,7 +121,7 @@
   }
   .order-guest__dots {
     flex: 1;
-    border-bottom: 2px dotted var(--line-dotted);
+    border-bottom: var(--border-hair) solid var(--line);
     translate: 0 -0.3em;
   }
   /* Photo : aperçu sur une carte arrondie. */

@@ -67,11 +67,11 @@ Légende : ✅ fait · 🔶 en cours · ⬜ à faire
 | `app/shell.css` : en-tête, barre du bas, sommaire ordinateur               | ✅   |
 | Accueil (`app/dashboard.css`) : carte bleue des ventes du jour             | ✅   |
 | Vendre et pavé PIN (`app/sale.css`, `app/team.css`) : bleu de nuit         | ✅   |
-| Stock, arrivages, ventes, charges, bilan (`app/pages.css`)                 | ⬜   |
+| Stock, arrivages, ventes, charges, bilan (`app/pages.css`)                 | ✅   |
 | Commandes en ligne et pages client QR (`app/orders.css`)                   | 🔶   |
 | Connexion, création de boutique (`app/auth.css`)                           | ✅   |
-| Notifications (`app/notifications.css`)                                    | ⬜   |
-| Restaurant (styles dans `app/pages.css`)                                   | ⬜   |
+| Notifications (`app/notifications.css`)                                    | ✅   |
+| Restaurant (styles dans `app/pages.css`)                                   | 🔶   |
 | Captures avant / après 390 et 1280 px, sans débordement                    | ⬜   |
 | Toutes les vérifications vertes, PR brouillon à jour                       | ⬜   |
 
@@ -113,3 +113,7 @@ captures « avant » ont été prises sur Accueil, Stock, Vendre, Ventes (390 et
 - Vendre (tuiles, panneau ordinateur) et code caissier bleu de nuit vérifiés à 390 et 1280 px.
 - Page QR publique (`75f1b48`) : pas encore vérifiée en navigateur (il faut une boutique de test
   avec commandes en ligne) ; reste 🔶.
+- Pages de gestion (Stock, Arrivages, Ventes, Charges, Bilan, boutique d'exemple) et notifications :
+  pointillés, tirets, écriture manuscrite et éléments penchés retirés ; tampon = étiquette droite ;
+  poignée en haut des feuilles. Vérifié à 390 et 1280 px, aucun débordement.
+- Restaurant : hérite des mêmes règles, **pas encore vérifié en navigateur** (🔶).

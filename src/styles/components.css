@@ -954,27 +954,23 @@
   .stamp {
     --_c: var(--danger);
     display: inline-block;
-    padding: 0 0.4em;
-    border: 4px double var(--_c);
-    border-radius: 8px;
+    padding: 0.1em 0.6em;
+    border: 2px solid var(--_c);
+    border-radius: var(--radius-pill);
     color: var(--_c);
-    font-family: var(--font-figures);
-    font-weight: var(--weight-bold);
-    font-size: 1.75rem;
+    font-family: var(--font-text);
+    font-weight: var(--weight-heavy);
+    font-size: 1.5rem;
     line-height: 1.15;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
     white-space: nowrap;
-    rotate: -12deg;
-    opacity: 0.92;
-    mix-blend-mode: multiply;
     pointer-events: none;
   }
   .stamp--sm {
-    font-size: 1rem;
-    border-width: 3px;
-    padding: 0 0.35em;
-    rotate: -6deg;
+    font-size: 0.875rem;
+    border-width: 1.5px;
+    padding: 0.05em 0.5em;
   }
   .stamp--lg {
     font-size: 2.25rem;
@@ -987,8 +983,6 @@
   }
   .stamp--transit {
     --_c: var(--ink-soft);
-    border-style: dashed;
-    border-width: 3px;
   }
   .stamp--done {
     --_c: var(--success);
@@ -1333,12 +1327,15 @@
   .dialog--sheet[open] {
     animation: covi-sheet-up var(--dur-slow) var(--ease-sheet) both;
   }
-  /* Perforation du carnet à souches, en haut de la feuille */
+  /* Poignée en haut de la feuille qui monte */
   .dialog--sheet::before {
     content: '';
     display: block;
-    margin: 14px var(--space-5) 0;
-    border-top: 2px dashed var(--line-dotted);
+    width: 40px;
+    height: 4px;
+    margin: 10px auto 0;
+    border-radius: var(--radius-pill);
+    background: var(--line-field);
   }
   @media (min-width: 640px) {
     .dialog--sheet {
@@ -1917,7 +1914,6 @@
   .sale-done__note {
     justify-self: start;
     font-size: 1.5rem;
-    rotate: -3deg;
     animation: covi-write var(--dur-write) steps(16, end) 1000ms both;
   }
   .sale-done__day {
@@ -1971,22 +1967,19 @@
     box-shadow: var(--shadow-press);
   }
 }
-/* Tampon qui tombe */
+/* Étiquette qui se pose */
 @keyframes covi-stamp-drop {
   0% {
     opacity: 0;
-    scale: 2.3;
-    rotate: -3deg;
+    scale: 1.6;
   }
   62% {
     opacity: 1;
-    scale: 0.94;
-    rotate: -13deg;
+    scale: 0.96;
   }
   100% {
-    opacity: 0.92;
+    opacity: 1;
     scale: 1;
-    rotate: -12deg;
   }
 }
 /* Trait de stylo qui entoure */

@@ -169,12 +169,11 @@
     font-size: var(--step--1);
   }
 
-  /* « test » noté à la main, au stylo rouge, à côté d'un nom. */
+  /* « test » à côté d'un nom : petite mention rouge. */
   .test-note {
     margin-inline-start: var(--space-2);
-    font-family: var(--font-hand);
-    font-size: var(--step-0);
-    font-weight: 400;
+    font-size: var(--step--1);
+    font-weight: var(--weight-bold);
     line-height: 1.2;
     color: var(--danger);
   }
@@ -183,7 +182,7 @@
   .entry + .entry {
     margin-top: var(--space-6);
     padding-top: var(--space-5);
-    border-top: 1.5px dashed var(--line-dotted);
+    border-top: var(--border-hair) solid var(--line);
   }
   .entry__head {
     display: flex;
@@ -341,19 +340,18 @@
   }
 }
 
-/* Boutique d'exemple : bandeau « simulation » écrit à la main en haut de la page. */
+/* Boutique d'exemple : bandeau « simulation » en haut de la page. */
 @layer app {
   .demo-band {
     padding: var(--space-2) var(--space-3);
-    border: 1.5px dashed var(--danger);
-    border-radius: var(--radius-2);
+    border: 0;
+    border-radius: var(--radius-3);
+    background: var(--danger-tint);
     color: var(--ink-soft);
     font-size: var(--step--1);
   }
   .demo-band b {
-    font-family: var(--font-hand);
-    font-size: var(--step-1);
-    font-weight: 400;
+    font-weight: var(--weight-bold);
     color: var(--danger);
   }
   .demo-shell .topbar .btn {
@@ -432,7 +430,7 @@
     display: grid;
     gap: var(--space-3);
     padding-top: var(--space-4);
-    border-top: 1.5px dashed var(--line-dotted);
+    border-top: var(--border-hair) solid var(--line);
   }
   .product-editor__part > .btn {
     justify-self: start;
@@ -498,7 +496,7 @@
     gap: var(--space-2) var(--space-5);
     margin-top: var(--space-4);
     padding-top: var(--space-4);
-    border-top: 1.5px dashed var(--line-dotted);
+    border-top: var(--border-hair) solid var(--line);
   }
   .legal__faq dt {
     font-weight: var(--weight-bold);
@@ -589,7 +587,7 @@
     color: var(--action);
     font-weight: var(--weight-bold);
     font-size: var(--step--1);
-    border-block: 1px dashed var(--line-dotted);
+    border-block: var(--border-hair) solid var(--line);
   }
   .sector-guide__checklist,
   .sector-guide__journey {
@@ -605,7 +603,7 @@
     padding-block: var(--space-3);
   }
   .sector-guide__checklist li + li {
-    border-top: 1px dashed var(--line-dotted);
+    border-top: var(--border-hair) solid var(--line);
   }
   .sector-guide__number {
     display: grid;
@@ -663,7 +661,7 @@
     grid-template-columns: minmax(6rem, 7.5rem) minmax(0, 1fr);
     align-items: baseline;
     gap: var(--space-2);
-    border-bottom: 1px dashed var(--line-dotted);
+    border-bottom: var(--border-hair) solid var(--line);
     padding-bottom: var(--space-2);
   }
   .sector-guide__journey b {
@@ -675,7 +673,7 @@
   .sector-guide__help {
     padding: var(--space-3);
     color: var(--ink-soft);
-    border: 1px dashed var(--line-dotted);
+    border: var(--border-hair) solid var(--line);
     border-radius: var(--radius-3);
   }
   .sector-guide__help summary {

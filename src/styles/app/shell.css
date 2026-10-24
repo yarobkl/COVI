@@ -227,11 +227,8 @@
     inset-inline: var(--space-2);
     bottom: 4px;
     height: 3px;
-    border-radius: 40% 60% 50% 50% / 100%;
+    border-radius: var(--radius-pill);
     background: currentColor;
-    rotate: -1deg;
-    transform-origin: left;
-    animation: covi-underline var(--dur-base) var(--ease-out) both;
   }
 
   /* En-tête d’écran : titre (+ repère), et l’action principale à droite. */

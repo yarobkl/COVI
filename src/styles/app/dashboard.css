@@ -176,8 +176,7 @@
   }
   .home-month__hand {
     max-width: 22rem;
-    font-size: 1.25rem;
-    rotate: -1.5deg;
+    font-size: var(--step-0);
   }
 
   /* Dernières ventes */

@@ -54,10 +54,9 @@
   }
   .bell--sommaire .bell__count {
     position: static;
-    transform: rotate(-4deg);
   }
 
-  /* La liste des notifications : une page du cahier. */
+  /* La liste des notifications. */
   .notifications .ledger {
     margin-block: var(--space-3);
   }
