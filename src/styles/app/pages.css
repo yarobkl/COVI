@@ -1,15 +1,14 @@
 /* Pages de gestion (Stock, Arrivages, Ventes, Charges, Bilan, Ma boutique) : une seule écriture.
-   Titre souligné au stylo rouge, feuilles posées, formulaires et listes du cahier. */
+   Titres nets, cartes blanches, formulaires et listes (Esprit Wave). */
 @layer app {
-  /* Titre de page : le mot en gras, souligné d'un trait de stylo rouge (comme la date d'Accueil). */
+  /* Titre de page : gras et net, sans décor. */
   .page-title {
     display: inline-block;
     font-size: var(--step-3);
-    font-weight: var(--weight-bold);
+    font-weight: var(--weight-heavy);
+    letter-spacing: -0.02em;
     line-height: var(--leading-snug);
     color: var(--ink);
-    padding-bottom: var(--space-1);
-    border-bottom: 2px solid var(--danger);
   }
   .page-head__text {
     min-width: 0;
@@ -165,17 +164,16 @@
     margin-top: var(--space-2);
   }
   .row-actions .btn {
-    min-height: 40px;
+    min-height: var(--tap-min);
     padding-inline: var(--space-3);
     font-size: var(--step--1);
   }
 
-  /* « test » noté à la main, au stylo rouge, à côté d'un nom. */
+  /* « test » à côté d'un nom : petite mention rouge. */
   .test-note {
     margin-inline-start: var(--space-2);
-    font-family: var(--font-hand);
-    font-size: var(--step-0);
-    font-weight: 400;
+    font-size: var(--step--1);
+    font-weight: var(--weight-bold);
     line-height: 1.2;
     color: var(--danger);
   }
@@ -184,7 +182,7 @@
   .entry + .entry {
     margin-top: var(--space-6);
     padding-top: var(--space-5);
-    border-top: 1.5px dashed var(--line-dotted);
+    border-top: var(--border-hair) solid var(--line);
   }
   .entry__head {
     display: flex;
@@ -342,19 +340,18 @@
   }
 }
 
-/* Boutique d'exemple : bandeau « simulation » écrit à la main en haut de la page. */
+/* Boutique d'exemple : bandeau « simulation » en haut de la page. */
 @layer app {
   .demo-band {
     padding: var(--space-2) var(--space-3);
-    border: 1.5px dashed var(--danger);
-    border-radius: var(--radius-2);
+    border: 0;
+    border-radius: var(--radius-3);
+    background: var(--danger-tint);
     color: var(--ink-soft);
     font-size: var(--step--1);
   }
   .demo-band b {
-    font-family: var(--font-hand);
-    font-size: var(--step-1);
-    font-weight: 400;
+    font-weight: var(--weight-bold);
     color: var(--danger);
   }
   .demo-shell .topbar .btn {
@@ -433,7 +430,7 @@
     display: grid;
     gap: var(--space-3);
     padding-top: var(--space-4);
-    border-top: 1.5px dashed var(--line-dotted);
+    border-top: var(--border-hair) solid var(--line);
   }
   .product-editor__part > .btn {
     justify-self: start;
@@ -455,7 +452,9 @@
   .account-deletion {
     display: grid;
     gap: var(--space-3);
-    border-inline-start: 3px solid var(--danger);
+    box-shadow:
+      inset 0 0 0 1px var(--danger-tint),
+      var(--shadow-sheet);
   }
   .account-deletion__dialog {
     display: grid;
@@ -499,7 +498,7 @@
     gap: var(--space-2) var(--space-5);
     margin-top: var(--space-4);
     padding-top: var(--space-4);
-    border-top: 1.5px dashed var(--line-dotted);
+    border-top: var(--border-hair) solid var(--line);
   }
   .legal__faq dt {
     font-weight: var(--weight-bold);
@@ -515,23 +514,27 @@
   .legal-links {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--space-1) var(--space-3);
-    margin-top: var(--space-3);
+    gap: 0 var(--space-3);
+    margin-top: var(--space-2);
     font-size: var(--step--1);
   }
+  /* Cible tactile de 44 px sans agrandir le texte. */
   .legal-links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--tap-min);
     color: var(--ink-soft);
   }
 }
 
-/* Restaurant: disposition des tables. Reuse paper/ink tokens, not a new theme. */
+/* Restaurant : disposition des tables, avec les variables communes (pas de thème à part). */
 @layer app {
   .floor-plan {
     position: relative;
     width: 100%;
     min-height: 22rem;
     margin-block: var(--space-4);
-    border: var(--border-field) solid var(--action);
+    border: var(--border-hair) solid var(--line);
     border-radius: var(--radius-4);
     background: var(--sheet);
     overflow: hidden;
@@ -542,7 +545,7 @@
     min-height: 3.9rem;
     padding: var(--space-2);
     color: var(--action);
-    border: var(--border-field) solid var(--action);
+    border: var(--border-field) solid var(--line-field);
     border-radius: var(--radius-4);
     background: var(--sheet);
     font-weight: var(--weight-bold);
@@ -554,8 +557,9 @@
     font-size: var(--step--1);
   }
   .floor-plan__table[aria-pressed='true'] {
-    outline: 3px solid var(--action);
-    outline-offset: 2px;
+    border-color: var(--action);
+    background: var(--action-tint);
+    box-shadow: inset 0 0 0 1px var(--action);
   }
   .floor-plan__table:focus-visible {
     outline: 3px solid var(--action);
@@ -590,7 +594,7 @@
     color: var(--action);
     font-weight: var(--weight-bold);
     font-size: var(--step--1);
-    border-block: 1px dashed var(--line-dotted);
+    border-block: var(--border-hair) solid var(--line);
   }
   .sector-guide__checklist,
   .sector-guide__journey {
@@ -606,7 +610,7 @@
     padding-block: var(--space-3);
   }
   .sector-guide__checklist li + li {
-    border-top: 1px dashed var(--line-dotted);
+    border-top: var(--border-hair) solid var(--line);
   }
   .sector-guide__number {
     display: grid;
@@ -664,7 +668,7 @@
     grid-template-columns: minmax(6rem, 7.5rem) minmax(0, 1fr);
     align-items: baseline;
     gap: var(--space-2);
-    border-bottom: 1px dashed var(--line-dotted);
+    border-bottom: var(--border-hair) solid var(--line);
     padding-bottom: var(--space-2);
   }
   .sector-guide__journey b {
@@ -676,7 +680,7 @@
   .sector-guide__help {
     padding: var(--space-3);
     color: var(--ink-soft);
-    border: 1px dashed var(--line-dotted);
+    border: var(--border-hair) solid var(--line);
     border-radius: var(--radius-3);
   }
   .sector-guide__help summary {
@@ -712,7 +716,9 @@
     align-content: start;
     gap: var(--space-3);
     min-height: 0;
-    padding: var(--space-3);
+    padding: 0;
+    border: 0;
+    background: none;
     overflow: visible;
   }
   .floor-plan--grid .floor-plan__table {
