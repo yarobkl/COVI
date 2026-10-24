@@ -117,8 +117,7 @@ Point à arbitrer : le coiffeur voit nom et téléphone du client sur ses propre
   Parcours prévus : connexion de chaque compte de test, une vente boutique, une table restaurant de
   l'ouverture au règlement, un rendez-vous salon jusqu'au paiement, à 390 et 1280 px.
 - **Mise en production (quand le propriétaire l'autorise)** : 1) sauvegarde/point de restauration
-  Supabase production ; 2) migrations additives dans l'ordre, une par une, arrêt au premier échec ;
-  3) vérifications `verify` en lecture seule ; 4) déploiement front ; 5) parcours de contrôle.
+  Supabase production ; 2) migrations additives dans l'ordre, une par une, arrêt au premier échec ; 3) vérifications `verify` en lecture seule ; 4) déploiement front ; 5) parcours de contrôle.
   **Retour arrière** : front = redéployer la version précédente sur Vercel ; base = pas de
   suppression de données : les objets Salon `salon_*` (migrations `20261024090000` à
   `20261024095000`) peuvent être retirés tant qu'aucune donnée réelle n'y est écrite, sinon on
