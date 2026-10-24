@@ -68,11 +68,11 @@ Légende : ✅ fait · 🔶 en cours · ⬜ à faire
 | Accueil (`app/dashboard.css`) : carte bleue des ventes du jour             | ✅   |
 | Vendre et pavé PIN (`app/sale.css`, `app/team.css`) : bleu de nuit         | ✅   |
 | Stock, arrivages, ventes, charges, bilan (`app/pages.css`)                 | ✅   |
-| Commandes en ligne et pages client QR (`app/orders.css`)                   | 🔶   |
+| Commandes en ligne et pages client QR (`app/orders.css`)                   | ✅   |
 | Connexion, création de boutique (`app/auth.css`)                           | ✅   |
 | Notifications (`app/notifications.css`)                                    | ✅   |
 | Restaurant (styles dans `app/pages.css`)                                   | ✅   |
-| Captures avant / après 390 et 1280 px, sans débordement                    | ⬜   |
+| Captures avant / après 390 et 1280 px, sans débordement                    | ✅   |
 | Toutes les vérifications vertes, PR brouillon à jour                       | ⬜   |
 
 Mettre à jour ce tableau à chaque commit.
@@ -141,5 +141,24 @@ captures « avant » ont été prises sur Accueil, Stock, Vendre, Ventes (390 et
   mortes supprimées.
 - Non vérifié en vrai : l'enregistrement de la vente (le banc local n'a pas de session de caisse) ;
   l'écran « Vendu. » a été affiché avec des données fictives.
+- Vérifications : prettier OK, lint (code 0), `tsc -b` 0 erreur, vitest 347/347, offline OK,
+  kitchen_push 6/6, assistant 13/13, build OK.
+
+### Lots D–G — gestion, parcours, restaurant, salon (Claude, 24 octobre)
+
+- Vérifiés à 390 et 1280 px avec données fictives : Produits vendus, Ma boutique (fiche, caissiers,
+  équipe, suppression du compte), Commandes, Personnel, QR, Sites, Ballons, Assistant ; page client
+  QR (reprise ChatGPT `75f1b48`, **validée**) et suivi de commande ; inscription, conditions ;
+  restaurant avec 6 tables, une table occupée, carte et service (vue lisible, plan physique, QR).
+- Corrigé : boutons radio du choix de secteur (lignes de 34 px) → 44 px ; carte « Supprimer mon
+  compte » sans barre rouge à gauche ; plan de salle sans double cadre bleu, table choisie en bleu
+  pâle ; libellés de la barre du bas centrés (« Service & caisse » sur deux lignes).
+- QR des tables : noir sur blanc avec sa marge, boutons masqués à l'impression : lisible et
+  imprimable.
+- Salon (PR #64, non touchée) : `salon.css` n'utilise que des variables communes qui existent et
+  gardent leur sens dans la charte Wave (aucun décor de cahier) ; il héritera du style sans
+  modification. À revoir à l'écran une fois les deux PR fusionnées.
+- Non vérifié : enregistrement réel d'une vente, d'une commande ou d'une table (pas de base de
+  test) ; impression papier réelle.
 - Vérifications : prettier OK, lint (code 0), `tsc -b` 0 erreur, vitest 347/347, offline OK,
   kitchen_push 6/6, assistant 13/13, build OK.

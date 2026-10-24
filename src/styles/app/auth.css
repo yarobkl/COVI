@@ -274,4 +274,18 @@
     justify-content: center;
     gap: var(--space-1) var(--space-3);
   }
+
+  /* Choix du secteur (boutons radio simples) : ligne de 44 px et pastille plus grande. */
+  label:not(.segmented__option):has(> input[type='radio']) {
+    min-height: var(--tap-min);
+    padding-block: var(--space-2);
+    cursor: pointer;
+  }
+  label:not(.segmented__option):has(> input[type='radio']) > input[type='radio'] {
+    width: 20px;
+    height: 20px;
+    margin: 0 var(--space-2) 0 0;
+    vertical-align: -4px;
+    accent-color: var(--action);
+  }
 }

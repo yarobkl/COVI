@@ -452,7 +452,9 @@
   .account-deletion {
     display: grid;
     gap: var(--space-3);
-    border-inline-start: 3px solid var(--danger);
+    box-shadow:
+      inset 0 0 0 1px var(--danger-tint),
+      var(--shadow-sheet);
   }
   .account-deletion__dialog {
     display: grid;
@@ -525,14 +527,14 @@
   }
 }
 
-/* Restaurant: disposition des tables. Reuse paper/ink tokens, not a new theme. */
+/* Restaurant : disposition des tables, avec les variables communes (pas de thème à part). */
 @layer app {
   .floor-plan {
     position: relative;
     width: 100%;
     min-height: 22rem;
     margin-block: var(--space-4);
-    border: var(--border-field) solid var(--action);
+    border: var(--border-hair) solid var(--line);
     border-radius: var(--radius-4);
     background: var(--sheet);
     overflow: hidden;
@@ -543,7 +545,7 @@
     min-height: 3.9rem;
     padding: var(--space-2);
     color: var(--action);
-    border: var(--border-field) solid var(--action);
+    border: var(--border-field) solid var(--line-field);
     border-radius: var(--radius-4);
     background: var(--sheet);
     font-weight: var(--weight-bold);
@@ -555,8 +557,9 @@
     font-size: var(--step--1);
   }
   .floor-plan__table[aria-pressed='true'] {
-    outline: 3px solid var(--action);
-    outline-offset: 2px;
+    border-color: var(--action);
+    background: var(--action-tint);
+    box-shadow: inset 0 0 0 1px var(--action);
   }
   .floor-plan__table:focus-visible {
     outline: 3px solid var(--action);
@@ -713,7 +716,9 @@
     align-content: start;
     gap: var(--space-3);
     min-height: 0;
-    padding: var(--space-3);
+    padding: 0;
+    border: 0;
+    background: none;
     overflow: visible;
   }
   .floor-plan--grid .floor-plan__table {
