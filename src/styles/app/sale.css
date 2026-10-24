@@ -400,6 +400,7 @@
       bottom: calc(var(--space-5) * -1);
       margin-inline: calc(var(--space-5) * -1);
       padding: var(--space-3) var(--space-5) var(--space-5);
+      border-radius: 0 0 var(--radius-4) var(--radius-4);
       background: var(--sale-accent);
       border-top: var(--border-hair) solid var(--line);
     }

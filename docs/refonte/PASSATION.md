@@ -129,3 +129,17 @@ captures « avant » ont été prises sur Accueil, Stock, Vendre, Ventes (390 et
   règle graduée → barre arrondie ; animations mortes du stylo supprimées.
 - Vérifications : prettier OK, lint (code 0), `tsc -b` 0 erreur, vitest 347/347, offline OK,
   kitchen_push 6/6, assistant 13/13, build OK.
+
+### Lots B–C — navigation, vente et caisse (Claude, 24 octobre)
+
+- Vérifiés à 390 et 1280 px : menu « Plus », menu de l'avatar, tuiles avec compteurs, barre
+  « Voir le panier », feuille de la vente (quantités, prix, moyens de paiement, bouton « Valider la
+  vente »), panneau ordinateur, écran « Vendu. », code caissier (déjà vérifié).
+- Corrigé : liens légaux du menu à 21 px → 44 px ; sur l'écran « Vendu. », l'étiquette « Payé »
+  **masquait la référence COVI** → placée sous le ticket ; surligneur jaune, éclats dessinés et
+  écriture manuscrite retirés ; bandeau jaune du panneau de vente arrondi en bas ; animations
+  mortes supprimées.
+- Non vérifié en vrai : l'enregistrement de la vente (le banc local n'a pas de session de caisse) ;
+  l'écran « Vendu. » a été affiché avec des données fictives.
+- Vérifications : prettier OK, lint (code 0), `tsc -b` 0 erreur, vitest 347/347, offline OK,
+  kitchen_push 6/6, assistant 13/13, build OK.

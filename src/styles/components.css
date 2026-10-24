@@ -1842,10 +1842,6 @@
   }
   .sale-done__amount {
     display: inline-block;
-    padding: 0 0.15em;
-    background: linear-gradient(var(--sale-accent), var(--sale-accent)) 0 85% / 100% 55% no-repeat;
-    border-radius: 0.1em 0.3em 0.15em 0.35em;
-    animation: covi-highlight-sweep 420ms var(--ease-out) 120ms both;
   }
   .sale-done__how {
     font-size: var(--step-1);
@@ -1858,7 +1854,6 @@
     padding-top: var(--space-2);
     border-top: var(--border-hair) solid var(--line);
     justify-self: center;
-    margin-bottom: var(--space-8); /* place pour le tampon qui déborde */
   }
   .sale-done__ticket {
     animation: covi-ticket-out 380ms var(--ease-out) 180ms both;
@@ -1868,41 +1863,24 @@
     margin-inline: auto;
     animation: covi-thud 180ms var(--ease-out) 760ms both;
   }
+  /* Étiquette « Payé » sous le ticket : elle ne recouvre plus aucun texte. */
   .sale-done__mark {
-    position: absolute;
-    inset-inline-end: -12px;
-    bottom: -50px;
-    width: 180px;
-    height: 104px;
+    display: flex;
+    justify-content: center;
+    margin-top: var(--space-3);
     pointer-events: none;
   }
   .sale-done__mark .stamp {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    translate: -50% -50%;
     --stamp-delay: 600ms;
   }
   .sale-done__burst {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    overflow: visible;
-  }
-  .sale-done__burst path {
-    stroke: var(--ink);
-    stroke-width: 2.4;
-    stroke-linecap: round;
-    fill: none;
-    stroke-dasharray: 20;
-    stroke-dashoffset: 20;
-    animation: covi-burst 360ms var(--ease-out) 740ms both;
+    display: none;
   }
   .sale-done__note {
     justify-self: start;
-    font-size: 1.5rem;
-    animation: covi-write var(--dur-write) steps(16, end) 1000ms both;
+    font-size: var(--step-1);
+    font-weight: var(--weight-bold);
+    animation: covi-rise var(--dur-base) var(--ease-out) 600ms both;
   }
   .sale-done__day {
     font-size: var(--step--1);
@@ -2060,15 +2038,6 @@
     translate: 0 0;
   }
 }
-/* Surligneur qui passe sur le montant */
-@keyframes covi-highlight-sweep {
-  from {
-    background-size: 0% 55%;
-  }
-  to {
-    background-size: 100% 55%;
-  }
-}
 /* Compteur du panier qui saute */
 @keyframes covi-bump {
   0% {
@@ -2079,21 +2048,6 @@
   }
   100% {
     scale: 1;
-  }
-}
-/* Éclat : traits de stylo autour du tampon */
-@keyframes covi-burst {
-  from {
-    stroke-dashoffset: 20;
-    opacity: 1;
-  }
-  70% {
-    stroke-dashoffset: 0;
-    opacity: 1;
-  }
-  to {
-    stroke-dashoffset: 0;
-    opacity: 0.85;
   }
 }
 /* Règle graduée qui se remplit */
