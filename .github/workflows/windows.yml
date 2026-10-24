@@ -5,7 +5,8 @@ on:
     # Aussi les PR vers la branche publiée en production sur Vercel.
     branches: [main, claude/caisse-multi-caissiers]
   push:
-    branches: [main]
+    # integration/preprod : tests web et base seulement (pas de build Windows, voir build-windows).
+    branches: [main, integration/preprod]
     paths:
       - 'src/**'
       - 'src-tauri/**'
@@ -65,7 +66,7 @@ jobs:
   build-windows:
     needs: test-web
     # The Windows installer is only built for main (push or manual run), not for pull requests.
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && github.ref != 'refs/heads/integration/preprod'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
