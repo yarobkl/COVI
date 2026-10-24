@@ -35,3 +35,14 @@ Date : 24 octobre 2026. **Audit statique GitHub seulement** ; aucun test d'écri
 
 ## Garde-fous
 Projet de test autorisé : `stcsjwxmmxnjwisqkudz`. Production interdite : `bmbwmwgfzrijglzcgjut`. Aucune opération d'écriture via GPT. Toute preuve présentée doit masquer clés, tokens et données réelles.
+
+## Revue complémentaire — scripts de préproduction (24 octobre 2026)
+
+- **Branche désormais visible :** `integration/preprod` (comparaison GitHub : 30 commits d'avance sur `main`, aucun commit en retard à l'instant de la revue). Les scripts `supabase/preprod/README.md`, `seed_retail_restaurant.sql`, `seed_salon.sql` et `verify_preprod.sql` sont présents sur cette branche ; leur présence n'établit **pas** leur application sur le projet distant.
+- **QA-OBS-009 — P0, source vérifiée :** le seed Retail utilise `status='available'` pour les 5 produits, alors que `src/lib/types.ts` définit `active|sold|archived` et `src/lib/covi.ts` ne liste que `active`. Risque d'échec de contrainte ou d'article invisible. **Issue #68** pour CLA-02/CLA-03.
+- **QA-OBS-010 — P0, test d'accès nécessaire :** les propriétaires d'exemple sont créés par `insert into auth.users(id)` sans véritables identifiants. Vérifier en login réel que les sessions Auth correspondent aux `owner_id` des 3 établissements ; ne pas présumer que des comptes créés plus tard héritent des UUID. **Issue #68**.
+- **QA-OBS-011 — P0, sécurité :** `src/lib/supabase.ts` dispose d'une URL et d'une clé publique de production en valeurs de repli. Le README préproduction mentionne déjà ce danger. Ne lancer aucun E2E d'écriture avant preuve que la **version réellement chargée par le navigateur** utilise `stcsjwxmmxnjwisqkudz`. **Issue #68**.
+- **QA-OBS-012 — P1, couverture de sécurité :** `verify_preprod.sql` examine notamment RLS et privilèges directs mais ne suffit pas, seul, à prouver l'isolation des fonctions RPC `SECURITY DEFINER` sous des sessions authentifiées A/B. CLA-02 doit joindre ces tests négatifs, avec statut serveur, sans secret.
+- **Oracle indépendant :** `docs/recette/JEU-DONNEES-PREPROD.md`. Attendus cumulés sous réserve d'un seed complet : Boutique 51 000 XAF sur 2 ventes ; Salon 92 000 XAF sur 6 notes, 20 500 XAF de commissions dues et résultat de pilotage estimé −44 600 XAF. **Non exécuté** : ces valeurs sont des calculs à valider en base.
+
+Aucune modification de SQL, des branches de Claude ou de la production n'a été effectuée par GPT.
