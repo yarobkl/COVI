@@ -12,6 +12,10 @@ declare
   paul uuid; awa uuid; junior uuid; coupe uuid; barbe uuid; tresses uuid; color uuid; brushing uuid; locks uuid;
   creme uuid; huile uuid; shamp uuid; c1 uuid; c2 uuid; c3 uuid; tk uuid; i int;
 begin
+  -- Rejouable : déjà chargé (prestations présentes) → rien à refaire.
+  if exists (select 1 from public.salon_services where shop_id = s) then
+    return;
+  end if;
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000f001', true);
   perform public.salon_settings_save(s, 'mixed', 'Mme Nadège Mabiala', '+242 06 444 55 66', 4, tz,
     (select jsonb_agg(jsonb_build_object('weekday', d, 'opens_at', '08:00',
@@ -72,7 +76,8 @@ from (values ('Grâce', 'Paul Mabiala', time '09:00', interval '45 minutes', 'co
              ('Didier', 'Junior Mbemba', time '11:00', interval '30 minutes', 'arrived', 3000),
              ('Sandrine', 'Paul Mabiala', time '14:00', interval '3 hours', 'confirmed', 25000),
              ('Rufin', 'Junior Mbemba', time '16:00', interval '20 minutes', 'cancelled', 2000)) x(n, emp, t, d, st, p)
-join public.employees e on e.full_name = x.emp and e.shop_id = '10000000-0000-0000-0000-00000000f001';
+join public.employees e on e.full_name = x.emp and e.shop_id = '10000000-0000-0000-0000-00000000f001'
+where not exists (select 1 from public.salon_appointments a where a.shop_id = e.shop_id and a.client_name = x.n);
 insert into public.salon_appointment_services(shop_id, appointment_id, position, service_id, name, price_xaf, duration_minutes)
 select a.shop_id, a.id, 1, sv.id, sv.name, sv.price_xaf, sv.duration_minutes
 from public.salon_appointments a join public.salon_services sv on sv.shop_id = a.shop_id and sv.price_xaf = a.estimated_price_xaf
