@@ -17,7 +17,7 @@ Mise à jour : 24/10/2026. Branche de référence : `integration/preprod`.
 - CI GitHub : `test-web` et `test-db` ne tournaient que sur les PR vers `main`. Ils sont maintenant
   déclenchés aussi par un push sur `integration/preprod` (le build Windows reste exclu sur cette
   branche pour ne pas consommer de minutes payantes).
-- Branches des agents : `agent/cla-02-preprod`, `agent/cla-03-recette-boutique`,
+- Branches des agents (toutes intégrées à `integration/preprod`) : `agent/cla-02-preprod`, `agent/cla-03-recette-boutique`,
   `agent/cla-04-recette-restaurant`, `agent/cla-05-recette-salon`. Aucune fusion dans `main`.
 
 ### CLA-02 — Supabase préproduction
@@ -46,7 +46,48 @@ Mise à jour : 24/10/2026. Branche de référence : `integration/preprod`.
 
 Voir les tableaux de résultats ci-dessous (exécutés en base locale, pas en préproduction).
 
-<!-- RECETTES -->
+Fichiers : `tests/sql/recette_boutique.sql`, `recette_restaurant.sql`, `recette_salon.sql`, intégrés
+à `integration/preprod` et lancés par `tests/sql/run.sh` (donc par `test-db` en CI). Exécution
+vérifiée par CLA-01 après intégration : **43/43 suites SQL vertes**. Chaque contrôle porte l'ID du
+scénario dans la sortie. Les écarts sont **constatés** par le test, pas corrigés.
+
+**Boutique (CLA-03)** — RET-001, 002, 003, 004, 007, 008, 010 : PASS (SQL). RET-005 : PASS
+(`cart_concurrency.sh`, `members_concurrency.sh`). RET-006 : PASS côté serveur (rejeu) et client
+simulé (`tests/offline.mjs`) ; vraie coupure réseau non testée (E2E). FIN-001 : PASS (CA 14 000,
+coût 8 000, marge 6 000, résultat 5 000). **RET-009 : écart avec la spécification** — remise de 50 %
+acceptée pour un caissier plafonné à 10 % ; le plafond a été retiré volontairement par
+`20261015120000_shop_requested_order_fixes` (« corrections demandées par la boutique »). La
+spécification RET-009 est donc à mettre à jour, ou la décision à revoir par le propriétaire.
+À confirmer avec GPT-05 : le coût d'un ballon est réparti par pièce enregistrée (choix documenté de
+`shop_aggregates`) et le champ de l'excédent s'appelle `profit` : vérifier qu'il n'est pas présenté
+comme un bénéfice net.
+
+**Restaurant (CLA-04)** — Capacités : QR lecture seule actif ; commande de groupe QR désactivée par
+défaut (double interrupteur) ; remboursement en espèces seulement, via incident validé par le
+propriétaire ; remises et paiement mixte non implémentés. RES-002 à RES-009 et RES-011 : PASS (SQL,
+plus `restaurant_concurrency.sh`, `restaurant-qr-gateway` 5/5, `restaurant-guest-gateway` 6/6).
+RES-001 et RES-012 : PASS côté serveur, rendu et coupure réseau BLOQUÉS (pas de navigateur relié à
+une base). RES-010 : BLOQUÉ (impression réelle). Aucune anomalie confirmée. Risques à traiter :
+`restaurant_staff_add_item` n'a pas de clé d'opération (un ajout rejoué après réponse perdue créerait
+une seconde ligne) ; un renvoi de commande personnel reçoit « Session not collecting » au lieu de la
+référence existante (pas de doublon, mais message à traiter dans l'écran).
+
+**Salon (CLA-05)** — SAL-001 à SAL-011 : PASS (68 contrôles SQL, plus `salon_concurrency.sh`).
+SAL-013 : BLOQUÉ (visuel ; vitest Salon 42/42). SAL-014 : PASS partiel (aucune fonction `salon_*`
+exécutable par `anon`, refus sans session ; migration partielle non simulée). FIN-002, 003, 005,
+006 : PASS, montants conformes au référentiel (FIN-002 : CA 18 000, marge 13 000, commissions 1 200,
+résultat 10 300).
+**ANO-FIN-001 confirmée (SAL-012 / FIN-004)** — vente 12 000 le 28/09, remboursée le 05/10, mesuré
+dans `salon_report` : septembre CA **0** (12 000 avant le remboursement), encaissé 12 000 ; octobre
+CA **0**, remboursé 12 000, net −12 000. La trésorerie est juste ; le CA de septembre est modifié
+rétroactivement et octobre ne porte pas l'ajustement. Cause : filtre `l.refunded_at is null` dans
+`20261024095000_salon_pro_reports.sql`. Non corrigé : décision du propriétaire requise.
+**ANO-UX-001 partiellement confirmée** — le message réseau de `salonErrorMessage`
+(`src/lib/salon.ts`) affirme « rien n'a été enregistré », ce qui peut être faux si la réponse est
+perdue ; en revanche les clés de paiement et de remboursement sont conservées jusqu'au succès (pas de
+double encaissement, prouvé par SAL-008/009). Un nouveau ticket vide peut être créé en double.
+Point à arbitrer : le coiffeur voit nom et téléphone du client sur ses propres rendez-vous (conforme
+à `docs/salon/AUDIT-ET-ARCHITECTURE.md`, à confirmer au regard de SAL-006).
 
 ### CLA-06 — UX et Wave
 
@@ -90,6 +131,7 @@ Voir les tableaux de résultats ci-dessous (exécutés en base locale, pas en pr
 2. Variables Vercel Preview pour `integration/preprod` (ci-dessus).
 3. Cloudflare Workers : réparer ou débrancher.
 4. Décision FIN-004 (remboursement d'un mois sur l'autre).
+5. RET-009 : confirmer l'absence de plafond de remise caissier (ou le rétablir).
 
 ## Section ChatGPT
 
