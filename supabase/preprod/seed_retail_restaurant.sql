@@ -18,11 +18,11 @@ on conflict do nothing;
 
 insert into public.products(id, shop_id, name, category, size, initial_sale_price, quantity_on_hand, is_unique_piece, status)
 values
-  ('20000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-0000000000a1', 'Robe pagne wax', 'Robes', 'M', 18000, 5, false, 'available'),
-  ('20000000-0000-0000-0000-0000000000a2', '10000000-0000-0000-0000-0000000000a1', 'Chemise lin', 'Chemises', 'L', 12500, 8, false, 'available'),
-  ('20000000-0000-0000-0000-0000000000a3', '10000000-0000-0000-0000-0000000000a1', 'Sac à main cuir', 'Accessoires', null, 32000, 1, true, 'available'),
-  ('20000000-0000-0000-0000-0000000000a4', '10000000-0000-0000-0000-0000000000a1', 'Boubou brodé', 'Robes', 'XL', 45000, 2, false, 'available'),
-  ('20000000-0000-0000-0000-0000000000a5', '10000000-0000-0000-0000-0000000000a1', 'Sandales tressées', 'Chaussures', '39', 9000, 10, false, 'available')
+  ('20000000-0000-0000-0000-0000000000a1', '10000000-0000-0000-0000-0000000000a1', 'Robe pagne wax', 'Robes', 'M', 18000, 5, false, 'active'),
+  ('20000000-0000-0000-0000-0000000000a2', '10000000-0000-0000-0000-0000000000a1', 'Chemise lin', 'Chemises', 'L', 12500, 8, false, 'active'),
+  ('20000000-0000-0000-0000-0000000000a3', '10000000-0000-0000-0000-0000000000a1', 'Sac à main cuir', 'Accessoires', null, 32000, 1, true, 'active'),
+  ('20000000-0000-0000-0000-0000000000a4', '10000000-0000-0000-0000-0000000000a1', 'Boubou brodé', 'Robes', 'XL', 45000, 2, false, 'active'),
+  ('20000000-0000-0000-0000-0000000000a5', '10000000-0000-0000-0000-0000000000a1', 'Sandales tressées', 'Chaussures', '39', 9000, 10, false, 'active')
 on conflict do nothing;
 
 -- Deux ventes fictives par le propriétaire (passent par la vraie fonction de caisse).
