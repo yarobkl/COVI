@@ -192,20 +192,23 @@
     color: var(--ink-soft);
   }
   .auth__aside {
-    grid-area: aside;
+    position: fixed;
+    z-index: 5;
+    right: max(1rem, env(safe-area-inset-right));
+    bottom: max(1rem, env(safe-area-inset-bottom));
     min-width: 0;
   }
   .auth__help {
     display: grid;
     place-items: center;
-    width: 2rem;
-    height: 2rem;
-    margin: var(--space-1) auto 0;
+    width: 1.75rem;
+    height: 1.75rem;
+    margin: 0;
     border: 1px solid var(--line);
     border-radius: 50%;
     background: transparent;
     color: var(--action);
-    font-size: 1rem;
+    font-size: 0.9rem;
     font-weight: var(--weight-bold);
     cursor: pointer;
   }
@@ -359,6 +362,10 @@
     }
     .auth__sectors {
       justify-content: start;
+    }
+    .auth__aside {
+      right: 1.5rem;
+      bottom: 1.5rem;
     }
   }
 }
