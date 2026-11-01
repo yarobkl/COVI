@@ -121,6 +121,7 @@ export function LoginForm({
   const [showReset, setShowReset] = useState(false)
   const [selectedKind, setSelectedKind] = useState<BusinessKind>('retail')
   const [businessName, setBusinessName] = useState('')
+  const [confirmationEmail, setConfirmationEmail] = useState('')
   const login = mode === 'login'
   const chooseSector = (kind: BusinessKind) => {
     setSelectedKind(kind)
@@ -164,9 +165,7 @@ export function LoginForm({
           })
       if (r.error) onMessage(authError(r.error))
       else if (!login && !r.data.session)
-        onMessage(
-          `Si cette adresse peut être inscrite, un e-mail de confirmation est envoyé à ${email}. Ouvrez son lien pour activer votre compte avant de vous connecter.`,
-        )
+        setConfirmationEmail(email)
       else if (!login && r.data.session) {
         // Never pretend the verification link was sent when Auth email confirmation is disabled.
         onMessage(
@@ -238,6 +237,23 @@ export function LoginForm({
             </button>
           </p>
         </form>
+      </AuthPage>
+    )
+
+  if (confirmationEmail)
+    return (
+      <AuthPage title="Vérifiez votre boîte mail" lead="Votre inscription est presque terminée.">
+        <div className="auth__confirmation" role="status">
+          <div className="auth__confirmation-icon" aria-hidden="true">✓</div>
+          <h2>Confirmez votre compte</h2>
+          <p>
+            Nous avons envoyé un lien de confirmation à <strong>{confirmationEmail}</strong>.
+          </p>
+          <p>Ouvrez votre boîte mail, cliquez sur le lien reçu, puis revenez sur COVI pour vous connecter.</p>
+        </div>
+        <Button variant="secondary" size="lg" block onClick={() => setConfirmationEmail('')}>
+          Retour à la connexion
+        </Button>
       </AuthPage>
     )
 

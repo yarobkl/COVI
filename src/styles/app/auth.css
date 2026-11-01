@@ -129,6 +129,33 @@
     margin-bottom: var(--space-4);
     text-align: center;
   }
+  .auth__confirmation {
+    display: grid;
+    gap: var(--space-3);
+    justify-items: center;
+    padding: var(--space-5) var(--space-4);
+    border: 1px solid #b9d7c2;
+    border-radius: var(--radius-4);
+    background: #eef8f0;
+    color: var(--ink-soft);
+    text-align: center;
+  }
+  .auth__confirmation-icon {
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 50%;
+    background: #2f7d46;
+    color: #fff;
+    font-size: 1.5rem;
+    font-weight: var(--weight-bold);
+  }
+  .auth__confirmation h2 {
+    color: var(--action);
+    font-size: var(--step-1);
+  }
+  .auth__confirmation p { margin: 0; }
   .auth__form {
     display: grid;
     gap: var(--space-4);
