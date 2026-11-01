@@ -131,7 +131,11 @@ export function AuthGate({
     // Keep the fallback compatible with the older lightweight test double.
     const ownedRequest =
       typeof (ownedQuery as { order?: unknown }).order === 'function'
-        ? (ownedQuery as typeof ownedQuery & { order: Function }).order('created_at', {
+        ? (
+            ownedQuery as typeof ownedQuery & {
+              order: (column: string, options: { ascending: boolean }) => Promise<unknown>
+            }
+          ).order('created_at', {
             ascending: true,
           })
         : ownedQuery
