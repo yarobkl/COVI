@@ -195,6 +195,66 @@
     grid-area: aside;
     min-width: 0;
   }
+  .auth__help {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    margin: var(--space-1) auto 0;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--action);
+    font-size: 1rem;
+    font-weight: var(--weight-bold);
+    cursor: pointer;
+  }
+  .auth__help:hover,
+  .auth__help:focus-visible {
+    border-color: var(--action);
+    background: var(--action-soft);
+  }
+  .auth__dialog-backdrop {
+    position: fixed;
+    z-index: 20;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: var(--gutter);
+    background: rgb(20 29 48 / 28%);
+  }
+  .auth__dialog {
+    position: relative;
+    width: min(100%, 28rem);
+    padding: var(--space-5);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-4);
+    background: var(--sheet);
+    box-shadow: 0 20px 60px rgb(20 29 48 / 22%);
+  }
+  .auth__dialog h2 {
+    margin: 0 2rem var(--space-3) 0;
+    color: var(--ink);
+    font-size: var(--step-1);
+  }
+  .auth__dialog p {
+    margin-bottom: var(--space-4);
+    color: var(--ink-soft);
+  }
+  .auth__dialog-close {
+    position: absolute;
+    top: var(--space-3);
+    right: var(--space-3);
+    width: 2rem;
+    height: 2rem;
+    border: 0;
+    background: transparent;
+    color: var(--ink-soft);
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .auth__dialog-close:hover { color: var(--ink); }
   .auth__example {
     display: grid;
     gap: var(--space-3);
@@ -314,9 +374,10 @@
     --_bg: #1f1f1f;
   }
   .auth__legal {
-    margin-top: var(--space-4);
-    font-size: var(--step--1);
+    margin-top: var(--space-5);
+    font-size: 0.72rem;
     text-align: center;
+    line-height: 1.35;
   }
 }
 
@@ -326,5 +387,6 @@
     flex-wrap: wrap;
     justify-content: center;
     gap: var(--space-1) var(--space-3);
+    margin-top: var(--space-2);
   }
 }
