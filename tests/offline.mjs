@@ -305,6 +305,10 @@ const coviSource = stripTypeScriptTypes(
     /import\s*\{\s*supabase\s*\}\s*from\s*'\.\/supabase'/,
     'const supabase=globalThis.mockSupabase',
   )
+  .replace(
+    /import\s*\{\s*queueWhatsAppEvent\s*\}\s*from\s*'\.\/whatsapp'/,
+    'const queueWhatsAppEvent=async()=>true',
+  )
   .replace(/from\s*'\.\/offline'/, `from'${offlineUrl}'`)
   .replace(/from\s*'\.\/format'/, `from'${formatUrl}'`)
 assert.ok(coviSource.includes(offlineUrl), 'covi.ts must share the tested offline module')
