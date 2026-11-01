@@ -1,5 +1,4 @@
-/* Avant la boutique : connexion, création, ouverture. Une page du cahier ; sur ordinateur, posée
-   sur la table. */
+/* Connexion et ouverture : surfaces mobiles et cartes arrondies Esprit Wave. */
 @layer app {
   .auth {
     min-height: 100dvh;
@@ -186,19 +185,19 @@
     translate: 0 -50%;
   }
 
-  /* Création : l’étiquette se remplit pendant qu’on tape. */
+  /* Aperçu de l'identité de la boutique. */
   .auth__preview {
     margin: 0;
     max-width: 18rem;
   }
   .auth__preview .label-card {
-    rotate: -1.2deg;
+    border-radius: var(--radius-3);
   }
   .auth__preview-note {
     margin-top: var(--space-3);
     padding-inline-start: var(--space-4);
-    font-size: 1.25rem;
-    rotate: -2deg;
+    font-size: var(--step-0);
+    color: var(--ink-muted);
   }
 
   /* « Ouverture de la boutique… » (AuthGate) */
@@ -210,17 +209,15 @@
   }
   .authcard {
     padding: var(--space-4) var(--space-6) var(--space-5);
-    border: var(--border-field) solid var(--action);
+    border: var(--border-hair) solid var(--line);
     border-radius: var(--radius-4);
     background: var(--sheet);
-    box-shadow:
-      0 0 0 4px var(--sheet),
-      0 0 0 5.5px #a9b9d8;
+    box-shadow: var(--shadow-sheet);
     text-align: center;
   }
   .authcard h1 {
     font-size: var(--step-3);
-    letter-spacing: 0.04em;
+    letter-spacing: -0.02em;
   }
   .authcard p {
     color: var(--ink-soft);
@@ -236,10 +233,10 @@
       padding: var(--space-8) var(--space-6);
     }
     .auth__sheet {
-      --margin-offset: var(--space-16);
       width: min(100%, 60rem);
       min-height: 0;
-      padding: var(--space-8) var(--space-10) var(--space-12) calc(var(--space-16) + var(--space-8));
+      padding: var(--space-8) var(--space-10) var(--space-12);
+      background: var(--sheet);
       border-radius: var(--radius-sheet);
       box-shadow: var(--shadow-sheet);
     }
@@ -276,5 +273,19 @@
     flex-wrap: wrap;
     justify-content: center;
     gap: var(--space-1) var(--space-3);
+  }
+
+  /* Choix du secteur (boutons radio simples) : ligne de 44 px et pastille plus grande. */
+  label:not(.segmented__option):has(> input[type='radio']) {
+    min-height: var(--tap-min);
+    padding-block: var(--space-2);
+    cursor: pointer;
+  }
+  label:not(.segmented__option):has(> input[type='radio']) > input[type='radio'] {
+    width: 20px;
+    height: 20px;
+    margin: 0 var(--space-2) 0 0;
+    vertical-align: -4px;
+    accent-color: var(--action);
   }
 }

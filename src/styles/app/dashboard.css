@@ -1,4 +1,4 @@
-/* Accueil : un chiffre héros, puis des lignes de cahier. */
+/* Accueil : la carte bleue des ventes du jour, puis les cartes de suivi (Esprit Wave). */
 @layer app {
   .home {
     display: grid;
@@ -11,21 +11,42 @@
   .home-date {
     display: inline-block;
     font-size: var(--step-2);
-    padding-bottom: var(--space-1);
-    border-bottom: 2px solid var(--danger);
   }
 
+  /* Carte bleue : les couleurs sont redéfinies dans la carte seulement (texte blanc, accents
+     jaune pièce), si bien que tout ce qu'elle contient s'adapte sans toucher aux composants. */
   .home-hero {
+    --ink: #ffffff;
+    --ink-soft: var(--night-ink-muted);
+    --ink-muted: var(--night-ink-muted);
+    --action: var(--sale-accent);
+    --action-hover: #ffe27a;
+    --action-ink: var(--night);
+    --sheet: transparent;
+    --line: rgb(255 255 255 / 0.22);
+    --focus-color: var(--sale-accent);
     display: grid;
     gap: var(--space-2);
+    padding: var(--space-6) var(--space-5);
+    border-radius: var(--radius-4);
+    background: var(--c-blue-600);
+    color: var(--ink);
+    box-shadow: var(--shadow-sheet);
   }
   .home-hero__lead {
     color: var(--ink-soft);
-    font-size: var(--step-1);
-    font-weight: var(--weight-regular);
+    font-size: var(--step-0);
+    font-weight: var(--weight-medium);
+  }
+  .home-hero .amount__unit {
+    color: var(--ink-soft);
   }
   .home-hero__count {
-    font-size: var(--step-1);
+    font-size: var(--step-0);
+    color: var(--ink-soft);
+  }
+  .home-hero__count strong {
+    color: var(--ink);
   }
 
   /* Répartition par moyen de paiement : une barre à l’encre, motifs plutôt que couleurs. */
@@ -37,10 +58,10 @@
   }
   .pay-split__bar {
     display: flex;
-    height: 18px;
+    height: 12px;
     overflow: hidden;
     border: var(--border-field) solid var(--action);
-    border-radius: 2px;
+    border-radius: var(--radius-pill);
     background: var(--sheet);
   }
   .pay-split__part {
@@ -85,7 +106,7 @@
     width: 14px;
     height: 14px;
     border: var(--border-field) solid var(--action);
-    border-radius: 2px;
+    border-radius: 4px;
   }
 
   .home-grid {
@@ -155,8 +176,7 @@
   }
   .home-month__hand {
     max-width: 22rem;
-    font-size: 1.25rem;
-    rotate: -1.5deg;
+    font-size: var(--step-0);
   }
 
   /* Dernières ventes */

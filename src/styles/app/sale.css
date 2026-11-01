@@ -39,9 +39,9 @@
     width: 48px;
     height: 48px;
     overflow: hidden;
-    border: var(--border-field) solid var(--ink);
+    border: 0;
     border-radius: var(--radius-2);
-    background: var(--paper);
+    background: var(--action-tint);
     color: var(--action);
     font-family: var(--font-figures);
     font-size: 1.375rem;
@@ -193,7 +193,7 @@
     min-height: var(--tap-sale);
     margin: 0 var(--press-offset) var(--press-offset) 0;
     padding: 0 var(--space-4);
-    border: var(--border-tactile) solid var(--ink);
+    border: var(--border-field) solid var(--line-field);
     border-radius: var(--radius-3);
     background: var(--sheet);
     color: var(--ink);
@@ -291,7 +291,7 @@
     z-index: var(--z-sticky);
     margin-inline: calc(var(--gutter) * -1);
     padding: var(--space-3) var(--gutter) calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
-    border-top: var(--border-tactile) solid var(--ink);
+    border-top: var(--border-hair) solid var(--line);
     background: var(--sheet);
   }
   .sale-sheet {
@@ -344,7 +344,7 @@
     margin: 0 var(--press-offset) var(--press-offset) 0;
     padding: var(--space-3) var(--space-4);
     flex-wrap: nowrap;
-    border: var(--border-tactile) solid var(--ink);
+    border: var(--border-field) solid var(--line-field);
     border-radius: var(--radius-3);
     color: var(--ink);
     text-align: start;
@@ -387,9 +387,10 @@
       max-height: calc(100dvh - 2 * var(--space-6));
       overflow: auto;
       padding: var(--space-5);
-      border: var(--border-tactile) solid var(--ink);
-      border-radius: var(--radius-3);
+      border: 0;
+      border-radius: var(--radius-4);
       background: var(--sheet);
+      box-shadow: var(--shadow-sheet);
     }
     .sale-layout__sale .sale-done {
       padding: 0;
@@ -399,8 +400,9 @@
       bottom: calc(var(--space-5) * -1);
       margin-inline: calc(var(--space-5) * -1);
       padding: var(--space-3) var(--space-5) var(--space-5);
+      border-radius: 0 0 var(--radius-4) var(--radius-4);
       background: var(--sale-accent);
-      border-top: var(--border-tactile) solid var(--ink);
+      border-top: var(--border-hair) solid var(--line);
     }
   }
 }

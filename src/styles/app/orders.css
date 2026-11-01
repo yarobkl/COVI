@@ -1,7 +1,7 @@
 /* Canal client (QR code, liens WhatsApp / TikTok) : page publique du client, suivi, commandes
    reçues et « QR & liens ». Mêmes jetons que le reste du cahier ; cibles tactiles ≥ --tap-min. */
 @layer app {
-  /* Page publique : une page du cahier (Seyès + marge rouge), comme la connexion ----------- */
+  /* Page publique : parcours client sur surface claire, compatible mobile ---------------- */
   .order-guest {
     min-height: 100dvh;
   }
@@ -13,12 +13,11 @@
     padding-block: var(--space-6) var(--space-10);
     padding-inline-end: var(--gutter);
   }
-  /* Étiquette du cahier : le nom de la boutique, posé un peu de travers. */
+  /* Identité de la boutique. */
   .order-guest__label {
     justify-self: center;
     text-align: center;
     max-width: min(100%, 22rem);
-    rotate: -1deg;
   }
   .order-guest__shop {
     color: var(--action);
@@ -45,23 +44,20 @@
   }
   .order-guest__hand {
     font-size: 1.25rem;
-    rotate: -1.5deg;
     transform-origin: left;
   }
-  /* Mot de la boutique : un papillon jaune collé dans la marge. */
+  /* Message mis en avant sans effet papier collé. */
   .order-guest__message {
     justify-self: start;
     max-width: 30rem;
     margin: 0;
     padding: var(--space-3) var(--space-4);
-    background: #fff4b8;
+    background: var(--sale-accent-tint);
     color: var(--ink);
-    font-size: 1.15rem;
+    font-size: var(--step-0);
     white-space: pre-line;
-    rotate: 0.8deg;
-    box-shadow:
-      0 1px 0 #e6d98a,
-      2px 3px 6px rgb(30 36 48 / 0.08);
+    border-radius: var(--radius-3);
+    box-shadow: var(--shadow-sheet);
   }
   .order-guest__loading {
     font-size: 1.35rem;
@@ -85,7 +81,7 @@
     gap: var(--space-3);
     min-width: 0;
     padding-block: var(--space-2) var(--space-4);
-    border-bottom: 1.5px dashed var(--line-dotted);
+    border-bottom: var(--border-hair) solid var(--line);
   }
   .order-guest__num {
     float: left;
@@ -94,7 +90,6 @@
     padding: 0;
     color: var(--action);
     font-size: 1.3rem;
-    rotate: -1deg;
   }
   .order-guest__num + * {
     clear: both;
@@ -126,10 +121,10 @@
   }
   .order-guest__dots {
     flex: 1;
-    border-bottom: 2px dotted var(--line-dotted);
+    border-bottom: var(--border-hair) solid var(--line);
     translate: 0 -0.3em;
   }
-  /* Photo : bouton du cahier, puis le tirage scotché sur la page. */
+  /* Photo : aperçu sur une carte arrondie. */
   .order-guest__upload {
     justify-self: start;
     cursor: pointer;
@@ -144,20 +139,11 @@
     margin: var(--space-3) 0 0 var(--space-2);
     padding: var(--space-2) var(--space-2) var(--space-1);
     background: var(--sheet);
+    border-radius: var(--radius-3);
     box-shadow: var(--shadow-sheet);
-    rotate: -2deg;
   }
   .order-guest__polaroid::before {
-    content: '';
-    position: absolute;
-    top: -10px;
-    left: 50%;
-    width: 72px;
-    height: 20px;
-    translate: -50% 0;
-    rotate: 3deg;
-    background: rgb(255 236 150 / 0.75);
-    box-shadow: 0 1px 1px rgb(30 36 48 / 0.08);
+    content: none;
   }
   .order-guest__polaroid img {
     display: block;
@@ -219,7 +205,6 @@
   .order-receipt__paper .stamp {
     justify-self: end;
     margin: calc(var(--space-2) * -1) var(--space-2) 0 0;
-    rotate: -10deg;
   }
 
   @media (min-width: 1024px) {
@@ -232,10 +217,10 @@
       padding: var(--space-8) var(--space-6);
     }
     .order-guest__sheet {
-      --margin-offset: var(--space-16);
       width: min(100%, 46rem);
       min-height: 0;
-      padding: var(--space-8) var(--space-10) var(--space-12) calc(var(--space-16) + var(--space-8));
+      padding: var(--space-8) var(--space-10) var(--space-12);
+      background: var(--sheet);
       border-radius: var(--radius-sheet);
       box-shadow: var(--shadow-sheet);
     }
