@@ -102,7 +102,10 @@ describe('LoginForm', () => {
         },
       },
     })
-    expect(screen.getByText(/e-mail de confirmation est envoyé/)).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Vérifiez votre boîte mail' })).toBeTruthy()
+    expect(screen.getByText(/Nous avons envoyé un lien de confirmation/)).toBeTruthy()
+    expect(screen.queryByRole('group', { name: 'Connexion avec un compte externe' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'me connecter' })).toBeNull()
   })
 
   it('refuses a mismatched password before contacting Supabase', async () => {
@@ -168,6 +171,7 @@ describe('LoginForm', () => {
   it('switches to sign-up, shows the password and opens the example shop', () => {
     const onSimulation = vi.fn()
     render(<Harness onSimulation={onSimulation} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Découvrir COVI' }))
     fireEvent.click(screen.getByRole('button', { name: 'Voir une boutique d’exemple' }))
     expect(onSimulation).toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'Afficher le mot de passe' }))
@@ -175,6 +179,7 @@ describe('LoginForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Créer un compte' }))
     expect(screen.getByRole('heading', { name: 'Créer votre compte' })).toBeTruthy()
     expect(screen.getByText('6 caractères minimum.')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'me connecter' })).toBeTruthy()
+    expect(screen.queryByRole('group', { name: 'Connexion avec un compte externe' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'me connecter' })).toBeNull()
   })
 })
