@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { queueWhatsAppEvent } from './whatsapp'
 import { cacheServerStock, cachedStock, setSyncUser } from './offline'
 import { paymentCode } from './format'
 import type { TablesInsert } from './database.types'
@@ -112,6 +113,13 @@ export async function recordSale(
     p_client_operation_id: clientOperationId,
   })
   if (error) throw error
+  void queueWhatsAppEvent({
+    shopId,
+    eventType: 'sale',
+    idempotencyKey: `sale:${String(data)}`,
+    payload: { sale_id: data, product_id: productId, quantity, amount: soldUnitPrice * quantity, payment_method: paymentLabel },
+    templateName: 'covi_sale',
+  })
   return data
 }
 export async function listSales(shopId: string): Promise<Sale[]> {
