@@ -19,6 +19,7 @@ import { SalonStaffJoinPage } from '../salon/SalonStaffJoinPage'
 import { JoinPage } from '../team/JoinPage'
 import { SpaceChooser, type SpaceChoice } from '../team/SpaceChooser'
 import { CreateShopForm } from './CreateShopForm'
+import { AddEstablishmentForm } from './AddEstablishmentForm'
 import { LoginForm, type AuthMode } from './LoginForm'
 
 /** Signs out after closing the till session of a shared device (best effort, never blocks). */
@@ -48,6 +49,7 @@ export function AuthGate({
     updateShop: (shop: Shop) => void,
     /** The signed-in account of the validated session (sales and carts are tied to it). */
     userId: string,
+    addEstablishment: () => void,
   ) => ReactNode
   onSimulation: () => void
 }) {
@@ -66,6 +68,8 @@ export function AuthGate({
   const [joining, setJoining] = useState(false)
   const [joiningRestaurant, setJoiningRestaurant] = useState(false)
   const [joiningSalon, setJoiningSalon] = useState(false)
+  const [addingEstablishment, setAddingEstablishment] = useState(false)
+  const [ownedShops, setOwnedShops] = useState<Shop[]>([])
   const [membershipsVersion, setMembershipsVersion] = useState(0)
   const loadedFor = useRef<string | null>(null)
   const userId = session?.user.id ?? null
@@ -106,6 +110,8 @@ export function AuthGate({
       setMemberships([])
       setRestaurantSpaces([])
       setSalonSpaces([])
+      setOwnedShops([])
+      setAddingEstablishment(false)
       setChoice(null)
       setJoining(false)
       setJoiningRestaurant(false)
@@ -122,8 +128,7 @@ export function AuthGate({
         .from('shops')
         .select('id,name,city,country,currency,business_kind')
         .eq('owner_id', userId)
-        .limit(1)
-        .maybeSingle(),
+        .order('created_at', { ascending: true }),
       // Cashier memberships. A failure (old server, network) leaves the owner flow unchanged.
       myMemberShops().catch(() => [] as MemberShop[]),
       myRestaurantStaffSpaces().catch(() => [] as RestaurantStaffSpace[]),
@@ -138,7 +143,9 @@ export function AuthGate({
       setDeletion(pendingDeletion)
       if (error)
         setMessage('Impossible de charger votre commerce. Vérifiez votre connexion puis réessayez.')
-      setShop(data)
+      const shops = Array.isArray(data) ? data : []
+      setOwnedShops(shops)
+      setShop(shops[0] ?? null)
       setMemberships(members)
       setRestaurantSpaces(spaces)
       setSalonSpaces(salons)
@@ -229,6 +236,18 @@ export function AuthGate({
     else if (!shop && others === 1 && salonSpaces.length === 1)
       space = { kind: 'salon-staff', shopId: salonSpaces[0].shop_id }
   }
+  if (addingEstablishment && session)
+    return (
+      <AddEstablishmentForm
+        count={ownedShops.length}
+        onCancel={() => setAddingEstablishment(false)}
+        onCreated={(created) => {
+          setOwnedShops((current) => [...current, created])
+          setShop(created)
+          setAddingEstablishment(false)
+        }}
+      />
+    )
   if (!space) {
     if (
       !shop &&
@@ -319,5 +338,11 @@ export function AuthGate({
       />
     )
   }
-  return <>{children(shop!, signOutEverywhere, setShop, session.user.id)}</>
+  return (
+    <>
+      {children(shop!, signOutEverywhere, setShop, session.user.id, () => {
+        if (ownedShops.length < 3) setAddingEstablishment(true)
+      })}
+    </>
+  )
 }

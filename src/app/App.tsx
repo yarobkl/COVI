@@ -278,6 +278,7 @@ export function App({
   signOut,
   updateShop,
   onSimulation,
+  onAddEstablishment,
 }: {
   shop: Shop
   /** The signed-in account of the validated session (AuthGate). */
@@ -285,6 +286,7 @@ export function App({
   signOut: () => Promise<void>
   updateShop: (shop: Shop) => void
   onSimulation: () => void
+  onAddEstablishment?: () => void
 }) {
   const { route, navigate } = useHashRoute()
   const sector = sectorOf(shop.business_kind)
@@ -388,6 +390,9 @@ export function App({
           <button type="button" className="btn btn--ghost sommaire__quiet" onClick={askSignOut}>
             Se déconnecter
           </button>
+          <button type="button" className="btn btn--ghost sommaire__quiet" onClick={() => onAddEstablishment?.()}>
+            Ajouter un établissement
+          </button>
           <LegalLinks />
         </div>
       </nav>
@@ -480,6 +485,9 @@ export function App({
             )}
             <Button variant="danger" onClick={askSignOut}>
               Se déconnecter
+            </Button>
+            <Button variant="secondary" onClick={() => { setMenuOpen(false); onAddEstablishment?.() }}>
+              Ajouter un établissement
             </Button>
             <LegalLinks />
           </div>

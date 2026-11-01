@@ -102,7 +102,7 @@ export function Root() {
     )
   return (
     <AuthGate onSimulation={() => setSimulation(true)}>
-      {(shop, signOut, updateShop, userId) => (
+      {(shop, signOut, updateShop, userId, onAddEstablishment) => (
         // Shared device in counter mode: the owner's pages stay closed until the owner's code.
         <CounterGate shop={shop} userId={userId} signOut={signOut}>
           <App
@@ -110,6 +110,7 @@ export function Root() {
             userId={userId}
             signOut={signOut}
             updateShop={updateShop}
+            onAddEstablishment={onAddEstablishment}
             onSimulation={() => setSimulation(true)}
           />
         </CounterGate>
