@@ -11,6 +11,7 @@ import { OTHER_NEIGHBORHOOD, resolveNeighborhood } from '../../lib/neighborhoods
 import { supabase } from '../../lib/supabase'
 import type { Shop } from '../../lib/types'
 import { ProfilePhotoEditor } from '../profile/ProfilePhotoEditor'
+import { WhatsAppSettingsPanel } from './WhatsAppSettingsPanel'
 
 type ShopDraft = {
   name: string
@@ -233,6 +234,7 @@ export function SettingsPage({
         </form>
         {msg && <PageMessage>{msg}</PageMessage>}
       </Sheet>
+      <WhatsAppSettingsPanel shopId={shopId} />
       <ProfilePhotoEditor />
     </>
   )
