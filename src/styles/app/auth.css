@@ -73,21 +73,25 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: var(--space-2);
-    margin-top: var(--space-1);
+    gap: 0;
+    margin-top: var(--space-2);
+    color: var(--action);
+    font-size: var(--step--1);
+    font-weight: var(--weight-bold);
+    letter-spacing: 0.01em;
   }
   .auth__sector {
     display: inline-flex;
-    min-height: 2.35rem;
     align-items: center;
-    padding: 0.3rem 0.85rem;
-    border: var(--border-hair) solid #e1e6ef;
-    border-radius: var(--radius-pill);
-    font-size: var(--step--1);
-    color: var(--action);
-    background: var(--sheet);
-    font-weight: var(--weight-bold);
     white-space: nowrap;
+  }
+  .auth__sector + .auth__sector::before {
+    content: '';
+    width: 0.28rem;
+    height: 0.28rem;
+    margin: 0 0.75rem;
+    border-radius: 50%;
+    background: var(--accent);
   }
 
   .auth__panel {
