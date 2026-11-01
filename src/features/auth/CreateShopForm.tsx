@@ -20,6 +20,7 @@ import {
 import { ShopGpsControl, type ShopGpsPosition } from '../locations/ShopGpsControl'
 import { AuthPage } from './AuthPage'
 import { authError } from './authErrors'
+import { PhoneInput } from './PhoneInput'
 
 /** First sign-in: creates the owner's business with country-specific bookkeeping currency. */
 export function CreateShopForm({
@@ -230,17 +231,7 @@ export function CreateShopForm({
               label="Téléphone du propriétaire"
               hint="Indiquez un numéro international, par exemple +242061234567."
             >
-              {(control) => (
-                <Input
-                  {...control}
-                  name="phone"
-                  autoComplete="tel"
-                  type="tel"
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                />
-              )}
+              {(control) => <PhoneInput control={control} value={phone} onChange={setPhone} />}
             </Field>
           </>
         )}

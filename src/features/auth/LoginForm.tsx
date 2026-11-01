@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabase'
 import { desktopAuthRedirect, isTauriApp, openOAuthInSystemBrowser } from '../../lib/desktopAuth'
 import { AuthPage } from './AuthPage'
 import { authError } from './authErrors'
+import { PhoneInput } from './PhoneInput'
 import { legalLinks } from '../../lib/legal'
 import { BUSINESS_KINDS, type BusinessKind } from '../../lib/businessKinds'
 import { createOwnerSignupDetails, storeOwnerOAuthIntent } from '../../lib/ownerSignup'
@@ -122,6 +123,7 @@ export function LoginForm({
   const [selectedKind, setSelectedKind] = useState<BusinessKind>('retail')
   const [businessName, setBusinessName] = useState('')
   const [confirmationEmail, setConfirmationEmail] = useState('')
+  const [phone, setPhone] = useState('+242')
   const login = mode === 'login'
   const chooseSector = (kind: BusinessKind) => {
     setSelectedKind(kind)
@@ -330,17 +332,7 @@ export function LoginForm({
               label="Téléphone du propriétaire"
               hint="Format international, par exemple +242061234567."
             >
-              {(control) => (
-                <Input
-                  {...control}
-                  type="tel"
-                  name="phone"
-                  autoComplete="tel"
-                  placeholder="+242061234567"
-                  maxLength={32}
-                  required
-                />
-              )}
+              {(control) => <PhoneInput control={control} value={phone} onChange={setPhone} />}
             </Field>
             <Field label="Nom de votre établissement">
               {(control) => (
