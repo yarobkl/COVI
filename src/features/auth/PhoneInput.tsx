@@ -32,10 +32,12 @@ export function PhoneInput({ control, value, onChange }: { control: FieldControl
       </select>
       <input
         {...control}
+        className="input"
         name="phone-national"
         type="tel"
         inputMode="numeric"
         autoComplete="tel-national"
+        placeholder="06 12 34 56 78"
         required
         value={national}
         onChange={(event) => {
