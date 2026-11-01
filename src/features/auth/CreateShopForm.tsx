@@ -28,6 +28,7 @@ export function CreateShopForm({
   onCreated,
   onJoin,
   onRestaurantJoin,
+  onSalonJoin,
   accountMetadata,
 }: {
   message: string
@@ -36,6 +37,7 @@ export function CreateShopForm({
   /** « J’ai un code de caissier » : opens the join page instead of creating a shop. */
   onJoin?: () => void
   onRestaurantJoin?: () => void
+  onSalonJoin?: () => void
   accountMetadata?: Record<string, unknown> | null
 }) {
   const hints = ownerOnboardingHints(accountMetadata)
@@ -171,6 +173,14 @@ export function CreateShopForm({
               <p>Vous travaillez dans un restaurant ?</p>
               <Button variant="secondary" size="lg" block onClick={onRestaurantJoin}>
                 J’ai un code d’employé de restaurant
+              </Button>
+            </div>
+          )}
+          {onSalonJoin && (
+            <div className="auth__join">
+              <p>Vous travaillez dans un salon de coiffure ?</p>
+              <Button variant="secondary" size="lg" block onClick={onSalonJoin}>
+                J’ai un code d’accès à un salon
               </Button>
             </div>
           )}

@@ -3,6 +3,7 @@ import { test } from 'node:test'
 import {
   createAssistantHandler,
   retailFacts,
+  salonAiFacts,
   normalizeChatHistory,
 } from '../supabase/functions/covi-assistant/handler.mjs'
 
@@ -298,4 +299,83 @@ test('rejects malformed history without querying any protected data', async () =
     }),
   )
   assert.equal(res.status, 400)
+})
+
+test('salon: Gemini receives verified salon facts, never client phones', async () => {
+  let sent
+  const handler = createAssistantHandler(env, {
+    fetchImpl: async (url, init) => {
+      if (url.includes('/auth/v1/user')) return response({ id: userId })
+      if (url.includes('/rest/v1/shops?'))
+        return response([{ id: shopId, name: 'Salon', business_kind: 'salon', currency: 'XAF' }])
+      if (url.includes('/rpc/covi_ai_owner_session_allowed')) return response(true)
+      if (url.includes('/rpc/covi_ai_allow_request')) return response(true)
+      if (url.includes('/rpc/salon_ai_facts')) {
+        assert.deepEqual(JSON.parse(init.body), { p_shop: shopId })
+        return response({
+          sector: 'salon',
+          date: '2026-10-24',
+          time_zone: 'Africa/Brazzaville',
+          today: { finance: { revenue_xaf: 25000, estimated_result_xaf: 9000 } },
+          month_to_date: { finance: { revenue_xaf: 180000 }, top_services: [{ name: 'Tresses' }] },
+          tomorrow_appointments: [{ time: '10:00', employee: 'Paul', services: 'Tresses' }],
+          low_stock: [{ name: 'Huile', quantity: 1 }],
+          definitions: 'revenue_xaf = CA réalisé payé',
+        })
+      }
+      if (url.includes('generativelanguage.googleapis.com')) {
+        sent = JSON.parse(init.body)
+        return response({
+          candidates: [{ content: { parts: [{ text: 'Votre salon a fait 25 000 XAF.' }] } }],
+        })
+      }
+      throw new Error('unexpected ' + url)
+    },
+  })
+  const result = await handler(
+    request({ shopId, message: 'Combien mon salon a gagné aujourd’hui ?' }),
+  )
+  assert.equal(result.status, 200)
+  const text = sent.contents[0].parts[0].text
+  assert.match(text, /"financeAvailable":true/)
+  assert.match(text, /25000/)
+  assert.match(text, /Tresses/)
+  assert.match(text, /ni bénéfice net/)
+  assert.doesNotMatch(text, /\+242/)
+  assert.match(sent.systemInstruction.parts[0].text, /Tu ne modifies rien/)
+})
+
+test('salon: database not updated yet → general advice only, no figures', async () => {
+  let sent
+  const handler = createAssistantHandler(env, {
+    fetchImpl: async (url, init) => {
+      if (url.includes('/auth/v1/user')) return response({ id: userId })
+      if (url.includes('/rest/v1/shops?'))
+        return response([{ id: shopId, name: 'Salon', business_kind: 'salon', currency: 'XAF' }])
+      if (url.includes('/rpc/covi_ai_owner_session_allowed')) return response(true)
+      if (url.includes('/rpc/covi_ai_allow_request')) return response(true)
+      if (url.includes('/rpc/salon_ai_facts')) return response({ message: 'not found' }, 404)
+      if (url.includes('generativelanguage.googleapis.com')) {
+        sent = JSON.parse(init.body)
+        return response({ candidates: [{ content: { parts: [{ text: 'Conseil.' }] } }] })
+      }
+      throw new Error('unexpected ' + url)
+    },
+  })
+  assert.equal((await handler(request({ shopId, message: 'Mes chiffres ?' }))).status, 200)
+  assert.match(sent.contents[0].parts[0].text, /"financeAvailable":false/)
+})
+
+test('salonAiFacts bounds lists and keeps the accounting warning', () => {
+  const facts = salonAiFacts(
+    { name: 'Salon', currency: 'XAF' },
+    {
+      tomorrow_appointments: new Array(80).fill({ time: '09:00' }),
+      low_stock: null,
+      definitions: 'x',
+    },
+  )
+  assert.equal(facts.tomorrowAppointments.length, 40)
+  assert.deepEqual(facts.lowStock, [])
+  assert.match(facts.accountingWarning, /ni bénéfice net/)
 })

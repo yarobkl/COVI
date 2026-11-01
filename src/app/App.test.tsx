@@ -20,8 +20,17 @@ vi.mock('../features/restaurant/RestaurantMenuPage', () => ({
 vi.mock('../features/salon/SalonServicesPage', () => ({
   SalonServicesPage: () => <p>page:salon-services</p>,
 }))
-vi.mock('../features/salon/SalonBookingsPage', () => ({
-  SalonBookingsPage: () => <p>page:salon-bookings</p>,
+vi.mock('../features/salon/SalonAgendaPage', () => ({
+  SalonAgendaPage: () => <p>page:salon-agenda</p>,
+}))
+vi.mock('../features/salon/SalonHomePage', () => ({
+  SalonHomePage: () => <p>page:salon-home</p>,
+}))
+vi.mock('../features/salon/SalonCheckoutPage', () => ({
+  SalonCheckoutPage: () => <p>page:salon-caisse</p>,
+}))
+vi.mock('../features/salon/SalonReportsPage', () => ({
+  SalonReportsPage: () => <p>page:salon-rapports</p>,
 }))
 vi.mock('../features/dashboard/DashboardPage', () => ({
   DashboardPage: ({ shop }: { shop: { id: string } }) => <p>page:dashboard:{shop.id}</p>,
@@ -103,13 +112,29 @@ describe('App shell', () => {
 
   it('isolates salon navigation and keeps the clothing interface intact', async () => {
     const { sommaire } = renderApp({ business_kind: 'salon' })
-    expect(within(sommaire).getByText('Prestations')).toBeTruthy()
-    expect(within(sommaire).getByText('Rendez-vous')).toBeTruthy()
+    expect(screen.getByText('page:salon-home')).toBeTruthy()
+    for (const label of [
+      'Agenda',
+      'Caisse',
+      'Clients',
+      'Prestations',
+      'Équipe',
+      'Produits',
+      'Rapports',
+    ])
+      expect(within(sommaire).getByText(label)).toBeTruthy()
     expect(within(sommaire).queryByText('Stock')).toBeNull()
+    expect(within(sommaire).queryByText('Arrivages')).toBeNull()
     await go('#/salon-services')
     expect(screen.getByText('page:salon-services')).toBeTruthy()
+    await go('#/salon-bookings')
+    expect(screen.getByText('page:salon-agenda')).toBeTruthy()
+    await go('#/salon-caisse')
+    expect(screen.getByText('page:salon-caisse')).toBeTruthy()
+    await go('#/salon-rapports')
+    expect(screen.getByText('page:salon-rapports')).toBeTruthy()
     await go('#/vendre')
-    expect(screen.getByText('page:sector-home')).toBeTruthy()
+    expect(screen.getByText('page:salon-home')).toBeTruthy()
   })
 
   it('shows the notebook label, the navigation and Accueil first', () => {

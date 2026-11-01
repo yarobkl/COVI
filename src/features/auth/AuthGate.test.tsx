@@ -28,6 +28,13 @@ vi.mock('./CreateShopForm', () => ({
     </button>
   ),
 }))
+vi.mock('../salon/SalonStaffApp', () => ({
+  SalonStaffApp: ({ space }: { space: { shop_name: string; role: string } }) => (
+    <p>
+      salon-staff:{space.shop_name}:{space.role}
+    </p>
+  ),
+}))
 vi.mock('../team/CashierApp', () => ({
   CashierApp: ({ membership }: { membership: { shop_name: string; display_name: string } }) => (
     <p>
@@ -52,14 +59,24 @@ const membership = {
   pin_must_change: false,
 }
 
+const salonSpace = {
+  shop_id: 'salon-1',
+  shop_name: 'Salon Beauté Divine',
+  role: 'stylist',
+  display_name: 'Paul',
+  employee_id: 'emp-1',
+}
+
 function serve({
   shop,
   members,
   membersFail = false,
+  salons = [],
 }: {
   shop: typeof ownShop | null
   members: (typeof membership)[]
   membersFail?: boolean
+  salons?: (typeof salonSpace)[]
 }) {
   vi.mocked(supabase.auth.getSession).mockResolvedValue({
     data: { session: { user: { id: 'user-1' } } },
@@ -77,7 +94,9 @@ function serve({
             ? { data: null, error: { message: 'Could not find the function' } }
             : { data: members, error: null },
         )
-      : Promise.resolve({ data: null, error: null })) as never)
+      : name === 'salon_staff_my_spaces'
+        ? Promise.resolve({ data: salons, error: null })
+        : Promise.resolve({ data: null, error: null })) as never)
 }
 
 async function renderGate() {
@@ -133,5 +152,29 @@ describe('AuthGate with cashiers', () => {
     await renderGate()
     fireEvent.click(screen.getByRole('button', { name: /J’ai un code de caissier/ }))
     expect(screen.getByRole('heading', { name: 'Rejoindre une boutique' })).toBeTruthy()
+  })
+
+  it('salon collaborator only: opens the salon space with their role', async () => {
+    serve({ shop: null, members: [], salons: [salonSpace] })
+    await renderGate()
+    expect(screen.getByText('salon-staff:Salon Beauté Divine:stylist')).toBeTruthy()
+    expect(screen.queryByText(/owner-app/)).toBeNull()
+  })
+
+  it('owner who also works in a salon: chooses the space', async () => {
+    serve({ shop: ownShop, members: [], salons: [salonSpace] })
+    await renderGate()
+    fireEvent.click(screen.getByRole('button', { name: 'Salon Beauté Divine · Coiffeur' }))
+    expect(screen.getByText('salon-staff:Salon Beauté Divine:stylist')).toBeTruthy()
+  })
+
+  it('owner flow unchanged when the salon functions are missing on the server', async () => {
+    serve({ shop: ownShop, members: [] })
+    vi.mocked(supabase.rpc).mockImplementation(((name: string) =>
+      name === 'salon_staff_my_spaces'
+        ? Promise.resolve({ data: null, error: { message: 'Could not find the function' } })
+        : Promise.resolve({ data: [], error: null })) as never)
+    await renderGate()
+    expect(screen.getByText('owner-app:Ma Boutique')).toBeTruthy()
   })
 })
