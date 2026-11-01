@@ -50,6 +50,8 @@ export function AuthGate({
     /** The signed-in account of the validated session (sales and carts are tied to it). */
     userId: string,
     addEstablishment: () => void,
+    ownedShops: Shop[],
+    selectShop: (shop: Shop) => void,
   ) => ReactNode
   onSimulation: () => void
 }) {
@@ -342,7 +344,7 @@ export function AuthGate({
     <>
       {children(shop!, signOutEverywhere, setShop, session.user.id, () => {
         if (ownedShops.length < 3) setAddingEstablishment(true)
-      })}
+      }, ownedShops, setShop)}
     </>
   )
 }
