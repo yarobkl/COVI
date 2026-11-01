@@ -85,6 +85,10 @@ function promptFor(facts, message, history) {
     systemInstruction: {
       parts: [{ text: [
         'Tu es COVI Assistant, conseiller en gestion de PME, en français simple.',
+        'COVI signifie Commerce & Vie : le système d’exploitation du commerce. Sa vision est de réunir dans un même espace la caisse, les ventes, le stock, les arrivages, les charges, le personnel, les indicateurs et l’assistance pour les boutiques, restaurants et salons de coiffure.',
+        'Tu connais les parcours COVI : création et changement d’établissement (maximum trois par compte), tableau de bord, caisse multi-caissiers, stocks, arrivages, commandes, charges, ventes, bilan, équipe, assistant, tables et carte restaurant, agenda et rendez-vous salon, prestations, clients, produits, équipe et rapports salon.',
+        'Explique les fiches de paie avec prudence : COVI peut suivre des informations de personnel, rémunération ou commissions selon le module activé, mais ne remplace pas un logiciel de paie, un expert-comptable ou les obligations légales locales. Ne fabrique jamais un bulletin de paie ni un montant légal.',
+        'Pour expliquer une fonctionnalité, donne le chemin d’écran COVI et les étapes pratiques. Si elle n’est pas encore disponible ou dépend du métier, dis-le clairement.',
         'Réponds uniquement en conseils et analyses en lecture seule : aucune action de vente, paiement, réservation ou stock.',
         'Les seules données vérifiées sont le JSON « faits ». Ne donne pas de chiffres non présents.',
         'Distingue CA, encaissements, charges et bénéfice net. Ne déclare JAMAIS un bénéfice net à partir de ventes moins charges.',
@@ -181,28 +185,43 @@ export function createAssistantHandler(env, { fetchImpl = fetch } = {}) {
       if (!uuidPattern.test(user.id || '')) {
         return json(401, { error: 'Session invalide.' }, cors)
       }
-      const shops = await db('/rest/v1/shops?select=id,name,currency,business_kind&id=eq.' +
+      // Owners keep the existing RLS-scoped query. Members fall back to the
+      // dedicated SECURITY DEFINER context RPC, which returns no financial data.
+      const legacy = await db('/rest/v1/shops?select=id,name,currency,business_kind,owner_id&id=eq.' +
         encodeURIComponent(shopId) + '&owner_id=eq.' + encodeURIComponent(user.id) + '&limit=1')
-      if (!Array.isArray(shops) || shops.length !== 1) {
+      let context = Array.isArray(legacy) && legacy[0]
+        ? { ...legacy[0], owner_id: user.id }
+        : null
+      if (!context) {
+        try {
+          context = await db('/rest/v1/rpc/covi_ai_shop_context', 'POST', { p_shop_id: shopId })
+        } catch {
+          context = null
+        }
+      }
+      if (!context || typeof context !== 'object' || !context.id) {
         return json(403, { error: 'Vous ne pouvez pas consulter cet établissement.' }, cors)
       }
       // Refuse le même JWT propriétaire lorsqu'il est utilisé par une caisse partagée
       // active, y compris avec les sessions legacy dont l'appareil est inconnu.
       // La fonction SQL vérifie l'identité propriétaire et le session_id du JWT signé.
-      const canUseAssistant = await db('/rest/v1/rpc/covi_ai_owner_session_allowed', 'POST', {
-        p_shop_id: shopId,
-      })
-      if (canUseAssistant !== true) {
-        return json(403, {
-          error: 'Assistant réservé à votre session personnelle de responsable. Fermez la caisse partagée et reconnectez-vous sur votre appareil.'
-        }, cors)
+      const isOwner = context.owner_id === user.id
+      if (isOwner) {
+        const canUseAssistant = await db('/rest/v1/rpc/covi_ai_owner_session_allowed', 'POST', {
+          p_shop_id: shopId,
+        })
+        if (canUseAssistant !== true) {
+          return json(403, {
+            error: 'Assistant réservé à votre session personnelle de responsable. Fermez la caisse partagée et reconnectez-vous sur votre appareil.'
+          }, cors)
+        }
       }
       // Quota persistant ; refus si RPC absente.
       const permitted = await db('/rest/v1/rpc/covi_ai_allow_request', 'POST', { p_shop_id: shopId })
       if (permitted !== true) {
         return json(429, { error: 'Limite de 60 messages par heure atteinte pour cette boutique. Réessayez plus tard.' }, cors)
       }
-      const shop = shops[0]
+      const shop = context
       let facts
       // Salon : faits vérifiés calculés par la base (salon_ai_facts, lecture seule, sans téléphone
       // ni e-mail de client). Base pas encore à jour : retour aux conseils généraux, sans chiffre.
@@ -223,6 +242,14 @@ export function createAssistantHandler(env, { fetchImpl = fetch } = {}) {
           currency: safeText(shop.currency, 8),
           financeAvailable: false,
           scope: 'Conseils de gestion générale uniquement ; aucun chiffre opérationnel ou financier fourni.',
+        }
+      } else if (!isOwner) {
+        facts = {
+          sector: shop.business_kind,
+          shop: safeText(shop.name, 90),
+          currency: safeText(shop.currency, 8),
+          financeAvailable: false,
+          scope: 'Conseils produit COVI et explications générales uniquement pour ce compte membre ; aucune donnée financière du propriétaire.',
         }
       } else {
         // Ce moteur existe déjà dans le dépôt. Pas de calcul de marge nouveau ou estimé.
