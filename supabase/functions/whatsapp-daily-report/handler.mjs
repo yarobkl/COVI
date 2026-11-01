@@ -66,6 +66,25 @@ export function createDailyReportHandler({ fetchImpl = fetch, env = {} } = {}) {
         headers: { prefer: 'resolution=merge-duplicates,return=minimal' },
         body: JSON.stringify({ shop_id: shopId, report_date: reportDate, payload: report, status: 'queued' }),
       })
+      const preferences = await db(
+        `/rest/v1/whatsapp_notification_preferences?shop_id=eq.${encodeURIComponent(shopId)}&select=enabled,daily_report_enabled,recipient_phone`,
+      )
+      const preference = preferences?.[0]
+      if (preference?.enabled && preference.daily_report_enabled && preference.recipient_phone) {
+        await db('/rest/v1/whatsapp_outbox?on_conflict=shop_id,idempotency_key', {
+          method: 'POST',
+          headers: { prefer: 'resolution=ignore-duplicates,return=minimal' },
+          body: JSON.stringify({
+            shop_id: shopId,
+            event_type: 'daily_report',
+            idempotency_key: `daily_report:${reportDate}`,
+            recipient_phone: preference.recipient_phone,
+            template_name: body.template_name ?? 'covi_daily_report',
+            payload: { language: 'fr', report },
+            status: 'queued',
+          }),
+        })
+      }
       return json(200, { report })
     } catch {
       return json(503, { error: 'Daily report generation unavailable' })
