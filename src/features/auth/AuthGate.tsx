@@ -50,8 +50,6 @@ export function AuthGate({
     /** The signed-in account of the validated session (sales and carts are tied to it). */
     userId: string,
     addEstablishment: () => void,
-    ownedShops: Shop[],
-    selectShop: (shop: Shop) => void,
   ) => ReactNode
   onSimulation: () => void
 }) {
@@ -124,24 +122,13 @@ export function AuthGate({
     // Loading screen only for a new account: a token refresh or a membership reload keeps the
     // open space mounted (a cashier is not sent back to the PIN screen).
     if (loadedFor.current !== userId) setLoading(true)
-    const ownedQuery = supabase
-      .from('shops')
-      .select('id,name,city,country,currency,business_kind')
-      .eq('owner_id', userId)
-    // Keep the fallback compatible with the older lightweight test double.
-    const ownedRequest =
-      typeof (ownedQuery as { order?: unknown }).order === 'function'
-        ? (
-            ownedQuery as typeof ownedQuery & {
-              order: (column: string, options: { ascending: boolean }) => Promise<unknown>
-            }
-          ).order('created_at', {
-            ascending: true,
-          })
-        : ownedQuery
     void Promise.all([
-      // Owned shops (members may read other rows later).
-      ownedRequest,
+      // Owned shop only (members may read other rows later): same query as before the team.
+      supabase
+        .from('shops')
+        .select('id,name,city,country,currency,business_kind')
+        .eq('owner_id', userId)
+        .order('created_at', { ascending: true }),
       // Cashier memberships. A failure (old server, network) leaves the owner flow unchanged.
       myMemberShops().catch(() => [] as MemberShop[]),
       myRestaurantStaffSpaces().catch(() => [] as RestaurantStaffSpace[]),
@@ -156,7 +143,7 @@ export function AuthGate({
       setDeletion(pendingDeletion)
       if (error)
         setMessage('Impossible de charger votre commerce. Vérifiez votre connexion puis réessayez.')
-      const shops = Array.isArray(data) ? data : data ? [data] : []
+      const shops = Array.isArray(data) ? data : []
       setOwnedShops(shops)
       setShop(shops[0] ?? null)
       setMemberships(members)
@@ -355,7 +342,7 @@ export function AuthGate({
     <>
       {children(shop!, signOutEverywhere, setShop, session.user.id, () => {
         if (ownedShops.length < 3) setAddingEstablishment(true)
-      }, ownedShops, setShop)}
+      })}
     </>
   )
 }

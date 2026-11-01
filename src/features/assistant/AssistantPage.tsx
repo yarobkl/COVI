@@ -8,22 +8,19 @@ type Exchange = { id: number; question: string; answer?: string; error?: string 
 
 const ideas: Record<string, string[]> = {
   retail: [
-    'Comment fonctionne COVI et quelle est sa vision ?',
-    'Comment gérer les fiches de paie et le personnel dans COVI ?',
     "Quel est mon chiffre d'affaires aujourd'hui ?",
     'Que dois-je surveiller dans mon stock ?',
+    'Comment mieux maîtriser mes charges ?',
   ],
   restaurant: [
-    'Comment fonctionne COVI pour un restaurant ?',
-    'Que peut faire COVI pour mon équipe et mes fiches de paie ?',
     'Comment mieux organiser mon service ?',
     'Comment réduire le gaspillage alimentaire ?',
+    'Quels indicateurs suivre pour mon restaurant ?',
   ],
   salon: [
-    'Comment fonctionne COVI pour un salon de coiffure ?',
-    'Comment gérer le personnel, les commissions et les fiches de paie ?',
     'Comment améliorer mes réservations ?',
     'Quels indicateurs suivre pour mon salon ?',
+    'Comment fidéliser mes clients ?',
   ],
 }
 
@@ -127,8 +124,9 @@ export function AssistantPage({ shop }: { shop: Shop }) {
             <div className="covi-assistant__welcome">
               <h2>Bonjour ! Comment puis-je vous aider ?</h2>
               <p className="muted">
-                Posez une question sur COVI, son fonctionnement, sa vision ou la gestion de votre
-                activité. Je peux expliquer les écrans, les étapes et les limites du produit.
+                {sector === 'retail'
+                  ? "Parlons de votre chiffre d'affaires, de votre stock ou de vos charges. « Ventes moins charges » n'est pas un bénéfice net."
+                  : "Parlons de votre activité. Les chiffres financiers de ce métier ne sont pas encore connectés à l'IA."}
               </p>
               <div className="covi-assistant__ideas" aria-label="Suggestions de questions">
                 {ideas[sector].map((idea) => (

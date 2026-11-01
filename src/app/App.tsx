@@ -279,8 +279,6 @@ export function App({
   updateShop,
   onSimulation,
   onAddEstablishment,
-  ownedShops,
-  onSelectShop,
 }: {
   shop: Shop
   /** The signed-in account of the validated session (AuthGate). */
@@ -289,8 +287,6 @@ export function App({
   updateShop: (shop: Shop) => void
   onSimulation: () => void
   onAddEstablishment?: () => void
-  ownedShops?: Shop[]
-  onSelectShop?: (shop: Shop) => void
 }) {
   const { route, navigate } = useHashRoute()
   const sector = sectorOf(shop.business_kind)
@@ -342,27 +338,7 @@ export function App({
       </a>
 
       <header className="topbar">
-        {ownedShops && ownedShops.length > 1 ? (
-          <label className="topbar__shop topbar__shop-select">
-            <span className="visually-hidden">Établissement actif</span>
-            <select
-              value={shop.id}
-              onChange={(event) => {
-                const next = ownedShops.find((item) => item.id === event.target.value)
-                if (next) onSelectShop?.(next)
-              }}
-              aria-label="Changer d’établissement"
-            >
-              {ownedShops.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : (
-          <p className="topbar__shop">{shop.name}</p>
-        )}
+        <p className="topbar__shop">{shop.name}</p>
         <NetStatus state={sync} shopId={shop.id} />
         <NotificationBell state={notifications} />
         <button

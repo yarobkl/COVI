@@ -6,7 +6,6 @@ import { AuthGate } from './AuthGate'
 const chain = {
   select: vi.fn(),
   eq: vi.fn(),
-  order: vi.fn(),
   limit: vi.fn(),
   maybeSingle: vi.fn(),
 }
@@ -87,7 +86,6 @@ function serve({
   chain.eq.mockReturnValue(chain)
   chain.limit.mockReturnValue(chain)
   chain.maybeSingle.mockResolvedValue({ data: shop, error: null })
-  chain.order.mockImplementation(() => Promise.resolve({ data: shop ? [shop] : [], error: null }))
   vi.mocked(supabase.from).mockReturnValue(chain as never)
   vi.mocked(supabase.rpc).mockImplementation(((name: string) =>
     name === 'my_member_shops'

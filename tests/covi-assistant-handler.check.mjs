@@ -75,7 +75,7 @@ test('refuses another shop before quota or Gemini', async () => {
   })
   const result = await handler(request({ shopId, message: 'Quels résultats ?' }))
   assert.equal(result.status, 403)
-  assert.equal(step, 3)
+  assert.equal(step, 2)
 })
 
 test('rejects quota exhaustion without calling Gemini', async () => {
