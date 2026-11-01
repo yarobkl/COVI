@@ -92,6 +92,7 @@ export function LoginForm({
   onSimulation: () => void
 }) {
   const [busy, setBusy] = useState(false)
+  const [showDiscovery, setShowDiscovery] = useState(false)
   const [selectedKind, setSelectedKind] = useState<BusinessKind>('retail')
   const [businessName, setBusinessName] = useState('')
   const login = mode === 'login'
@@ -187,18 +188,45 @@ export function LoginForm({
       }
       aside={
         login && (
-          <section className="sheet auth__example" aria-labelledby="exemple-titre">
-            <h2 className="sheet__title" id="exemple-titre">
-              Vous découvrez COVI ?
-            </h2>
-            <p>
-              Voyez trois mois dans une boutique de Poto-Poto : ventes, arrivages, ballons et
-              charges. Rien de ce que vous voyez ne touche votre boutique.
-            </p>
-            <Button variant="secondary" onClick={onSimulation}>
-              Voir une boutique d’exemple
-            </Button>
-          </section>
+          <>
+            <button
+              type="button"
+              className="auth__help"
+              aria-label="Découvrir COVI"
+              aria-expanded={showDiscovery}
+              onClick={() => setShowDiscovery(true)}
+            >
+              ?
+            </button>
+            {showDiscovery && (
+              <div className="auth__dialog-backdrop" role="presentation" onClick={() => setShowDiscovery(false)}>
+                <section
+                  className="auth__dialog"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="exemple-titre"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    className="auth__dialog-close"
+                    aria-label="Fermer la présentation de COVI"
+                    onClick={() => setShowDiscovery(false)}
+                  >
+                    ×
+                  </button>
+                  <h2 id="exemple-titre">Vous découvrez COVI&nbsp;?</h2>
+                  <p>
+                    Voyez trois mois dans une boutique de Poto-Poto : ventes, arrivages, ballons et
+                    charges. Rien de ce que vous voyez ne touche votre boutique.
+                  </p>
+                  <Button variant="secondary" onClick={onSimulation}>
+                    Voir une boutique d’exemple
+                  </Button>
+                </section>
+              </div>
+            )}
+          </>
         )
       }
     >
