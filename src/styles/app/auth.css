@@ -1,74 +1,112 @@
-/* Avant la boutique : connexion, création, ouverture. Une page du cahier ; sur ordinateur, posée
-   sur la table. */
+/* Entrée COVI : identité claire, formulaire prioritaire et présentation adaptée au mobile. */
 @layer app {
+  body:has(.auth) {
+    background-color: var(--paper);
+    background-image: none;
+  }
+
   .auth {
-    min-height: 100dvh;
-  }
-  .auth__sheet {
     display: grid;
-    align-content: start;
-    gap: var(--space-6);
+    place-items: center;
     min-height: 100dvh;
-    padding-block: var(--space-6) var(--space-10);
-    padding-inline-end: var(--gutter);
+    padding: max(var(--space-5), env(safe-area-inset-top))
+      max(var(--space-4), env(safe-area-inset-right))
+      max(var(--space-5), env(safe-area-inset-bottom))
+      max(var(--space-4), env(safe-area-inset-left));
   }
-  .auth__brand {
-    justify-self: center;
+
+  .auth__layout {
+    display: grid;
+    grid-template-areas:
+      'intro'
+      'panel'
+      'aside';
+    gap: var(--space-5);
+    width: min(100%, 34rem);
+  }
+
+  .auth__intro {
+    grid-area: intro;
     display: grid;
     justify-items: center;
-    gap: var(--space-1);
+    gap: var(--space-3);
     text-align: center;
-    padding: var(--space-2) var(--space-4) var(--space-3);
+  }
+
+  .auth__brand {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+    text-align: start;
+  }
+  .auth__brand-copy {
+    display: grid;
+    gap: 1px;
   }
   .auth__name {
     color: var(--action);
-    font-size: var(--step-2);
+    font-size: var(--step-1);
     font-weight: var(--weight-bold);
-    letter-spacing: 0.04em;
-    line-height: var(--leading-snug);
+    letter-spacing: 0.08em;
+    line-height: 1;
   }
   .auth__tagline {
     color: var(--ink-soft);
-    font-size: var(--step--1);
+    font-size: var(--step--2);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .auth__headline {
+    max-width: 17ch;
+    color: var(--ink);
+    font-size: clamp(2rem, 7vw, 2.65rem);
+    line-height: 1.08;
+    letter-spacing: -0.035em;
   }
   .auth__identity {
-    color: var(--ink);
-    font-weight: var(--weight-bold);
-    font-size: var(--step--1);
+    max-width: 34rem;
+    color: var(--ink-soft);
+    font-size: var(--step-0);
+    line-height: 1.45;
   }
   .auth__sectors {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
     gap: var(--space-2);
-    margin-top: var(--space-2);
+    margin-top: var(--space-1);
   }
   .auth__sector {
     display: inline-flex;
-    min-height: 1.95rem;
+    min-height: 2.35rem;
     align-items: center;
-    padding: 0.2rem 0.65rem;
-    border: var(--border-hair) solid var(--line);
-    border-radius: 999px;
-    font-size: var(--step--2);
-    color: var(--ink-soft);
-    background: var(--sheet);
-  }
-  .auth__sector--active {
+    padding: 0.3rem 0.85rem;
+    border: var(--border-hair) solid #e1e6ef;
+    border-radius: var(--radius-pill);
+    font-size: var(--step--1);
     color: var(--action);
-    border-color: var(--action);
+    background: var(--sheet);
     font-weight: var(--weight-bold);
+    white-space: nowrap;
   }
 
-  .auth__grid {
-    display: grid;
-    gap: var(--space-8);
-    align-items: start;
+  .auth__panel {
+    grid-area: panel;
+    min-width: 0;
+    padding: clamp(1.25rem, 5vw, 2rem);
+    border: 1px solid #e5e9f0;
+    border-radius: 1.4rem;
+    background: var(--sheet);
+    box-shadow: 0 14px 42px rgb(30 36 48 / 8%);
   }
   .auth__main {
     display: grid;
     gap: var(--space-2);
-    max-width: 26rem;
+  }
+  .auth__main > h2 {
+    color: var(--action);
+    font-size: var(--step-2);
+    letter-spacing: -0.02em;
   }
   .auth__lead {
     color: var(--ink-soft);
@@ -149,12 +187,20 @@
     margin-top: var(--space-3);
     color: var(--ink-soft);
   }
+  .auth__aside {
+    grid-area: aside;
+    min-width: 0;
+  }
   .auth__example {
     display: grid;
     gap: var(--space-3);
     justify-items: start;
     max-width: 24rem;
     color: var(--ink-soft);
+    padding: var(--space-4);
+    border: 1px solid #e5e9f0;
+    border-radius: var(--radius-4);
+    background: var(--sheet);
   }
   .auth__example .sheet__title {
     margin-bottom: 0;
@@ -226,29 +272,29 @@
     color: var(--ink-soft);
   }
 
-  @media (min-width: 1024px) {
-    body:has(.auth) {
-      background: var(--ground);
-    }
+  @media (min-width: 900px) {
     .auth {
-      display: grid;
-      place-items: center;
       padding: var(--space-8) var(--space-6);
     }
-    .auth__sheet {
-      --margin-offset: var(--space-16);
-      width: min(100%, 60rem);
-      min-height: 0;
-      padding: var(--space-8) var(--space-10) var(--space-12) calc(var(--space-16) + var(--space-8));
-      border-radius: var(--radius-sheet);
-      box-shadow: var(--shadow-sheet);
+    .auth__layout {
+      grid-template-columns: minmax(0, 0.95fr) minmax(24rem, 1fr);
+      grid-template-areas:
+        'intro panel'
+        'aside panel';
+      align-items: center;
+      column-gap: clamp(3rem, 7vw, 6rem);
+      row-gap: var(--space-4);
+      width: min(100%, 68rem);
     }
-    .auth__grid {
-      grid-template-columns: minmax(0, 26rem) minmax(0, 1fr);
-      gap: var(--space-12);
+    .auth__intro {
+      justify-items: start;
+      text-align: start;
     }
-    .auth__aside {
-      padding-top: var(--space-16);
+    .auth__headline {
+      font-size: clamp(2.7rem, 4.5vw, 4rem);
+    }
+    .auth__sectors {
+      justify-content: start;
     }
   }
 }
