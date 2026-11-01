@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { createPortal } from 'react-dom'
 import { EyeIcon, EyeOffIcon } from '../../components/icons'
 import { Button, Field, IconButton, Input, Notice } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
@@ -13,7 +14,7 @@ export type AuthMode = 'login' | 'signup'
 
 /** Messages of this screen that are good news, not errors. */
 const isGoodNews = (message: string) =>
-  message.startsWith('Compte créé') || message.startsWith('Si cette adresse')
+  message.startsWith('Compte créé') || message.startsWith('Si cette adresse') || message.startsWith('Si un compte')
 
 /** Official-color brand marks, kept local so sign-in buttons need no third-party assets. */
 function GoogleLogo() {
@@ -73,6 +74,30 @@ function FacebookLogo() {
   )
 }
 
+function DiscoveryDialog({ onClose, onSimulation }: { onClose: () => void; onSimulation: () => void }) {
+  if (typeof document === 'undefined') return null
+  return createPortal(
+    <div className="auth__dialog-backdrop" role="presentation" onClick={onClose}>
+      <section
+        className="auth__dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="exemple-titre"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button type="button" className="auth__dialog-close" aria-label="Fermer la présentation de COVI" onClick={onClose}>×</button>
+        <h2 id="exemple-titre">Vous découvrez COVI&nbsp;?</h2>
+        <p>
+          Voyez trois mois dans une boutique de Poto-Poto : ventes, arrivages, ballons et charges.
+          Rien de ce que vous voyez ne touche votre boutique.
+        </p>
+        <Button variant="secondary" onClick={onSimulation}>Voir une boutique d’exemple</Button>
+      </section>
+    </div>,
+    document.body,
+  )
+}
+
 /** E-mail / Apple / Google / Facebook sign-in and sign-up. Its state lives in AuthGate so it survives sign-out. */
 export function LoginForm({
   mode,
@@ -92,9 +117,16 @@ export function LoginForm({
   onSimulation: () => void
 }) {
   const [busy, setBusy] = useState(false)
+  const [showDiscovery, setShowDiscovery] = useState(false)
+  const [showReset, setShowReset] = useState(false)
   const [selectedKind, setSelectedKind] = useState<BusinessKind>('retail')
   const [businessName, setBusinessName] = useState('')
   const login = mode === 'login'
+  const chooseSector = (kind: BusinessKind) => {
+    setSelectedKind(kind)
+    onModeChange('signup')
+    onMessage('')
+  }
 
   async function auth(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -177,6 +209,38 @@ export function LoginForm({
     }
   }
 
+  async function requestPasswordReset(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    onMessage('')
+    const email = String(new FormData(e.currentTarget).get('email') ?? '').trim()
+    if (!email) return
+    setBusy(true)
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin })
+      onMessage(error ? authError(error) : `Si un compte existe pour ${email}, un e-mail COVI vient d’être envoyé.`)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (showReset)
+    return (
+      <AuthPage title="Réinitialiser votre mot de passe" lead="Nous vous envoyons un lien sécurisé pour choisir un nouveau mot de passe.">
+        <form className="auth__form" onSubmit={requestPasswordReset}>
+          <Field label="Adresse e-mail">
+            {(control) => <Input {...control} name="email" type="email" required autoComplete="email" />}
+          </Field>
+          {message && <Notice tone={isGoodNews(message) ? 'success' : 'danger'}><p>{message}</p></Notice>}
+          <Button variant="primary" size="lg" block type="submit" busy={busy}>Recevoir le lien</Button>
+          <p className="auth__switch">
+            <button type="button" className="auth__link" onClick={() => { setShowReset(false); onMessage('') }}>
+              Retour à la connexion
+            </button>
+          </p>
+        </form>
+      </AuthPage>
+    )
+
   return (
     <AuthPage
       title={login ? 'Connexion' : 'Créer votre compte'}
@@ -185,20 +249,21 @@ export function LoginForm({
           ? 'Connectez-vous à votre espace de gestion COVI.'
           : 'Présentez-vous, puis choisissez votre métier et le nom de votre établissement.'
       }
+      onSectorSelect={chooseSector}
       aside={
         login && (
-          <section className="sheet auth__example" aria-labelledby="exemple-titre">
-            <h2 className="sheet__title" id="exemple-titre">
-              Vous découvrez COVI ?
-            </h2>
-            <p>
-              Voyez trois mois dans une boutique de Poto-Poto : ventes, arrivages, ballons et
-              charges. Rien de ce que vous voyez ne touche votre boutique.
-            </p>
-            <Button variant="secondary" onClick={onSimulation}>
-              Voir une boutique d’exemple
-            </Button>
-          </section>
+          <>
+            <button
+              type="button"
+              className="auth__help"
+              aria-label="Découvrir COVI"
+              aria-expanded={showDiscovery}
+              onClick={() => setShowDiscovery(true)}
+            >
+              ?
+            </button>
+            {showDiscovery && <DiscoveryDialog onClose={() => setShowDiscovery(false)} onSimulation={onSimulation} />}
+          </>
         )
       }
     >
@@ -326,6 +391,11 @@ export function LoginForm({
         <Button variant="primary" size="lg" block type="submit" busy={busy}>
           {login ? 'Se connecter' : 'Créer mon compte'}
         </Button>
+        {login && (
+          <button type="button" className="auth__link auth__forgot" onClick={() => { setShowReset(true); onMessage('') }}>
+            Mot de passe oublié ?
+          </button>
+        )}
         <p className="auth__or" aria-hidden="true">
           ou
         </p>
