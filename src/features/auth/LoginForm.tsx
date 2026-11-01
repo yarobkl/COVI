@@ -412,62 +412,36 @@ export function LoginForm({
             Mot de passe oublié ?
           </button>
         )}
-        <p className="auth__or" aria-hidden="true">
-          ou
-        </p>
-        {appleSignInEnabled && (
-          <Button
-            variant="secondary"
-            size="lg"
-            block
-            className="auth__apple"
-            disabled={busy}
-            onClick={() => void socialAuth('apple')}
-          >
-            <AppleLogo />
-            Continuer avec Apple
-          </Button>
+        {login && (
+          <>
+            <p className="auth__or" aria-hidden="true">ou</p>
+            {appleSignInEnabled && (
+              <Button variant="secondary" size="lg" block className="auth__apple" disabled={busy} onClick={() => void socialAuth('apple')}>
+                <AppleLogo />
+                Continuer avec Apple
+              </Button>
+            )}
+            <div className="auth__social-actions" role="group" aria-label="Connexion avec un compte externe">
+              <Button variant="secondary" size="lg" className="auth__social-btn auth__social-btn--google" onClick={() => void socialAuth('google')} disabled={busy}>
+                <GoogleLogo />
+                <span>Google</span>
+              </Button>
+              <Button variant="secondary" size="lg" className="auth__social-btn auth__social-btn--facebook" disabled={busy} onClick={() => void socialAuth('facebook')}>
+                <FacebookLogo />
+                <span>Facebook</span>
+              </Button>
+            </div>
+          </>
         )}
-        <div
-          className="auth__social-actions"
-          role="group"
-          aria-label="Connexion avec un compte externe"
-        >
-          <Button
-            variant="secondary"
-            size="lg"
-            className="auth__social-btn auth__social-btn--google"
-            onClick={() => void socialAuth('google')}
-            disabled={busy}
-          >
-            <GoogleLogo />
-            <span>Google</span>
-          </Button>
-          <Button
-            variant="secondary"
-            size="lg"
-            className="auth__social-btn auth__social-btn--facebook"
-            disabled={busy}
-            onClick={() => void socialAuth('facebook')}
-          >
-            <FacebookLogo />
-            <span>Facebook</span>
-          </Button>
-        </div>
       </form>
-      <p className="auth__switch">
-        {login ? 'Pas encore de compte ?' : 'J’ai déjà un compte,'}{' '}
-        <button
-          type="button"
-          className="auth__link"
-          onClick={() => {
-            onModeChange(login ? 'signup' : 'login')
-            onMessage('')
-          }}
-        >
-          {login ? 'Créer un compte' : 'me connecter'}
-        </button>
-      </p>
+      {login && (
+        <p className="auth__switch">
+          Pas encore de compte ?{' '}
+          <button type="button" className="auth__link" onClick={() => { onModeChange('signup'); onMessage('') }}>
+            Créer un compte
+          </button>
+        </p>
+      )}
       {!login && (
         <p className="auth__legal">
           En créant un compte, vous acceptez les <a href="#/conditions">conditions d’utilisation</a>{' '}
