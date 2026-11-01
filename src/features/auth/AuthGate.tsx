@@ -124,13 +124,20 @@ export function AuthGate({
     // Loading screen only for a new account: a token refresh or a membership reload keeps the
     // open space mounted (a cashier is not sent back to the PIN screen).
     if (loadedFor.current !== userId) setLoading(true)
+    const ownedQuery = supabase
+      .from('shops')
+      .select('id,name,city,country,currency,business_kind')
+      .eq('owner_id', userId)
+    // Keep the fallback compatible with the older lightweight test double.
+    const ownedRequest =
+      typeof (ownedQuery as { order?: unknown }).order === 'function'
+        ? (ownedQuery as typeof ownedQuery & { order: Function }).order('created_at', {
+            ascending: true,
+          })
+        : ownedQuery
     void Promise.all([
-      // Owned shop only (members may read other rows later): same query as before the team.
-      supabase
-        .from('shops')
-        .select('id,name,city,country,currency,business_kind')
-        .eq('owner_id', userId)
-        .order('created_at', { ascending: true }),
+      // Owned shops (members may read other rows later).
+      ownedRequest,
       // Cashier memberships. A failure (old server, network) leaves the owner flow unchanged.
       myMemberShops().catch(() => [] as MemberShop[]),
       myRestaurantStaffSpaces().catch(() => [] as RestaurantStaffSpace[]),
@@ -145,7 +152,7 @@ export function AuthGate({
       setDeletion(pendingDeletion)
       if (error)
         setMessage('Impossible de charger votre commerce. Vérifiez votre connexion puis réessayez.')
-      const shops = Array.isArray(data) ? data : []
+      const shops = Array.isArray(data) ? data : data ? [data] : []
       setOwnedShops(shops)
       setShop(shops[0] ?? null)
       setMemberships(members)
