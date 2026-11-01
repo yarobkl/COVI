@@ -458,3 +458,9 @@ export function LoginForm({
         {legalLinks.map((l) => (
           <a key={l.href} href={l.href}>
             {l.label}
+          </a>
+        ))}
+      </nav>
+    </AuthPage>
+  )
+}
