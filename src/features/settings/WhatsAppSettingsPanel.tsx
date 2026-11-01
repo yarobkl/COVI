@@ -3,6 +3,9 @@ import { Button, Sheet } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
 
 export function WhatsAppSettingsPanel({ shopId }: { shopId: string }) {
+  const whatsappBetaEnabled = import.meta.env.VITE_COVI_WHATSAPP_BETA === 'true'
+  if (!whatsappBetaEnabled) return null
+
   const [enabled, setEnabled] = useState(false)
   const [dailyReport, setDailyReport] = useState(true)
   const [reportTime, setReportTime] = useState('21:30')
