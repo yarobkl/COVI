@@ -6,7 +6,7 @@ function json(status, body = {}) {
 }
 
 async function validSignature(request, rawBody, appSecret) {
-  if (!appSecret) return true
+  if (!appSecret) return false
   const signature = request.headers.get('x-hub-signature-256') ?? ''
   const expected = signature.replace(/^sha256=/, '')
   if (!expected) return false
