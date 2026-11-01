@@ -13,7 +13,7 @@ export type AuthMode = 'login' | 'signup'
 
 /** Messages of this screen that are good news, not errors. */
 const isGoodNews = (message: string) =>
-  message.startsWith('Compte créé') || message.startsWith('Si cette adresse')
+  message.startsWith('Compte créé') || message.startsWith('Si cette adresse') || message.startsWith('Si un compte')
 
 /** Official-color brand marks, kept local so sign-in buttons need no third-party assets. */
 function GoogleLogo() {
@@ -93,6 +93,7 @@ export function LoginForm({
 }) {
   const [busy, setBusy] = useState(false)
   const [showDiscovery, setShowDiscovery] = useState(false)
+  const [showReset, setShowReset] = useState(false)
   const [selectedKind, setSelectedKind] = useState<BusinessKind>('retail')
   const [businessName, setBusinessName] = useState('')
   const login = mode === 'login'
@@ -177,6 +178,38 @@ export function LoginForm({
       setBusy(false)
     }
   }
+
+  async function requestPasswordReset(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    onMessage('')
+    const email = String(new FormData(e.currentTarget).get('email') ?? '').trim()
+    if (!email) return
+    setBusy(true)
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin })
+      onMessage(error ? authError(error) : `Si un compte existe pour ${email}, un e-mail COVI vient d’être envoyé.`)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (showReset)
+    return (
+      <AuthPage title="Réinitialiser votre mot de passe" lead="Nous vous envoyons un lien sécurisé pour choisir un nouveau mot de passe.">
+        <form className="auth__form" onSubmit={requestPasswordReset}>
+          <Field label="Adresse e-mail">
+            {(control) => <Input {...control} name="email" type="email" required autoComplete="email" />}
+          </Field>
+          {message && <Notice tone={isGoodNews(message) ? 'success' : 'danger'}><p>{message}</p></Notice>}
+          <Button variant="primary" size="lg" block type="submit" busy={busy}>Recevoir le lien</Button>
+          <p className="auth__switch">
+            <button type="button" className="auth__link" onClick={() => { setShowReset(false); onMessage('') }}>
+              Retour à la connexion
+            </button>
+          </p>
+        </form>
+      </AuthPage>
+    )
 
   return (
     <AuthPage
@@ -354,6 +387,11 @@ export function LoginForm({
         <Button variant="primary" size="lg" block type="submit" busy={busy}>
           {login ? 'Se connecter' : 'Créer mon compte'}
         </Button>
+        {login && (
+          <button type="button" className="auth__link auth__forgot" onClick={() => { setShowReset(true); onMessage('') }}>
+            Mot de passe oublié ?
+          </button>
+        )}
         <p className="auth__or" aria-hidden="true">
           ou
         </p>
@@ -420,9 +458,3 @@ export function LoginForm({
         {legalLinks.map((l) => (
           <a key={l.href} href={l.href}>
             {l.label}
-          </a>
-        ))}
-      </nav>
-    </AuthPage>
-  )
-}
