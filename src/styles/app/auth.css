@@ -73,6 +73,7 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
+    width: 100%;
     gap: 0;
     margin-top: var(--space-2);
     color: var(--action);
@@ -111,10 +112,12 @@
     color: var(--action);
     font-size: var(--step-2);
     letter-spacing: -0.02em;
+    text-align: center;
   }
   .auth__lead {
     color: var(--ink-soft);
     margin-bottom: var(--space-4);
+    text-align: center;
   }
   .auth__form {
     display: grid;
@@ -190,6 +193,7 @@
   .auth__switch {
     margin-top: var(--space-3);
     color: var(--ink-soft);
+    text-align: center;
   }
   .auth__aside {
     position: fixed;
@@ -201,14 +205,14 @@
   .auth__help {
     display: grid;
     place-items: center;
-    width: 1.75rem;
-    height: 1.75rem;
+    width: 1.55rem;
+    height: 1.55rem;
     margin: 0;
     border: 1px solid var(--line);
     border-radius: 50%;
     background: transparent;
     color: var(--action);
-    font-size: 0.9rem;
+    font-size: 0.78rem;
     font-weight: var(--weight-bold);
     cursor: pointer;
   }
@@ -382,7 +386,7 @@
   }
   .auth__legal {
     margin-top: var(--space-5);
-    font-size: 0.72rem;
+    font-size: 0.62rem;
     text-align: center;
     line-height: 1.35;
   }
@@ -393,7 +397,7 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: var(--space-1) var(--space-3);
+    gap: 0.15rem 0.8rem;
     margin-top: var(--space-2);
   }
 }
