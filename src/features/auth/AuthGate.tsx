@@ -50,6 +50,8 @@ export function AuthGate({
     /** The signed-in account of the validated session (sales and carts are tied to it). */
     userId: string,
     addEstablishment: () => void,
+    ownedEstablishments?: Shop[],
+    selectEstablishment?: (shopId: string) => void,
   ) => ReactNode
   onSimulation: () => void
 }) {
@@ -340,9 +342,27 @@ export function AuthGate({
   }
   return (
     <>
-      {children(shop!, signOutEverywhere, setShop, session.user.id, () => {
-        if (ownedShops.length < 3) setAddingEstablishment(true)
-      })}
+      {children(
+        shop!,
+        signOutEverywhere,
+        (updatedShop) => {
+          setShop(updatedShop)
+          setOwnedShops((current) =>
+            current.map((establishment) =>
+              establishment.id === updatedShop.id ? updatedShop : establishment,
+            ),
+          )
+        },
+        session.user.id,
+        () => {
+          if (ownedShops.length < 3) setAddingEstablishment(true)
+        },
+        ownedShops,
+        (shopId) => {
+          const next = ownedShops.find((establishment) => establishment.id === shopId)
+          if (next) setShop(next)
+        },
+      )}
     </>
   )
 }

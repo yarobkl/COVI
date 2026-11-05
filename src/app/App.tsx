@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { BrandMark } from '../components/Brand'
 import { MenuIcon, PlusIcon } from '../components/icons'
 import { Button, ButtonLink, cx, Dialog, LabelCard } from '../components/ui'
 import { AccountDeletionPanel } from '../features/account/AccountDeletionPanel'
@@ -54,6 +55,31 @@ type PageContext = {
   /** Owner's user id: groups their own sales in « Ventes par caissier ». */
   ownerId: string | null
   signOut: () => Promise<void>
+}
+
+/** Real app routes: shortcuts never use demo data or fake actions. */
+const iosShortcuts: Record<'retail' | 'restaurant' | 'salon', readonly PageId[]> = {
+  retail: ['vendre', 'stock', 'commandes', 'bilan'],
+  restaurant: ['restaurant-orders', 'restaurant-tables', 'restaurant-menu', 'personnel'],
+  salon: ['salon-bookings', 'salon-caisse', 'salon-clients', 'salon-services'],
+}
+
+function NativeHomeShortcuts({ sector }: { sector: 'retail' | 'restaurant' | 'salon' }) {
+  return (
+    <nav className="ios-shortcuts" aria-label="Accès rapide">
+      {iosShortcuts[sector].map((page) => {
+        const Icon = pages[page].icon
+        return (
+          <a key={page} href={routeHash({ page })} className="ios-shortcut">
+            <span className="ios-shortcut__icon">
+              <Icon />
+            </span>
+            <span>{pages[page].label}</span>
+          </a>
+        )
+      })}
+    </nav>
+  )
 }
 
 /** « Tous · Commandes · Ballons »: filters of Arrivages (each one keeps its own state). */
@@ -279,6 +305,8 @@ export function App({
   updateShop,
   onSimulation,
   onAddEstablishment,
+  ownedEstablishments,
+  onSelectEstablishment,
 }: {
   shop: Shop
   /** The signed-in account of the validated session (AuthGate). */
@@ -287,10 +315,13 @@ export function App({
   updateShop: (shop: Shop) => void
   onSimulation: () => void
   onAddEstablishment?: () => void
+  ownedEstablishments?: Shop[]
+  onSelectEstablishment?: (shopId: string) => void
 }) {
   const { route, navigate } = useHashRoute()
   const sector = sectorOf(shop.business_kind)
   const visibleNavigation = navigationFor(sector)
+  const iosApp = document.documentElement.dataset.coviPlatform === 'ios'
   const sync = useSyncState()
   const notifications = useShopNotifications(shop.id)
   const user = useCurrentUser()
@@ -301,6 +332,9 @@ export function App({
   const menuOpen = menuFor === routeKey(route)
   const setMenuOpen = (open: boolean) => setMenuFor(open ? routeKey(route) : null)
   const [signOutOpen, setSignOutOpen] = useState(false)
+  const [shopSelectorOpen, setShopSelectorOpen] = useState(false)
+  const shopSelectorTitle = useId()
+  const selectableShops = ownedEstablishments?.length ? ownedEstablishments : [shop]
   const menuTitle = useId()
   const main = useRef<HTMLElement>(null)
   const firstRoute = useRef(true)
@@ -338,7 +372,28 @@ export function App({
       </a>
 
       <header className="topbar">
-        <p className="topbar__shop">{shop.name}</p>
+        {iosApp ? (
+          <div className="topbar__ios-brand">
+            <BrandMark size={44} />
+            <div className="topbar__ios-identity">
+              <strong className="topbar__ios-title">COVI</strong>
+              <button
+                type="button"
+                className="topbar__ios-shop ios-shop-trigger"
+                aria-haspopup="dialog"
+                aria-label="Changer d’établissement"
+                onClick={() => setShopSelectorOpen(true)}
+              >
+                <span>{shop.name}</span>
+                <span className="ios-shop-trigger__chevron" aria-hidden="true">
+                  ⌄
+                </span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p className="topbar__shop">{shop.name}</p>
+        )}
         <NetStatus state={sync} shopId={shop.id} />
         <NotificationBell state={notifications} />
         <button
@@ -390,7 +445,11 @@ export function App({
           <button type="button" className="btn btn--ghost sommaire__quiet" onClick={askSignOut}>
             Se déconnecter
           </button>
-          <button type="button" className="btn btn--ghost sommaire__quiet" onClick={() => onAddEstablishment?.()}>
+          <button
+            type="button"
+            className="btn btn--ghost sommaire__quiet"
+            onClick={() => onAddEstablishment?.()}
+          >
             Ajouter un établissement
           </button>
           <LegalLinks />
@@ -403,6 +462,18 @@ export function App({
         ref={main}
         tabIndex={-1}
       >
+        {iosApp && route.page === 'accueil' && sector === 'retail' && (
+          <div className="ios-page-heading">
+            <h1>Vue d’ensemble</h1>
+            <p>Vos chiffres et les actions essentielles.</p>
+          </div>
+        )}
+        {iosApp && route.page === 'accueil' && (
+          <section className="ios-home-actions" aria-label="Actions du commerce">
+            <h2>Accès rapide</h2>
+            <NativeHomeShortcuts sector={sector} />
+          </section>
+        )}
         <div key={routeKey(route)} className="page">
           {renderPage(route, ctx)}
         </div>
@@ -486,13 +557,86 @@ export function App({
             <Button variant="danger" onClick={askSignOut}>
               Se déconnecter
             </Button>
-            <Button variant="secondary" onClick={() => { setMenuOpen(false); onAddEstablishment?.() }}>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setMenuOpen(false)
+                onAddEstablishment?.()
+              }}
+            >
               Ajouter un établissement
             </Button>
             <LegalLinks />
           </div>
         </div>
       </Dialog>
+
+      {iosApp && (
+        <Dialog
+          open={shopSelectorOpen}
+          onClose={() => setShopSelectorOpen(false)}
+          labelledBy={shopSelectorTitle}
+          sheet
+        >
+          <div className="dialog__body ios-shop-sheet">
+            <h2 id={shopSelectorTitle} className="dialog__title">
+              Mes établissements
+            </h2>
+            <div className="ios-shop-sheet__list">
+              {selectableShops.map((establishment) => {
+                const kind = sectorOf(establishment.business_kind)
+                return (
+                  <button
+                    type="button"
+                    key={establishment.id}
+                    className="ios-shop-choice"
+                    aria-current={establishment.id === shop.id ? 'true' : undefined}
+                    disabled={
+                      establishment.id !== shop.id && (sync.pending > 0 || !onSelectEstablishment)
+                    }
+                    onClick={() => {
+                      if (establishment.id !== shop.id) {
+                        window.location.hash = '#/'
+                        onSelectEstablishment?.(establishment.id)
+                      }
+                      setShopSelectorOpen(false)
+                    }}
+                  >
+                    <span className="ios-shop-choice__details">
+                      <strong>{establishment.name}</strong>
+                      <small>
+                        {kind === 'retail'
+                          ? 'Boutique'
+                          : kind === 'restaurant'
+                            ? 'Restaurant'
+                            : 'Salon de coiffure'}
+                      </small>
+                    </span>
+                    {establishment.id === shop.id && <span>Actuel</span>}
+                  </button>
+                )
+              })}
+            </div>
+            {sync.pending > 0 && (
+              <p role="status" className="ios-shop-sheet__hint">
+                Des ventes sont à synchroniser sur cet appareil. Terminez la synchronisation avant
+                de changer d’établissement.
+              </p>
+            )}
+            {selectableShops.length < 3 && onAddEstablishment && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setShopSelectorOpen(false)
+                  onAddEstablishment()
+                }}
+              >
+                Ajouter un établissement
+              </Button>
+            )}
+          </div>
+        </Dialog>
+      )}
 
       <SignOutDialog
         open={signOutOpen}

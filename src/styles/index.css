@@ -26,3 +26,5 @@
 @import './app/notifications.css';
 @import './app/pages.css';
 @import './app/salon.css';
+/* Scoped mobile application experience, inert outside Capacitor iOS. */
+@import './app/ios.css';

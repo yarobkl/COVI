@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { EyeIcon, EyeOffIcon } from '../../components/icons'
 import { Button, Field, IconButton, Input, Notice } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
+import { isCoviIosApp } from '../../lib/nativePlatform'
 import { desktopAuthRedirect, isTauriApp, openOAuthInSystemBrowser } from '../../lib/desktopAuth'
 import { AuthPage } from './AuthPage'
 import { authError } from './authErrors'
@@ -15,7 +16,9 @@ export type AuthMode = 'login' | 'signup'
 
 /** Messages of this screen that are good news, not errors. */
 const isGoodNews = (message: string) =>
-  message.startsWith('Compte créé') || message.startsWith('Si cette adresse') || message.startsWith('Si un compte')
+  message.startsWith('Compte créé') ||
+  message.startsWith('Si cette adresse') ||
+  message.startsWith('Si un compte')
 
 /** Official-color brand marks, kept local so sign-in buttons need no third-party assets. */
 function GoogleLogo() {
@@ -75,7 +78,13 @@ function FacebookLogo() {
   )
 }
 
-function DiscoveryDialog({ onClose, onSimulation }: { onClose: () => void; onSimulation: () => void }) {
+function DiscoveryDialog({
+  onClose,
+  onSimulation,
+}: {
+  onClose: () => void
+  onSimulation: () => void
+}) {
   if (typeof document === 'undefined') return null
   return createPortal(
     <div className="auth__dialog-backdrop" role="presentation" onClick={onClose}>
@@ -86,13 +95,22 @@ function DiscoveryDialog({ onClose, onSimulation }: { onClose: () => void; onSim
         aria-labelledby="exemple-titre"
         onClick={(event) => event.stopPropagation()}
       >
-        <button type="button" className="auth__dialog-close" aria-label="Fermer la présentation de COVI" onClick={onClose}>×</button>
+        <button
+          type="button"
+          className="auth__dialog-close"
+          aria-label="Fermer la présentation de COVI"
+          onClick={onClose}
+        >
+          ×
+        </button>
         <h2 id="exemple-titre">Vous découvrez COVI&nbsp;?</h2>
         <p>
           Voyez trois mois dans une boutique de Poto-Poto : ventes, arrivages, ballons et charges.
           Rien de ce que vous voyez ne touche votre boutique.
         </p>
-        <Button variant="secondary" onClick={onSimulation}>Voir une boutique d’exemple</Button>
+        <Button variant="secondary" onClick={onSimulation}>
+          Voir une boutique d’exemple
+        </Button>
       </section>
     </div>,
     document.body,
@@ -124,6 +142,10 @@ export function LoginForm({
   const [businessName, setBusinessName] = useState('')
   const [confirmationEmail, setConfirmationEmail] = useState('')
   const [phone, setPhone] = useState('+242')
+  // The iOS build uses password authentication until native OAuth + Apple are configured.
+  // Google/Facebook in a WKWebView would redirect to capacitor://localhost and lose the session.
+  const nativeIos = isCoviIosApp()
+  const emailReturnUrl = nativeIos ? 'https://covi-snowy.vercel.app' : window.location.origin
   const login = mode === 'login'
   const chooseSector = (kind: BusinessKind) => {
     setSelectedKind(kind)
@@ -163,11 +185,10 @@ export function LoginForm({
         : await supabase.auth.signUp({
             email,
             password,
-            options: { data: signupDetails!, emailRedirectTo: window.location.origin },
+            options: { data: signupDetails!, emailRedirectTo: emailReturnUrl },
           })
       if (r.error) onMessage(authError(r.error))
-      else if (!login && !r.data.session)
-        setConfirmationEmail(email)
+      else if (!login && !r.data.session) setConfirmationEmail(email)
       else if (!login && r.data.session) {
         // Never pretend the verification link was sent when Auth email confirmation is disabled.
         onMessage(
@@ -217,8 +238,14 @@ export function LoginForm({
     if (!email) return
     setBusy(true)
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin })
-      onMessage(error ? authError(error) : `Si un compte existe pour ${email}, un e-mail COVI vient d’être envoyé.`)
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: emailReturnUrl,
+      })
+      onMessage(
+        error
+          ? authError(error)
+          : `Si un compte existe pour ${email}, un e-mail COVI vient d’être envoyé.`,
+      )
     } finally {
       setBusy(false)
     }
@@ -226,15 +253,33 @@ export function LoginForm({
 
   if (showReset)
     return (
-      <AuthPage title="Réinitialiser votre mot de passe" lead="Nous vous envoyons un lien sécurisé pour choisir un nouveau mot de passe.">
+      <AuthPage
+        title="Réinitialiser votre mot de passe"
+        lead="Nous vous envoyons un lien sécurisé pour choisir un nouveau mot de passe."
+      >
         <form className="auth__form" onSubmit={requestPasswordReset}>
           <Field label="Adresse e-mail">
-            {(control) => <Input {...control} name="email" type="email" required autoComplete="email" />}
+            {(control) => (
+              <Input {...control} name="email" type="email" required autoComplete="email" />
+            )}
           </Field>
-          {message && <Notice tone={isGoodNews(message) ? 'success' : 'danger'}><p>{message}</p></Notice>}
-          <Button variant="primary" size="lg" block type="submit" busy={busy}>Recevoir le lien</Button>
+          {message && (
+            <Notice tone={isGoodNews(message) ? 'success' : 'danger'}>
+              <p>{message}</p>
+            </Notice>
+          )}
+          <Button variant="primary" size="lg" block type="submit" busy={busy}>
+            Recevoir le lien
+          </Button>
           <p className="auth__switch">
-            <button type="button" className="auth__link" onClick={() => { setShowReset(false); onMessage('') }}>
+            <button
+              type="button"
+              className="auth__link"
+              onClick={() => {
+                setShowReset(false)
+                onMessage('')
+              }}
+            >
               Retour à la connexion
             </button>
           </p>
@@ -246,12 +291,17 @@ export function LoginForm({
     return (
       <AuthPage title="Vérifiez votre boîte mail" lead="Votre inscription est presque terminée.">
         <div className="auth__confirmation" role="status">
-          <div className="auth__confirmation-icon" aria-hidden="true">✓</div>
+          <div className="auth__confirmation-icon" aria-hidden="true">
+            ✓
+          </div>
           <h2>Confirmez votre compte</h2>
           <p>
             Nous avons envoyé un lien de confirmation à <strong>{confirmationEmail}</strong>.
           </p>
-          <p>Ouvrez votre boîte mail, cliquez sur le lien reçu, puis revenez sur COVI pour vous connecter.</p>
+          <p>
+            Ouvrez votre boîte mail, cliquez sur le lien reçu, puis revenez sur COVI pour vous
+            connecter.
+          </p>
         </div>
         <Button variant="secondary" size="lg" block onClick={() => setConfirmationEmail('')}>
           Retour à la connexion
@@ -280,7 +330,12 @@ export function LoginForm({
             >
               ?
             </button>
-            {showDiscovery && <DiscoveryDialog onClose={() => setShowDiscovery(false)} onSimulation={onSimulation} />}
+            {showDiscovery && (
+              <DiscoveryDialog
+                onClose={() => setShowDiscovery(false)}
+                onSimulation={onSimulation}
+              />
+            )}
           </>
         )
       }
@@ -400,25 +455,57 @@ export function LoginForm({
           {login ? 'Se connecter' : 'Créer mon compte'}
         </Button>
         {login && (
-          <button type="button" className="auth__link auth__forgot" onClick={() => { setShowReset(true); onMessage('') }}>
+          <button
+            type="button"
+            className="auth__link auth__forgot"
+            onClick={() => {
+              setShowReset(true)
+              onMessage('')
+            }}
+          >
             Mot de passe oublié ?
           </button>
         )}
-        {login && (
+        {login && !nativeIos && (
           <>
-            <p className="auth__or" aria-hidden="true">ou</p>
+            <p className="auth__or" aria-hidden="true">
+              ou
+            </p>
             {appleSignInEnabled && (
-              <Button variant="secondary" size="lg" block className="auth__apple" disabled={busy} onClick={() => void socialAuth('apple')}>
+              <Button
+                variant="secondary"
+                size="lg"
+                block
+                className="auth__apple"
+                disabled={busy}
+                onClick={() => void socialAuth('apple')}
+              >
                 <AppleLogo />
                 Continuer avec Apple
               </Button>
             )}
-            <div className="auth__social-actions" role="group" aria-label="Connexion avec un compte externe">
-              <Button variant="secondary" size="lg" className="auth__social-btn auth__social-btn--google" onClick={() => void socialAuth('google')} disabled={busy}>
+            <div
+              className="auth__social-actions"
+              role="group"
+              aria-label="Connexion avec un compte externe"
+            >
+              <Button
+                variant="secondary"
+                size="lg"
+                className="auth__social-btn auth__social-btn--google"
+                onClick={() => void socialAuth('google')}
+                disabled={busy}
+              >
                 <GoogleLogo />
                 <span>Google</span>
               </Button>
-              <Button variant="secondary" size="lg" className="auth__social-btn auth__social-btn--facebook" disabled={busy} onClick={() => void socialAuth('facebook')}>
+              <Button
+                variant="secondary"
+                size="lg"
+                className="auth__social-btn auth__social-btn--facebook"
+                disabled={busy}
+                onClick={() => void socialAuth('facebook')}
+              >
                 <FacebookLogo />
                 <span>Facebook</span>
               </Button>
@@ -429,7 +516,14 @@ export function LoginForm({
       {login && (
         <p className="auth__switch">
           Pas encore de compte ?{' '}
-          <button type="button" className="auth__link" onClick={() => { onModeChange('signup'); onMessage('') }}>
+          <button
+            type="button"
+            className="auth__link"
+            onClick={() => {
+              onModeChange('signup')
+              onMessage('')
+            }}
+          >
             Créer un compte
           </button>
         </p>

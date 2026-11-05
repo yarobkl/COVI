@@ -4,3 +4,14 @@ src-tauri/target/
 *.tsbuildinfo
 .env*
 !.env.example
+
+# Capacitor iOS: native project is tracked, generated web bundles/build data are not.
+ios/App/App/public/
+ios/App/App/capacitor.config.json
+ios/App/Pods/
+ios/App/build/
+ios/App/DerivedData/
+ios/DerivedData/
+ios/.build/
+ios/App/.build/
+.DS_Store
