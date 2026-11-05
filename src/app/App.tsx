@@ -280,6 +280,8 @@ export function App({
   updateShop,
   onSimulation,
   onAddEstablishment,
+  ownedEstablishments,
+  onSelectEstablishment,
 }: {
   shop: Shop
   /** The signed-in account of the validated session (AuthGate). */
@@ -288,6 +290,8 @@ export function App({
   updateShop: (shop: Shop) => void
   onSimulation: () => void
   onAddEstablishment?: () => void
+  ownedEstablishments?: Shop[]
+  onSelectEstablishment?: (shopId: string) => void
 }) {
   const { route, navigate } = useHashRoute()
   const sector = sectorOf(shop.business_kind)
@@ -303,6 +307,9 @@ export function App({
   const menuOpen = menuFor === routeKey(route)
   const setMenuOpen = (open: boolean) => setMenuFor(open ? routeKey(route) : null)
   const [signOutOpen, setSignOutOpen] = useState(false)
+  const [shopSelectorOpen, setShopSelectorOpen] = useState(false)
+  const shopSelectorTitle = useId()
+  const selectableShops = ownedEstablishments?.length ? ownedEstablishments : [shop]
   const menuTitle = useId()
   const main = useRef<HTMLElement>(null)
   const firstRoute = useRef(true)
@@ -345,7 +352,16 @@ export function App({
             <BrandMark size={44} />
             <div className="topbar__ios-identity">
               <strong className="topbar__ios-title">COVI</strong>
-              <span className="topbar__ios-shop">{shop.name}</span>
+              <button
+                type="button"
+                className="topbar__ios-shop ios-shop-trigger"
+                aria-haspopup="dialog"
+                aria-label="Changer d’établissement"
+                onClick={() => setShopSelectorOpen(true)}
+              >
+                <span>{shop.name}</span>
+                <span className="ios-shop-trigger__chevron" aria-hidden="true">⌄</span>
+              </button>
             </div>
           </div>
         ) : (
@@ -521,6 +537,71 @@ export function App({
           </div>
         </div>
       </Dialog>
+
+      {iosApp && (
+        <Dialog
+          open={shopSelectorOpen}
+          onClose={() => setShopSelectorOpen(false)}
+          labelledBy={shopSelectorTitle}
+          sheet
+        >
+          <div className="dialog__body ios-shop-sheet">
+            <h2 id={shopSelectorTitle} className="dialog__title">
+              Mes établissements
+            </h2>
+            <div className="ios-shop-sheet__list">
+              {selectableShops.map((establishment) => {
+                const kind = sectorOf(establishment.business_kind)
+                return (
+                  <button
+                    type="button"
+                    key={establishment.id}
+                    className="ios-shop-choice"
+                    aria-current={establishment.id === shop.id ? 'true' : undefined}
+                    disabled={
+                      establishment.id !== shop.id &&
+                      (sync.pending > 0 || !onSelectEstablishment)
+                    }
+                    onClick={() => {
+                      if (establishment.id !== shop.id) onSelectEstablishment?.(establishment.id)
+                      setShopSelectorOpen(false)
+                    }}
+                  >
+                    <span className="ios-shop-choice__details">
+                      <strong>{establishment.name}</strong>
+                      <small>
+                        {kind === 'retail'
+                          ? 'Boutique'
+                          : kind === 'restaurant'
+                            ? 'Restaurant'
+                            : 'Salon de coiffure'}
+                      </small>
+                    </span>
+                    {establishment.id === shop.id && <span>Actuel</span>}
+                  </button>
+                )
+              })}
+            </div>
+            {sync.pending > 0 && (
+              <p role="status" className="ios-shop-sheet__hint">
+                Des ventes sont à synchroniser sur cet appareil. Terminez la synchronisation avant
+                de changer d’établissement.
+              </p>
+            )}
+            {selectableShops.length < 3 && onAddEstablishment && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setShopSelectorOpen(false)
+                  onAddEstablishment()
+                }}
+              >
+                Ajouter un établissement
+              </Button>
+            )}
+          </div>
+        </Dialog>
+      )}
 
       <SignOutDialog
         open={signOutOpen}
