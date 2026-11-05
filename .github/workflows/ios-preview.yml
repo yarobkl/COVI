@@ -135,7 +135,7 @@ jobs:
           APP_PATH="$RUNNER_TEMP/COVI-DerivedData/Build/Products/Debug-iphonesimulator/App.app"
           test -d "$APP_PATH"
           xcrun simctl install "$DEVICE_UDID" "$APP_PATH"
-          xcrun simctl launch "$DEVICE_UDID" com.yaroconsulting.covi
+          xcrun simctl launch "$DEVICE_UDID" com.covi.app
           sleep 9
           mkdir -p previews
           xcrun simctl io "$DEVICE_UDID" screenshot previews/covi-ios-beige-login.png
