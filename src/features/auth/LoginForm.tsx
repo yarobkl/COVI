@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { EyeIcon, EyeOffIcon } from '../../components/icons'
 import { Button, Field, IconButton, Input, Notice } from '../../components/ui'
 import { supabase } from '../../lib/supabase'
+import { isCoviIosApp } from '../../lib/nativePlatform'
 import { desktopAuthRedirect, isTauriApp, openOAuthInSystemBrowser } from '../../lib/desktopAuth'
 import { AuthPage } from './AuthPage'
 import { authError } from './authErrors'
@@ -124,6 +125,10 @@ export function LoginForm({
   const [businessName, setBusinessName] = useState('')
   const [confirmationEmail, setConfirmationEmail] = useState('')
   const [phone, setPhone] = useState('+242')
+  // The iOS build uses password authentication until native OAuth + Apple are configured.
+  // Google/Facebook in a WKWebView would redirect to capacitor://localhost and lose the session.
+  const nativeIos = isCoviIosApp()
+  const emailReturnUrl = nativeIos ? 'https://covi-snowy.vercel.app' : window.location.origin
   const login = mode === 'login'
   const chooseSector = (kind: BusinessKind) => {
     setSelectedKind(kind)
@@ -163,7 +168,7 @@ export function LoginForm({
         : await supabase.auth.signUp({
             email,
             password,
-            options: { data: signupDetails!, emailRedirectTo: window.location.origin },
+            options: { data: signupDetails!, emailRedirectTo: emailReturnUrl },
           })
       if (r.error) onMessage(authError(r.error))
       else if (!login && !r.data.session)
@@ -217,7 +222,7 @@ export function LoginForm({
     if (!email) return
     setBusy(true)
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin })
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: emailReturnUrl })
       onMessage(error ? authError(error) : `Si un compte existe pour ${email}, un e-mail COVI vient d’être envoyé.`)
     } finally {
       setBusy(false)
@@ -404,7 +409,7 @@ export function LoginForm({
             Mot de passe oublié ?
           </button>
         )}
-        {login && (
+        {login && !nativeIos && (
           <>
             <p className="auth__or" aria-hidden="true">ou</p>
             {appleSignInEnabled && (
