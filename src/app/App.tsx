@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { BrandMark } from '../components/Brand'
 import { MenuIcon, PlusIcon } from '../components/icons'
 import { Button, ButtonLink, cx, Dialog, LabelCard } from '../components/ui'
 import { AccountDeletionPanel } from '../features/account/AccountDeletionPanel'
@@ -340,9 +341,12 @@ export function App({
 
       <header className="topbar">
         {iosApp ? (
-          <div className="topbar__ios-identity">
-            <span className="topbar__ios-shop">{shop.name}</span>
-            <strong className="topbar__ios-title">{pages[route.page].label}</strong>
+          <div className="topbar__ios-brand">
+            <BrandMark size={44} />
+            <div className="topbar__ios-identity">
+              <strong className="topbar__ios-title">COVI</strong>
+              <span className="topbar__ios-shop">{shop.name}</span>
+            </div>
           </div>
         ) : (
           <p className="topbar__shop">{shop.name}</p>
@@ -411,6 +415,12 @@ export function App({
         ref={main}
         tabIndex={-1}
       >
+        {iosApp && route.page === 'accueil' && sector === 'retail' && (
+          <div className="ios-page-heading">
+            <h1>Vue d’ensemble</h1>
+            <p>Vos chiffres et les actions essentielles.</p>
+          </div>
+        )}
         <div key={routeKey(route)} className="page">
           {renderPage(route, ctx)}
         </div>
