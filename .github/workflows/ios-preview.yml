@@ -99,6 +99,13 @@ jobs:
               swift scripts/ios/make-covi-icon.swift "$ICON"
             done
           fi
+      - name: Install approved beige splash screen
+        run: |
+          SPLASH_DIR="ios/App/App/Assets.xcassets/Splash.imageset"
+          test -d "$SPLASH_DIR"
+          swift scripts/ios/make-covi-splash.swift "$SPLASH_DIR/splash-2732x2732.png"
+          cp "$SPLASH_DIR/splash-2732x2732.png" "$SPLASH_DIR/splash-2732x2732-1.png"
+          cp "$SPLASH_DIR/splash-2732x2732.png" "$SPLASH_DIR/splash-2732x2732-2.png"
       - name: Build iPhone Simulator app (without distribution signing)
         run: |
           xcodebuild \
