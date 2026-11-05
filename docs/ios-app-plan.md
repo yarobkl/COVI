@@ -31,10 +31,10 @@ COVI web (React / Vite / design existant)
 ### 1. Socle iOS
 
 - [x] Préparer `capacitor.config.json` sur une branche dédiée.
-- [x] Créer la base de la coque visuelle iOS exclusivement activée par le pont Capacitor natif (page header, tab bar flottante, fonds et cartes). **Non testée sur un simulateur/iPhone à ce stade.**
-- [ ] Installer `@capacitor/core`, `@capacitor/cli`, `@capacitor/ios` avec **versions verrouillées** ; mettre à jour `package-lock.json` par `npm install`.
-- [ ] Exécuter `npm ci`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`.
-- [ ] Générer le dossier `ios/` avec `npx cap add ios`, puis `npx cap sync ios` dans un environnement macOS disposant de Xcode pris en charge.
+- [x] Créer une coque iOS beige exclusive au pont Capacitor : écran de connexion, logo officiel, navigation basse, cartes, accès rapide par métier, écran de lancement beige, changement d'établissement. Compilée pour le simulateur ; rendu visuel final et interactions sur iPhone réel restent à valider.
+- [x] Installer `@capacitor/core`, `@capacitor/cli`, `@capacitor/ios` en version 8.6.0 avec `package-lock.json` régénéré en CI.
+- [x] Exécuter `npm ci`, `npm run lint`, `npm test` et `npm run build` sur CI. Run vert : `https://github.com/yarobkl/COVI/actions/runs/42078691957` ; revalidation nécessaire pour les commits de l'interface suivants.
+- [x] Générer le dossier `ios/` avec Xcode 26, `npx cap add ios` puis `npx cap sync ios` sur le runner macOS ; sauvegarder le projet Xcode en branche iOS uniquement.
 - [ ] Ne jamais connecter le runtime mobile à l'environnement de préproduction par erreur ; employer des variables de build explicites.
 
 ### 2. Direction produit et design iOS
@@ -74,7 +74,7 @@ COVI web (React / Vite / design existant)
 
 - [ ] Créer ou confirmer le Bundle ID et la fiche COVI dans App Store Connect.
 - [ ] Configurer les capacités et la signature via le Team ID autorisé dans Apple Developer (ne pas stocker clés/certificats privés dans Git).
-- [ ] Générer l'archive iOS `.ipa` dans Xcode ou sur un runner macOS sécurisé.
+- [ ] Générer l'archive iOS `.ipa` **signée** depuis Xcode/CI. Le build `.app` **simulateur** est produit, mais pas encore d'IPA signée.
 - [ ] Envoyer un build **TestFlight interne** et vérifier les trois parcours métier sur iPhone réel.
 - [ ] Corriger les blocages, préparer la confidentialité et les captures App Store.
 - [ ] Soumettre à App Review uniquement après validation explicite.
@@ -90,4 +90,14 @@ npx cap sync ios
 npx cap open ios
 ```
 
-**État réel :** configuration initiale créée ; dépendances iOS, projet Xcode, archive IPA et TestFlight non encore générés ni vérifiés. Une branche GitHub, même valide, n'est pas une app iOS livrée.
+**État réel (05/11/2026) :** un vrai projet Xcode Capacitor a été généré depuis le code métier COVI et compilé avec succès pour simulateur, dépendances verrouillées, tests web + build React verts sur le run 42078691957. CI iOS continue de vérifier les évolutions. Il reste la recette iPhone réel, les retours OAuth mobiles, la vérification des données entre établissements et la signature Apple pour TestFlight. L'application web et la base de production sont inchangées.
+
+
+## Distribution et secrets Apple : sécurité
+
+- Le Bundle ID de travail est `com.yaroconsulting.covi`. **Ne pas lancer la signature avant d'avoir confirmé que cet identifiant est enregistré dans Apple Developer.**
+- La distribution est **désactivée par défaut**. Le workflow `.github/workflows/ios-testflight.yml` exige un lancement manuel et `uploadToTestFlight=true`.
+- Secrets requis, à enregistrer uniquement dans **GitHub Actions → Repository secrets** pour `yarobkl/COVI` : `APPLE_TEAM_ID`, `APP_STORE_CONNECT_API_KEY_ID`, `APP_STORE_CONNECT_ISSUER_ID`, `APP_STORE_CONNECT_API_PRIVATE_KEY`, `APPLE_DISTRIBUTION_CERTIFICATE_P12_BASE64`, `APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD`, `APPLE_APP_STORE_PROFILE_BASE64`.
+- La clé privée `.p8`, le certificat p12 et la provisioning profile **ne doivent jamais être committés ni publiés en chat**. Les secrets configurés pour GaspardNZ ne sont pas automatiquement accessibles dans le dépôt COVI.
+- `workflow_dispatch` doit être accessible sur la branche par défaut de GitHub avant de pouvoir l'utiliser depuis l'onglet Actions. **Ne pas fusionner cette PR de manière automatique** pour ce seul motif.
+- L'upload TestFlight n'entraîne ni validation App Review ni publication de l'application sur l'App Store.
