@@ -61,7 +61,13 @@ function usePublicRoute() {
 // index.html has no <html lang>: screen readers must read French.
 document.documentElement.lang = 'fr'
 // Native iOS gets its own visual shell. Safari/iPhone web remains unchanged.
-if (isCoviIosApp()) document.documentElement.dataset.coviPlatform = 'ios'
+if (isCoviIosApp()) {
+  document.documentElement.dataset.coviPlatform = 'ios'
+  // Full-screen native safe areas; do not alter the Safari website viewport.
+  document
+    .querySelector('meta[name="viewport"]')
+    ?.setAttribute('content', 'width=device-width, initial-scale=1, viewport-fit=cover')
+}
 
 /** Switches between the simulation (no account needed) and the signed-in application. */
 export function Root() {
