@@ -31,7 +31,7 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 60
     env:
-      APP_BUNDLE_ID: com.yaroconsulting.covi
+      APP_BUNDLE_ID: com.covi.app
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
       ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
@@ -59,7 +59,7 @@ jobs:
             echo "::error::Configured Apple Team ID does not match the COVI project owner."
             exit 1
           }
-          grep -q 'com.yaroconsulting.covi' capacitor.config.json
+          grep -q 'com.covi.app' capacitor.config.json
           test -d ios/App
       - name: Prepare locked iOS application
         run: |
