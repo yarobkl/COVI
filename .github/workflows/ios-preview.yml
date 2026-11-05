@@ -2,6 +2,15 @@ name: COVI iOS - Preview
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'capacitor.config.json'
+      - '.gitignore'
+      - '.github/workflows/ios-preview.yml'
   push:
     branches:
       - feature/covi-ios-capacitor
