@@ -111,15 +111,25 @@ export function Root() {
     )
   return (
     <AuthGate onSimulation={() => setSimulation(true)}>
-      {(shop, signOut, updateShop, userId, onAddEstablishment) => (
-        // Shared device in counter mode: the owner's pages stay closed until the owner's code.
-        <CounterGate shop={shop} userId={userId} signOut={signOut}>
+      {(
+        shop,
+        signOut,
+        updateShop,
+        userId,
+        onAddEstablishment,
+        ownedEstablishments,
+        onSelectEstablishment,
+      ) => (
+        // Remount shared-till protections when switching businesses on a single device.
+        <CounterGate key={shop.id} shop={shop} userId={userId} signOut={signOut}>
           <App
             shop={shop}
             userId={userId}
             signOut={signOut}
             updateShop={updateShop}
             onAddEstablishment={onAddEstablishment}
+            ownedEstablishments={ownedEstablishments}
+            onSelectEstablishment={onSelectEstablishment}
             onSimulation={() => setSimulation(true)}
           />
         </CounterGate>
