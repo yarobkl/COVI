@@ -291,6 +291,7 @@ export function App({
   const { route, navigate } = useHashRoute()
   const sector = sectorOf(shop.business_kind)
   const visibleNavigation = navigationFor(sector)
+  const iosApp = document.documentElement.dataset.coviPlatform === 'ios'
   const sync = useSyncState()
   const notifications = useShopNotifications(shop.id)
   const user = useCurrentUser()
@@ -338,7 +339,14 @@ export function App({
       </a>
 
       <header className="topbar">
-        <p className="topbar__shop">{shop.name}</p>
+        {iosApp ? (
+          <div className="topbar__ios-identity">
+            <span className="topbar__ios-shop">{shop.name}</span>
+            <strong className="topbar__ios-title">{pages[route.page].label}</strong>
+          </div>
+        ) : (
+          <p className="topbar__shop">{shop.name}</p>
+        )}
         <NetStatus state={sync} shopId={shop.id} />
         <NotificationBell state={notifications} />
         <button
