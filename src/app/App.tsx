@@ -360,7 +360,9 @@ export function App({
                 onClick={() => setShopSelectorOpen(true)}
               >
                 <span>{shop.name}</span>
-                <span className="ios-shop-trigger__chevron" aria-hidden="true">⌄</span>
+                <span className="ios-shop-trigger__chevron" aria-hidden="true">
+                  ⌄
+                </span>
               </button>
             </div>
           </div>
@@ -559,8 +561,7 @@ export function App({
                     className="ios-shop-choice"
                     aria-current={establishment.id === shop.id ? 'true' : undefined}
                     disabled={
-                      establishment.id !== shop.id &&
-                      (sync.pending > 0 || !onSelectEstablishment)
+                      establishment.id !== shop.id && (sync.pending > 0 || !onSelectEstablishment)
                     }
                     onClick={() => {
                       if (establishment.id !== shop.id) onSelectEstablishment?.(establishment.id)

@@ -532,7 +532,6 @@
   }
 }
 
-
 /* Approved COVI iOS multi-establishment switcher. */
 @layer app {
   html[data-covi-platform='ios'] .ios-shop-trigger {
