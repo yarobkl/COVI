@@ -1,0 +1,330 @@
+/* COVI — iPhone native visual layer, active ONLY in a Capacitor iOS WebView.
+   Never apply this theme to Safari, Vercel, Android or desktop/Tauri. */
+@layer app {
+  html[data-covi-platform='ios'] {
+    color-scheme: light;
+    --paper: #f5f6fa;
+    --ground: #f5f6fa;
+    --sheet: #ffffff;
+    --ink: #172033;
+    --ink-soft: #536075;
+    --ink-muted: #647084;
+    --action: #17408b;
+    --action-hover: #0f3274;
+    --action-tint: #e9eef8;
+    --line: #e4e8f0;
+    --font-text: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    --font-figures: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  }
+
+  html[data-covi-platform='ios'] body,
+  html[data-covi-platform='ios'] .seyes {
+    background: #f5f6fa;
+    background-image: none;
+  }
+
+  html[data-covi-platform='ios'] body {
+    overscroll-behavior-y: contain;
+    font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  }
+
+  html[data-covi-platform='ios'] .shell {
+    width: 100%;
+    max-width: none;
+    padding: 0;
+    min-height: 100dvh;
+  }
+
+  /* Native-feeling large title with business context, notifications and account. */
+  html[data-covi-platform='ios'] .shell > .topbar {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-nav);
+    min-height: 86px;
+    gap: 10px;
+    padding: calc(env(safe-area-inset-top, 0px) + 12px) 18px 12px;
+    border-bottom: 1px solid rgba(23, 64, 139, 0.06);
+    background: rgba(245, 246, 250, 0.9);
+    -webkit-backdrop-filter: blur(20px) saturate(1.5);
+    backdrop-filter: blur(20px) saturate(1.5);
+  }
+
+  html[data-covi-platform='ios'] .topbar::before {
+    display: none;
+  }
+
+  html[data-covi-platform='ios'] .topbar__ios-identity {
+    display: flex;
+    min-width: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  html[data-covi-platform='ios'] .topbar__ios-shop {
+    overflow: hidden;
+    color: var(--ink-muted);
+    font-size: 12px;
+    font-weight: 550;
+    letter-spacing: 0.01em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  html[data-covi-platform='ios'] .topbar__ios-title {
+    overflow: hidden;
+    color: #172033;
+    font-size: clamp(23px, 6vw, 29px);
+    font-weight: 740;
+    line-height: 1.12;
+    letter-spacing: -0.035em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  html[data-covi-platform='ios'] .topbar .net-pill {
+    position: relative;
+    display: inline-grid;
+    flex: none;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    padding: 0;
+    border: 1px solid #e2e7f0;
+    border-radius: 50%;
+    background: white;
+  }
+
+  /* Preserve the network warning's accessible name in its DOM. */
+  html[data-covi-platform='ios'] .topbar .net-pill > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    white-space: nowrap;
+    clip-path: inset(50%);
+  }
+
+  html[data-covi-platform='ios'] .avatar {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    margin-inline-start: 0;
+    border: 1px solid #dde5f1;
+    border-radius: 50%;
+    background: #e9eef8;
+    box-shadow: none;
+    font-size: 14px;
+  }
+
+  html[data-covi-platform='ios'] .shell__page {
+    width: 100%;
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 18px 16px 30px;
+    background: transparent;
+  }
+
+  html[data-covi-platform='ios'] .page {
+    animation-duration: 150ms;
+    animation-timing-function: ease-out;
+  }
+
+  /* A restrained material treatment for navigation, not glass on every card. */
+  html[data-covi-platform='ios'] .shell > .bottom-nav {
+    position: sticky;
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    z-index: var(--z-nav);
+    height: 67px;
+    flex: none;
+    margin: 0 12px calc(8px + env(safe-area-inset-bottom, 0px));
+    padding: 4px 7px;
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    border-radius: 23px;
+    background: rgba(255, 255, 255, 0.89);
+    box-shadow: 0 10px 35px rgba(22, 37, 64, 0.1), 0 1px 3px rgba(22, 37, 64, 0.04);
+    -webkit-backdrop-filter: blur(22px) saturate(1.5);
+    backdrop-filter: blur(22px) saturate(1.5);
+  }
+
+  html[data-covi-platform='ios'] .bottom-nav__item {
+    justify-content: center;
+    gap: 3px;
+    min-height: 54px;
+    padding: 3px 0;
+    border-radius: 15px;
+    color: #758095;
+    font-size: 10px;
+    font-weight: 580;
+    line-height: 1.1;
+  }
+
+  html[data-covi-platform='ios'] .bottom-nav__item svg {
+    width: 23px;
+    height: 23px;
+    stroke-width: 1.9px;
+  }
+
+  html[data-covi-platform='ios'] .bottom-nav__item[aria-current='page'],
+  html[data-covi-platform='ios'] .bottom-nav__item--sale[aria-current='page'] {
+    color: #17408b;
+    background: rgba(23, 64, 139, 0.065);
+  }
+
+  html[data-covi-platform='ios'] .bottom-nav__item[aria-current='page']::after {
+    display: none;
+  }
+
+  html[data-covi-platform='ios'] .bottom-nav__key,
+  html[data-covi-platform='ios'] .bottom-nav__item--sale[aria-current='page'] .bottom-nav__key {
+    width: auto;
+    height: auto;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    color: inherit;
+    box-shadow: none;
+    transform: none;
+  }
+
+  html[data-covi-platform='ios'] .bottom-nav__item:active,
+  html[data-covi-platform='ios'] .bottom-nav__item--sale:active .bottom-nav__key {
+    transform: scale(0.96);
+    box-shadow: none;
+  }
+
+  html[data-covi-platform='ios'] .home {
+    gap: 17px;
+  }
+
+  html[data-covi-platform='ios'] .home-head {
+    align-items: start;
+    gap: 12px;
+  }
+
+  html[data-covi-platform='ios'] .home-date {
+    padding: 0;
+    border-bottom: 0;
+    color: #42516a;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: none;
+  }
+
+  html[data-covi-platform='ios'] .home-head .muted {
+    display: none;
+  }
+
+  html[data-covi-platform='ios'] .home-hero {
+    gap: 9px;
+    padding: 23px 20px;
+    border: 0;
+    border-radius: 23px;
+    background: linear-gradient(145deg, #214e9c 0%, #102c69 100%);
+    color: white;
+    box-shadow: 0 12px 30px rgba(19, 49, 106, 0.13);
+  }
+
+  html[data-covi-platform='ios'] .home-hero__lead,
+  html[data-covi-platform='ios'] .home-hero__count,
+  html[data-covi-platform='ios'] .home-hero .amount,
+  html[data-covi-platform='ios'] .home-hero .amount__unit {
+    color: white;
+  }
+
+  html[data-covi-platform='ios'] .home-hero__lead {
+    font-size: 14px;
+    opacity: 0.88;
+  }
+
+  html[data-covi-platform='ios'] .home-hero__count {
+    font-size: 13px;
+    opacity: 0.9;
+  }
+
+  html[data-covi-platform='ios'] .home-grid {
+    gap: 17px;
+  }
+
+  html[data-covi-platform='ios'] .home-grid__follow,
+  html[data-covi-platform='ios'] .home-grid__month,
+  html[data-covi-platform='ios'] .home-grid__sales {
+    max-width: none;
+    padding: 19px 18px;
+    border: 1px solid #eceef4;
+    border-radius: 21px;
+    background: white;
+    box-shadow: 0 3px 14px rgba(29, 42, 66, 0.035);
+  }
+
+  html[data-covi-platform='ios'] .section-title::after {
+    display: none;
+  }
+
+  html[data-covi-platform='ios'] .btn {
+    border-radius: 13px;
+    box-shadow: none;
+    touch-action: manipulation;
+  }
+
+  html[data-covi-platform='ios'] .dialog--sheet {
+    max-height: calc(90dvh - env(safe-area-inset-top, 0px));
+    border-radius: 26px 26px 0 0;
+    background: #f9fafc;
+  }
+
+  html[data-covi-platform='ios'] .dialog--sheet::before {
+    width: 36px;
+    height: 5px;
+    margin: 10px auto 8px;
+    border: none;
+    border-radius: 4px;
+    background: #cfd5df;
+  }
+
+  html[data-covi-platform='ios'] .menu-sheet .label-card {
+    border-radius: 18px;
+  }
+
+  html[data-covi-platform='ios'] a.tabs__tab {
+    min-height: 44px;
+  }
+
+  html[data-covi-platform='ios'] .page-tabs {
+    padding: 4px;
+    border-radius: 13px;
+    background: #e8ebf1;
+  }
+
+  html[data-covi-platform='ios'] .tabs__tab[aria-current='page']::after {
+    display: none;
+  }
+
+  /* Keep keyboard controls finger-sized and avoid iOS input zoom. */
+  html[data-covi-platform='ios'] input,
+  html[data-covi-platform='ios'] textarea,
+  html[data-covi-platform='ios'] select {
+    font-size: max(16px, 1em);
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    html[data-covi-platform='ios'] .shell > .topbar,
+    html[data-covi-platform='ios'] .shell > .bottom-nav {
+      background: #fff;
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+  }
+}
+
+/* Utility layer overrides the decorative notebook inset for iOS only. */
+@layer utilities {
+  html[data-covi-platform='ios'] .margin-rule {
+    padding-inline-start: 16px;
+  }
+
+  html[data-covi-platform='ios'] .margin-rule::before {
+    display: none;
+  }
+}
