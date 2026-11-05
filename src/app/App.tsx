@@ -57,6 +57,29 @@ type PageContext = {
   signOut: () => Promise<void>
 }
 
+/** Real app routes: shortcuts never use demo data or fake actions. */
+const iosShortcuts: Record<'retail' | 'restaurant' | 'salon', readonly PageId[]> = {
+  retail: ['vendre', 'stock', 'commandes', 'bilan'],
+  restaurant: ['restaurant-orders', 'restaurant-tables', 'restaurant-menu', 'personnel'],
+  salon: ['salon-bookings', 'salon-caisse', 'salon-clients', 'salon-services'],
+}
+
+function NativeHomeShortcuts({ sector }: { sector: 'retail' | 'restaurant' | 'salon' }) {
+  return (
+    <nav className="ios-shortcuts" aria-label="Accès rapide">
+      {iosShortcuts[sector].map((page) => {
+        const Icon = pages[page].icon
+        return (
+          <a key={page} href={routeHash({ page })} className="ios-shortcut">
+            <span className="ios-shortcut__icon"><Icon /></span>
+            <span>{pages[page].label}</span>
+          </a>
+        )
+      })}
+    </nav>
+  )
+}
+
 /** « Tous · Commandes · Ballons »: filters of Arrivages (each one keeps its own state). */
 const arrivalFilters: readonly { filter?: ArrivalFilter; label: string }[] = [
   { label: 'Tous' },
@@ -443,6 +466,12 @@ export function App({
             <p>Vos chiffres et les actions essentielles.</p>
           </div>
         )}
+        {iosApp && route.page === 'accueil' && (
+          <section className="ios-home-actions" aria-label="Actions du commerce">
+            <h2>Accès rapide</h2>
+            <NativeHomeShortcuts sector={sector} />
+          </section>
+        )}
         <div key={routeKey(route)} className="page">
           {renderPage(route, ctx)}
         </div>
@@ -564,7 +593,10 @@ export function App({
                       establishment.id !== shop.id && (sync.pending > 0 || !onSelectEstablishment)
                     }
                     onClick={() => {
-                      if (establishment.id !== shop.id) onSelectEstablishment?.(establishment.id)
+                      if (establishment.id !== shop.id) {
+                        window.location.hash = '#/'
+                        onSelectEstablishment?.(establishment.id)
+                      }
                       setShopSelectorOpen(false)
                     }}
                   >
