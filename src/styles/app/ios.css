@@ -531,3 +531,97 @@
     border-bottom: 1px solid #e3d6c5;
   }
 }
+
+
+/* Approved COVI iOS multi-establishment switcher. */
+@layer app {
+  html[data-covi-platform='ios'] .ios-shop-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    max-width: 100%;
+    min-width: 0;
+    min-height: 27px;
+    padding: 0 0 1px;
+    color: #807266;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  html[data-covi-platform='ios'] .ios-shop-trigger span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  html[data-covi-platform='ios'] .ios-shop-trigger__chevron {
+    display: inline-block;
+    flex: none;
+    padding-bottom: 3px;
+    font-size: 15px;
+    line-height: 1;
+    color: #17408b;
+  }
+
+  html[data-covi-platform='ios'] .ios-shop-sheet {
+    gap: 13px;
+  }
+
+  html[data-covi-platform='ios'] .ios-shop-sheet__list {
+    display: grid;
+    gap: 9px;
+  }
+
+  html[data-covi-platform='ios'] .ios-shop-choice {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 65px;
+    border: 1px solid #dfd1bf;
+    border-radius: 14px;
+    padding: 12px 14px;
+    background: #f8f3ea;
+    color: #25313b;
+    text-align: left;
+  }
+
+  html[data-covi-platform='ios'] .ios-shop-choice[aria-current='true'] {
+    background: #e9e9f0;
+    border-color: #b8c8e2;
+  }
+
+  html[data-covi-platform='ios'] .ios-shop-choice__details {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  html[data-covi-platform='ios'] .ios-shop-choice__details strong {
+    font-size: 14px;
+    font-weight: 720;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  html[data-covi-platform='ios'] .ios-shop-choice__details small,
+  html[data-covi-platform='ios'] .ios-shop-sheet__hint {
+    color: #7d7269;
+    font-size: 12px;
+  }
+
+  html[data-covi-platform='ios'] .ios-shop-choice > span:last-child:not(.ios-shop-choice__details) {
+    color: #17408b;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  html[data-covi-platform='ios'] .ios-shop-choice:disabled {
+    opacity: 0.52;
+    cursor: not-allowed;
+  }
+}
