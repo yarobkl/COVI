@@ -1,0 +1,8 @@
+{
+  "appId": "com.yaroconsulting.covi",
+  "appName": "COVI",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}
