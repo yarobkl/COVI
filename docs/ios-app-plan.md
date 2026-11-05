@@ -9,7 +9,7 @@ Date de démarrage : 2026-11-05. Branche de préparation : `feature/covi-ios-cap
 - **Identité de marque préservée, expérience iPhone repensée** : conserver le logo, le bleu COVI, le vocabulaire métier et les données ; créer une coque iOS dédiée avec typographie système, cartes épurées, navigation basse et gestes tactiles. Le design web existant reste intact.
 - **Production intacte** : aucun changement de `main`, du domaine web public, du projet Supabase de production ni de ses données pendant l'initialisation.
 - **Connexion Apple reportée** : ne pas toucher aux boutons Google / Facebook avant activation et test du fournisseur Apple.
-- **App ID provisoire** : `com.yaroconsulting.covi` est le même identifiant que dans `src-tauri/tauri.conf.json`. Le confirmer dans Apple Developer avant signature et premier build distribué.
+- **App ID iOS confirmé** : `com.covi.app` a été enregistré dans Apple Developer le 5 novembre 2026 (compte individuel, Team ID `UK4UQCQ57G`). L'identifiant macOS/Tauri est distinct et ne doit pas changer.
 
 ## Choix technique
 
@@ -95,7 +95,7 @@ npx cap open ios
 
 ## Distribution et secrets Apple : sécurité
 
-- Le Bundle ID de travail est `com.yaroconsulting.covi`. **Ne pas lancer la signature avant d'avoir confirmé que cet identifiant est enregistré dans Apple Developer.**
+- Le Bundle ID de l'application iOS est **`com.covi.app`**, confirmé par la capture Apple Developer du 05/11/2026. L'App ID est prêt ; il reste à créer la fiche COVI App Store Connect et un profil de signature propre à cet identifiant.
 - La distribution est **désactivée par défaut**. Le workflow `.github/workflows/ios-testflight.yml` exige un lancement manuel et `uploadToTestFlight=true`.
 - Secrets requis, à enregistrer uniquement dans **GitHub Actions → Repository secrets** pour `yarobkl/COVI` : `APPLE_TEAM_ID`, `APP_STORE_CONNECT_API_KEY_ID`, `APP_STORE_CONNECT_ISSUER_ID`, `APP_STORE_CONNECT_API_PRIVATE_KEY`, `APPLE_DISTRIBUTION_CERTIFICATE_P12_BASE64`, `APPLE_DISTRIBUTION_CERTIFICATE_PASSWORD`, `APPLE_APP_STORE_PROFILE_BASE64`.
 - La clé privée `.p8`, le certificat p12 et la provisioning profile **ne doivent jamais être committés ni publiés en chat**. Les secrets configurés pour GaspardNZ ne sont pas automatiquement accessibles dans le dépôt COVI.
