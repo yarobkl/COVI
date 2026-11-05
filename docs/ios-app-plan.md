@@ -1,5 +1,14 @@
 # COVI iOS — chantier d'application mobile
 
+## Identité commerciale et gratuité — décision du 05/11/2026
+
+- **Nom** : COVI.
+- **Signification** : **Commerce & Vie** ; la vision de marque relie l'activité commerciale à la vie quotidienne (« la vie, c'est le commerce »).
+- **Application iOS** : gratuite au téléchargement et **aucun abonnement, achat intégré ou fonctionnalité payante dans l'app COVI** au lancement, conformément à la décision du porteur de projet.
+- **App Store Connect** : sélectionner le prix **Gratuit** lors de la création de la fiche COVI ; aucune configuration de paiement intégré.
+- **Cohérence produit** : l'ancien modèle d'abonnements documenté pour le site / SaaS doit faire l'objet d'une migration produit distincte et vérifiée avant de modifier des droits ou facturations en production. Ne pas créer de faux blocages payants dans l'app iOS.
+- **App ID Apple confirmé** : `com.covi.app` (compte individuel, Team ID `UK4UQCQ57G`). L'identifiant macOS/Tauri est distinct et reste inchangé.
+
 Date de démarrage : 2026-11-05. Branche de préparation : `feature/covi-ios-capacitor`.
 
 ## Périmètre et invariants
