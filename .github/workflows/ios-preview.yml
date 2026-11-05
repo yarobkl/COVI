@@ -137,5 +137,7 @@ jobs:
           git add ios
           if ! git diff --cached --quiet; then
             git commit -m "build(ios): store generated native Xcode project"
+            git fetch origin feature/covi-ios-capacitor
+            git rebase origin/feature/covi-ios-capacitor
             git push origin HEAD:feature/covi-ios-capacitor
           fi
