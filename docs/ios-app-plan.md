@@ -6,7 +6,7 @@ Date de démarrage : 2026-11-05. Branche de préparation : `feature/covi-ios-cap
 
 - **Une seule plateforme métier** : l'app iOS consomme les services COVI existants, elle ne crée ni backend ni base en parallèle.
 - **Trois métiers dans une seule application** : boutique, restaurant et salon de coiffure, avec la même gestion des rôles, établissements et droits.
-- **Direction artistique inchangée** : conserver les composants React et les styles existants ; les adaptations iOS ultérieures (safe areas, clavier, interactions natives) doivent être ciblées et vérifiées.
+- **Identité de marque préservée, expérience iPhone repensée** : conserver le logo, le bleu COVI, le vocabulaire métier et les données ; créer une coque iOS dédiée avec typographie système, cartes épurées, navigation basse et gestes tactiles. Le design web existant reste intact.
 - **Production intacte** : aucun changement de `main`, du domaine web public, du projet Supabase de production ni de ses données pendant l'initialisation.
 - **Connexion Apple reportée** : ne pas toucher aux boutons Google / Facebook avant activation et test du fournisseur Apple.
 - **App ID provisoire** : `com.yaroconsulting.covi` est le même identifiant que dans `src-tauri/tauri.conf.json`. Le confirmer dans Apple Developer avant signature et premier build distribué.
@@ -31,10 +31,21 @@ COVI web (React / Vite / design existant)
 ### 1. Socle iOS
 
 - [x] Préparer `capacitor.config.json` sur une branche dédiée.
+- [x] Créer la base de la coque visuelle iOS exclusivement activée par le pont Capacitor natif (page header, tab bar flottante, fonds et cartes). **Non testée sur un simulateur/iPhone à ce stade.**
 - [ ] Installer `@capacitor/core`, `@capacitor/cli`, `@capacitor/ios` avec **versions verrouillées** ; mettre à jour `package-lock.json` par `npm install`.
 - [ ] Exécuter `npm ci`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`.
 - [ ] Générer le dossier `ios/` avec `npx cap add ios`, puis `npx cap sync ios` dans un environnement macOS disposant de Xcode pris en charge.
 - [ ] Ne jamais connecter le runtime mobile à l'environnement de préproduction par erreur ; employer des variables de build explicites.
+
+### 2. Direction produit et design iOS
+
+- [x] Prendre comme direction **application iPhone premium**, pas copie du site : la marque est commune, les interfaces sont différenciées.
+- [x] Mettre en place `src/lib/nativePlatform.ts` et des styles `src/styles/app/ios.css` activés uniquement dans l'app native. Le rendu Safari reste inchangé.
+- [ ] Tester sur iPhone : couleurs, contrastes, widgets de données, hauteurs et boutons >= 44 pt, clavier, safe areas et affichage Dynamic Type.
+- [ ] Repenser écran par écran sans toucher aux règles métier : accueil/KPI, caisse, stocks, tables/commandes restaurant, agenda salon, paramètres.
+- [ ] Utiliser des gestes natifs ou équivalents fiables pour les feuilles modales, retour, partage et feedback haptique lorsque justifiés.
+- [ ] Vérifier les performances sur appareils modestes (animation, rafraîchissement de données, scrolling fluide), accessibilité VoiceOver et réduction des animations.
+- [ ] Conserver des options de navigation lisibles pour les trois métiers ; ne pas faire du style une régression fonctionnelle.
 
 ### 2. Compatibilité iOS
 
