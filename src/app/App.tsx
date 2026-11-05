@@ -71,7 +71,9 @@ function NativeHomeShortcuts({ sector }: { sector: 'retail' | 'restaurant' | 'sa
         const Icon = pages[page].icon
         return (
           <a key={page} href={routeHash({ page })} className="ios-shortcut">
-            <span className="ios-shortcut__icon"><Icon /></span>
+            <span className="ios-shortcut__icon">
+              <Icon />
+            </span>
             <span>{pages[page].label}</span>
           </a>
         )

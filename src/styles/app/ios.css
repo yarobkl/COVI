@@ -625,7 +625,6 @@
   }
 }
 
-
 /* Quick native iOS shortcuts use the existing real routes and sector permissions. */
 @layer app {
   html[data-covi-platform='ios'] .ios-home-actions {
@@ -660,7 +659,9 @@
     font-size: 12px;
     font-weight: 700;
     text-decoration: none;
-    transition: transform 140ms ease, border-color 140ms ease;
+    transition:
+      transform 140ms ease,
+      border-color 140ms ease;
   }
 
   html[data-covi-platform='ios'] .ios-shortcut:first-child {
