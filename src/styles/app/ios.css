@@ -3,23 +3,23 @@
 @layer app {
   html[data-covi-platform='ios'] {
     color-scheme: light;
-    --paper: #f5f6fa;
-    --ground: #f5f6fa;
-    --sheet: #ffffff;
-    --ink: #172033;
-    --ink-soft: #536075;
-    --ink-muted: #647084;
+    --paper: #f1e9dd;
+    --ground: #f1e9dd;
+    --sheet: #f8f3ea;
+    --ink: #292e35;
+    --ink-soft: #6f685e;
+    --ink-muted: #82796f;
     --action: #17408b;
     --action-hover: #0f3274;
-    --action-tint: #e9eef8;
-    --line: #e4e8f0;
+    --action-tint: #e4d9ce;
+    --line: #e2d7c9;
     --font-text: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
     --font-figures: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
   }
 
   html[data-covi-platform='ios'] body,
   html[data-covi-platform='ios'] .seyes {
-    background: #f5f6fa;
+    background: #f1e9dd;
     background-image: none;
   }
 
@@ -44,7 +44,7 @@
     gap: 10px;
     padding: calc(env(safe-area-inset-top, 0px) + 12px) 18px 12px;
     border-bottom: 1px solid rgba(23, 64, 139, 0.06);
-    background: rgba(245, 246, 250, 0.9);
+    background: rgba(241, 233, 221, 0.94);
     -webkit-backdrop-filter: blur(20px) saturate(1.5);
     backdrop-filter: blur(20px) saturate(1.5);
   }
@@ -73,7 +73,7 @@
 
   html[data-covi-platform='ios'] .topbar__ios-title {
     overflow: hidden;
-    color: #172033;
+    color: #292e35;
     font-size: clamp(23px, 6vw, 29px);
     font-weight: 740;
     line-height: 1.12;
@@ -91,9 +91,9 @@
     height: 42px;
     min-width: 42px;
     padding: 0;
-    border: 1px solid #e2e7f0;
+    border: 1px solid #dfd1c1;
     border-radius: 50%;
-    background: white;
+    background: #f8f3ea;
   }
 
   /* Preserve the network warning's accessible name in its DOM. */
@@ -111,9 +111,9 @@
     height: 42px;
     min-width: 42px;
     margin-inline-start: 0;
-    border: 1px solid #dde5f1;
+    border: 1px solid #dccdbc;
     border-radius: 50%;
-    background: #e9eef8;
+    background: #e6d8c7;
     box-shadow: none;
     font-size: 14px;
   }
@@ -142,7 +142,7 @@
     padding: 4px 7px;
     border: 1px solid rgba(255, 255, 255, 0.9);
     border-radius: 23px;
-    background: rgba(255, 255, 255, 0.89);
+    background: rgba(248, 243, 234, 0.95);
     box-shadow: 0 10px 35px rgba(22, 37, 64, 0.1), 0 1px 3px rgba(22, 37, 64, 0.04);
     -webkit-backdrop-filter: blur(22px) saturate(1.5);
     backdrop-filter: blur(22px) saturate(1.5);
@@ -154,7 +154,7 @@
     min-height: 54px;
     padding: 3px 0;
     border-radius: 15px;
-    color: #758095;
+    color: #877d72;
     font-size: 10px;
     font-weight: 580;
     line-height: 1.1;
@@ -206,7 +206,7 @@
   html[data-covi-platform='ios'] .home-date {
     padding: 0;
     border-bottom: 0;
-    color: #42516a;
+    color: #756b61;
     font-size: 14px;
     font-weight: 600;
     text-transform: none;
@@ -221,9 +221,9 @@
     padding: 23px 20px;
     border: 0;
     border-radius: 23px;
-    background: linear-gradient(145deg, #214e9c 0%, #102c69 100%);
+    background: #e5d5c0;
     color: white;
-    box-shadow: 0 12px 30px rgba(19, 49, 106, 0.13);
+    box-shadow: none;
   }
 
   html[data-covi-platform='ios'] .home-hero__lead,
@@ -252,9 +252,9 @@
   html[data-covi-platform='ios'] .home-grid__sales {
     max-width: none;
     padding: 19px 18px;
-    border: 1px solid #eceef4;
+    border: 1px solid #e2d7c9;
     border-radius: 21px;
-    background: white;
+    background: #f8f3ea;
     box-shadow: 0 3px 14px rgba(29, 42, 66, 0.035);
   }
 
@@ -271,7 +271,7 @@
   html[data-covi-platform='ios'] .dialog--sheet {
     max-height: calc(90dvh - env(safe-area-inset-top, 0px));
     border-radius: 26px 26px 0 0;
-    background: #f9fafc;
+    background: #f3eadf;
   }
 
   html[data-covi-platform='ios'] .dialog--sheet::before {
@@ -294,7 +294,7 @@
   html[data-covi-platform='ios'] .page-tabs {
     padding: 4px;
     border-radius: 13px;
-    background: #e8ebf1;
+    background: #e7daca;
   }
 
   html[data-covi-platform='ios'] .tabs__tab[aria-current='page']::after {
@@ -311,7 +311,7 @@
   @media (prefers-reduced-transparency: reduce) {
     html[data-covi-platform='ios'] .shell > .topbar,
     html[data-covi-platform='ios'] .shell > .bottom-nav {
-      background: #fff;
+      background: #f8f3ea;
       -webkit-backdrop-filter: none;
       backdrop-filter: none;
     }
@@ -326,5 +326,206 @@
 
   html[data-covi-platform='ios'] .margin-rule::before {
     display: none;
+  }
+}
+
+/* Approved warm beige iPhone direction; no web changes or fake KPI values. */
+@layer app {
+  html[data-covi-platform='ios'] .topbar {
+    min-height: calc(69px + env(safe-area-inset-top, 0px));
+    padding-inline: 18px;
+    border-bottom: 1px solid #e1d5c6;
+    box-shadow: none;
+  }
+
+  html[data-covi-platform='ios'] .topbar__ios-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  html[data-covi-platform='ios'] .topbar__ios-brand .brand-mark {
+    display: block;
+    height: 44px;
+    width: 44px;
+    flex: none;
+    border-radius: 12px;
+  }
+
+  html[data-covi-platform='ios'] .topbar__ios-title {
+    color: #253448;
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: -0.045em;
+  }
+
+  html[data-covi-platform='ios'] .topbar__ios-shop {
+    color: #857669;
+    font-size: 11px;
+    font-weight: 650;
+  }
+
+  html[data-covi-platform='ios'] .topbar .net-pill,
+  html[data-covi-platform='ios'] .avatar,
+  html[data-covi-platform='ios'] .bell {
+    background: #f8f3ea;
+    border-color: #e0d3c4;
+    box-shadow: none;
+  }
+
+  html[data-covi-platform='ios'] .shell__page {
+    padding: 14px 17px 22px;
+  }
+
+  html[data-covi-platform='ios'] .ios-page-heading {
+    margin-bottom: 16px;
+  }
+
+  html[data-covi-platform='ios'] .ios-page-heading h1 {
+    color: #292e35;
+    font-size: clamp(26px, 7vw, 30px);
+    font-weight: 780;
+    line-height: 1.13;
+    letter-spacing: -0.035em;
+  }
+
+  html[data-covi-platform='ios'] .ios-page-heading p {
+    margin-top: 4px;
+    color: #82786d;
+    font-size: 12px;
+  }
+
+  html[data-covi-platform='ios'] .home-head {
+    margin-bottom: 0;
+  }
+
+  html[data-covi-platform='ios'] .home-head > div {
+    display: none;
+  }
+
+  html[data-covi-platform='ios'] .home-head .home-sale {
+    display: flex;
+    min-height: 44px;
+    width: 100%;
+    padding: 10px 15px;
+    border: 0;
+    border-radius: 13px;
+    background: #17408b;
+    color: #ffffff;
+    box-shadow: none;
+  }
+
+  html[data-covi-platform='ios'] .home-hero {
+    gap: 11px;
+    padding: 20px 18px;
+    border: 1px solid #ddc8ae;
+    border-radius: 21px;
+    background: #e5d5c0;
+    color: #292e35;
+  }
+
+  html[data-covi-platform='ios'] .home-hero .home-hero__lead,
+  html[data-covi-platform='ios'] .home-hero .home-hero__count,
+  html[data-covi-platform='ios'] .home-hero .amount,
+  html[data-covi-platform='ios'] .home-hero .amount__unit {
+    color: #292e35;
+    opacity: 1;
+  }
+
+  html[data-covi-platform='ios'] .home-hero .home-hero__lead {
+    color: #706154;
+    font-size: 13px;
+    font-weight: 650;
+  }
+
+  html[data-covi-platform='ios'] .home-hero .amount {
+    font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.035em;
+  }
+
+  html[data-covi-platform='ios'] .home-grid__follow,
+  html[data-covi-platform='ios'] .home-grid__month,
+  html[data-covi-platform='ios'] .home-grid__sales {
+    background: #f8f3ea;
+    border: 1px solid #e2d7c9;
+    border-radius: 17px;
+    box-shadow: none;
+  }
+
+  html[data-covi-platform='ios'] .bottom-nav {
+    border-color: #e0d1bf;
+    box-shadow: 0 5px 16px rgba(52, 42, 31, 0.08);
+  }
+
+  html[data-covi-platform='ios'] .bottom-nav__item[aria-current='page'],
+  html[data-covi-platform='ios'] .bottom-nav__item--sale[aria-current='page'] {
+    background: #e8dccd;
+    color: #17408b;
+  }
+
+  html[data-covi-platform='ios'] .bottom-nav__item {
+    color: #897e72;
+  }
+
+  html[data-covi-platform='ios'] .dialog--sheet {
+    background: #f1e9dd;
+  }
+
+  html[data-covi-platform='ios'] .dialog--sheet::before {
+    background: #c9b9a5;
+  }
+
+  html[data-covi-platform='ios'] .btn:not(.btn--ghost) {
+    min-height: 44px;
+    border-radius: 12px;
+  }
+
+  html[data-covi-platform='ios'] .label-card,
+  html[data-covi-platform='ios'] .ticket,
+  html[data-covi-platform='ios'] .ledger,
+  html[data-covi-platform='ios'] .salon-card,
+  html[data-covi-platform='ios'] .notice {
+    border-radius: 15px;
+  }
+
+  html[data-covi-platform='ios'] body:has(.auth) {
+    background: #f1e9dd;
+  }
+
+  html[data-covi-platform='ios'] .auth__panel {
+    background: #f8f3ea;
+    border: 1px solid #e2d7c9;
+    box-shadow: none;
+  }
+
+  html[data-covi-platform='ios'] .auth__brand-copy .auth__name {
+    color: #17408b;
+  }
+
+  html[data-covi-platform='ios'] input,
+  html[data-covi-platform='ios'] select,
+  html[data-covi-platform='ios'] textarea {
+    min-height: 44px;
+    color: #292e35;
+  }
+
+  html[data-covi-platform='ios'] .page-tabs {
+    background: #e5d8c8;
+  }
+
+  html[data-covi-platform='ios'] .tabs__tab[aria-current='page'] {
+    border-radius: 10px;
+    background: #f8f3ea;
+    color: #17408b;
+  }
+
+  html[data-covi-platform='ios'] .menu-sheet .sommaire__link {
+    min-height: 48px;
+    padding: 12px;
+    border-bottom: 1px solid #e3d6c5;
   }
 }
