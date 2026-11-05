@@ -40,12 +40,14 @@ jobs:
       - name: Verify authorization and signing secrets
         run: |
           set -eu
+          missing=0
           for value in APPLE_TEAM_ID ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY CERTIFICATE_P12 CERTIFICATE_PASSWORD PROFILE_BASE64; do
             if [ -z "${!value}" ]; then
               echo "::error::Required GitHub Actions secret missing: $value"
-              exit 1
+              missing=1
             fi
           done
+          test "$missing" -eq 0
           test "$APPLE_TEAM_ID" = "UK4UQCQ57G" || {
             echo "::error::Configured Apple Team ID does not match the COVI project owner."
             exit 1
