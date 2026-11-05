@@ -46,6 +46,8 @@ jobs:
           git add package-lock.json src/app/App.tsx src/app/Root.tsx src/features/auth/LoginForm.tsx src/lib/nativePlatform.ts src/styles/app/ios.css
           if ! git diff --cached --quiet; then
             git commit -m "chore(ios): lock Capacitor and format native UI"
+            git fetch origin feature/covi-ios-capacitor
+            git rebase origin/feature/covi-ios-capacitor
             git push origin HEAD:feature/covi-ios-capacitor
           fi
 
