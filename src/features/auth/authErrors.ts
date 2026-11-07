@@ -3,6 +3,8 @@ export function authError(error: unknown) {
   const m = String((error as { message?: unknown } | null)?.message || '').toLowerCase()
   if (m.includes('invalid login') || m.includes('invalid credentials'))
     return 'E-mail ou mot de passe incorrect. Vérifiez et réessayez.'
+  if (m.includes('provider is not enabled') || m.includes('unsupported provider') || m.includes('apple'))
+    return 'La connexion Apple n’est pas encore activée côté serveur. Réessayez plus tard ou utilisez votre e-mail.'
   if (m.includes('email not confirmed'))
     return 'Confirmez d’abord votre adresse : ouvrez l’e-mail de COVI et choisissez le lien. Puis revenez ici.'
   if (m.includes('already registered') || m.includes('already been registered'))
