@@ -1012,7 +1012,6 @@
   }
 }
 
-
 /* COVI iOS visual refresh — commerce flows */
 @layer app {
   html[data-covi-platform='ios'] .sale-page,
@@ -1032,7 +1031,7 @@
     color: #201d38;
     font-size: 25px;
     font-weight: 800;
-    letter-spacing: -.04em;
+    letter-spacing: -0.04em;
   }
 
   html[data-covi-platform='ios'] .sale-layout {
@@ -1050,7 +1049,7 @@
     border: 1px solid #ebe9f5;
     border-radius: 22px;
     background: #ffffff;
-    box-shadow: 0 8px 22px rgba(39,31,87,.045);
+    box-shadow: 0 8px 22px rgba(39, 31, 87, 0.045);
   }
 
   html[data-covi-platform='ios'] .sale-layout__articles,
@@ -1069,12 +1068,12 @@
     border: 1px solid #ebe9f5;
     border-radius: 17px;
     background: #ffffff;
-    box-shadow: 0 4px 12px rgba(39,31,87,.035);
+    box-shadow: 0 4px 12px rgba(39, 31, 87, 0.035);
   }
 
   html[data-covi-platform='ios'] .sale-tile:active {
     border-color: #5b43f3;
-    transform: scale(.98);
+    transform: scale(0.98);
   }
 
   html[data-covi-platform='ios'] .sale-tile__meta,
@@ -1091,7 +1090,7 @@
 
   html[data-covi-platform='ios'] .sale-cartbar {
     border-radius: 18px;
-    box-shadow: 0 8px 22px rgba(39,31,87,.08);
+    box-shadow: 0 8px 22px rgba(39, 31, 87, 0.08);
   }
 
   html[data-covi-platform='ios'] .sale-pay,
@@ -1106,7 +1105,7 @@
     border-radius: 11px;
     background: #ffffff;
     color: #5b43f3;
-    box-shadow: 0 3px 10px rgba(39,31,87,.06);
+    box-shadow: 0 3px 10px rgba(39, 31, 87, 0.06);
   }
 
   html[data-covi-platform='ios'] .search,
@@ -1121,7 +1120,7 @@
 
   html[data-covi-platform='ios'] .search:focus-within {
     border-color: #5b43f3;
-    box-shadow: 0 0 0 4px rgba(91,67,243,.1);
+    box-shadow: 0 0 0 4px rgba(91, 67, 243, 0.1);
   }
 
   html[data-covi-platform='ios'] .bars__bar,
@@ -1162,7 +1161,7 @@
     width: 64px;
     height: 64px;
     border-radius: 20px;
-    box-shadow: 0 10px 22px rgba(91,67,243,.25);
+    box-shadow: 0 10px 22px rgba(91, 67, 243, 0.25);
   }
 
   html[data-covi-platform='ios'] .auth__tagline {
@@ -1173,7 +1172,7 @@
     color: #201d38;
     font-size: 30px;
     font-weight: 800;
-    letter-spacing: -.045em;
+    letter-spacing: -0.045em;
   }
 
   html[data-covi-platform='ios'] .auth__sectors {
@@ -1183,7 +1182,7 @@
   html[data-covi-platform='ios'] .auth__sector {
     border: 1px solid #e5e1ff;
     border-radius: 15px;
-    background: rgba(255,255,255,.78);
+    background: rgba(255, 255, 255, 0.78);
     color: #4e4a66;
   }
 
