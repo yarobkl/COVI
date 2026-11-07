@@ -57,11 +57,12 @@ function AppleLogo() {
 }
 
 /**
- * Apple is available on iOS as soon as the native App ID capability is enabled.
- * The web build remains controlled by the Vercel feature flag until Supabase is configured.
+ * Apple sign-in is shown by default so the iOS build always exposes the native-required action.
+ * Set VITE_COVI_APPLE_SIGNIN=false only for a deployment where the Supabase Apple provider is
+ * intentionally disabled.
  */
 export const appleSignInEnabled =
-  isCoviIosApp() || import.meta.env.VITE_COVI_APPLE_SIGNIN === 'true'
+  import.meta.env.VITE_COVI_APPLE_SIGNIN !== 'false' || isCoviIosApp()
 
 function FacebookLogo() {
   return (
