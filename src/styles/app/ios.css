@@ -1011,3 +1011,205 @@
     box-shadow: 0 0 0 4px rgba(91, 67, 243, 0.12);
   }
 }
+
+
+/* COVI iOS visual refresh — commerce flows */
+@layer app {
+  html[data-covi-platform='ios'] .sale-page,
+  html[data-covi-platform='ios'] .page-stack {
+    gap: 16px;
+  }
+
+  html[data-covi-platform='ios'] .sale-head,
+  html[data-covi-platform='ios'] .page-head {
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+
+  html[data-covi-platform='ios'] .page-title,
+  html[data-covi-platform='ios'] .sale-form__title {
+    color: #201d38;
+    font-size: 25px;
+    font-weight: 800;
+    letter-spacing: -.04em;
+  }
+
+  html[data-covi-platform='ios'] .sale-layout {
+    gap: 14px;
+  }
+
+  html[data-covi-platform='ios'] .sale-layout__articles,
+  html[data-covi-platform='ios'] .sale-layout__sale,
+  html[data-covi-platform='ios'] .sale-form,
+  html[data-covi-platform='ios'] .sheet,
+  html[data-covi-platform='ios'] .page-pair > *,
+  html[data-covi-platform='ios'] .entry,
+  html[data-covi-platform='ios'] .ledger,
+  html[data-covi-platform='ios'] .notice {
+    border: 1px solid #ebe9f5;
+    border-radius: 22px;
+    background: #ffffff;
+    box-shadow: 0 8px 22px rgba(39,31,87,.045);
+  }
+
+  html[data-covi-platform='ios'] .sale-layout__articles,
+  html[data-covi-platform='ios'] .sale-layout__sale,
+  html[data-covi-platform='ios'] .sale-form {
+    padding: 16px;
+  }
+
+  html[data-covi-platform='ios'] .sale-tiles {
+    gap: 10px;
+  }
+
+  html[data-covi-platform='ios'] .sale-tile {
+    min-height: 84px;
+    padding: 12px;
+    border: 1px solid #ebe9f5;
+    border-radius: 17px;
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(39,31,87,.035);
+  }
+
+  html[data-covi-platform='ios'] .sale-tile:active {
+    border-color: #5b43f3;
+    transform: scale(.98);
+  }
+
+  html[data-covi-platform='ios'] .sale-tile__meta,
+  html[data-covi-platform='ios'] .sale-line__meta,
+  html[data-covi-platform='ios'] .form-grid__note {
+    color: #9692aa;
+  }
+
+  html[data-covi-platform='ios'] .sale-cartbar,
+  html[data-covi-platform='ios'] .sale-form__foot {
+    border-color: #ebe9f5;
+    background: #ffffff;
+  }
+
+  html[data-covi-platform='ios'] .sale-cartbar {
+    border-radius: 18px;
+    box-shadow: 0 8px 22px rgba(39,31,87,.08);
+  }
+
+  html[data-covi-platform='ios'] .sale-pay,
+  html[data-covi-platform='ios'] .segmented {
+    border: 1px solid #e5e1ff;
+    border-radius: 14px;
+    background: #f0edff;
+  }
+
+  html[data-covi-platform='ios'] .segmented__options > *[aria-selected='true'],
+  html[data-covi-platform='ios'] .segmented__options > *[data-active='true'] {
+    border-radius: 11px;
+    background: #ffffff;
+    color: #5b43f3;
+    box-shadow: 0 3px 10px rgba(39,31,87,.06);
+  }
+
+  html[data-covi-platform='ios'] .search,
+  html[data-covi-platform='ios'] .input,
+  html[data-covi-platform='ios'] .form-check,
+  html[data-covi-platform='ios'] .sale-line,
+  html[data-covi-platform='ios'] .expense-row {
+    border-color: #ebe9f5;
+    border-radius: 14px;
+    background: #ffffff;
+  }
+
+  html[data-covi-platform='ios'] .search:focus-within {
+    border-color: #5b43f3;
+    box-shadow: 0 0 0 4px rgba(91,67,243,.1);
+  }
+
+  html[data-covi-platform='ios'] .bars__bar,
+  html[data-covi-platform='ios'] .salon-bars__fill {
+    background: linear-gradient(180deg, #765fff, #5b43f3);
+    border-radius: 8px 8px 3px 3px;
+  }
+
+  html[data-covi-platform='ios'] .bars__col:nth-child(even) .bars__bar {
+    background: #d9d2ff;
+  }
+
+  html[data-covi-platform='ios'] .bars__value,
+  html[data-covi-platform='ios'] .figures,
+  html[data-covi-platform='ios'] .amount {
+    color: #5b43f3;
+  }
+
+  html[data-covi-platform='ios'] .auth {
+    min-height: 100dvh;
+    padding: 20px 16px calc(28px + env(safe-area-inset-bottom, 0px));
+    background: radial-gradient(circle at 80% 0%, #ece8ff 0, #f7f6ff 42%);
+  }
+
+  html[data-covi-platform='ios'] .auth__layout {
+    gap: 18px;
+  }
+
+  html[data-covi-platform='ios'] .auth__intro {
+    padding: 8px 4px 0;
+  }
+
+  html[data-covi-platform='ios'] .auth__brand {
+    align-items: center;
+  }
+
+  html[data-covi-platform='ios'] .auth__brand .brand-mark {
+    width: 64px;
+    height: 64px;
+    border-radius: 20px;
+    box-shadow: 0 10px 22px rgba(91,67,243,.25);
+  }
+
+  html[data-covi-platform='ios'] .auth__tagline {
+    color: #817c9a;
+  }
+
+  html[data-covi-platform='ios'] .auth__headline {
+    color: #201d38;
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -.045em;
+  }
+
+  html[data-covi-platform='ios'] .auth__sectors {
+    gap: 9px;
+  }
+
+  html[data-covi-platform='ios'] .auth__sector {
+    border: 1px solid #e5e1ff;
+    border-radius: 15px;
+    background: rgba(255,255,255,.78);
+    color: #4e4a66;
+  }
+
+  html[data-covi-platform='ios'] .auth__sector[aria-current='true'],
+  html[data-covi-platform='ios'] .auth__sector.is-active {
+    border-color: #5b43f3;
+    background: #f0edff;
+    color: #5b43f3;
+  }
+
+  html[data-covi-platform='ios'] .auth__social-actions {
+    gap: 10px;
+  }
+
+  html[data-covi-platform='ios'] .auth__social-btn {
+    min-height: 48px;
+    border-color: #e5e1ff;
+    border-radius: 14px;
+    background: #ffffff;
+  }
+
+  html[data-covi-platform='ios'] .auth__social-btn:hover {
+    border-color: #5b43f3;
+  }
+
+  html[data-covi-platform='ios'] .auth__or {
+    color: #9692aa;
+  }
+}
