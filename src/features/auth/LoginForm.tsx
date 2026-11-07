@@ -57,11 +57,11 @@ function AppleLogo() {
 }
 
 /**
- * « Continuer avec Apple » : obligatoire sur l'App Store dès que Google ou Facebook sont proposés.
- * Affiché seulement quand le fournisseur Apple est configuré dans Supabase
- * (VITE_COVI_APPLE_SIGNIN=true ; voir docs/connexion-apple.md).
+ * Apple is available on iOS as soon as the native App ID capability is enabled.
+ * The web build remains controlled by the Vercel feature flag until Supabase is configured.
  */
-export const appleSignInEnabled = import.meta.env.VITE_COVI_APPLE_SIGNIN === 'true'
+export const appleSignInEnabled =
+  isCoviIosApp() || import.meta.env.VITE_COVI_APPLE_SIGNIN === 'true'
 
 function FacebookLogo() {
   return (
@@ -142,8 +142,6 @@ export function LoginForm({
   const [businessName, setBusinessName] = useState('')
   const [confirmationEmail, setConfirmationEmail] = useState('')
   const [phone, setPhone] = useState('+242')
-  // The iOS build uses password authentication until native OAuth + Apple are configured.
-  // Google/Facebook in a WKWebView would redirect to capacitor://localhost and lose the session.
   const nativeIos = isCoviIosApp()
   const emailReturnUrl = nativeIos ? 'https://covi-snowy.vercel.app' : window.location.origin
   const login = mode === 'login'
@@ -213,7 +211,7 @@ export function LoginForm({
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: desktop ? desktopAuthRedirect() : window.location.origin,
+          redirectTo: desktop ? desktopAuthRedirect() : emailReturnUrl,
           skipBrowserRedirect: desktop,
           ...(provider === 'facebook' ? { scopes: 'email' } : {}),
           ...(provider === 'apple' ? { scopes: 'name email' } : {}),
@@ -466,7 +464,7 @@ export function LoginForm({
             Mot de passe oublié ?
           </button>
         )}
-        {login && !nativeIos && (
+        {login && (
           <>
             <p className="auth__or" aria-hidden="true">
               ou
