@@ -710,7 +710,6 @@
   }
 }
 
-
 /* COVI iOS visual refresh — purple commerce workspace */
 @layer app {
   html[data-covi-platform='ios'] {
@@ -737,13 +736,13 @@
   html[data-covi-platform='ios'] .shell > .topbar {
     min-height: calc(76px + env(safe-area-inset-top, 0px));
     padding: calc(env(safe-area-inset-top, 0px) + 14px) 18px 12px;
-    border-bottom: 1px solid rgba(91, 67, 243, .08);
-    background: rgba(247, 246, 255, .92);
+    border-bottom: 1px solid rgba(91, 67, 243, 0.08);
+    background: rgba(247, 246, 255, 0.92);
   }
 
   html[data-covi-platform='ios'] .topbar__ios-brand .brand-mark {
     border-radius: 14px;
-    box-shadow: 0 6px 16px rgba(91, 67, 243, .2);
+    box-shadow: 0 6px 16px rgba(91, 67, 243, 0.2);
   }
 
   html[data-covi-platform='ios'] .topbar__ios-title {
@@ -781,7 +780,7 @@
     color: #201d38;
     font-size: 30px;
     font-weight: 800;
-    letter-spacing: -.045em;
+    letter-spacing: -0.045em;
   }
 
   html[data-covi-platform='ios'] .ios-page-heading p {
@@ -806,7 +805,7 @@
     border: 0;
     border-radius: 26px;
     background: linear-gradient(135deg, #6b4ff7 0%, #4b32cf 100%);
-    box-shadow: 0 16px 30px rgba(91, 67, 243, .22);
+    box-shadow: 0 16px 30px rgba(91, 67, 243, 0.22);
   }
 
   html[data-covi-platform='ios'] .home-hero::after {
@@ -816,9 +815,11 @@
     bottom: -54px;
     width: 170px;
     height: 170px;
-    border: 1px solid rgba(255,255,255,.2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 50%;
-    box-shadow: 0 0 0 22px rgba(255,255,255,.06), 0 0 0 44px rgba(255,255,255,.04);
+    box-shadow:
+      0 0 0 22px rgba(255, 255, 255, 0.06),
+      0 0 0 44px rgba(255, 255, 255, 0.04);
   }
 
   html[data-covi-platform='ios'] .home-hero .home-hero__lead,
@@ -831,7 +832,7 @@
   }
 
   html[data-covi-platform='ios'] .home-hero .home-hero__lead {
-    color: rgba(255,255,255,.8);
+    color: rgba(255, 255, 255, 0.8);
     font-size: 14px;
     font-weight: 600;
   }
@@ -839,18 +840,18 @@
   html[data-covi-platform='ios'] .home-hero .amount {
     font-size: clamp(34px, 9vw, 44px);
     line-height: 1;
-    letter-spacing: -.05em;
+    letter-spacing: -0.05em;
   }
 
   html[data-covi-platform='ios'] .home-hero .amount__unit {
     margin-left: 5px;
-    color: rgba(255,255,255,.78);
+    color: rgba(255, 255, 255, 0.78);
     font-size: 13px;
     letter-spacing: 0;
   }
 
   html[data-covi-platform='ios'] .home-hero .home-hero__count {
-    color: rgba(255,255,255,.82);
+    color: rgba(255, 255, 255, 0.82);
     font-size: 13px;
   }
 
@@ -869,7 +870,7 @@
     border: 1px solid #ebe9f5;
     border-radius: 22px;
     background: #ffffff;
-    box-shadow: 0 8px 22px rgba(39, 31, 87, .045);
+    box-shadow: 0 8px 22px rgba(39, 31, 87, 0.045);
   }
 
   html[data-covi-platform='ios'] .section-title,
@@ -913,14 +914,14 @@
     font-size: 10px;
     font-weight: 700;
     text-align: center;
-    box-shadow: 0 5px 14px rgba(39, 31, 87, .035);
+    box-shadow: 0 5px 14px rgba(39, 31, 87, 0.035);
   }
 
   html[data-covi-platform='ios'] .ios-shortcut:first-child {
     border-color: #5b43f3;
     background: #5b43f3;
     color: #ffffff;
-    box-shadow: 0 8px 18px rgba(91, 67, 243, .2);
+    box-shadow: 0 8px 18px rgba(91, 67, 243, 0.2);
   }
 
   html[data-covi-platform='ios'] .ios-shortcut__icon {
@@ -933,15 +934,15 @@
   }
 
   html[data-covi-platform='ios'] .ios-shortcut:first-child .ios-shortcut__icon {
-    background: rgba(255,255,255,.18);
+    background: rgba(255, 255, 255, 0.18);
     color: #ffffff;
   }
 
   html[data-covi-platform='ios'] .shell > .bottom-nav {
     margin: 0 12px calc(8px + env(safe-area-inset-bottom, 0px));
     border: 1px solid #e7e3ff;
-    background: rgba(255,255,255,.94);
-    box-shadow: 0 12px 30px rgba(39, 31, 87, .12);
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 12px 30px rgba(39, 31, 87, 0.12);
   }
 
   html[data-covi-platform='ios'] .bottom-nav__item {
@@ -957,7 +958,7 @@
     color: #ffffff;
     background: #5b43f3;
     border-radius: 14px;
-    box-shadow: 0 6px 14px rgba(91, 67, 243, .24);
+    box-shadow: 0 6px 14px rgba(91, 67, 243, 0.24);
   }
 
   html[data-covi-platform='ios'] .btn:not(.btn--ghost),
@@ -965,7 +966,7 @@
     border-radius: 14px;
     background: #5b43f3;
     color: #ffffff;
-    box-shadow: 0 8px 18px rgba(91, 67, 243, .18);
+    box-shadow: 0 8px 18px rgba(91, 67, 243, 0.18);
   }
 
   html[data-covi-platform='ios'] .page-tabs {
@@ -975,7 +976,7 @@
   html[data-covi-platform='ios'] .tabs__tab[aria-current='page'] {
     background: #ffffff;
     color: #5b43f3;
-    box-shadow: 0 3px 10px rgba(39, 31, 87, .06);
+    box-shadow: 0 3px 10px rgba(39, 31, 87, 0.06);
   }
 
   html[data-covi-platform='ios'] .dialog--sheet {
@@ -996,7 +997,7 @@
     border-color: #ebe9f5;
     border-radius: 28px;
     background: #ffffff;
-    box-shadow: 0 18px 40px rgba(39, 31, 87, .1);
+    box-shadow: 0 18px 40px rgba(39, 31, 87, 0.1);
   }
 
   html[data-covi-platform='ios'] .auth__brand-copy .auth__name {
@@ -1007,6 +1008,6 @@
   html[data-covi-platform='ios'] select:focus,
   html[data-covi-platform='ios'] textarea:focus {
     border-color: #5b43f3;
-    box-shadow: 0 0 0 4px rgba(91, 67, 243, .12);
+    box-shadow: 0 0 0 4px rgba(91, 67, 243, 0.12);
   }
 }
