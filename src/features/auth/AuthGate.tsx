@@ -21,6 +21,7 @@ import { SpaceChooser, type SpaceChoice } from '../team/SpaceChooser'
 import { CreateShopForm } from './CreateShopForm'
 import { AddEstablishmentForm } from './AddEstablishmentForm'
 import { LoginForm, type AuthMode } from './LoginForm'
+import { BrandMark } from '../../components/Brand'
 
 /** Signs out after closing the till session of a shared device (best effort, never blocks). */
 async function signOutEverywhere() {
@@ -59,6 +60,7 @@ export function AuthGate({
   const [shop, setShop] = useState<Shop | null>(null)
   const [loading, setLoading] = useState(true)
   const [mode, setMode] = useState<AuthMode>('login')
+  const [showWelcome, setShowWelcome] = useState(true)
   const [message, setMessage] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [memberships, setMemberships] = useState<MemberShop[]>([])
@@ -166,6 +168,51 @@ export function AuthGate({
       </div>
     )
   if (!session)
+    if (showWelcome)
+      return (
+        <div className="auth auth--welcome">
+          <main className="auth__welcome" aria-labelledby="welcome-title">
+            <div className="auth__welcome-brand">
+              <BrandMark size={84} />
+              <p className="auth__name">COVI</p>
+              <p className="auth__tagline">Commerce &amp; Vie</p>
+            </div>
+            <h1 id="welcome-title">Le système d’exploitation de votre commerce.</h1>
+            <p>
+              Gérez vos ventes, vos stocks, vos clients et votre équipe simplement depuis votre
+              iPhone.
+            </p>
+            <div className="auth__welcome-actions">
+              <button
+                type="button"
+                className="button button--primary button--lg button--block"
+                onClick={() => {
+                  setMode('signup')
+                  setShowWelcome(false)
+                }}
+              >
+                Commencer
+              </button>
+              <button
+                type="button"
+                className="button button--secondary button--lg button--block"
+                onClick={() => {
+                  setMode('login')
+                  setShowWelcome(false)
+                }}
+              >
+                Se connecter
+              </button>
+            </div>
+            <nav className="auth__legal" aria-label="Informations légales">
+              <a href="#/confidentialite">Confidentialité</a>
+              <a href="#/conditions">Conditions</a>
+              <a href="#/aide">Aide</a>
+            </nav>
+          </main>
+        </div>
+      )
+    else
     return (
       <LoginForm
         mode={mode}
@@ -178,6 +225,7 @@ export function AuthGate({
         onAuthSuccess={() => {
           void supabase.auth.getSession().then(({ data }) => setSession(data.session))
         }}
+        onBackToWelcome={() => setShowWelcome(true)}
       />
     )
   if (deletion.pending)
