@@ -173,60 +173,57 @@ export function AuthGate({
     shop !== null || memberships.length > 0 || restaurantSpaces.length > 0 || salonSpaces.length > 0
   if (isIOSApp && showWelcome && (!session || !hasLinkedSpace))
     return (
-        <div className="auth auth--welcome">
-          <main className="auth__welcome" aria-labelledby="welcome-title">
-            <p className="auth__welcome-kicker">COVI · COMMERCE &amp; VIE</p>
-            <div className="auth__welcome-brand">
-              <BrandMark size={84} />
-              <p className="auth__name">COVI</p>
-              <p className="auth__tagline">Commerce &amp; Vie</p>
-            </div>
-            <h1 id="welcome-title">Le système d’exploitation de votre commerce.</h1>
-            <p>
-              Gérez vos ventes, vos stocks, vos clients et votre équipe simplement depuis votre
-              iPhone.
-            </p>
-            <div className="auth__welcome-highlights" aria-label="Fonctionnalités COVI">
-              <span>Ventes</span>
-              <span>Stock</span>
-              <span>Clients</span>
-              <span>Agenda</span>
-            </div>
-            <div className="auth__welcome-pagination" aria-label="Écran 1 sur 3">
-              <span className="is-active" />
-              <span />
-              <span />
-            </div>
-            <div className="auth__welcome-actions">
-              <button
-                type="button"
-                className="button button--primary button--lg button--block"
-                onClick={() => {
-                  setMode('signup')
-                  setShowWelcome(false)
-                }}
-              >
-                Commencer
-              </button>
-              <button
-                type="button"
-                className="button button--secondary button--lg button--block"
-                onClick={() => {
-                  setMode('login')
-                  setShowWelcome(false)
-                }}
-              >
-                Se connecter
-              </button>
-            </div>
-            <nav className="auth__legal" aria-label="Informations légales">
-              <a href="#/confidentialite">Confidentialité</a>
-              <a href="#/conditions">Conditions</a>
-              <a href="#/aide">Aide</a>
-            </nav>
-          </main>
-        </div>
-      )
+      <div className="auth auth--welcome">
+        <main className="auth__welcome" aria-labelledby="welcome-title">
+          <p className="auth__welcome-kicker">COVI · COMMERCE &amp; VIE</p>
+          <div className="auth__welcome-brand">
+            <BrandMark size={84} />
+            <p className="auth__name">COVI</p>
+            <p className="auth__tagline">Commerce &amp; Vie</p>
+          </div>
+          <h1 id="welcome-title">Le système d’exploitation de votre commerce.</h1>
+          <p>
+            Gérez vos ventes, vos stocks, vos clients et votre équipe simplement depuis votre
+            iPhone.
+          </p>
+          <div className="auth__welcome-highlights" aria-label="Fonctionnalités COVI">
+            <span>Ventes</span>
+            <span>Stock</span>
+            <span>Clients</span>
+            <span>Agenda</span>
+          </div>
+          <div className="auth__welcome-pagination" aria-label="Écran 1 sur 3">
+            <span className="is-active" />
+            <span />
+            <span />
+          </div>
+          <div className="auth__welcome-actions" aria-label="Accès COVI">
+            <button
+              type="button"
+              className="button button--primary button--lg button--block"
+              data-auth-entry="signup"
+              onClick={() => {
+                setMode('signup')
+                setShowWelcome(false)
+              }}
+            >
+              Commencer
+            </button>
+            <button
+              type="button"
+              className="button button--secondary button--lg button--block"
+              data-auth-entry="login"
+              onClick={() => {
+                setMode('login')
+                setShowWelcome(false)
+              }}
+            >
+              Se connecter
+            </button>
+          </div>
+        </main>
+      </div>
+    )
   if (!session)
     return (
       <LoginForm
