@@ -175,6 +175,9 @@ export function AuthGate({
         message={message}
         onMessage={setMessage}
         onSimulation={onSimulation}
+        onAuthSuccess={() => {
+          void supabase.auth.getSession().then(({ data }) => setSession(data.session))
+        }}
       />
     )
   if (deletion.pending)
