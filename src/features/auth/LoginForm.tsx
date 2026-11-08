@@ -143,6 +143,7 @@ export function LoginForm({
   onMessage,
   onSimulation,
   onAuthSuccess,
+  onBackToWelcome,
 }: {
   mode: AuthMode
   onModeChange: (mode: AuthMode) => void
@@ -152,6 +153,7 @@ export function LoginForm({
   onMessage: (message: string) => void
   onSimulation: () => void
   onAuthSuccess?: () => void
+  onBackToWelcome?: () => void
 }) {
   const [busy, setBusy] = useState(false)
   const [showDiscovery, setShowDiscovery] = useState(false)
@@ -574,6 +576,11 @@ export function LoginForm({
           </a>
         ))}
       </nav>
+      {onBackToWelcome && (
+        <button type="button" className="auth__back" onClick={onBackToWelcome}>
+          Retour à l’accueil
+        </button>
+      )}
     </AuthPage>
   )
 }
