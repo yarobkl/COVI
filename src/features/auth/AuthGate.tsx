@@ -167,9 +167,8 @@ export function AuthGate({
         </div>
       </div>
     )
-  if (!session)
-    if (showWelcome)
-      return (
+  if (showWelcome && (!session || !shop))
+    return (
         <div className="auth auth--welcome">
           <main className="auth__welcome" aria-labelledby="welcome-title">
             <p className="auth__welcome-kicker">COVI · COMMERCE &amp; VIE</p>
@@ -219,7 +218,7 @@ export function AuthGate({
           </main>
         </div>
       )
-    else
+  if (!session)
     return (
       <LoginForm
         mode={mode}
