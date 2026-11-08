@@ -1,0 +1,172 @@
+name: COVI iOS - Preview
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/covi-ios-capacitor
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'capacitor.config.json'
+      - '.gitignore'
+      - '.github/workflows/ios-preview.yml'
+      - 'scripts/ios/**'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: covi-ios-preview
+  cancel-in-progress: true
+
+jobs:
+  prepare:
+    name: Lock dependencies and format iOS source
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/covi-ios-capacitor
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Create and verify reproducible lockfile
+        run: |
+          npm install --package-lock-only --ignore-scripts
+          npm ci
+      - name: Format only the files touched for iOS
+        run: |
+          npx prettier --write src/app/App.tsx src/app/Root.tsx src/features/auth/LoginForm.tsx src/lib/nativePlatform.ts src/styles/app/ios.css
+      - name: Commit generated lockfile and formatting to this feature branch only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json src/app/App.tsx src/app/Root.tsx src/features/auth/LoginForm.tsx src/lib/nativePlatform.ts src/styles/app/ios.css
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(ios): lock Capacitor and format native UI"
+            git fetch origin feature/covi-ios-capacitor
+            git rebase origin/feature/covi-ios-capacitor
+            git push origin HEAD:feature/covi-ios-capacitor
+          fi
+
+  validation:
+    name: React build and tests
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/covi-ios-capacitor
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - run: npm run build
+      - run: npm run lint
+      - run: npm test
+
+  simulator:
+    name: Compile unsigned iPhone Simulator app
+    needs: prepare
+    runs-on: macos-26
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/covi-ios-capacitor
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Show Xcode version
+        run: xcodebuild -version
+      - run: npm ci
+      - name: Build existing COVI React app (real business screens)
+        run: npm run build
+      - name: Create and sync native Xcode project
+        run: |
+          if [ ! -d ios/App ]; then npx cap add ios; fi
+          npx cap sync ios
+      - name: Install official COVI app icon
+        run: |
+          ICON_DIR="ios/App/App/Assets.xcassets/AppIcon.appiconset"
+          if [ -d "$ICON_DIR" ]; then
+            for ICON in "$ICON_DIR"/*.png; do
+              [ -f "$ICON" ] || continue
+              swift scripts/ios/make-covi-icon.swift "$ICON"
+            done
+          fi
+      - name: Install approved beige splash screen
+        run: |
+          SPLASH_DIR="ios/App/App/Assets.xcassets/Splash.imageset"
+          test -d "$SPLASH_DIR"
+          swift scripts/ios/make-covi-splash.swift "$SPLASH_DIR/splash-2732x2732.png"
+          cp "$SPLASH_DIR/splash-2732x2732.png" "$SPLASH_DIR/splash-2732x2732-1.png"
+          cp "$SPLASH_DIR/splash-2732x2732.png" "$SPLASH_DIR/splash-2732x2732-2.png"
+      - name: Build iPhone Simulator app (without distribution signing)
+        run: |
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/COVI-DerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+      - name: Capture real iPhone Simulator screen
+        id: screenshot
+        continue-on-error: true
+        timeout-minutes: 8
+        run: |
+          DEVICE_UDID="$(xcrun simctl list devices available -j | python3 -c '
+          import json,sys
+          data=json.load(sys.stdin)["devices"]
+          phones=[d for xs in data.values() for d in xs if d.get("isAvailable") and "iPhone" in d.get("name","")]
+          print(phones[0]["udid"] if phones else "")
+          ')"
+          test -n "$DEVICE_UDID"
+          xcrun simctl boot "$DEVICE_UDID" || true
+          xcrun simctl bootstatus "$DEVICE_UDID" -b
+          APP_PATH="$RUNNER_TEMP/COVI-DerivedData/Build/Products/Debug-iphonesimulator/App.app"
+          test -d "$APP_PATH"
+          xcrun simctl install "$DEVICE_UDID" "$APP_PATH"
+          xcrun simctl launch "$DEVICE_UDID" com.covi.app
+          sleep 9
+          mkdir -p previews
+          xcrun simctl io "$DEVICE_UDID" screenshot previews/covi-ios-beige-login.png
+      - name: Preserve real simulator screenshot
+        if: ${{ steps.screenshot.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: COVI-iOS-Real-Simulator-Screenshot
+          path: previews/covi-ios-beige-login.png
+          retention-days: 14
+      - name: Package simulator app
+        run: |
+          APP_DIR="$RUNNER_TEMP/COVI-DerivedData/Build/Products/Debug-iphonesimulator"
+          APP_PATH="$(find "$APP_DIR" -maxdepth 1 -type d -name '*.app' | head -n 1)"
+          test -n "$APP_PATH"
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$RUNNER_TEMP/COVI-iOS-Simulator.zip"
+          cp "$RUNNER_TEMP/COVI-iOS-Simulator.zip" ./COVI-iOS-Simulator.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: COVI-iOS-Simulator
+          path: COVI-iOS-Simulator.zip
+          if-no-files-found: error
+          retention-days: 14
+      - name: Preserve native Xcode project on iOS feature branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ios
+          if ! git diff --cached --quiet; then
+            git commit -m "build(ios): store generated native Xcode project"
+            git fetch origin feature/covi-ios-capacitor
+            git rebase origin/feature/covi-ios-capacitor
+            git push origin HEAD:feature/covi-ios-capacitor
+          fi

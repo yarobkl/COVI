@@ -4,6 +4,7 @@ import { AuthGate } from '../features/auth/AuthGate'
 import { CounterGate } from '../features/team/CounterGate'
 import { parsePublicHash } from '../lib/publicOrders'
 import { parseRestaurantQrHash } from '../lib/restaurantQr'
+import { isCoviIosApp } from '../lib/nativePlatform'
 import { App } from './App'
 
 // The example shop is only opened on demand: kept out of the first download.
@@ -59,6 +60,14 @@ function usePublicRoute() {
 
 // index.html has no <html lang>: screen readers must read French.
 document.documentElement.lang = 'fr'
+// Native iOS gets its own visual shell. Safari/iPhone web remains unchanged.
+if (isCoviIosApp()) {
+  document.documentElement.dataset.coviPlatform = 'ios'
+  // Full-screen native safe areas; do not alter the Safari website viewport.
+  document
+    .querySelector('meta[name="viewport"]')
+    ?.setAttribute('content', 'width=device-width, initial-scale=1, viewport-fit=cover')
+}
 
 /** Switches between the simulation (no account needed) and the signed-in application. */
 export function Root() {
@@ -102,15 +111,25 @@ export function Root() {
     )
   return (
     <AuthGate onSimulation={() => setSimulation(true)}>
-      {(shop, signOut, updateShop, userId, onAddEstablishment) => (
-        // Shared device in counter mode: the owner's pages stay closed until the owner's code.
-        <CounterGate shop={shop} userId={userId} signOut={signOut}>
+      {(
+        shop,
+        signOut,
+        updateShop,
+        userId,
+        onAddEstablishment,
+        ownedEstablishments,
+        onSelectEstablishment,
+      ) => (
+        // Remount shared-till protections when switching businesses on a single device.
+        <CounterGate key={shop.id} shop={shop} userId={userId} signOut={signOut}>
           <App
             shop={shop}
             userId={userId}
             signOut={signOut}
             updateShop={updateShop}
             onAddEstablishment={onAddEstablishment}
+            ownedEstablishments={ownedEstablishments}
+            onSelectEstablishment={onSelectEstablishment}
             onSimulation={() => setSimulation(true)}
           />
         </CounterGate>

@@ -21,6 +21,7 @@ import { SpaceChooser, type SpaceChoice } from '../team/SpaceChooser'
 import { CreateShopForm } from './CreateShopForm'
 import { AddEstablishmentForm } from './AddEstablishmentForm'
 import { LoginForm, type AuthMode } from './LoginForm'
+import { BrandMark } from '../../components/Brand'
 
 /** Signs out after closing the till session of a shared device (best effort, never blocks). */
 async function signOutEverywhere() {
@@ -50,6 +51,8 @@ export function AuthGate({
     /** The signed-in account of the validated session (sales and carts are tied to it). */
     userId: string,
     addEstablishment: () => void,
+    ownedEstablishments?: Shop[],
+    selectEstablishment?: (shopId: string) => void,
   ) => ReactNode
   onSimulation: () => void
 }) {
@@ -57,6 +60,7 @@ export function AuthGate({
   const [shop, setShop] = useState<Shop | null>(null)
   const [loading, setLoading] = useState(true)
   const [mode, setMode] = useState<AuthMode>('login')
+  const [showWelcome, setShowWelcome] = useState(true)
   const [message, setMessage] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [memberships, setMemberships] = useState<MemberShop[]>([])
@@ -154,6 +158,8 @@ export function AuthGate({
     })
   }, [userId, membershipsVersion])
   const reloadMemberships = () => setMembershipsVersion((n) => n + 1)
+  const isIOSApp =
+    typeof document !== 'undefined' && document.documentElement.dataset.coviPlatform === 'ios'
   if (loading)
     return (
       <div className="authshell" role="status">
@@ -161,6 +167,61 @@ export function AuthGate({
           <h1>COVI</h1>
           <p>Ouverture de la boutique…</p>
         </div>
+      </div>
+    )
+  const hasLinkedSpace =
+    shop !== null || memberships.length > 0 || restaurantSpaces.length > 0 || salonSpaces.length > 0
+  if (isIOSApp && showWelcome && (!session || !hasLinkedSpace))
+    return (
+      <div className="auth auth--welcome">
+        <main className="auth__welcome" aria-labelledby="welcome-title">
+          <p className="auth__welcome-kicker">COVI · COMMERCE &amp; VIE</p>
+          <div className="auth__welcome-brand">
+            <BrandMark size={84} />
+            <p className="auth__name">COVI</p>
+            <p className="auth__tagline">Commerce &amp; Vie</p>
+          </div>
+          <h1 id="welcome-title">Le système d’exploitation de votre commerce.</h1>
+          <p>
+            Gérez vos ventes, vos stocks, vos clients et votre équipe simplement depuis votre
+            iPhone.
+          </p>
+          <div className="auth__welcome-highlights" aria-label="Fonctionnalités COVI">
+            <span>Ventes</span>
+            <span>Stock</span>
+            <span>Clients</span>
+            <span>Agenda</span>
+          </div>
+          <div className="auth__welcome-pagination" aria-label="Écran 1 sur 3">
+            <span className="is-active" />
+            <span />
+            <span />
+          </div>
+          <div className="auth__welcome-actions" aria-label="Accès COVI">
+            <button
+              type="button"
+              className="button button--primary button--lg button--block"
+              data-auth-entry="signup"
+              onClick={() => {
+                setMode('signup')
+                setShowWelcome(false)
+              }}
+            >
+              Commencer
+            </button>
+            <button
+              type="button"
+              className="button button--secondary button--lg button--block"
+              data-auth-entry="login"
+              onClick={() => {
+                setMode('login')
+                setShowWelcome(false)
+              }}
+            >
+              Se connecter
+            </button>
+          </div>
+        </main>
       </div>
     )
   if (!session)
@@ -173,6 +234,10 @@ export function AuthGate({
         message={message}
         onMessage={setMessage}
         onSimulation={onSimulation}
+        onAuthSuccess={() => {
+          void supabase.auth.getSession().then(({ data }) => setSession(data.session))
+        }}
+        onBackToWelcome={() => setShowWelcome(true)}
       />
     )
   if (deletion.pending)
@@ -340,9 +405,27 @@ export function AuthGate({
   }
   return (
     <>
-      {children(shop!, signOutEverywhere, setShop, session.user.id, () => {
-        if (ownedShops.length < 3) setAddingEstablishment(true)
-      })}
+      {children(
+        shop!,
+        signOutEverywhere,
+        (updatedShop) => {
+          setShop(updatedShop)
+          setOwnedShops((current) =>
+            current.map((establishment) =>
+              establishment.id === updatedShop.id ? updatedShop : establishment,
+            ),
+          )
+        },
+        session.user.id,
+        () => {
+          if (ownedShops.length < 3) setAddingEstablishment(true)
+        },
+        ownedShops,
+        (shopId) => {
+          const next = ownedShops.find((establishment) => establishment.id === shopId)
+          if (next) setShop(next)
+        },
+      )}
     </>
   )
 }

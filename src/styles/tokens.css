@@ -19,27 +19,27 @@
     /* ------------------------------------------------------------------
        1. COULEURS — primitives (ne pas utiliser directement dans l'app)
        ------------------------------------------------------------------ */
-    --c-desk: #efede7; /* la table sous le cahier                    */
-    --c-paper: #fcfbf8; /* la page du cahier                          */
+    --c-desk: #f4f1ff; /* soft lavender app background                */
+    --c-paper: #fbfaff; /* clean iOS surface                           */
     --c-white: #ffffff; /* feuille volante, ticket, champ             */
-    --c-ink-900: #1e2430; /* encre noire                                */
-    --c-ink-700: #3d4454;
-    --c-ink-600: #4a5468;
-    --c-ink-500: #5a6170; /* plus clair autorisé pour du texte          */
-    --c-ink-400: #7a869c; /* bordure de champ (3,67:1, non-texte)       */
-    --c-blue-700: #0f3274;
-    --c-blue-600: #17408b; /* encre bleue du stylo = action              */
-    --c-blue-100: #eef2fa;
-    --c-blue-150: #dce5f4;
-    --c-blue-50: #f1f4f9;
-    --c-rule-300: #c9d5e8; /* filet de ligne                             */
-    --c-rule-200: #d5deec; /* Seyès : grand carreau                      */
-    --c-rule-100: #e8edf5; /* Seyès : petite ligne                       */
+    --c-ink-900: #181526; /* deep plum ink                              */
+    --c-ink-700: #403957;
+    --c-ink-600: #625b78;
+    --c-ink-500: #77708d;
+    --c-ink-400: #a39db5;
+    --c-blue-700: #4a1fa8;
+    --c-blue-600: #6d35e8; /* COVI violet action                         */
+    --c-blue-100: #eee8ff;
+    --c-blue-150: #ded2ff;
+    --c-blue-50: #f7f4ff;
+    --c-rule-300: #e3ddf2;
+    --c-rule-200: #eee9f8;
+    --c-rule-100: #f5f2fb;
     --c-margin: #e8968f; /* marge rouge (décor seulement)             */
     --c-red-600: #b3261e; /* stylo rouge                                */
     --c-red-100: #fbeae8;
-    --c-green-700: #0a6b36;
-    --c-green-100: #e6f2ea;
+    --c-green-700: #218b52;
+    --c-green-100: #e7f7ee;
     --c-highlighter: #ffe36e; /* surligneur pâle (partout, sous du texte)   */
     --c-sign-yellow: #ffd23f; /* jaune enseigne (module vente SEULEMENT)    */
     --c-sign-yellow-100: #fff6cc;
@@ -95,7 +95,7 @@
        3. TYPOGRAPHIE
        Polices auto-hébergées via @fontsource (voir DESIGN-SYSTEM.md).
        ------------------------------------------------------------------ */
-    --font-text: 'Atkinson Hyperlegible', 'Segoe UI', 'Noto Sans', sans-serif;
+    --font-text: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     --font-figures: 'Courier Prime', 'Courier New', ui-monospace, monospace;
     --font-hand: 'Kalam', 'Segoe Print', 'Bradley Hand', cursive;
 
@@ -163,8 +163,8 @@
        ------------------------------------------------------------------ */
     --radius-1: 3px; /* badge, tranche de feuille */
     --radius-2: 6px; /* touche de pavé, puce */
-    --radius-3: 10px; /* bouton, champ, tuile */
-    --radius-4: 14px; /* carte d'identité de la boutique, dialogue */
+    --radius-3: 16px; /* bouton, champ, tuile */
+    --radius-4: 24px; /* carte d'identité de la boutique, dialogue */
     --radius-pill: 999px;
     --radius-sheet: 3px 10px 10px 3px; /* feuille : côté reliure serré */
 
@@ -180,7 +180,7 @@
     --border-tactile: 2px;
     --border-total: 1.5px; /* trait au-dessus d'un total ; dessous : 4px double */
 
-    --shadow-sheet: 0 1px 0 #d6d1c4, 4px 5px 0 -1px #f7f5ef, 4px 5px 0 0 var(--c-sheet-edge);
+    --shadow-sheet: 0 12px 30px rgb(62 39 125 / 0.08);
     --shadow-ticket: 0 1px 2px rgb(30 36 48 / 0.14);
     --shadow-lift:
       0 2px 0 rgb(30 36 48 / 0.08), 0 6px 14px -6px rgb(30 36 48 / 0.25); /* dialogue, toast */
