@@ -326,9 +326,10 @@
     display: block;
     position: relative;
     overflow: hidden;
-    padding: calc(24px + env(safe-area-inset-top, 0px)) 28px
-      calc(28px + env(safe-area-inset-bottom, 0px));
-    background: #171137;
+    padding: calc(24px + env(safe-area-inset-top, 0px)) 28px calc(28px + env(safe-area-inset-bottom, 0px));
+    background:
+      radial-gradient(circle at 88% 8%, rgba(115, 83, 255, 0.5), transparent 32%),
+      linear-gradient(180deg, #171137 0%, #211653 58%, #140d32 100%);
     isolation: isolate;
   }
 
@@ -346,6 +347,11 @@
     z-index: 1;
   }
 
+  html[data-covi-platform='ios'] .auth__welcome > * {
+    position: relative;
+    z-index: 2;
+  }
+
   html[data-covi-platform='ios'] .auth__welcome::before {
     content: '';
     position: absolute;
@@ -354,16 +360,11 @@
     left: -25%;
     bottom: 10%;
     border-radius: 50% 50% 0 0;
-    background: linear-gradient(
-      135deg,
-      rgba(111, 78, 255, 0.02),
-      rgba(144, 91, 255, 0.9) 42%,
-      rgba(48, 36, 145, 0.1) 78%
-    );
+    background: linear-gradient(135deg, rgba(95, 64, 236, 0.05), rgba(139, 81, 255, 0.82) 42%, rgba(23, 17, 55, 0.05) 78%);
     transform: rotate(-10deg);
     filter: blur(1px);
     pointer-events: none;
-    z-index: -1;
+    z-index: 0;
   }
 
   html[data-covi-platform='ios'] .auth__welcome::after {
@@ -374,10 +375,10 @@
     right: -42vw;
     top: -18vw;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(130, 96, 255, 0.58), transparent 68%);
+    background: radial-gradient(circle, rgba(137, 102, 255, 0.5), transparent 68%);
     filter: blur(10px);
     pointer-events: none;
-    z-index: -1;
+    z-index: 0;
   }
 
   html[data-covi-platform='ios'] .auth__welcome-kicker {
