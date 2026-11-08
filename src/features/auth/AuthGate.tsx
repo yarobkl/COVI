@@ -172,6 +172,7 @@ export function AuthGate({
       return (
         <div className="auth auth--welcome">
           <main className="auth__welcome" aria-labelledby="welcome-title">
+            <p className="auth__welcome-kicker">COVI · COMMERCE &amp; VIE</p>
             <div className="auth__welcome-brand">
               <BrandMark size={84} />
               <p className="auth__name">COVI</p>
@@ -182,6 +183,12 @@ export function AuthGate({
               Gérez vos ventes, vos stocks, vos clients et votre équipe simplement depuis votre
               iPhone.
             </p>
+            <div className="auth__welcome-highlights" aria-label="Fonctionnalités COVI">
+              <span>Ventes</span>
+              <span>Stock</span>
+              <span>Clients</span>
+              <span>Agenda</span>
+            </div>
             <div className="auth__welcome-actions">
               <button
                 type="button"
