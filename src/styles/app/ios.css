@@ -353,7 +353,12 @@
     left: -25%;
     bottom: -7%;
     border-radius: 50% 50% 0 0;
-    background: linear-gradient(140deg, rgba(123, 91, 255, 0.06), #ded5ff 52%, rgba(255, 255, 255, 0) 86%);
+    background: linear-gradient(
+      140deg,
+      rgba(123, 91, 255, 0.06),
+      #ded5ff 52%,
+      rgba(255, 255, 255, 0) 86%
+    );
     opacity: 0.92;
     transform: rotate(-7deg);
   }
@@ -492,10 +497,8 @@
     place-items: stretch;
     min-height: 100svh;
     min-height: 100dvh;
-    padding: max(14px, env(safe-area-inset-top, 0px))
-      max(14px, env(safe-area-inset-right, 0px))
-      max(14px, env(safe-area-inset-bottom, 0px))
-      max(14px, env(safe-area-inset-left, 0px));
+    padding: max(14px, env(safe-area-inset-top, 0px)) max(14px, env(safe-area-inset-right, 0px))
+      max(14px, env(safe-area-inset-bottom, 0px)) max(14px, env(safe-area-inset-left, 0px));
     overflow: hidden;
     background:
       radial-gradient(120% 55% at 100% 0%, rgba(139, 108, 255, 0.23), transparent 55%),
@@ -617,7 +620,10 @@
     font-size: 18px;
     font-weight: 800;
     -webkit-tap-highlight-color: transparent;
-    transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+    transition:
+      transform 160ms ease,
+      box-shadow 160ms ease,
+      background-color 160ms ease;
   }
 
   html[data-covi-platform='ios'] .auth__welcome-actions .button:active {
