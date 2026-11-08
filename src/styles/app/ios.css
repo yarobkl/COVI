@@ -323,104 +323,162 @@
 @layer app {
   html[data-covi-platform='ios'] .auth--welcome {
     min-height: 100dvh;
-    display: grid;
-    place-items: center;
-    padding: 24px 18px calc(28px + env(safe-area-inset-bottom, 0px));
-    background: radial-gradient(circle at 85% 5%, #e9e4ff 0, #f8f7ff 44%, #ffffff 100%);
+    display: block;
+    position: relative;
+    overflow: hidden;
+    padding: calc(24px + env(safe-area-inset-top, 0px)) 28px calc(28px + env(safe-area-inset-bottom, 0px));
+    background: #171137;
+    isolation: isolate;
   }
 
   html[data-covi-platform='ios'] .auth__welcome {
     position: relative;
-    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
     width: min(100%, 430px);
-    padding: 28px 22px 22px;
+    margin: 0 auto;
+    padding: 26px 0 18px;
     text-align: center;
-    border: 1px solid rgba(229, 225, 255, 0.9);
-    border-radius: 30px;
-    background: rgba(255, 255, 255, 0.82);
-    box-shadow: 0 22px 60px rgba(46, 35, 122, 0.14);
-    backdrop-filter: blur(18px);
+    color: #fff;
+    z-index: 1;
   }
 
   html[data-covi-platform='ios'] .auth__welcome::before {
     content: '';
     position: absolute;
-    width: 210px;
-    height: 210px;
-    top: -128px;
-    right: -92px;
-    border-radius: 50%;
-    background: rgba(116, 87, 255, 0.2);
-    filter: blur(4px);
+    width: 150%;
+    height: 45%;
+    left: -25%;
+    bottom: 10%;
+    border-radius: 50% 50% 0 0;
+    background: linear-gradient(135deg, rgba(111, 78, 255, 0.02), rgba(144, 91, 255, 0.9) 42%, rgba(48, 36, 145, 0.1) 78%);
+    transform: rotate(-10deg);
+    filter: blur(1px);
     pointer-events: none;
+    z-index: -1;
+  }
+
+  html[data-covi-platform='ios'] .auth__welcome::after {
+    content: '';
+    position: absolute;
+    width: 70vw;
+    height: 70vw;
+    right: -42vw;
+    top: -18vw;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(130, 96, 255, 0.58), transparent 68%);
+    filter: blur(10px);
+    pointer-events: none;
+    z-index: -1;
   }
 
   html[data-covi-platform='ios'] .auth__welcome-kicker {
     position: relative;
-    margin: 0 0 18px;
-    color: #765fff;
-    font-size: 11px;
+    margin: 0 0 38px;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 12px;
     font-weight: 800;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.2em;
   }
 
   html[data-covi-platform='ios'] .auth__welcome-brand {
-    display: grid;
-    justify-items: center;
-    gap: 3px;
-    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 42px;
+    text-align: left;
   }
 
   html[data-covi-platform='ios'] .auth__welcome-brand .brand-mark {
-    margin-bottom: 6px;
-    border-radius: 24px;
-    box-shadow: 0 14px 28px rgba(91, 67, 243, 0.25);
+    width: 58px;
+    height: 58px;
+    border-radius: 18px;
+    box-shadow: 0 12px 26px rgba(111, 78, 255, 0.38);
+  }
+
+  html[data-covi-platform='ios'] .auth__welcome-brand .auth__name {
+    margin: 0;
+    color: #fff;
+    font-size: 34px;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+    line-height: 0.9;
+  }
+
+  html[data-covi-platform='ios'] .auth__welcome-brand .auth__tagline {
+    margin: 5px 0 0;
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
   }
 
   html[data-covi-platform='ios'] .auth__welcome h1 {
     margin: 0;
-    color: #201d38;
-    font-size: clamp(30px, 8vw, 42px);
-    line-height: 1.05;
-    letter-spacing: -0.05em;
+    color: #fff;
+    font-size: clamp(36px, 10vw, 54px);
+    line-height: 0.98;
+    letter-spacing: -0.06em;
   }
 
   html[data-covi-platform='ios'] .auth__welcome > p {
-    margin: 16px auto 26px;
+    margin: 24px auto 30px;
     max-width: 32ch;
-    color: #716c8a;
-    font-size: 16px;
-    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.74);
+    font-size: 17px;
+    font-weight: 500;
+    line-height: 1.45;
   }
 
   html[data-covi-platform='ios'] .auth__welcome-highlights {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 7px;
-    margin: -8px 0 24px;
-  }
-
-  html[data-covi-platform='ios'] .auth__welcome-highlights span {
-    padding: 7px 10px;
-    border: 1px solid #e5e1ff;
-    border-radius: 999px;
-    background: #f5f2ff;
-    color: #5b43f3;
-    font-size: 12px;
-    font-weight: 700;
+    display: none;
   }
 
   html[data-covi-platform='ios'] .auth__welcome-actions {
     display: grid;
-    gap: 11px;
+    gap: 14px;
+    margin-top: 30px;
   }
 
   html[data-covi-platform='ios'] .auth__welcome-actions .button {
-    min-height: 54px;
-    border-radius: 16px;
-    font-size: 16px;
-    font-weight: 750;
+    min-height: 56px;
+    border-radius: 18px;
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+
+  html[data-covi-platform='ios'] .auth__welcome-actions .button--primary {
+    background: #fff;
+    color: #211848;
+    box-shadow: 0 12px 26px rgba(8, 4, 28, 0.2);
+  }
+
+  html[data-covi-platform='ios'] .auth__welcome-actions .button--secondary {
+    border-color: rgba(255, 255, 255, 0.64);
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+  }
+
+  html[data-covi-platform='ios'] .auth__welcome-pagination {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 22px;
+  }
+
+  html[data-covi-platform='ios'] .auth__welcome-pagination span {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.35);
+  }
+
+  html[data-covi-platform='ios'] .auth__welcome-pagination span.is-active {
+    background: #fff;
   }
 
   html[data-covi-platform='ios'] .auth__back {
@@ -431,6 +489,27 @@
     color: #5b43f3;
     font: inherit;
     font-size: 14px;
+  }
+
+  html[data-covi-platform='ios'] .auth__legal {
+    display: flex;
+    justify-content: center;
+    gap: 22px;
+    margin-top: 38px;
+  }
+
+  html[data-covi-platform='ios'] .auth__legal a {
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  html[data-covi-platform='ios'] .auth__legal a:focus-visible,
+  html[data-covi-platform='ios'] .auth__legal a:hover {
+    color: #fff;
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
 }
 
