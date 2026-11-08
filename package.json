@@ -17,6 +17,7 @@
     "test": "vitest run && node tests/offline.mjs && node --test tests/kitchen_push.mjs && node --test tests/covi-assistant-handler.check.mjs"
   },
   "dependencies": {
+    "@capacitor-community/apple-sign-in": "^7.1.0",
     "@capacitor/core": "8.6.0",
     "@capacitor/ios": "8.6.0",
     "@fontsource/atkinson-hyperlegible": "5.3.0",
