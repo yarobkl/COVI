@@ -29,9 +29,10 @@ function randomNonce() {
 
 async function hashedNonce(nonce: string) {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(nonce))
-  // Supabase Auth verifies Apple's nonce as a lowercase hexadecimal SHA-256 hash.
-  // Apple receives the hashed nonce; the raw nonce is sent back to Supabase.
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
+  return btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '')
 }
 
 /** Official-color brand marks, kept local so sign-in buttons need no third-party assets. */
@@ -141,6 +142,7 @@ export function LoginForm({
   message,
   onMessage,
   onSimulation,
+  onAuthSuccess,
 }: {
   mode: AuthMode
   onModeChange: (mode: AuthMode) => void
@@ -149,6 +151,7 @@ export function LoginForm({
   message: string
   onMessage: (message: string) => void
   onSimulation: () => void
+  onAuthSuccess?: () => void
 }) {
   const [busy, setBusy] = useState(false)
   const [showDiscovery, setShowDiscovery] = useState(false)
@@ -236,6 +239,7 @@ export function LoginForm({
           nonce,
         })
         if (error) onMessage(authError(error))
+        else onAuthSuccess?.()
         return
       }
       const desktop = isTauriApp()
