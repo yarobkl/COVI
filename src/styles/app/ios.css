@@ -326,7 +326,8 @@
     display: block;
     position: relative;
     overflow: hidden;
-    padding: calc(24px + env(safe-area-inset-top, 0px)) 28px calc(28px + env(safe-area-inset-bottom, 0px));
+    padding: calc(24px + env(safe-area-inset-top, 0px)) 28px
+      calc(28px + env(safe-area-inset-bottom, 0px));
     background: #171137;
     isolation: isolate;
   }
@@ -353,7 +354,12 @@
     left: -25%;
     bottom: 10%;
     border-radius: 50% 50% 0 0;
-    background: linear-gradient(135deg, rgba(111, 78, 255, 0.02), rgba(144, 91, 255, 0.9) 42%, rgba(48, 36, 145, 0.1) 78%);
+    background: linear-gradient(
+      135deg,
+      rgba(111, 78, 255, 0.02),
+      rgba(144, 91, 255, 0.9) 42%,
+      rgba(48, 36, 145, 0.1) 78%
+    );
     transform: rotate(-10deg);
     filter: blur(1px);
     pointer-events: none;
