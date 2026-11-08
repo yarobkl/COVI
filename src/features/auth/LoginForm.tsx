@@ -11,6 +11,7 @@ import { PhoneInput } from './PhoneInput'
 import { legalLinks } from '../../lib/legal'
 import { BUSINESS_KINDS, type BusinessKind } from '../../lib/businessKinds'
 import { createOwnerSignupDetails, storeOwnerOAuthIntent } from '../../lib/ownerSignup'
+import { SignInWithApple } from '@capacitor-community/apple-sign-in'
 
 export type AuthMode = 'login' | 'signup'
 
@@ -19,6 +20,20 @@ const isGoodNews = (message: string) =>
   message.startsWith('Compte créé') ||
   message.startsWith('Si cette adresse') ||
   message.startsWith('Si un compte')
+
+function randomNonce() {
+  const bytes = new Uint8Array(32)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+async function hashedNonce(nonce: string) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(nonce))
+  return btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '')
+}
 
 /** Official-color brand marks, kept local so sign-in buttons need no third-party assets. */
 function GoogleLogo() {
@@ -207,6 +222,22 @@ export function LoginForm({
       if (!login) {
         // Retain the user's activity choice through the external OAuth redirect.
         storeOwnerOAuthIntent(selectedKind, businessName)
+      }
+      if (provider === 'apple' && nativeIos) {
+        const nonce = randomNonce()
+        const result = await SignInWithApple.authorize({
+          clientId: 'com.covi.app',
+          redirectURI: 'https://covi-snowy.vercel.app',
+          scopes: 'email name',
+          nonce: await hashedNonce(nonce),
+        })
+        const { error } = await supabase.auth.signInWithIdToken({
+          provider: 'apple',
+          token: result.response.identityToken,
+          nonce,
+        })
+        if (error) onMessage(authError(error))
+        return
       }
       const desktop = isTauriApp()
       const { data, error } = await supabase.auth.signInWithOAuth({
