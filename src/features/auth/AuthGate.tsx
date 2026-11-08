@@ -158,6 +158,8 @@ export function AuthGate({
     })
   }, [userId, membershipsVersion])
   const reloadMemberships = () => setMembershipsVersion((n) => n + 1)
+  const isIOSApp =
+    typeof document !== 'undefined' && document.documentElement.dataset.coviPlatform === 'ios'
   if (loading)
     return (
       <div className="authshell" role="status">
@@ -167,7 +169,9 @@ export function AuthGate({
         </div>
       </div>
     )
-  if (showWelcome && (!session || !shop))
+  const hasLinkedSpace =
+    shop !== null || memberships.length > 0 || restaurantSpaces.length > 0 || salonSpaces.length > 0
+  if (isIOSApp && showWelcome && (!session || !hasLinkedSpace))
     return (
         <div className="auth auth--welcome">
           <main className="auth__welcome" aria-labelledby="welcome-title">
@@ -187,6 +191,11 @@ export function AuthGate({
               <span>Stock</span>
               <span>Clients</span>
               <span>Agenda</span>
+            </div>
+            <div className="auth__welcome-pagination" aria-label="Écran 1 sur 3">
+              <span className="is-active" />
+              <span />
+              <span />
             </div>
             <div className="auth__welcome-actions">
               <button
