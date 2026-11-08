@@ -320,6 +320,65 @@
   }
 }
 
+/* COVI visual refinement — iOS product surface (v2). */
+@layer app {
+  html[data-covi-platform='ios'] body {
+    background: linear-gradient(180deg, #faf9ff 0%, #f2efff 100%);
+  }
+
+  html[data-covi-platform='ios'] .shell {
+    background: transparent;
+  }
+
+  html[data-covi-platform='ios'] .page-head {
+    padding-inline: 2px;
+  }
+
+  html[data-covi-platform='ios'] .home-hero,
+  html[data-covi-platform='ios'] .home-grid__follow,
+  html[data-covi-platform='ios'] .home-grid__month,
+  html[data-covi-platform='ios'] .home-grid__sales,
+  html[data-covi-platform='ios'] .card,
+  html[data-covi-platform='ios'] .panel {
+    border: 1px solid rgb(111 73 232 / 0.1);
+    border-radius: 24px;
+    background: rgb(255 255 255 / 0.84);
+    box-shadow: 0 14px 34px rgb(73 44 154 / 0.08);
+    backdrop-filter: blur(14px);
+  }
+
+  html[data-covi-platform='ios'] .home-hero {
+    background:
+      radial-gradient(circle at 95% 0%, rgb(167 125 255 / 0.42), transparent 42%),
+      linear-gradient(135deg, #5b2fc9, #321272 75%);
+    border: 0;
+    color: #fff;
+  }
+
+  html[data-covi-platform='ios'] .home-hero .amount,
+  html[data-covi-platform='ios'] .home-hero .amount__unit,
+  html[data-covi-platform='ios'] .home-hero__lead,
+  html[data-covi-platform='ios'] .home-hero__count {
+    color: #fff;
+  }
+
+  html[data-covi-platform='ios'] .bottom-nav {
+    border: 1px solid rgb(107 67 225 / 0.12);
+    border-radius: 24px 24px 0 0;
+    background: rgb(255 255 255 / 0.94);
+    box-shadow: 0 -10px 30px rgb(61 35 135 / 0.1);
+    backdrop-filter: blur(18px);
+  }
+
+  html[data-covi-platform='ios'] .btn,
+  html[data-covi-platform='ios'] button,
+  html[data-covi-platform='ios'] input,
+  html[data-covi-platform='ios'] select,
+  html[data-covi-platform='ios'] textarea {
+    border-radius: 16px;
+  }
+}
+
 /* Utility layer overrides the decorative notebook inset for iOS only. */
 @layer utilities {
   html[data-covi-platform='ios'] .margin-rule {
