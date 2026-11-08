@@ -320,6 +320,78 @@
   }
 }
 
+@layer app {
+  html[data-covi-platform='ios'] .auth--welcome {
+    min-height: 100dvh;
+    display: grid;
+    place-items: center;
+    padding: 24px 18px calc(28px + env(safe-area-inset-bottom, 0px));
+    background: radial-gradient(circle at 85% 5%, #e9e4ff 0, #f8f7ff 44%, #ffffff 100%);
+  }
+
+  html[data-covi-platform='ios'] .auth__welcome {
+    width: min(100%, 430px);
+    padding: 28px 22px 22px;
+    text-align: center;
+    border: 1px solid rgba(229, 225, 255, 0.9);
+    border-radius: 30px;
+    background: rgba(255, 255, 255, 0.82);
+    box-shadow: 0 22px 60px rgba(46, 35, 122, 0.14);
+    backdrop-filter: blur(18px);
+  }
+
+  html[data-covi-platform='ios'] .auth__welcome-brand {
+    display: grid;
+    justify-items: center;
+    gap: 3px;
+    margin-bottom: 24px;
+  }
+
+  html[data-covi-platform='ios'] .auth__welcome-brand .brand-mark {
+    margin-bottom: 6px;
+    border-radius: 24px;
+    box-shadow: 0 14px 28px rgba(91, 67, 243, 0.25);
+  }
+
+  html[data-covi-platform='ios'] .auth__welcome h1 {
+    margin: 0;
+    color: #201d38;
+    font-size: clamp(30px, 8vw, 42px);
+    line-height: 1.05;
+    letter-spacing: -0.05em;
+  }
+
+  html[data-covi-platform='ios'] .auth__welcome > p {
+    margin: 16px auto 26px;
+    max-width: 32ch;
+    color: #716c8a;
+    font-size: 16px;
+    line-height: 1.55;
+  }
+
+  html[data-covi-platform='ios'] .auth__welcome-actions {
+    display: grid;
+    gap: 11px;
+  }
+
+  html[data-covi-platform='ios'] .auth__welcome-actions .button {
+    min-height: 54px;
+    border-radius: 16px;
+    font-size: 16px;
+    font-weight: 750;
+  }
+
+  html[data-covi-platform='ios'] .auth__back {
+    display: block;
+    margin: 14px auto 0;
+    border: 0;
+    background: transparent;
+    color: #5b43f3;
+    font: inherit;
+    font-size: 14px;
+  }
+}
+
 /* COVI visual refinement — iOS product surface (v2). */
 @layer app {
   html[data-covi-platform='ios'] body {
