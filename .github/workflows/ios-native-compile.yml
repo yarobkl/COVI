@@ -59,9 +59,25 @@ jobs:
           xcrun simctl bootstatus "$DEVICE_ID" -b
           xcrun simctl install "$DEVICE_ID" "$RUNNER_TEMP/COVI-DerivedData/Build/Products/Debug-iphonesimulator/App.app"
           xcrun simctl launch "$DEVICE_ID" com.covi.app
-          sleep 8
           mkdir -p "$RUNNER_TEMP/covi-screenshots"
+          # Give WKWebView time to load the bundled Vite assets and render React.
+          # Never report a successful visual test when the screenshot is blank.
+          sleep 15
           xcrun simctl io "$DEVICE_ID" screenshot "$RUNNER_TEMP/covi-screenshots/welcome-iphone.png"
+          sleep 15
+          xcrun simctl io "$DEVICE_ID" screenshot "$RUNNER_TEMP/covi-screenshots/welcome-iphone-30s.png"
+          python3 - "$RUNNER_TEMP/covi-screenshots" <<'PY'
+          import os, sys
+          from PIL import Image, ImageStat
+          folder = sys.argv[1]
+          for name in ('welcome-iphone.png', 'welcome-iphone-30s.png'):
+              img = Image.open(os.path.join(folder, name)).convert('RGB')
+              stats = ImageStat.Stat(img)
+              print(f'{name}: size={img.size}, channel_stddev={stats.stddev}')
+          img = Image.open(os.path.join(folder, 'welcome-iphone-30s.png')).convert('RGB')
+          if max(ImageStat.Stat(img).stddev) < 8:
+              raise SystemExit('Visual smoke test failed: screenshot is almost uniform; possible blank app screen')
+          PY
       - name: Upload iPhone simulator screenshot
         if: always()
         uses: actions/upload-artifact@v4
