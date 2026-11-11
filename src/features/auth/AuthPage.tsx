@@ -8,19 +8,21 @@ import type { BusinessKind } from '../../lib/businessKinds'
 export function AuthPage({
   title,
   lead,
+  nativeIos = false,
   aside,
   onSectorSelect,
   children,
 }: {
   title: string
   lead: string
+  nativeIos?: boolean
   /** Shown beside the form on a computer, under it on a phone. */
   aside?: ReactNode
   onSectorSelect?: (kind: BusinessKind) => void
   children: ReactNode
 }) {
   return (
-    <div className="auth">
+    <div className={nativeIos ? "auth auth--native-entry" : "auth"}>
       <main className="auth__layout">
         <header className="auth__intro">
           <div className="auth__brand">
@@ -30,11 +32,11 @@ export function AuthPage({
               <p className="auth__tagline">Gestion commerciale</p>
             </div>
           </div>
-          <h1 className="auth__headline">Votre activité, mieux pilotée.</h1>
-          <p className="auth__identity">
+          {!nativeIos && <h1 className="auth__headline">Votre activité, mieux pilotée.</h1>}
+          {!nativeIos && <p className="auth__identity">
             Boutique, restaurant ou salon : ventes, stocks et équipe au même endroit.
-          </p>
-          <div className="auth__sectors" aria-label="Activités prises en charge par COVI">
+          </p>}
+          {!nativeIos && <div className="auth__sectors" aria-label="Activités prises en charge par COVI">
             {onSectorSelect ? (
               <>
                 <button type="button" className="auth__sector" onClick={() => onSectorSelect('retail')}>Boutique</button>
@@ -48,7 +50,7 @@ export function AuthPage({
                 <span className="auth__sector">Salon de coiffure</span>
               </>
             )}
-          </div>
+          </div>}
         </header>
         <section className="auth__panel" aria-labelledby="auth-title">
           <div className="auth__main">
