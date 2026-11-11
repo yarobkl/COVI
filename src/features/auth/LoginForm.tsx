@@ -291,6 +291,7 @@ export function LoginForm({
   if (showReset)
     return (
       <AuthPage
+        nativeIos={nativeIos}
         title="Réinitialiser votre mot de passe"
         lead="Nous vous envoyons un lien sécurisé pour choisir un nouveau mot de passe."
       >
@@ -326,7 +327,7 @@ export function LoginForm({
 
   if (confirmationEmail)
     return (
-      <AuthPage title="Vérifiez votre boîte mail" lead="Votre inscription est presque terminée.">
+      <AuthPage nativeIos={nativeIos} title="Vérifiez votre boîte mail" lead="Votre inscription est presque terminée.">
         <div className="auth__confirmation" role="status">
           <div className="auth__confirmation-icon" aria-hidden="true">
             ✓
