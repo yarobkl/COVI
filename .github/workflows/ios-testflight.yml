@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Public iOS version (example 1.0.0)'
+        description: 'TestFlight version (at least 1.0.8)'
         required: true
-        default: '1.0.0'
+        default: '1.0.8'
       buildNumber:
         description: 'Unique, increasing App Store Connect build number'
         required: true
@@ -43,6 +43,20 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.ref_name }}
+      - name: Verify checked-out source provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          ACTUAL_REF="$(git branch --show-current)"
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          echo "Workflow branch: $GITHUB_REF_NAME"
+          echo "Checked-out branch: $ACTUAL_REF"
+          echo "Checked-out commit: $ACTUAL_SHA"
+          test "$ACTUAL_SHA" = "$GITHUB_SHA" || {
+            echo "::error::The iOS source commit differs from the dispatched workflow commit"
+            exit 1
+          }
+          echo "COVI_SOURCE_SHA=$ACTUAL_SHA" >> "$GITHUB_ENV"
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -85,6 +99,11 @@ jobs:
           BUILD_NUMBER: ${{ inputs.buildNumber }}
         run: |
           [[ "$MARKETING_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$MARKETING_VERSION"
+          if (( MAJOR < 1 || (MAJOR == 1 && MINOR == 0 && PATCH < 8) )); then
+            echo "::error::TestFlight version must be at least 1.0.8"
+            exit 1
+          fi
           [[ "$BUILD_NUMBER" =~ ^[1-9][0-9]*$ ]] || exit 1
           # Reserve a unique, increasing number for each GitHub Actions run.
           # The former manual value (e.g. 1 or 22) must never reach App Store Connect.
