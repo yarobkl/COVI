@@ -354,7 +354,7 @@ export function LoginForm({
           ? 'Connectez-vous à votre espace de gestion COVI.'
           : nativeIos ? 'Rejoignez COVI en quelques secondes.' : 'Présentez-vous, puis choisissez votre métier et le nom de votre établissement.'
       }
-      onSectorSelect={chooseSector}
+      onSectorSelect={nativeIos ? undefined : chooseSector}
       aside={
         login && (
           <>
@@ -489,7 +489,7 @@ export function LoginForm({
           </Notice>
         )}
         <Button variant="primary" size="lg" block type="submit" busy={busy}>
-          {login ? 'Se connecter' : 'Créer mon compte'}
+          {login ? 'Se connecter' : nativeIos ? 'Créer un compte' : 'Créer mon compte'}
         </Button>
         {login && (
           <button
@@ -526,6 +526,12 @@ export function LoginForm({
               role="group"
               aria-label="Connexion avec un compte externe"
             >
+              {nativeIos && appleSignInEnabled && (
+                <Button variant="secondary" size="lg" className="auth__social-btn auth__social-btn--apple" disabled={busy} onClick={() => void socialAuth('apple')}>
+                  <AppleLogo />
+                  <span>Apple</span>
+                </Button>
+              )}
               <Button
                 variant="secondary"
                 size="lg"
@@ -536,12 +542,7 @@ export function LoginForm({
                 <GoogleLogo />
                 <span>Google</span>
               </Button>
-              {nativeIos && appleSignInEnabled && (
-                <Button variant="secondary" size="lg" className="auth__social-btn auth__social-btn--apple" disabled={busy} onClick={() => void socialAuth('apple')}>
-                  <AppleLogo />
-                  <span>Apple</span>
-                </Button>
-              )}
+
               {!nativeIos && <Button
                 variant="secondary"
                 size="lg"
@@ -590,8 +591,8 @@ export function LoginForm({
         ))}
       </nav>
       {onBackToWelcome && (
-        <button type="button" className="auth__back" onClick={onBackToWelcome}>
-          Retour à l’accueil
+        <button type="button" className="auth__back" aria-label="Retour à l’accueil" onClick={onBackToWelcome}>
+          <span aria-hidden="true">←</span><span className="auth__back-label">Retour à l’accueil</span>
         </button>
       )}
     </AuthPage>
