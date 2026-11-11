@@ -175,27 +175,19 @@ export function AuthGate({
     return (
       <div className="auth auth--welcome">
         <main className="auth__welcome" aria-labelledby="welcome-title">
-          <p className="auth__welcome-kicker">COVI · COMMERCE &amp; VIE</p>
           <div className="auth__welcome-brand">
-            <BrandMark size={84} />
-            <p className="auth__name">COVI</p>
-            <p className="auth__tagline">Commerce &amp; Vie</p>
+            <BrandMark size={64} />
+            <div className="auth__welcome-brand-label"><strong>COVI</strong><span>COMMERCE &amp; VIE</span></div>
           </div>
-          <h1 id="welcome-title">Le système d’exploitation de votre commerce.</h1>
-          <p>
-            Gérez vos ventes, vos stocks, vos clients et votre équipe simplement depuis votre
-            iPhone.
-          </p>
-          <div className="auth__welcome-highlights" aria-label="Fonctionnalités COVI">
-            <span>Ventes</span>
-            <span>Stock</span>
-            <span>Clients</span>
-            <span>Agenda</span>
+          <h1 id="welcome-title">Gérez votre commerce <em>simplement.</em></h1>
+          <p>Ventes, stock, clients et équipe, tout au même endroit.</p>
+          <div className="auth__welcome-highlights" aria-label="Activités COVI">
+            <span>Boutique</span><span>Restaurant</span><span>Salon</span>
           </div>
-          <div className="auth__welcome-pagination" aria-label="Écran 1 sur 3">
-            <span className="is-active" />
-            <span />
-            <span />
+          <div className="auth__welcome-dashboard" aria-label="Aperçu illustratif du tableau de bord COVI">
+            <span className="auth__welcome-dashboard-heading">Votre activité en un coup d'œil</span>
+            <div className="auth__welcome-dashboard-bars" aria-hidden="true"><i /><i /><i /><i /><i /></div>
+            <span className="auth__welcome-dashboard-caption">Ventes · Stock · Clients</span>
           </div>
           <div className="auth__welcome-actions" aria-label="Accès COVI">
             <button
