@@ -1,0 +1,38 @@
+name: COVI iOS onboarding checks
+
+on:
+  pull_request:
+    paths:
+      - 'src/features/auth/**'
+      - 'src/styles/app/ios.css'
+      - 'tests/auth-native-presentation.test.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ios-onboarding-checks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Run tests
+        run: npm test
+      - name: Build web assets for Capacitor
+        run: npm run build
