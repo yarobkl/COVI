@@ -348,6 +348,7 @@ export function LoginForm({
 
   return (
     <AuthPage
+      nativeIos={nativeIos}
       title={login ? (nativeIos ? 'Bon retour sur COVI' : 'Connexion') : 'Créer votre compte'}
       lead={
         login
