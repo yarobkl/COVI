@@ -162,6 +162,8 @@ export function LoginForm({
   const [businessName, setBusinessName] = useState('')
   const [confirmationEmail, setConfirmationEmail] = useState('')
   const [phone, setPhone] = useState('+242')
+  const [showConfirmation, setShowConfirmation] = useState(false)
+  const [rememberMe, setRememberMe] = useState(true)
   const nativeIos = isCoviIosApp()
   const emailReturnUrl = nativeIos ? 'https://covi-snowy.vercel.app' : window.location.origin
   const login = mode === 'login'
@@ -205,7 +207,7 @@ export function LoginForm({
         : await supabase.auth.signUp({
             email,
             password,
-            options: { data: signupDetails ?? {}, emailRedirectTo: emailReturnUrl },
+            options: { data: signupDetails ?? (nativeIos ? { full_name: String(f.get('full-name') ?? '').trim() } : {}), emailRedirectTo: emailReturnUrl },
           })
       if (r.error) onMessage(authError(r.error))
       else if (!login && !r.data.session) setConfirmationEmail(email)
@@ -350,11 +352,11 @@ export function LoginForm({
   return (
     <AuthPage
       nativeIos={nativeIos}
-      title={login ? (nativeIos ? 'Bon retour sur COVI' : 'Connexion') : 'Créer votre compte'}
+      title={login ? (nativeIos ? 'Se connecter à COVI' : 'Connexion') : nativeIos ? 'Créer un compte' : 'Créer votre compte'}
       lead={
         login
-          ? 'Connectez-vous à votre espace de gestion COVI.'
-          : nativeIos ? 'Rejoignez COVI en quelques secondes.' : 'Présentez-vous, puis choisissez votre métier et le nom de votre établissement.'
+          ? nativeIos ? 'Accédez à votre compte et retrouvez votre commerce.' : 'Connectez-vous à votre espace de gestion COVI.'
+          : nativeIos ? 'Rejoignez COVI et gérez votre commerce dès aujourd’hui.' : 'Présentez-vous, puis choisissez votre métier et le nom de votre établissement.'
       }
       onSectorSelect={nativeIos ? undefined : chooseSector}
       aside={
@@ -445,9 +447,10 @@ export function LoginForm({
             </Field>
           </>
         )}
+        {!login && nativeIos && <Field label="Nom complet">{(control) => <Input {...control} name="full-name" autoComplete="name" required />}</Field>}
         <Field label="Adresse e-mail">
           {(control) => (
-            <Input {...control} name="email" type="email" required autoComplete="email" />
+            <Input {...control} name="email" type="email" inputMode="email" autoCapitalize="none" required autoComplete="email" />
           )}
         </Field>
         <Field label="Mot de passe" hint={login ? undefined : '6 caractères minimum.'}>
@@ -474,14 +477,12 @@ export function LoginForm({
         {!login && (
           <Field label="Confirmer le mot de passe">
             {(control) => (
-              <Input
-                {...control}
-                name="confirm-password"
-                type={showPassword ? 'text' : 'password'}
-                minLength={6}
-                required
-                autoComplete="new-password"
-              />
+              <div className="password">
+                <Input {...control} name="confirm-password" type={showConfirmation ? 'text' : 'password'} minLength={6} required autoComplete="new-password" />
+                <IconButton className="password__toggle" label={showConfirmation ? 'Masquer la confirmation' : 'Afficher la confirmation'} onClick={() => setShowConfirmation(!showConfirmation)}>
+                  {showConfirmation ? <EyeOffIcon /> : <EyeIcon />}
+                </IconButton>
+              </div>
             )}
           </Field>
         )}
@@ -491,8 +492,11 @@ export function LoginForm({
           </Notice>
         )}
         <Button variant="primary" size="lg" block type="submit" busy={busy}>
-          {login ? 'Se connecter' : nativeIos ? 'Créer un compte' : 'Créer mon compte'}
+          {login ? 'Se connecter' : 'Créer mon compte'}
         </Button>
+        {login && (
+          nativeIos && <label className="auth__remember"><input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} /> Se souvenir de moi</label>
+        )}
         {login && (
           <button
             type="button"
@@ -529,20 +533,20 @@ export function LoginForm({
               aria-label="Connexion avec un compte externe"
             >
               {nativeIos && appleSignInEnabled && (
-                <Button variant="secondary" size="lg" className="auth__social-btn auth__social-btn--apple" disabled={busy} onClick={() => void socialAuth('apple')}>
+                <Button variant="secondary" size="lg" className="auth__social-btn auth__social-btn--apple" aria-label="Continuer avec Apple" disabled={busy} onClick={() => void socialAuth('apple')}>
                   <AppleLogo />
-                  <span>Apple</span>
                 </Button>
               )}
               <Button
                 variant="secondary"
                 size="lg"
                 className="auth__social-btn auth__social-btn--google"
+                aria-label={nativeIos ? 'Continuer avec Google' : 'Google'}
                 onClick={() => void socialAuth('google')}
                 disabled={busy}
               >
                 <GoogleLogo />
-                <span>Google</span>
+                {!nativeIos && <span>Google</span>}
               </Button>
 
               {!nativeIos && <Button

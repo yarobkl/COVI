@@ -2618,6 +2618,30 @@
 
 /* Native-only sign-in/sign-up layout based on the approved COVI three-screen reference. */
 @layer app {
+  html[data-covi-platform='ios'] .auth--welcome,
+  html[data-covi-platform='ios'] .auth--native-entry { background: #f7f4ee; color: #0d1b2a; }
+  html[data-covi-platform='ios'] .auth--welcome .auth__welcome-photo {
+    width: 100%; flex: 1 1 auto; min-height: 180px; max-height: 290px;
+    margin-block: 14px 8px; overflow: hidden; border-radius: 22px;
+  }
+  html[data-covi-platform='ios'] .auth--welcome .auth__welcome-photo img {
+    display: block; width: 100%; height: 100%; object-fit: cover; object-position: center 55%;
+  }
+  html[data-covi-platform='ios'] .auth--welcome .auth__welcome-highlights > span {
+    color: #0d1b2a; background: #fff; box-shadow: none;
+  }
+  html[data-covi-platform='ios'] .auth--native-entry .auth__social-actions .btn.auth__social-btn {
+    border-radius: 15px; min-height: 54px; background: #f7f4ee; box-shadow: none;
+  }
+  html[data-covi-platform='ios'] .auth--native-entry .auth__social-logo { width: 28px; height: 28px; flex-basis: 28px; }
+  html[data-covi-platform='ios'] .auth__remember { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: 13px; }
+  html[data-covi-platform='ios'] .auth__remember input { accent-color: #0d1b2a; width: 20px; height: 20px; }
+  html[data-covi-platform='ios'] .password__toggle { min-width: 44px; min-height: 44px; }
+  @media (max-height: 700px) {
+    html[data-covi-platform='ios'] .auth--welcome .auth__welcome-photo { min-height: 130px; max-height: 200px; }
+  }
+}
+@layer app {
   html[data-covi-platform='ios'] .auth--native-entry {
     position: relative;
     isolation: isolate;
