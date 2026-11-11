@@ -184,10 +184,17 @@ export function AuthGate({
           <div className="auth__welcome-highlights" aria-label="Activités COVI">
             <span>Boutique</span><span>Restaurant</span><span>Salon</span>
           </div>
-          <div className="auth__welcome-dashboard" aria-label="Aperçu illustratif du tableau de bord COVI">
-            <span className="auth__welcome-dashboard-heading">Votre activité en un coup d'œil</span>
-            <div className="auth__welcome-dashboard-bars" aria-hidden="true"><i /><i /><i /><i /><i /></div>
-            <span className="auth__welcome-dashboard-caption">Ventes · Stock · Clients</span>
+          <div className="auth__welcome-device" aria-label="Aperçu de l'interface mobile COVI">
+            <div className="auth__welcome-device-screen" aria-hidden="true">
+              <div className="auth__welcome-device-island" />
+              <div className="auth__welcome-device-top"><strong>COVI</strong><span>Mon commerce</span></div>
+              <div className="auth__welcome-device-card">
+                <span>Tableau de bord</span>
+                <strong>Votre activité</strong>
+                <div className="auth__welcome-device-lines"><i /><i /><i /></div>
+              </div>
+              <div className="auth__welcome-device-tiles"><span>Ventes</span><span>Stock</span><span>Équipe</span></div>
+            </div>
           </div>
           <div className="auth__welcome-actions" aria-label="Accès COVI">
             <button
