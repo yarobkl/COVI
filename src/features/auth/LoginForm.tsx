@@ -183,7 +183,7 @@ export function LoginForm({
         onMessage('Les deux mots de passe ne correspondent pas.')
         return
       }
-      try {
+      if (!nativeIos) try {
         signupDetails = createOwnerSignupDetails({
           firstName: String(f.get('first-name') ?? ''),
           lastName: String(f.get('last-name') ?? ''),
@@ -203,7 +203,7 @@ export function LoginForm({
         : await supabase.auth.signUp({
             email,
             password,
-            options: { data: signupDetails!, emailRedirectTo: emailReturnUrl },
+            options: { data: signupDetails ?? {}, emailRedirectTo: emailReturnUrl },
           })
       if (r.error) onMessage(authError(r.error))
       else if (!login && !r.data.session) setConfirmationEmail(email)
@@ -346,11 +346,11 @@ export function LoginForm({
 
   return (
     <AuthPage
-      title={login ? 'Connexion' : 'Créer votre compte'}
+      title={login ? (nativeIos ? 'Bon retour sur COVI' : 'Connexion') : 'Créer votre compte'}
       lead={
         login
           ? 'Connectez-vous à votre espace de gestion COVI.'
-          : 'Présentez-vous, puis choisissez votre métier et le nom de votre établissement.'
+          : nativeIos ? 'Rejoignez COVI en quelques secondes.' : 'Présentez-vous, puis choisissez votre métier et le nom de votre établissement.'
       }
       onSectorSelect={chooseSector}
       aside={
@@ -376,7 +376,7 @@ export function LoginForm({
       }
     >
       <form className="auth__form" onSubmit={auth}>
-        {!login && (
+        {!login && !nativeIos && (
           <>
             <fieldset>
               <legend>Votre secteur d’activité</legend>
@@ -501,12 +501,12 @@ export function LoginForm({
             Mot de passe oublié ?
           </button>
         )}
-        {login && (
+        {(login || nativeIos) && (
           <>
             <p className="auth__or" aria-hidden="true">
               ou
             </p>
-            {appleSignInEnabled && (
+            {appleSignInEnabled && !nativeIos && (
               <Button
                 variant="secondary"
                 size="lg"
@@ -534,7 +534,8 @@ export function LoginForm({
                 <GoogleLogo />
                 <span>Google</span>
               </Button>
-              <Button
+              {nativeIos && appleSignInEnabled && <Button variant="secondary" size="lg" className="auth__social-btn auth__social-btn--apple" disabled={busy} onClick={() => void socialAuth('apple')}><AppleLogo /><span>Apple</span></Button>}
+              {!nativeIos && <Button
                 variant="secondary"
                 size="lg"
                 className="auth__social-btn auth__social-btn--facebook"
@@ -543,7 +544,7 @@ export function LoginForm({
               >
                 <FacebookLogo />
                 <span>Facebook</span>
-              </Button>
+              </Button>}
             </div>
           </>
         )}
@@ -563,6 +564,7 @@ export function LoginForm({
           </button>
         </p>
       )}
+      {!login && nativeIos && <p className="auth__switch">Déjà un compte ?{' '}<button type="button" className="auth__link" onClick={() => { onModeChange('login'); onMessage('') }}>Se connecter</button></p>}
       {!login && (
         <p className="auth__legal">
           En créant un compte, vous acceptez les <a href="#/conditions">conditions d’utilisation</a>{' '}
