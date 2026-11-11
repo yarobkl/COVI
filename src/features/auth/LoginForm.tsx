@@ -183,17 +183,19 @@ export function LoginForm({
         onMessage('Les deux mots de passe ne correspondent pas.')
         return
       }
-      if (!nativeIos) try {
-        signupDetails = createOwnerSignupDetails({
+      if (!nativeIos) {
+        try {
+          signupDetails = createOwnerSignupDetails({
           firstName: String(f.get('first-name') ?? ''),
           lastName: String(f.get('last-name') ?? ''),
           phone: String(f.get('phone') ?? ''),
           businessKind: selectedKind,
           businessName: String(f.get('business-name') ?? ''),
         })
-      } catch (error) {
-        onMessage(error instanceof Error ? error.message : 'Veuillez vérifier le formulaire.')
-        return
+        } catch (error) {
+          onMessage(error instanceof Error ? error.message : 'Veuillez vérifier le formulaire.')
+          return
+        }
       }
     }
     setBusy(true)
@@ -223,8 +225,8 @@ export function LoginForm({
     onMessage('')
     setBusy(true)
     try {
-      if (!login) {
-        // Retain the user's activity choice through the external OAuth redirect.
+      if (!login && !nativeIos) {
+        // Desktop/web retain the activity choice; iOS asks for it after authentication.
         storeOwnerOAuthIntent(selectedKind, businessName)
       }
       if (provider === 'apple' && nativeIos) {
@@ -504,7 +506,7 @@ export function LoginForm({
         {(login || nativeIos) && (
           <>
             <p className="auth__or" aria-hidden="true">
-              ou
+              ou continuer avec
             </p>
             {appleSignInEnabled && !nativeIos && (
               <Button
@@ -534,7 +536,12 @@ export function LoginForm({
                 <GoogleLogo />
                 <span>Google</span>
               </Button>
-              {nativeIos && appleSignInEnabled && <Button variant="secondary" size="lg" className="auth__social-btn auth__social-btn--apple" disabled={busy} onClick={() => void socialAuth('apple')}><AppleLogo /><span>Apple</span></Button>}
+              {nativeIos && appleSignInEnabled && (
+                <Button variant="secondary" size="lg" className="auth__social-btn auth__social-btn--apple" disabled={busy} onClick={() => void socialAuth('apple')}>
+                  <AppleLogo />
+                  <span>Apple</span>
+                </Button>
+              )}
               {!nativeIos && <Button
                 variant="secondary"
                 size="lg"
@@ -564,7 +571,11 @@ export function LoginForm({
           </button>
         </p>
       )}
-      {!login && nativeIos && <p className="auth__switch">Déjà un compte ?{' '}<button type="button" className="auth__link" onClick={() => { onModeChange('login'); onMessage('') }}>Se connecter</button></p>}
+      {!login && nativeIos && (
+        <p className="auth__switch">Déjà un compte ?{' '}
+          <button type="button" className="auth__link" onClick={() => { onModeChange('login'); onMessage('') }}>Se connecter</button>
+        </p>
+      )}
       {!login && (
         <p className="auth__legal">
           En créant un compte, vous acceptez les <a href="#/conditions">conditions d’utilisation</a>{' '}
