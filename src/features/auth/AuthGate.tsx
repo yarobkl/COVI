@@ -182,18 +182,19 @@ export function AuthGate({
           <h1 id="welcome-title">Gérez votre commerce <em>simplement.</em></h1>
           <p>Ventes, stock, clients et équipe, tout au même endroit.</p>
           <div className="auth__welcome-highlights" aria-label="Activités COVI">
-            <span>Boutique</span><span>Restaurant</span><span>Salon</span>
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 8h14l1 12H4L5 8Z"/><path d="M9 9V6a3 3 0 0 1 6 0v3"/></svg><strong>Boutique</strong></span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 3v7a3 3 0 0 0 6 0V3M7 3v18M16 3c-2 3-3 6-3 10h5V3M18 13v8"/></svg><strong>Restaurant</strong></span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M8.5 15 19 4M15.5 15 5 4"/></svg><strong>Salon</strong></span>
           </div>
           <div className="auth__welcome-device" aria-label="Aperçu de l'interface mobile COVI">
             <div className="auth__welcome-device-screen" aria-hidden="true">
               <div className="auth__welcome-device-island" />
               <div className="auth__welcome-device-top"><strong>COVI</strong><span>Mon commerce</span></div>
               <div className="auth__welcome-device-card">
-                <span>Tableau de bord</span>
-                <strong>Votre activité</strong>
-                <div className="auth__welcome-device-lines"><i /><i /><i /></div>
+                <span>Aujourd'hui</span>
+                <strong>125 000 <small>FCFA</small></strong>
+                <span className="auth__welcome-device-growth">↗ +12%</span>
+                <div className="auth__welcome-device-chart" aria-hidden="true"><i /><i /><i /><i /><i /></div>
               </div>
-              <div className="auth__welcome-device-tiles"><span>Ventes</span><span>Stock</span><span>Équipe</span></div>
+              <div className="auth__welcome-device-tiles"><span>Ventes <b>103</b></span><span>Stock <b>103</b></span></div>
             </div>
           </div>
           <div className="auth__welcome-actions" aria-label="Accès COVI">
