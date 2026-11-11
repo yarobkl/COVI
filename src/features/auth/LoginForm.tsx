@@ -592,7 +592,7 @@ export function LoginForm({
           </a>
         ))}
       </nav>
-      {onBackToWelcome && (
+      {onBackToWelcome && nativeIos && (
         <button type="button" className="auth__back" aria-label="Retour à l’accueil" onClick={onBackToWelcome}>
           <span aria-hidden="true">←</span><span className="auth__back-label">Retour à l’accueil</span>
         </button>
