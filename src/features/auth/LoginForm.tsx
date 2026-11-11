@@ -76,7 +76,7 @@ function AppleLogo() {
  * Set VITE_COVI_APPLE_SIGNIN=false only for a deployment where the Supabase Apple provider is
  * intentionally disabled.
  */
-export const appleSignInEnabled =
+const appleSignInEnabled =
   import.meta.env.VITE_COVI_APPLE_SIGNIN !== 'false' || isCoviIosApp()
 
 function FacebookLogo() {
