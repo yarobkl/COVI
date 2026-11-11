@@ -42,10 +42,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: feature/covi-ios-capacitor
+          ref: audit/covi-seven-roles-2026-11
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Confirm distribution source
+        run: |
+          echo "Building COVI onboarding from audit/covi-seven-roles-2026-11"
+          echo "GitHub workflow ref: $GITHUB_REF_NAME"
       - name: Verify authorization and signing secrets
         run: |
           set -eu
@@ -86,6 +90,15 @@ jobs:
         run: |
           [[ "$MARKETING_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
           [[ "$BUILD_NUMBER" =~ ^[1-9][0-9]*$ ]] || exit 1
+          # Reserve a unique, increasing number for each GitHub Actions run.
+          # The former manual value (e.g. 1 or 22) must never reach App Store Connect.
+          AUTOMATIC_BUILD_NUMBER=$((10000 + GITHUB_RUN_NUMBER))
+          if (( BUILD_NUMBER > AUTOMATIC_BUILD_NUMBER )); then
+            AUTOMATIC_BUILD_NUMBER="$BUILD_NUMBER"
+          fi
+          BUILD_NUMBER="$AUTOMATIC_BUILD_NUMBER"
+          echo "COVI_BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
+          echo "Using COVI iOS build number $BUILD_NUMBER (GitHub run $GITHUB_RUN_NUMBER)"
           sed -i '' "s/MARKETING_VERSION = [^;]*;/MARKETING_VERSION = $MARKETING_VERSION;/g" ios/App/App.xcodeproj/project.pbxproj
           sed -i '' "s/CURRENT_PROJECT_VERSION = [^;]*;/CURRENT_PROJECT_VERSION = $BUILD_NUMBER;/g" ios/App/App.xcodeproj/project.pbxproj
       - name: Import Apple Distribution certificate
@@ -134,6 +147,22 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY='Apple Distribution' \
             PROVISIONING_PROFILE_SPECIFIER="$COVI_PROFILE_NAME"
+      - name: Verify archived app version before upload
+        run: |
+          set -eu
+          PLIST="$RUNNER_TEMP/COVI.xcarchive/Products/Applications/App.app/Info.plist"
+          test -f "$PLIST"
+          ACTUAL_BUILD=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$PLIST")
+          ACTUAL_VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PLIST")
+          echo "Archived COVI version $ACTUAL_VERSION ($ACTUAL_BUILD)"
+          test "$ACTUAL_BUILD" = "$COVI_BUILD_NUMBER" || {
+            echo "::error::Archive build number mismatch: expected $COVI_BUILD_NUMBER, got $ACTUAL_BUILD"
+            exit 1
+          }
+          test "$ACTUAL_VERSION" = "${{ inputs.version }}" || {
+            echo "::error::Archive marketing version mismatch"
+            exit 1
+          }
       - name: Export signed IPA
         run: |
           OPTIONS="$RUNNER_TEMP/COVI-ExportOptions.plist"
