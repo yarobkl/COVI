@@ -137,11 +137,11 @@ jobs:
                   hasTouch: true,
                 })
                 await context.addInitScript(() => {
-                  window.Capacitor = { getPlatform: () => 'ios', isNativePlatform: () => true }
+                  window.Capacitor = { getPlatform: () => 'ios', isNativePlatform: () => true }\n                  document.documentElement.dataset.coviPlatform = 'ios'
                 })
                 const page = await context.newPage()
                 await page.goto('http://127.0.0.1:5173/?covi-ios-preview=' + mode, { waitUntil: 'networkidle', timeout: 45000 })
-                await page.locator('input[name="email"]').waitFor({ timeout: 20000 })
+                await page.locator('input[name="email"]').waitFor({ timeout: 20000 })\n                await page.locator('.auth--native-entry').waitFor({ timeout: 10000 })
                 const passwordFields = await page.locator('input[type="password"]').count()
                 if (passwordFields !== (mode === 'login' ? 1 : 2)) {
                   throw new Error(mode + ': expected password fields missing, found ' + passwordFields)
