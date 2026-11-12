@@ -60,8 +60,12 @@ export function AuthGate({
   const [session, setSession] = useState<Session | null>(null)
   const [shop, setShop] = useState<Shop | null>(null)
   const [loading, setLoading] = useState(true)
-  const [mode, setMode] = useState<AuthMode>('login')
-  const [showWelcome, setShowWelcome] = useState(true)
+  // Development-only visual QA entrypoints. Never enabled in production builds.
+  const previewMode = import.meta.env.DEV && typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('covi-ios-preview')
+    : null
+  const [mode, setMode] = useState<AuthMode>(previewMode === 'signup' ? 'signup' : 'login')
+  const [showWelcome, setShowWelcome] = useState(previewMode !== 'login' && previewMode !== 'signup')
   const [message, setMessage] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [memberships, setMemberships] = useState<MemberShop[]>([])
