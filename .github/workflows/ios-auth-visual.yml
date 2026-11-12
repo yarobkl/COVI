@@ -61,7 +61,8 @@ jobs:
                   hasTouch: true,
                 })
                 await context.addInitScript(() => {
-                  window.Capacitor = { getPlatform: () => 'ios', isNativePlatform: () => true }\n                  document.documentElement.dataset.coviPlatform = 'ios'
+                  window.Capacitor = { getPlatform: () => 'ios', isNativePlatform: () => true }
+                  document.documentElement.dataset.coviPlatform = 'ios'
                 })
                 const page = await context.newPage()
                 await page.goto('http://127.0.0.1:5173/?covi-ios-preview=' + mode, { waitUntil: 'networkidle', timeout: 45000 })
