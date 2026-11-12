@@ -2781,6 +2781,19 @@
     box-shadow: 0 3px 9px rgba(20,30,50,.07);
     font-weight: 750;
   }
+  html[data-covi-platform='ios'] .auth--native-entry .auth__account-options {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    font-size: 13px; margin-top: -2px;
+  }
+  html[data-covi-platform='ios'] .auth--native-entry .auth__account-options .auth__forgot {
+    align-self: auto; margin: 0; white-space: nowrap;
+  }
+  html[data-covi-platform='ios'] .auth--native-entry .auth__remember {
+    display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+  }
+  html[data-covi-platform='ios'] .auth--native-entry .auth__remember input {
+    min-height: auto; width: 16px; height: 16px; accent-color: #0d1b2a;
+  }
   html[data-covi-platform='ios'] .auth--native-entry .auth__switch {
     margin: clamp(18px, 3svh, 30px) 0 0;
     text-align: center;
@@ -2807,6 +2820,7 @@
     min-height: 54px; background: #f7f4ee; border: 1px solid #b9c0c7;
     border-radius: 15px; box-shadow: none;
   }
+  html[data-covi-platform='ios'] .auth--native-entry .auth__social-btn--apple { color: #000; }
   html[data-covi-platform='ios'] .auth--welcome .auth__welcome-photo {
     width: 100%; flex: 1 1 auto; min-height: 180px; max-height: 290px;
     margin-block: 14px 8px; overflow: hidden; border-radius: 22px;

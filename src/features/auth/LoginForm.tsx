@@ -12,6 +12,7 @@ import { legalLinks } from '../../lib/legal'
 import { BUSINESS_KINDS, type BusinessKind } from '../../lib/businessKinds'
 import { createOwnerSignupDetails, storeOwnerOAuthIntent } from '../../lib/ownerSignup'
 import { SignInWithApple } from '@capacitor-community/apple-sign-in'
+import { nativeAuthRedirect, openNativeOAuth } from '../../lib/nativeOAuth'
 
 export type AuthMode = 'login' | 'signup'
 
@@ -210,6 +211,7 @@ export function LoginForm({
             options: { data: signupDetails ?? (nativeIos ? { full_name: String(f.get('full-name') ?? '').trim() } : {}), emailRedirectTo: emailReturnUrl },
           })
       if (r.error) onMessage(authError(r.error))
+      else if (login && nativeIos) localStorage.setItem('covi-ios-remember-session', String(rememberMe))
       else if (!login && !r.data.session) setConfirmationEmail(email)
       else if (!login && r.data.session) {
         // Never pretend the verification link was sent when Auth email confirmation is disabled.
@@ -245,15 +247,18 @@ export function LoginForm({
           nonce,
         })
         if (error) onMessage(authError(error))
-        else onAuthSuccess?.()
+        else {
+          localStorage.setItem('covi-ios-remember-session', String(rememberMe))
+          onAuthSuccess?.()
+        }
         return
       }
       const desktop = isTauriApp()
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: desktop ? desktopAuthRedirect() : emailReturnUrl,
-          skipBrowserRedirect: desktop,
+          redirectTo: desktop ? desktopAuthRedirect() : nativeIos ? nativeAuthRedirect : emailReturnUrl,
+          skipBrowserRedirect: desktop || nativeIos,
           ...(provider === 'facebook' ? { scopes: 'email' } : {}),
           ...(provider === 'apple' ? { scopes: 'name email' } : {}),
         },
@@ -263,6 +268,10 @@ export function LoginForm({
         return
       }
       if (desktop && data.url) await openOAuthInSystemBrowser(data.url)
+      if (nativeIos && data.url) {
+        localStorage.setItem('covi-ios-remember-session', String(rememberMe))
+        await openNativeOAuth(data.url)
+      }
     } catch (e) {
       onMessage((e as Error).message || 'Connexion impossible. Vérifiez votre réseau et réessayez.')
     } finally {
@@ -491,13 +500,16 @@ export function LoginForm({
             <p>{message}</p>
           </Notice>
         )}
+        {login && nativeIos && (
+          <div className="auth__account-options">
+            <label className="auth__remember"><input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} /> Se souvenir de moi</label>
+            <button type="button" className="auth__link auth__forgot" onClick={() => { setShowReset(true); onMessage('') }}>Mot de passe oublié ?</button>
+          </div>
+        )}
         <Button variant="primary" size="lg" block type="submit" busy={busy}>
           {login ? 'Se connecter' : 'Créer mon compte'}
         </Button>
-        {login && (
-          nativeIos && <label className="auth__remember"><input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} /> Se souvenir de moi</label>
-        )}
-        {login && (
+        {login && !nativeIos && (
           <button
             type="button"
             className="auth__link auth__forgot"

@@ -4,6 +4,7 @@ import { myAccountDeletion, type AccountDeletion } from '../../lib/account'
 import { supabase } from '../../lib/supabase'
 import { DeletionPendingScreen } from '../account/DeletionPendingScreen'
 import { listenForDesktopOAuth } from '../../lib/desktopAuth'
+import { listenForNativeOAuth } from '../../lib/nativeOAuth'
 import { clearCounterMode } from '../../lib/counterMode'
 import { closeTillSession, myMemberShops, type MemberShop } from '../../lib/team'
 import { closeSharedCashierTill } from '../../lib/sharedCashiers'
@@ -92,7 +93,21 @@ export function AuthGate({
     }
   }, [])
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session))
+    let active = true
+    let dispose = () => undefined
+    void listenForNativeOAuth(setMessage).then((unlisten) => {
+      if (active) dispose = unlisten
+      else unlisten()
+    }).catch(() => setMessage('Impossible d’initialiser la connexion iOS.'))
+    return () => { active = false; dispose() }
+  }, [])
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (document.documentElement.dataset.coviPlatform === 'ios' && localStorage.getItem('covi-ios-remember-session') === 'false' && data.session) {
+        await supabase.auth.signOut()
+        setSession(null)
+      } else setSession(data.session)
+    })
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, s) => {
