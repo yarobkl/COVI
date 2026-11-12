@@ -2981,3 +2981,48 @@
     }
   }
 }
+
+/* Native auth: usable with the iOS software keyboard and smaller iPhones.
+   Keep the visual system consistent with the approved navy / cream palette. */
+@layer app {
+  html[data-covi-platform='ios'] .auth--native-entry {
+    height: 100dvh;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    background: #f7f4ee;
+  }
+  html[data-covi-platform='ios'] .auth--native-entry .auth__layout {
+    box-sizing: border-box;
+    min-height: 100%;
+    height: auto;
+    margin-inline: auto;
+    padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
+  }
+  html[data-covi-platform='ios'] .auth--native-entry .auth__form input {
+    font-size: max(16px, 1rem);
+    scroll-margin-block: 120px 36px;
+  }
+  html[data-covi-platform='ios'] .auth--native-entry .auth__form .button--primary {
+    background: #0d1b2a;
+    border-color: #0d1b2a;
+    color: #fff;
+  }
+  html[data-covi-platform='ios'] .auth--native-entry .auth__forgot,
+  html[data-covi-platform='ios'] .auth--native-entry .auth__switch .auth__link {
+    color: #b86506;
+  }
+  html[data-covi-platform='ios'] .auth--native-entry .password__toggle {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-grid;
+    place-items: center;
+    touch-action: manipulation;
+  }
+  html[data-covi-platform='ios'] .auth--native-entry .auth__social-btn {
+    min-width: 0;
+    touch-action: manipulation;
+  }
+}
