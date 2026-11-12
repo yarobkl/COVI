@@ -12,8 +12,16 @@ vi.mock('../../lib/desktopAuth', () => ({
   desktopAuthRedirect: () => '',
   openOAuthInSystemBrowser: vi.fn(),
 }))
+vi.mock('../../lib/nativeOAuth', () => ({
+  nativeAuthRedirect: 'covi://auth/callback',
+  openNativeOAuth: vi.fn(),
+}))
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  delete (window as Window & { Capacitor?: unknown }).Capacitor
+  localStorage.removeItem('covi-ios-remember-session')
+})
 
 function Harness({ onSimulation = vi.fn() }: { onSimulation?: () => void }) {
   const [mode, setMode] = useState<AuthMode>('login')
@@ -33,6 +41,32 @@ function Harness({ onSimulation = vi.fn() }: { onSimulation?: () => void }) {
 }
 
 describe('LoginForm', () => {
+  it('provides native login controls and opens Google with an app callback', async () => {
+    ;(window as Window & { Capacitor?: unknown }).Capacitor = { getPlatform: () => 'ios', isNativePlatform: () => true }
+    vi.mocked(supabase.auth.signInWithOAuth).mockResolvedValue({ data: { url: 'https://bmbwmwgfzrijglzcgjut.supabase.co/auth/v1/authorize?provider=google' }, error: null } as never)
+    render(<Harness />)
+    expect(screen.getByRole('heading', { name: 'Se connecter à COVI' })).toBeTruthy()
+    expect(screen.getByLabelText('Adresse e-mail').getAttribute('autocomplete')).toBe('email')
+    expect(screen.getByLabelText('Mot de passe').getAttribute('autocomplete')).toBe('current-password')
+    expect(screen.getByRole('button', { name: 'Afficher le mot de passe' })).toBeTruthy()
+    expect(screen.getByText('Se souvenir de moi')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Mot de passe oublié ?' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Continuer avec Google' }))
+    await waitFor(() => expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({ provider: 'google', options: { redirectTo: 'covi://auth/callback', skipBrowserRedirect: true } }))
+    expect(screen.getByRole('group', { name: 'Connexion avec un compte externe' }).textContent).toBe('')
+  })
+
+  it('offers separate password visibility controls during native account creation', () => {
+    ;(window as Window & { Capacitor?: unknown }).Capacitor = { getPlatform: () => 'ios', isNativePlatform: () => true }
+    render(<Harness />)
+    fireEvent.click(screen.getByRole('button', { name: 'Créer un compte' }))
+    expect(screen.getByLabelText('Nom complet').getAttribute('autocomplete')).toBe('name')
+    expect(screen.getByLabelText('Mot de passe').getAttribute('autocomplete')).toBe('new-password')
+    expect(screen.getByLabelText('Confirmer le mot de passe').getAttribute('autocomplete')).toBe('new-password')
+    fireEvent.click(screen.getByRole('button', { name: 'Afficher la confirmation' }))
+    expect(screen.getByLabelText('Confirmer le mot de passe').getAttribute('type')).toBe('text')
+    expect(screen.getByLabelText('Mot de passe').getAttribute('type')).toBe('password')
+  })
   it('signs in and explains a refusal in plain words', async () => {
     vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({
       data: { user: null, session: null },

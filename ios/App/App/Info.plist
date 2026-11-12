@@ -22,6 +22,13 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array><string>covi</string></array>
+		</dict>
+	</array>
 	<!-- COVI uses only exempt standard transport encryption (HTTPS/TLS). -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>

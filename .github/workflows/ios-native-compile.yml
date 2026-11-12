@@ -1,0 +1,173 @@
+name: COVI iOS native compile (no distribution)
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'ios/**'
+      - 'capacitor.config.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ios-native-compile.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  simulator-compile:
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Prepare iOS app
+        run: |
+          npm ci
+          npm run ios:sync
+      - name: Compile for iOS simulator without signing
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/COVI-DerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            | tee "$RUNNER_TEMP/covi-xcodebuild.log"
+      - name: Verify compiled simulator application
+        run: |
+          test -d "$RUNNER_TEMP/COVI-DerivedData/Build/Products/Debug-iphonesimulator/App.app"
+          echo "iOS simulator app compiled successfully. No signing or distribution performed."
+
+      - name: Capture welcome screen on iPhone simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEVICE_ID="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next((x["udid"] for k,v in d.items() if "iOS" in k for x in v if x["isAvailable"] and "iPhone" in x["name"]), ""))')"
+          if [ -z "$DEVICE_ID" ]; then
+            echo "::error::No available iPhone simulator runtime on this runner"
+            exit 1
+          fi
+          xcrun simctl boot "$DEVICE_ID"
+          xcrun simctl bootstatus "$DEVICE_ID" -b
+          xcrun simctl install "$DEVICE_ID" "$RUNNER_TEMP/COVI-DerivedData/Build/Products/Debug-iphonesimulator/App.app"
+          xcrun simctl launch "$DEVICE_ID" com.covi.app
+          mkdir -p "$RUNNER_TEMP/covi-screenshots"
+          # Give WKWebView time to load the bundled Vite assets and render React.
+          # Never report a successful visual test when the screenshot is blank.
+          sleep 15
+          xcrun simctl io "$DEVICE_ID" screenshot "$RUNNER_TEMP/covi-screenshots/welcome-iphone.png"
+          sleep 15
+          xcrun simctl io "$DEVICE_ID" screenshot "$RUNNER_TEMP/covi-screenshots/welcome-iphone-30s.png"
+          python3 -m venv "$RUNNER_TEMP/covi-visual-venv"
+          "$RUNNER_TEMP/covi-visual-venv/bin/python" -m pip install 'Pillow==12.0.0'
+          "$RUNNER_TEMP/covi-visual-venv/bin/python" - "$RUNNER_TEMP/covi-screenshots" <<'PY'
+          import os, sys
+          from PIL import Image, ImageStat
+          folder = sys.argv[1]
+          for name in ('welcome-iphone.png', 'welcome-iphone-30s.png'):
+              img = Image.open(os.path.join(folder, name)).convert('RGB')
+              stats = ImageStat.Stat(img)
+              print(f'{name}: size={img.size}, channel_stddev={stats.stddev}')
+          img = Image.open(os.path.join(folder, 'welcome-iphone-30s.png')).convert('RGB')
+          if max(ImageStat.Stat(img).stddev) < 8:
+              raise SystemExit('Visual smoke test failed: screenshot is almost uniform; possible blank app screen')
+          PY
+      - name: Upload iPhone simulator screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: COVI-iPhone-welcome-screenshot
+          path: ${{ runner.temp }}/covi-screenshots/*.png
+          if-no-files-found: ignore
+          retention-days: 7
+
+  auth-visual:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install isolated Playwright runner
+        run: |
+          mkdir -p /tmp/covi-visual-runner
+          cd /tmp/covi-visual-runner
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Start development server (visual QA only)
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/covi-vite.log 2>&1 &
+          for i in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/covi-vite.log
+          exit 1
+      - name: Capture login and signup at iPhone dimensions
+        env:
+          PLAYWRIGHT_MODULE: /tmp/covi-visual-runner/node_modules/playwright/index.mjs
+        run: |
+          mkdir -p visual-qa
+          node --input-type=module <<'JS'
+          import { pathToFileURL } from 'node:url'
+          const { chromium } = await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href)
+          const browser = await chromium.launch({ headless: true })
+          try {
+            for (const viewport of [{ width: 393, height: 852, name: 'iphone-393' }, { width: 375, height: 667, name: 'iphone-375' }]) {
+              for (const mode of ['login', 'signup']) {
+                const context = await browser.newContext({
+                  viewport: { width: viewport.width, height: viewport.height },
+                  deviceScaleFactor: 2,
+                  isMobile: true,
+                  hasTouch: true,
+                })
+                await context.addInitScript(() => {
+                  window.Capacitor = { getPlatform: () => 'ios', isNativePlatform: () => true }
+                  document.documentElement.dataset.coviPlatform = 'ios'
+                })
+                const page = await context.newPage()
+                await page.goto('http://127.0.0.1:5173/?covi-ios-preview=' + mode, { waitUntil: 'networkidle', timeout: 45000 })
+                await page.locator('input[name="email"]').waitFor({ timeout: 20000 })
+                await page.locator('.auth--native-entry').waitFor({ timeout: 10000 })
+                const passwordFields = await page.locator('input[type="password"]').count()
+                if (passwordFields !== (mode === 'login' ? 1 : 2)) {
+                  throw new Error(mode + ': expected password fields missing, found ' + passwordFields)
+                }
+                const toggles = await page.getByRole('button', { name: /Afficher (le mot de passe|la confirmation)/ }).count()
+                if (toggles !== passwordFields) {
+                  throw new Error(mode + ': missing password visibility controls')
+                }
+                const overflowX = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 2)
+                if (overflowX) throw new Error(mode + ': horizontal overflow on ' + viewport.name)
+                await page.screenshot({ path: 'visual-qa/' + mode + '-' + viewport.name + '.png', fullPage: true })
+                console.log(mode + ' ' + viewport.name + ': ' + passwordFields + ' password fields, ' + toggles + ' eye controls; no horizontal overflow')
+                await context.close()
+              }
+            }
+          } finally {
+            await browser.close()
+          }
+          JS
+      - name: Upload visual QA screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: COVI-auth-iPhone-browser-visual-QA
+          path: visual-qa/*.png
+          if-no-files-found: ignore
+          retention-days: 7

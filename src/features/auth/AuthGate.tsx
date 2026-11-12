@@ -4,6 +4,7 @@ import { myAccountDeletion, type AccountDeletion } from '../../lib/account'
 import { supabase } from '../../lib/supabase'
 import { DeletionPendingScreen } from '../account/DeletionPendingScreen'
 import { listenForDesktopOAuth } from '../../lib/desktopAuth'
+import { listenForNativeOAuth } from '../../lib/nativeOAuth'
 import { clearCounterMode } from '../../lib/counterMode'
 import { closeTillSession, myMemberShops, type MemberShop } from '../../lib/team'
 import { closeSharedCashierTill } from '../../lib/sharedCashiers'
@@ -59,8 +60,12 @@ export function AuthGate({
   const [session, setSession] = useState<Session | null>(null)
   const [shop, setShop] = useState<Shop | null>(null)
   const [loading, setLoading] = useState(true)
-  const [mode, setMode] = useState<AuthMode>('login')
-  const [showWelcome, setShowWelcome] = useState(true)
+  // Development-only visual QA entrypoints. Never enabled in production builds.
+  const previewMode = import.meta.env.DEV && typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('covi-ios-preview')
+    : null
+  const [mode, setMode] = useState<AuthMode>(previewMode === 'signup' ? 'signup' : 'login')
+  const [showWelcome, setShowWelcome] = useState(previewMode !== 'login' && previewMode !== 'signup')
   const [message, setMessage] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [memberships, setMemberships] = useState<MemberShop[]>([])
@@ -92,7 +97,21 @@ export function AuthGate({
     }
   }, [])
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session))
+    let active = true
+    let dispose = () => undefined
+    void listenForNativeOAuth(setMessage).then((unlisten) => {
+      if (active) dispose = unlisten
+      else unlisten()
+    }).catch(() => setMessage('Impossible d’initialiser la connexion iOS.'))
+    return () => { active = false; dispose() }
+  }, [])
+  useEffect(() => {
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (document.documentElement.dataset.coviPlatform === 'ios' && localStorage.getItem('covi-ios-remember-session') === 'false' && data.session) {
+        await supabase.auth.signOut()
+        setSession(null)
+      } else setSession(data.session)
+    })
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, s) => {
@@ -182,12 +201,10 @@ export function AuthGate({
           <h1 id="welcome-title">Gérez votre commerce <em>simplement.</em></h1>
           <p>Ventes, stock, clients et équipe, tout au même endroit.</p>
           <div className="auth__welcome-highlights" aria-label="Activités COVI">
-            <span>Boutique</span><span>Restaurant</span><span>Salon</span>
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 8h14l1 12H4L5 8Z"/><path d="M9 9V6a3 3 0 0 1 6 0v3"/></svg><strong>Boutique</strong></span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 3v7a3 3 0 0 0 6 0V3M7 3v18M16 3c-2 3-3 6-3 10h5V3M18 13v8"/></svg><strong>Restaurant</strong></span><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M8.5 15 19 4M15.5 15 5 4"/></svg><strong>Salon</strong></span>
           </div>
-          <div className="auth__welcome-dashboard" aria-label="Aperçu illustratif du tableau de bord COVI">
-            <span className="auth__welcome-dashboard-heading">Votre activité en un coup d'œil</span>
-            <div className="auth__welcome-dashboard-bars" aria-hidden="true"><i /><i /><i /><i /><i /></div>
-            <span className="auth__welcome-dashboard-caption">Ventes · Stock · Clients</span>
+          <div className="auth__welcome-photo">
+            <img src="/covi-commercante.jpg" alt="Commerçante utilisant sa tablette dans sa boutique" />
           </div>
           <div className="auth__welcome-actions" aria-label="Accès COVI">
             <button

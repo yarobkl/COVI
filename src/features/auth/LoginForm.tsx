@@ -12,6 +12,7 @@ import { legalLinks } from '../../lib/legal'
 import { BUSINESS_KINDS, type BusinessKind } from '../../lib/businessKinds'
 import { createOwnerSignupDetails, storeOwnerOAuthIntent } from '../../lib/ownerSignup'
 import { SignInWithApple } from '@capacitor-community/apple-sign-in'
+import { nativeAuthRedirect, openNativeOAuth } from '../../lib/nativeOAuth'
 
 export type AuthMode = 'login' | 'signup'
 
@@ -76,7 +77,7 @@ function AppleLogo() {
  * Set VITE_COVI_APPLE_SIGNIN=false only for a deployment where the Supabase Apple provider is
  * intentionally disabled.
  */
-export const appleSignInEnabled =
+const appleSignInEnabled =
   import.meta.env.VITE_COVI_APPLE_SIGNIN !== 'false' || isCoviIosApp()
 
 function FacebookLogo() {
@@ -162,6 +163,8 @@ export function LoginForm({
   const [businessName, setBusinessName] = useState('')
   const [confirmationEmail, setConfirmationEmail] = useState('')
   const [phone, setPhone] = useState('+242')
+  const [showConfirmation, setShowConfirmation] = useState(false)
+  const [rememberMe, setRememberMe] = useState(true)
   const nativeIos = isCoviIosApp()
   const emailReturnUrl = nativeIos ? 'https://covi-snowy.vercel.app' : window.location.origin
   const login = mode === 'login'
@@ -205,9 +208,10 @@ export function LoginForm({
         : await supabase.auth.signUp({
             email,
             password,
-            options: { data: signupDetails ?? {}, emailRedirectTo: emailReturnUrl },
+            options: { data: signupDetails ?? (nativeIos ? { full_name: String(f.get('full-name') ?? '').trim() } : {}), emailRedirectTo: emailReturnUrl },
           })
       if (r.error) onMessage(authError(r.error))
+      else if (login && nativeIos) localStorage.setItem('covi-ios-remember-session', String(rememberMe))
       else if (!login && !r.data.session) setConfirmationEmail(email)
       else if (!login && r.data.session) {
         // Never pretend the verification link was sent when Auth email confirmation is disabled.
@@ -243,15 +247,18 @@ export function LoginForm({
           nonce,
         })
         if (error) onMessage(authError(error))
-        else onAuthSuccess?.()
+        else {
+          localStorage.setItem('covi-ios-remember-session', String(rememberMe))
+          onAuthSuccess?.()
+        }
         return
       }
       const desktop = isTauriApp()
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: desktop ? desktopAuthRedirect() : emailReturnUrl,
-          skipBrowserRedirect: desktop,
+          redirectTo: desktop ? desktopAuthRedirect() : nativeIos ? nativeAuthRedirect : emailReturnUrl,
+          skipBrowserRedirect: desktop || nativeIos,
           ...(provider === 'facebook' ? { scopes: 'email' } : {}),
           ...(provider === 'apple' ? { scopes: 'name email' } : {}),
         },
@@ -261,6 +268,10 @@ export function LoginForm({
         return
       }
       if (desktop && data.url) await openOAuthInSystemBrowser(data.url)
+      if (nativeIos && data.url) {
+        localStorage.setItem('covi-ios-remember-session', String(rememberMe))
+        await openNativeOAuth(data.url)
+      }
     } catch (e) {
       onMessage((e as Error).message || 'Connexion impossible. Vérifiez votre réseau et réessayez.')
     } finally {
@@ -291,6 +302,7 @@ export function LoginForm({
   if (showReset)
     return (
       <AuthPage
+        nativeIos={nativeIos}
         title="Réinitialiser votre mot de passe"
         lead="Nous vous envoyons un lien sécurisé pour choisir un nouveau mot de passe."
       >
@@ -326,7 +338,7 @@ export function LoginForm({
 
   if (confirmationEmail)
     return (
-      <AuthPage title="Vérifiez votre boîte mail" lead="Votre inscription est presque terminée.">
+      <AuthPage nativeIos={nativeIos} title="Vérifiez votre boîte mail" lead="Votre inscription est presque terminée.">
         <div className="auth__confirmation" role="status">
           <div className="auth__confirmation-icon" aria-hidden="true">
             ✓
@@ -348,13 +360,14 @@ export function LoginForm({
 
   return (
     <AuthPage
-      title={login ? (nativeIos ? 'Bon retour sur COVI' : 'Connexion') : 'Créer votre compte'}
+      nativeIos={nativeIos}
+      title={login ? (nativeIos ? 'Se connecter à COVI' : 'Connexion') : nativeIos ? 'Créer un compte' : 'Créer votre compte'}
       lead={
         login
-          ? 'Connectez-vous à votre espace de gestion COVI.'
-          : nativeIos ? 'Rejoignez COVI en quelques secondes.' : 'Présentez-vous, puis choisissez votre métier et le nom de votre établissement.'
+          ? nativeIos ? 'Accédez à votre compte et retrouvez votre commerce.' : 'Connectez-vous à votre espace de gestion COVI.'
+          : nativeIos ? 'Rejoignez COVI et gérez votre commerce dès aujourd’hui.' : 'Présentez-vous, puis choisissez votre métier et le nom de votre établissement.'
       }
-      onSectorSelect={chooseSector}
+      onSectorSelect={nativeIos ? undefined : chooseSector}
       aside={
         login && (
           <>
@@ -443,9 +456,10 @@ export function LoginForm({
             </Field>
           </>
         )}
+        {!login && nativeIos && <Field label="Nom complet">{(control) => <Input {...control} name="full-name" autoComplete="name" required />}</Field>}
         <Field label="Adresse e-mail">
           {(control) => (
-            <Input {...control} name="email" type="email" required autoComplete="email" />
+            <Input {...control} name="email" type="email" inputMode="email" autoCapitalize="none" required autoComplete="email" />
           )}
         </Field>
         <Field label="Mot de passe" hint={login ? undefined : '6 caractères minimum.'}>
@@ -472,14 +486,12 @@ export function LoginForm({
         {!login && (
           <Field label="Confirmer le mot de passe">
             {(control) => (
-              <Input
-                {...control}
-                name="confirm-password"
-                type={showPassword ? 'text' : 'password'}
-                minLength={6}
-                required
-                autoComplete="new-password"
-              />
+              <div className="password">
+                <Input {...control} name="confirm-password" type={showConfirmation ? 'text' : 'password'} minLength={6} required autoComplete="new-password" />
+                <IconButton className="password__toggle" label={showConfirmation ? 'Masquer la confirmation' : 'Afficher la confirmation'} onClick={() => setShowConfirmation(!showConfirmation)}>
+                  {showConfirmation ? <EyeOffIcon /> : <EyeIcon />}
+                </IconButton>
+              </div>
             )}
           </Field>
         )}
@@ -488,10 +500,16 @@ export function LoginForm({
             <p>{message}</p>
           </Notice>
         )}
+        {login && nativeIos && (
+          <div className="auth__account-options">
+            <label className="auth__remember"><input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} /> Se souvenir de moi</label>
+            <button type="button" className="auth__link auth__forgot" onClick={() => { setShowReset(true); onMessage('') }}>Mot de passe oublié ?</button>
+          </div>
+        )}
         <Button variant="primary" size="lg" block type="submit" busy={busy}>
           {login ? 'Se connecter' : 'Créer mon compte'}
         </Button>
-        {login && (
+        {login && !nativeIos && (
           <button
             type="button"
             className="auth__link auth__forgot"
@@ -526,22 +544,23 @@ export function LoginForm({
               role="group"
               aria-label="Connexion avec un compte externe"
             >
+              {nativeIos && appleSignInEnabled && (
+                <Button variant="secondary" size="lg" className="auth__social-btn auth__social-btn--apple" aria-label="Continuer avec Apple" disabled={busy} onClick={() => void socialAuth('apple')}>
+                  <AppleLogo />
+                </Button>
+              )}
               <Button
                 variant="secondary"
                 size="lg"
                 className="auth__social-btn auth__social-btn--google"
+                aria-label={nativeIos ? 'Continuer avec Google' : 'Google'}
                 onClick={() => void socialAuth('google')}
                 disabled={busy}
               >
                 <GoogleLogo />
-                <span>Google</span>
+                {!nativeIos && <span>Google</span>}
               </Button>
-              {nativeIos && appleSignInEnabled && (
-                <Button variant="secondary" size="lg" className="auth__social-btn auth__social-btn--apple" disabled={busy} onClick={() => void socialAuth('apple')}>
-                  <AppleLogo />
-                  <span>Apple</span>
-                </Button>
-              )}
+
               {!nativeIos && <Button
                 variant="secondary"
                 size="lg"
@@ -589,9 +608,9 @@ export function LoginForm({
           </a>
         ))}
       </nav>
-      {onBackToWelcome && (
-        <button type="button" className="auth__back" onClick={onBackToWelcome}>
-          Retour à l’accueil
+      {onBackToWelcome && nativeIos && (
+        <button type="button" className="auth__back" aria-label="Retour à l’accueil" onClick={onBackToWelcome}>
+          <span aria-hidden="true">←</span><span className="auth__back-label">Retour à l’accueil</span>
         </button>
       )}
     </AuthPage>
