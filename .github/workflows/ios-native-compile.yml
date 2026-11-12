@@ -88,3 +88,84 @@ jobs:
           path: ${{ runner.temp }}/covi-screenshots/*.png
           if-no-files-found: ignore
           retention-days: 7
+
+  auth-visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install isolated Playwright runner
+        run: |
+          mkdir -p /tmp/covi-visual-runner
+          cd /tmp/covi-visual-runner
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Start development server (visual QA only)
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/covi-vite.log 2>&1 &
+          for i in $(seq 1 45); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/covi-vite.log
+          exit 1
+      - name: Capture login and signup at iPhone dimensions
+        env:
+          PLAYWRIGHT_MODULE: /tmp/covi-visual-runner/node_modules/playwright/index.mjs
+        run: |
+          mkdir -p visual-qa
+          node --input-type=module <<'JS'
+          import { pathToFileURL } from 'node:url'
+          const { chromium } = await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href)
+          const browser = await chromium.launch({ headless: true })
+          try {
+            for (const viewport of [{ width: 393, height: 852, name: 'iphone-393' }, { width: 375, height: 667, name: 'iphone-375' }]) {
+              for (const mode of ['login', 'signup']) {
+                const context = await browser.newContext({
+                  viewport: { width: viewport.width, height: viewport.height },
+                  deviceScaleFactor: 2,
+                  isMobile: true,
+                  hasTouch: true,
+                })
+                await context.addInitScript(() => {
+                  window.Capacitor = { getPlatform: () => 'ios', isNativePlatform: () => true }
+                })
+                const page = await context.newPage()
+                await page.goto('http://127.0.0.1:5173/?covi-ios-preview=' + mode, { waitUntil: 'networkidle', timeout: 45000 })
+                await page.locator('input[name="email"]').waitFor({ timeout: 20000 })
+                const passwordFields = await page.locator('input[type="password"]').count()
+                if (passwordFields !== (mode === 'login' ? 1 : 2)) {
+                  throw new Error(mode + ': expected password fields missing, found ' + passwordFields)
+                }
+                const toggles = await page.getByRole('button', { name: /Afficher (le mot de passe|la confirmation)/ }).count()
+                if (toggles !== passwordFields) {
+                  throw new Error(mode + ': missing password visibility controls')
+                }
+                const overflowX = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 2)
+                if (overflowX) throw new Error(mode + ': horizontal overflow on ' + viewport.name)
+                await page.screenshot({ path: 'visual-qa/' + mode + '-' + viewport.name + '.png', fullPage: true })
+                console.log(mode + ' ' + viewport.name + ': ' + passwordFields + ' password fields, ' + toggles + ' eye controls; no horizontal overflow')
+                await context.close()
+              }
+            }
+          } finally {
+            await browser.close()
+          }
+          JS
+      - name: Upload visual QA screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: COVI-auth-iPhone-browser-visual-QA
+          path: visual-qa/*.png
+          if-no-files-found: ignore
+          retention-days: 7
