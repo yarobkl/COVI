@@ -1,3 +1,6 @@
+COVI_TEAM_ID = UK4UQCQ57G
+COVI_VERIFIED_CONTAINER = iCloud.com.covi.app
+COVI_BUILD_NUMBER = 42
 // Renseigner les identifiants de la fiche Apple existante.
 PRODUCT_BUNDLE_IDENTIFIER = com.covi.app
 DEVELOPMENT_TEAM = $(COVI_TEAM_ID)
