@@ -39,7 +39,11 @@ enum RestaurantFault: LocalizedError {
         table.isOccupied = true
         table.billRequested = false
         db.insert(order)
-        try save()
+        do {
+            try BusinessOutbox.enqueue(kind: "restaurant.table.opened", establishmentID: shop.id,
+                entityID: order.id, actorID: actor, relatedIDs: [table.id], in: db)
+            try save()
+        } catch { db.rollback(); throw error }
     }
     func check(_ table: DiningTable, _ order: CommerceOrder) throws {
         guard table.establishmentID == shop.id, order.establishmentID == shop.id,
