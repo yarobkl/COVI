@@ -20,10 +20,25 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Config/COVI.entitlements
         INFOPLIST_FILE: Config/Info.plist
         TARGETED_DEVICE_FAMILY: "1,2"
+  COVITests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: COVITests
+    dependencies:
+      - target: COVI
+    settings:
+      base:
+        SWIFT_VERSION: "5.0"
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGNING_ALLOWED: NO
 schemes:
   COVI:
     build:
       targets:
         COVI: all
+    test:
+      targets:
+        - COVITests
     archive:
       config: Release
