@@ -71,14 +71,22 @@ enum RestaurantFault: LocalizedError {
         }
         for line in lines { db.insert(line) }
         order.totalMinor = total
-        try save()
+        do {
+            try BusinessOutbox.enqueue(kind: "restaurant.order.sent", establishmentID: shop.id,
+                entityID: order.id, actorID: actor, relatedIDs: lines.map { $0.id }, in: db)
+            try save()
+        } catch { db.rollback(); throw error }
     }
     func advance(_ line: OrderLine, from expected: Prep, table: DiningTable, order: CommerceOrder) throws {
         try authorize(kitchen: expected == .cooking || role == .kitchen)
         try check(table, order)
         guard line.orderID == order.id, line.preparation == expected.rawValue, expected != .served else { throw RestaurantFault.stale }
         line.preparation = (expected == .cooking ? Prep.ready : Prep.served).rawValue
-        try save()
+        do {
+            try BusinessOutbox.enqueue(kind: "restaurant.line.advanced", establishmentID: shop.id,
+                entityID: line.id, actorID: actor, relatedIDs: [order.id], in: db)
+            try save()
+        } catch { db.rollback(); throw error }
     }
     func finish(_ table: DiningTable, order: CommerceOrder, paid: Bool) throws {
         try authorize()
@@ -96,6 +104,11 @@ enum RestaurantFault: LocalizedError {
             table.isOccupied = false
         }
         table.billRequested = !paid
-        try save()
+        do {
+            try BusinessOutbox.enqueue(kind: paid ? "restaurant.order.paid" : "restaurant.bill.requested",
+                establishmentID: shop.id, entityID: order.id, actorID: actor,
+                relatedIDs: [table.id], in: db)
+            try save()
+        } catch { db.rollback(); throw error }
     }
 }
