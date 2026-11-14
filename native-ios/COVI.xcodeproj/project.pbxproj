@@ -1,0 +1,531 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		05FF9111AACD497D78D9572A /* SalonSpace.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5C401E87E27408777014B77 /* SalonSpace.swift */; };
+		0F6ADE33979525E044DB9DD6 /* BoutiqueSpace.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB884C2A3DEFCF7383B3FAC6 /* BoutiqueSpace.swift */; };
+		19C07D49620304DB7673E260 /* SalonLedger.swift.avant-correction in Resources */ = {isa = PBXBuildFile; fileRef = 2F3737EC504AD8707EA7CC11 /* SalonLedger.swift.avant-correction */; };
+		1A6FF6B40F9D2BB5AC44EC45 /* COVIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C99D9533387DFCACAAF19D3 /* COVIApp.swift */; };
+		1D1938B1D998E1204B12CB78 /* RestaurantMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BC7C2DEAEB66B73A663B021 /* RestaurantMenu.swift */; };
+		296198C08B67C851914FF5C0 /* SyncCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC80872AD77EA66E1C68E508 /* SyncCoordinator.swift */; };
+		2B2F07F09D2AEE3F4CCE57E6 /* MoreSpace.swift in Sources */ = {isa = PBXBuildFile; fileRef = BAC9BD62FA582A5CCA9F5835 /* MoreSpace.swift */; };
+		33C00F42C1AEEC3F3BC4199D /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00630B8DEF9E98F8D12D059A /* RootView.swift */; };
+		4AB88C1652190C7C0E7E3467 /* DomainModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 916D6559713B65D2B863DEC6 /* DomainModels.swift */; };
+		4B2DC14F53B3666FAB6F6164 /* HapticService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DE969B5C838451FFC5458D3 /* HapticService.swift */; };
+		5B6CE587C76EF105F642D994 /* BoutiqueLedger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 515FDDEC36E853890B2815F7 /* BoutiqueLedger.swift */; };
+		5B9D8B6B4B1304C8786309BE /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE42C6E8C3A05B83A2F9B813 /* PersistenceController.swift */; };
+		5E777220B4D87B529A822578 /* PINManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D448C37343057D16703C827E /* PINManager.swift */; };
+		72DF96F55F80212D964F07C8 /* RestaurantService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 699E9AD782E43875D9375133 /* RestaurantService.swift */; };
+		765A65D836BB6773A38A8320 /* AppSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = E24506386849F0202130B332 /* AppSession.swift */; };
+		7E22FF09F68040C381569EE6 /* DynamicTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31FFC1A6496A4C505332DAC9 /* DynamicTabView.swift */; };
+		A5859B9ABC66998D63275F7E /* SalonLedger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49E53FD0C48081BF46C9D639 /* SalonLedger.swift */; };
+		A9151D495701EBB1B7DBBD76 /* CloudKitAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE326200C749B0CD478CCA65 /* CloudKitAdapter.swift */; };
+		BDA2E87149A48AC1EDD482FB /* SystemSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = F87942DBD97D5015D071AE21 /* SystemSettings.swift */; };
+		C7E75C0DA69C6D5800213790 /* COVITheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68DA38AB4CCE591AB72E45B7 /* COVITheme.swift */; };
+		CC2BC2CE2D1AF59C99F0A005 /* COVIDesignSystemPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C35A47549B7CB09696037AF /* COVIDesignSystemPreview.swift */; };
+		CF6545706A2ED78FC48E0A2C /* OwnerSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D46CC2F1E6C1A7BA7A53AC0 /* OwnerSettings.swift */; };
+		DB728A89FF478118ACD4E5E2 /* PINEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E898E87BB3398A06478389E4 /* PINEntryView.swift */; };
+		DC203A876DA92B4A9FFED504 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BA50B3AC18CEE46C5149521C /* Assets.xcassets */; };
+		EBA3A1F5E364ED03E831EEC2 /* BoutiqueInventory.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5685D6AB791A25550FF8E5F /* BoutiqueInventory.swift */; };
+		F626E6E6DD357F7CA08650B6 /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA5AC74F801B8AF375C48ACB /* KeychainStore.swift */; };
+		F8F09AC07C28F518E9570BDE /* SalonCheckout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F61E41E1C41338ABE77A2F5 /* SalonCheckout.swift */; };
+		FC0DBAAC466959AED1FFAD6E /* RestaurantSpace.swift in Sources */ = {isa = PBXBuildFile; fileRef = 508A27A7F26EEC3F95620518 /* RestaurantSpace.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		00630B8DEF9E98F8D12D059A /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		0F61E41E1C41338ABE77A2F5 /* SalonCheckout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SalonCheckout.swift; sourceTree = "<group>"; };
+		2C35A47549B7CB09696037AF /* COVIDesignSystemPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = COVIDesignSystemPreview.swift; sourceTree = "<group>"; };
+		2F3737EC504AD8707EA7CC11 /* SalonLedger.swift.avant-correction */ = {isa = PBXFileReference; path = "SalonLedger.swift.avant-correction"; sourceTree = "<group>"; };
+		31FFC1A6496A4C505332DAC9 /* DynamicTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicTabView.swift; sourceTree = "<group>"; };
+		3D46CC2F1E6C1A7BA7A53AC0 /* OwnerSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OwnerSettings.swift; sourceTree = "<group>"; };
+		49E53FD0C48081BF46C9D639 /* SalonLedger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SalonLedger.swift; sourceTree = "<group>"; };
+		508A27A7F26EEC3F95620518 /* RestaurantSpace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestaurantSpace.swift; sourceTree = "<group>"; };
+		515FDDEC36E853890B2815F7 /* BoutiqueLedger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoutiqueLedger.swift; sourceTree = "<group>"; };
+		5DE969B5C838451FFC5458D3 /* HapticService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticService.swift; sourceTree = "<group>"; };
+		68B2EE4A5CF7A48FDB59108D /* COVI.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = COVI.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		68DA38AB4CCE591AB72E45B7 /* COVITheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = COVITheme.swift; sourceTree = "<group>"; };
+		699E9AD782E43875D9375133 /* RestaurantService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestaurantService.swift; sourceTree = "<group>"; };
+		8BC7C2DEAEB66B73A663B021 /* RestaurantMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestaurantMenu.swift; sourceTree = "<group>"; };
+		8C99D9533387DFCACAAF19D3 /* COVIApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = COVIApp.swift; sourceTree = "<group>"; };
+		916D6559713B65D2B863DEC6 /* DomainModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DomainModels.swift; sourceTree = "<group>"; };
+		A535781601AF5A32C6E8F3D4 /* Local.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Local.xcconfig; sourceTree = "<group>"; };
+		AB884C2A3DEFCF7383B3FAC6 /* BoutiqueSpace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoutiqueSpace.swift; sourceTree = "<group>"; };
+		B5C401E87E27408777014B77 /* SalonSpace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SalonSpace.swift; sourceTree = "<group>"; };
+		BA50B3AC18CEE46C5149521C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		BAC9BD62FA582A5CCA9F5835 /* MoreSpace.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoreSpace.swift; sourceTree = "<group>"; };
+		D448C37343057D16703C827E /* PINManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINManager.swift; sourceTree = "<group>"; };
+		DA5AC74F801B8AF375C48ACB /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
+		DE42C6E8C3A05B83A2F9B813 /* PersistenceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersistenceController.swift; sourceTree = "<group>"; };
+		E24506386849F0202130B332 /* AppSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSession.swift; sourceTree = "<group>"; };
+		E5685D6AB791A25550FF8E5F /* BoutiqueInventory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoutiqueInventory.swift; sourceTree = "<group>"; };
+		E898E87BB3398A06478389E4 /* PINEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PINEntryView.swift; sourceTree = "<group>"; };
+		F87942DBD97D5015D071AE21 /* SystemSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemSettings.swift; sourceTree = "<group>"; };
+		FC80872AD77EA66E1C68E508 /* SyncCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncCoordinator.swift; sourceTree = "<group>"; };
+		FE326200C749B0CD478CCA65 /* CloudKitAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitAdapter.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		047C42E0A70113C6AE4BDAF1 /* More */ = {
+			isa = PBXGroup;
+			children = (
+				BAC9BD62FA582A5CCA9F5835 /* MoreSpace.swift */,
+				F87942DBD97D5015D071AE21 /* SystemSettings.swift */,
+			);
+			path = More;
+			sourceTree = "<group>";
+		};
+		0F7652ACECA273BFA992B8AB /* Security */ = {
+			isa = PBXGroup;
+			children = (
+				DA5AC74F801B8AF375C48ACB /* KeychainStore.swift */,
+				3D46CC2F1E6C1A7BA7A53AC0 /* OwnerSettings.swift */,
+				E898E87BB3398A06478389E4 /* PINEntryView.swift */,
+				D448C37343057D16703C827E /* PINManager.swift */,
+			);
+			path = Security;
+			sourceTree = "<group>";
+		};
+		0FFFD7AE4F5A8EFF0009BDA3 /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				2C35A47549B7CB09696037AF /* COVIDesignSystemPreview.swift */,
+				68DA38AB4CCE591AB72E45B7 /* COVITheme.swift */,
+			);
+			path = DesignSystem;
+			sourceTree = "<group>";
+		};
+		1FB8FBE9C6DACABC68DCB44C /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				52AA0F567797472F52F1FC8E /* Boutique */,
+				047C42E0A70113C6AE4BDAF1 /* More */,
+				B0036D667693FB050EB2ADF9 /* Restaurant */,
+				5CC1941E0DD8925FF614FD1A /* Salon */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		31C9B4B71082240F2B487C67 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				68B2EE4A5CF7A48FDB59108D /* COVI.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		3C90E8B0CBE7F8B9D3F99392 = {
+			isa = PBXGroup;
+			children = (
+				92625F786869BBA05A131675 /* Config */,
+				82EE0FF5B1E3B2ECE1D96B53 /* COVI */,
+				31C9B4B71082240F2B487C67 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		52AA0F567797472F52F1FC8E /* Boutique */ = {
+			isa = PBXGroup;
+			children = (
+				E5685D6AB791A25550FF8E5F /* BoutiqueInventory.swift */,
+				515FDDEC36E853890B2815F7 /* BoutiqueLedger.swift */,
+				AB884C2A3DEFCF7383B3FAC6 /* BoutiqueSpace.swift */,
+			);
+			path = Boutique;
+			sourceTree = "<group>";
+		};
+		5CC1941E0DD8925FF614FD1A /* Salon */ = {
+			isa = PBXGroup;
+			children = (
+				0F61E41E1C41338ABE77A2F5 /* SalonCheckout.swift */,
+				49E53FD0C48081BF46C9D639 /* SalonLedger.swift */,
+				2F3737EC504AD8707EA7CC11 /* SalonLedger.swift.avant-correction */,
+				B5C401E87E27408777014B77 /* SalonSpace.swift */,
+			);
+			path = Salon;
+			sourceTree = "<group>";
+		};
+		6C76AE11F0E13C3F02225DA8 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				E24506386849F0202130B332 /* AppSession.swift */,
+				8C99D9533387DFCACAAF19D3 /* COVIApp.swift */,
+				00630B8DEF9E98F8D12D059A /* RootView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		73B496CD510BCF0825E218C4 /* Navigation */ = {
+			isa = PBXGroup;
+			children = (
+				31FFC1A6496A4C505332DAC9 /* DynamicTabView.swift */,
+			);
+			path = Navigation;
+			sourceTree = "<group>";
+		};
+		82EE0FF5B1E3B2ECE1D96B53 /* COVI */ = {
+			isa = PBXGroup;
+			children = (
+				BA50B3AC18CEE46C5149521C /* Assets.xcassets */,
+				6C76AE11F0E13C3F02225DA8 /* App */,
+				AC536676A2A6E96C8D5505FD /* Core */,
+				1FB8FBE9C6DACABC68DCB44C /* Features */,
+				EF6D50329FBEF8FEAF0F21BC /* Sync */,
+			);
+			path = COVI;
+			sourceTree = "<group>";
+		};
+		92625F786869BBA05A131675 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				A535781601AF5A32C6E8F3D4 /* Local.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		9298B289A2722A48809F9E5C /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				916D6559713B65D2B863DEC6 /* DomainModels.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		AC536676A2A6E96C8D5505FD /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				0FFFD7AE4F5A8EFF0009BDA3 /* DesignSystem */,
+				E6CB218D95684493747D30D5 /* Haptics */,
+				9298B289A2722A48809F9E5C /* Models */,
+				73B496CD510BCF0825E218C4 /* Navigation */,
+				C2E78931072B4A87C92CF419 /* Persistence */,
+				0F7652ACECA273BFA992B8AB /* Security */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		B0036D667693FB050EB2ADF9 /* Restaurant */ = {
+			isa = PBXGroup;
+			children = (
+				8BC7C2DEAEB66B73A663B021 /* RestaurantMenu.swift */,
+				699E9AD782E43875D9375133 /* RestaurantService.swift */,
+				508A27A7F26EEC3F95620518 /* RestaurantSpace.swift */,
+			);
+			path = Restaurant;
+			sourceTree = "<group>";
+		};
+		C2E78931072B4A87C92CF419 /* Persistence */ = {
+			isa = PBXGroup;
+			children = (
+				DE42C6E8C3A05B83A2F9B813 /* PersistenceController.swift */,
+			);
+			path = Persistence;
+			sourceTree = "<group>";
+		};
+		E6CB218D95684493747D30D5 /* Haptics */ = {
+			isa = PBXGroup;
+			children = (
+				5DE969B5C838451FFC5458D3 /* HapticService.swift */,
+			);
+			path = Haptics;
+			sourceTree = "<group>";
+		};
+		EF6D50329FBEF8FEAF0F21BC /* Sync */ = {
+			isa = PBXGroup;
+			children = (
+				FE326200C749B0CD478CCA65 /* CloudKitAdapter.swift */,
+				FC80872AD77EA66E1C68E508 /* SyncCoordinator.swift */,
+			);
+			path = Sync;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		272465B609BE73CEEB8B6D72 /* COVI */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0A754C227506EACE9E83CD5E /* Build configuration list for PBXNativeTarget "COVI" */;
+			buildPhases = (
+				4FF8AE885A4F70F48159BB97 /* Sources */,
+				2C173D991C61F05CE9847262 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = COVI;
+			packageProductDependencies = (
+			);
+			productName = COVI;
+			productReference = 68B2EE4A5CF7A48FDB59108D /* COVI.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		3511585BCD69F6CC02212ECC /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					272465B609BE73CEEB8B6D72 = {
+						DevelopmentTeam = "$(COVI_TEAM_ID)";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = D96E69017A4D0ECADEB2706C /* Build configuration list for PBXProject "COVI" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 3C90E8B0CBE7F8B9D3F99392;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 31C9B4B71082240F2B487C67 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				272465B609BE73CEEB8B6D72 /* COVI */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		2C173D991C61F05CE9847262 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DC203A876DA92B4A9FFED504 /* Assets.xcassets in Resources */,
+				19C07D49620304DB7673E260 /* SalonLedger.swift.avant-correction in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4FF8AE885A4F70F48159BB97 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				765A65D836BB6773A38A8320 /* AppSession.swift in Sources */,
+				EBA3A1F5E364ED03E831EEC2 /* BoutiqueInventory.swift in Sources */,
+				5B6CE587C76EF105F642D994 /* BoutiqueLedger.swift in Sources */,
+				0F6ADE33979525E044DB9DD6 /* BoutiqueSpace.swift in Sources */,
+				1A6FF6B40F9D2BB5AC44EC45 /* COVIApp.swift in Sources */,
+				CC2BC2CE2D1AF59C99F0A005 /* COVIDesignSystemPreview.swift in Sources */,
+				C7E75C0DA69C6D5800213790 /* COVITheme.swift in Sources */,
+				A9151D495701EBB1B7DBBD76 /* CloudKitAdapter.swift in Sources */,
+				4AB88C1652190C7C0E7E3467 /* DomainModels.swift in Sources */,
+				7E22FF09F68040C381569EE6 /* DynamicTabView.swift in Sources */,
+				4B2DC14F53B3666FAB6F6164 /* HapticService.swift in Sources */,
+				F626E6E6DD357F7CA08650B6 /* KeychainStore.swift in Sources */,
+				2B2F07F09D2AEE3F4CCE57E6 /* MoreSpace.swift in Sources */,
+				CF6545706A2ED78FC48E0A2C /* OwnerSettings.swift in Sources */,
+				DB728A89FF478118ACD4E5E2 /* PINEntryView.swift in Sources */,
+				5E777220B4D87B529A822578 /* PINManager.swift in Sources */,
+				5B9D8B6B4B1304C8786309BE /* PersistenceController.swift in Sources */,
+				1D1938B1D998E1204B12CB78 /* RestaurantMenu.swift in Sources */,
+				72DF96F55F80212D964F07C8 /* RestaurantService.swift in Sources */,
+				FC0DBAAC466959AED1FFAD6E /* RestaurantSpace.swift in Sources */,
+				33C00F42C1AEEC3F3BC4199D /* RootView.swift in Sources */,
+				F8F09AC07C28F518E9570BDE /* SalonCheckout.swift in Sources */,
+				A5859B9ABC66998D63275F7E /* SalonLedger.swift in Sources */,
+				05FF9111AACD497D78D9572A /* SalonSpace.swift in Sources */,
+				296198C08B67C851914FF5C0 /* SyncCoordinator.swift in Sources */,
+				BDA2E87149A48AC1EDD482FB /* SystemSettings.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		149CCA41C83F1B98F9D2B97A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		156B1FE2DD80F11B85B72CB0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		973586F2D2B1324C2618A336 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A535781601AF5A32C6E8F3D4 /* Local.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Config/COVI.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				INFOPLIST_FILE = Config/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		FA6E3D056B0EB27B5506AC3E /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A535781601AF5A32C6E8F3D4 /* Local.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Config/COVI.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				INFOPLIST_FILE = Config/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0A754C227506EACE9E83CD5E /* Build configuration list for PBXNativeTarget "COVI" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				973586F2D2B1324C2618A336 /* Debug */,
+				FA6E3D056B0EB27B5506AC3E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		D96E69017A4D0ECADEB2706C /* Build configuration list for PBXProject "COVI" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				149CCA41C83F1B98F9D2B97A /* Debug */,
+				156B1FE2DD80F11B85B72CB0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 3511585BCD69F6CC02212ECC /* Project object */;
+}

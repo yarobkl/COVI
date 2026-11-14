@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><dict>
+<key>CFBundleIdentifier</key><string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+<key>CFBundleName</key><string>$(PRODUCT_NAME)</string>
+<key>CFBundleExecutable</key><string>$(EXECUTABLE_NAME)</string>
+<key>CFBundlePackageType</key><string>APPL</string>
+<key>CFBundleShortVersionString</key><string>$(MARKETING_VERSION)</string>
+<key>CFBundleVersion</key><string>$(CURRENT_PROJECT_VERSION)</string>
+<key>CFBundleDevelopmentRegion</key><string>fr</string>
+<key>UILaunchScreen</key><dict/>
+<key>COVISupabaseURL</key><string>https://$(COVI_SUPABASE_HOST)</string>
+<key>COVISupabasePublishableKey</key><string>$(COVI_PUBLISHABLE_KEY)</string>
+<key>COVIShowcaseURL</key><string>https://$(COVI_SHOWCASE_HOST)/</string>
+</dict></plist>
