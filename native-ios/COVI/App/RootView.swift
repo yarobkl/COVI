@@ -8,6 +8,12 @@ struct RootView: View {
     @Environment(AppSession.self) private var session
     @Environment(\.scenePhase) private var phase
     @State private var selectedID: UUID?
+    @State private var addingShop = false
+    private func selectShop(_ id: UUID, for account: UUID) {
+        pinManager.lock()
+        selectedID = id
+        UserDefaults.standard.set(id.uuidString, forKey: "covi.shop." + account.uuidString)
+    }
     @State private var pinManager = PINManager()
     @State private var restoring = true
     @State private var logoutError = false
@@ -24,27 +30,37 @@ struct RootView: View {
         Group {
             if restoring { COVILaunch() }
             else if let account = session.accountID {
+                let preferred = selectedID ?? UserDefaults.standard.string(forKey: "covi.shop." + account.uuidString).flatMap(UUID.init(uuidString:))
                 let shops = establishments.filter { role($0, account) != nil }
                 VStack {
-                    if let shop = shops.first(where: { $0.id == selectedID }) ?? shops.first,
+                    if let shop = shops.first(where: { $0.id == preferred }) ?? shops.first,
                        let role = role(shop, account) {
-                        Picker("Établissement", selection: Binding(get: { shop.id }, set: { pinManager.lock(); selectedID = $0 })) {
+                        Picker("Établissement", selection: Binding(get: { shop.id }, set: { selectShop($0, for: account) })) {
                             ForEach(shops) { Text($0.name).tag($0.id) }
+                        }
+                        if establishments.filter({ $0.ownerID == account && !$0.archived }).count < 3 {
+                            Button("Ajouter un établissement") { addingShop = true }
                         }
                         DynamicTabView(establishment: shop, accountID: account, role: role, pinManager: pinManager)
                             .id("\(account)-\(shop.id)-\(role.rawValue)")
                         if role == .owner { ShopSyncStatus(shop: shop).id(shop.id) }
-                    } else { ContentUnavailableView("Aucun établissement accessible", systemImage: "storefront") }
+                    } else { EstablishmentSetup(account: account) { selectShop($0, for: account) }.id(account) }
                     Button("Se déconnecter") {
                         pinManager.lock()
                         do { try session.signOut() } catch { logoutError = true }
+                    }
+                }
+                .sheet(isPresented: $addingShop) {
+                    EstablishmentSetup(account: account) { id in
+                        selectShop(id, for: account)
+                        addingShop = false
                     }
                 }
             } else { COVIWelcome() }
         }
         .task { if restoring { try? await session.restore(); restoring = false } }
         .onChange(of: phase) { _, phase in if phase != .active { pinManager.lock() } }
-        .onChange(of: session.accountID) { _, _ in pinManager.lock(); selectedID = nil }
+        .onChange(of: session.accountID) { _, _ in pinManager.lock(); selectedID = nil; addingShop = false }
         .alert("Effacement de la session locale impossible", isPresented: $logoutError) { Button("OK") {} }
     }
 }
@@ -125,5 +141,66 @@ private struct COVIWelcome: View {
                 }
             }
         }
+    }
+}
+
+private struct EstablishmentSetup: View {
+    let account: UUID
+    let onCreated: (UUID) -> Void
+    @Environment(AppSession.self) private var session
+    @Environment(\.modelContext) private var context
+    @State private var name = ""
+    @State private var city = ""
+    @State private var kind = BusinessKind.boutique
+    @State private var currency = "XAF"
+    @State private var error = ""
+    @State private var saved = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Informations de l’établissement") {
+                    Picker("Activité", selection: $kind) {
+                        Text("Boutique").tag(BusinessKind.boutique)
+                        Text("Restaurant").tag(BusinessKind.restaurant)
+                        Text("Salon").tag(BusinessKind.salon)
+                    }.pickerStyle(.segmented)
+                    TextField("Nom de l’établissement", text: $name)
+                    TextField("Ville", text: $city)
+                    Picker("Devise", selection: $currency) {
+                        Text("XAF").tag("XAF")
+                        Text("XOF").tag("XOF")
+                    }
+                }
+                COVIButton("Créer mon espace") { create() }
+                    .disabled(saved || clean(name).isEmpty || clean(city).isEmpty)
+                if !error.isEmpty { Text(error) }
+            }
+            .scrollContentBackground(.hidden)
+            .background(COVITheme.cream)
+            .navigationTitle("Votre établissement")
+        }
+    }
+
+    private func clean(_ text: String) -> String {
+        text.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    @MainActor private func create() {
+        guard !saved, session.accountID == account, !clean(name).isEmpty, !clean(city).isEmpty else { return }
+        do {
+            let owner = account
+            let count = try context.fetchCount(FetchDescriptor<Establishment>(predicate: #Predicate {
+                $0.ownerID == owner && !$0.archived
+            }))
+            guard count < 3 else { error = "Trois établissements sont déjà actifs sur cet appareil."; return }
+            let shop = Establishment(ownerID: account, name: clean(name), kind: kind, city: clean(city), currencyCode: currency)
+            try context.transaction {
+                context.insert(shop)
+                context.insert(Membership(accountID: account, establishmentID: shop.id, role: .owner))
+            }
+            saved = true
+            onCreated(shop.id)
+        } catch { error = "La création a échoué. Vous pouvez réessayer." }
     }
 }

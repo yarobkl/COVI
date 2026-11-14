@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 enum BusinessTab: String, Hashable, Identifiable {
     case home, sell, stock, orders, more, service, tables, kitchen, today, agenda, checkout, clients
@@ -83,8 +84,8 @@ struct DynamicTabView: View {
                             if pinManager.isUnlocked && pinManager.unlockedStaffID == accountID { selected = .sell }
                             else { pending = .sell; showingPIN = true }
                         }
-                    } else if tab == .more && role == .owner {
-                        OwnerSettings(shop: establishment, pinManager: pinManager)
+                    } else if tab == .orders && establishment.kind == .boutique {
+                        BoutiqueOrders(shop: establishment)
                     } else { FeaturePlaceholder(title: tab.title) }
                 }
                 .tabItem { Label(tab.title, systemImage: tab.symbol) }
@@ -124,3 +125,58 @@ struct FeaturePlaceholder: View {
     }
 }
 
+
+private struct BoutiqueOrders: View {
+    @Query private var orders: [CommerceOrder]
+    let shop: Establishment
+
+    init(shop: Establishment) {
+        self.shop = shop
+        let id = shop.id
+        _orders = Query(filter: #Predicate<CommerceOrder> { $0.establishmentID == id },
+                        sort: \.createdAt, order: .reverse)
+    }
+
+    var body: some View {
+        List {
+            if orders.isEmpty { ContentUnavailableView("Aucune commande", systemImage: "receipt") }
+            ForEach(orders) { order in
+                NavigationLink {
+                    BoutiqueOrderDetail(order: order, shop: shop)
+                } label: {
+                    LabeledContent(order.createdAt.formatted(date: .abbreviated, time: .shortened),
+                                   value: "\(order.totalMinor) \(shop.currencyCode)")
+                }
+            }
+        }.navigationTitle("Commandes")
+    }
+}
+
+private struct BoutiqueOrderDetail: View {
+    let order: CommerceOrder
+    let shop: Establishment
+    @Query private var lines: [OrderLine]
+    @Query private var items: [CatalogItem]
+
+    init(order: CommerceOrder, shop: Establishment) {
+        self.order = order
+        self.shop = shop
+        let orderID = order.id
+        let shopID = shop.id
+        _lines = Query(filter: #Predicate<OrderLine> { $0.orderID == orderID })
+        _items = Query(filter: #Predicate<CatalogItem> { $0.establishmentID == shopID })
+    }
+
+    var body: some View {
+        List {
+            Section("Articles") {
+                ForEach(lines) { line in
+                    let title = items.first { $0.id == line.catalogItemID }?.title ?? "Article retiré"
+                    LabeledContent(title, value: "\(line.quantity) × \(line.unitPriceMinor) \(shop.currencyCode)")
+                }
+            }
+            if order.discountMinor > 0 { LabeledContent("Remise", value: "\(order.discountMinor) \(shop.currencyCode)") }
+            LabeledContent("Total", value: "\(order.totalMinor) \(shop.currencyCode)")
+        }.navigationTitle("Détail de la commande")
+    }
+}
