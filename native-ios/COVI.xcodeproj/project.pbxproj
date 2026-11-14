@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		05FF9111AACD497D78D9572A /* SalonSpace.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5C401E87E27408777014B77 /* SalonSpace.swift */; };
 		0F6ADE33979525E044DB9DD6 /* BoutiqueSpace.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB884C2A3DEFCF7383B3FAC6 /* BoutiqueSpace.swift */; };
-		19C07D49620304DB7673E260 /* SalonLedger.swift.avant-correction in Resources */ = {isa = PBXBuildFile; fileRef = 2F3737EC504AD8707EA7CC11 /* SalonLedger.swift.avant-correction */; };
 		1A6FF6B40F9D2BB5AC44EC45 /* COVIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C99D9533387DFCACAAF19D3 /* COVIApp.swift */; };
 		1D1938B1D998E1204B12CB78 /* RestaurantMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BC7C2DEAEB66B73A663B021 /* RestaurantMenu.swift */; };
 		296198C08B67C851914FF5C0 /* SyncCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC80872AD77EA66E1C68E508 /* SyncCoordinator.swift */; };
@@ -41,7 +40,6 @@
 		00630B8DEF9E98F8D12D059A /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		0F61E41E1C41338ABE77A2F5 /* SalonCheckout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SalonCheckout.swift; sourceTree = "<group>"; };
 		2C35A47549B7CB09696037AF /* COVIDesignSystemPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = COVIDesignSystemPreview.swift; sourceTree = "<group>"; };
-		2F3737EC504AD8707EA7CC11 /* SalonLedger.swift.avant-correction */ = {isa = PBXFileReference; path = "SalonLedger.swift.avant-correction"; sourceTree = "<group>"; };
 		31FFC1A6496A4C505332DAC9 /* DynamicTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicTabView.swift; sourceTree = "<group>"; };
 		3D46CC2F1E6C1A7BA7A53AC0 /* OwnerSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OwnerSettings.swift; sourceTree = "<group>"; };
 		49E53FD0C48081BF46C9D639 /* SalonLedger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SalonLedger.swift; sourceTree = "<group>"; };
@@ -143,7 +141,6 @@
 			children = (
 				0F61E41E1C41338ABE77A2F5 /* SalonCheckout.swift */,
 				49E53FD0C48081BF46C9D639 /* SalonLedger.swift */,
-				2F3737EC504AD8707EA7CC11 /* SalonLedger.swift.avant-correction */,
 				B5C401E87E27408777014B77 /* SalonSpace.swift */,
 			);
 			path = Salon;
@@ -304,7 +301,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				DC203A876DA92B4A9FFED504 /* Assets.xcassets in Resources */,
-				19C07D49620304DB7673E260 /* SalonLedger.swift.avant-correction in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
