@@ -1,0 +1,35 @@
+name: COVI Native iOS Diagnostics
+on:
+  push:
+    branches:
+      - feature/covi-native-swiftui-cloud
+    paths:
+      - 'native-ios/**'
+      - '.github/workflows/covi-native-diagnostics.yml'
+  workflow_dispatch:
+jobs:
+  diagnose:
+    runs-on: macos-15
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        working-directory: native-ios
+        run: xcodegen generate
+      - name: Show schemes
+        working-directory: native-ios
+        run: xcodebuild -list -project COVI.xcodeproj
+      - name: Compile app and unit tests
+        working-directory: native-ios
+        run: |
+          set -o pipefail
+          xcodebuild build-for-testing -project COVI.xcodeproj -scheme COVI -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
+      - name: Run XCTest on simulator
+        working-directory: native-ios
+        run: |
+          set -o pipefail
+          DEVICE_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; data=json.load(sys.stdin); devices=[d for group in data["devices"].values() for d in group if d["isAvailable"] and "iPhone" in d["name"]]; print(devices[0]["udid"] if devices else "")')
+          if [ -z "$DEVICE_ID" ]; then echo "No available iPhone simulator"; exit 1; fi
+          xcodebuild test -project COVI.xcodeproj -scheme COVI -configuration Debug -destination "platform=iOS Simulator,id=$DEVICE_ID" CODE_SIGNING_ALLOWED=NO
