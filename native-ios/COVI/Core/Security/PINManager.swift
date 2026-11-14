@@ -72,9 +72,9 @@ enum PINScope: Sendable {
 
     private func attemptKey(for scope: PINScope) -> String {
         switch scope {
-        case .master(let ownerID): return "pin.attempts.master.\\(ownerID.uuidString)"
+        case .master(let ownerID): return "pin.attempts.master.\(ownerID.uuidString)"
         case .cashier(let staffID, let shopID):
-            return "pin.attempts.cashier.\\(shopID.uuidString).\\(staffID.uuidString)"
+            return "pin.attempts.cashier.\(shopID.uuidString).\(staffID.uuidString)"
         }
     }
 
