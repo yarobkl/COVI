@@ -8,6 +8,11 @@ struct PINVerifier: Codable, Sendable {
     let iterations: Int
 }
 
+private struct PINAttemptState: Codable {
+    var failures: Int = 0
+    var lockedUntil: Date?
+}
+
 enum PINScope: Sendable {
     case master(ownerID: UUID)
     case cashier(staffID: UUID, shopID: UUID)
@@ -65,16 +70,39 @@ enum PINScope: Sendable {
 
     func hasConfiguredPIN(for scope: PINScope) -> Bool { (try? verifier(for: scope)) != nil }
 
+    private func attemptKey(for scope: PINScope) -> String {
+        switch scope {
+        case .master(let ownerID): return "pin.attempts.master.\\(ownerID.uuidString)"
+        case .cashier(let staffID, let shopID):
+            return "pin.attempts.cashier.\\(shopID.uuidString).\\(staffID.uuidString)"
+        }
+    }
+
+    private func loadAttempts(for scope: PINScope) throws -> PINAttemptState {
+        guard let data = try keychain.data(for: attemptKey(for: scope)) else { return PINAttemptState() }
+        return try JSONDecoder().decode(PINAttemptState.self, from: data)
+    }
+
+    private func saveAttempts(_ state: PINAttemptState, for scope: PINScope) throws {
+        try keychain.save(try JSONEncoder().encode(state), for: attemptKey(for: scope))
+        failedAttempts = state.failures
+        lockedUntil = state.lockedUntil
+    }
+
     @discardableResult
     func verify(_ input: String, scope: PINScope) -> Bool {
         lastError = nil
         guard input.count == 4, input.allSatisfy(\.isNumber) else { lastError = .malformed; return false }
-        if let lockedUntil, Date() < lockedUntil {
-            lastError = .temporarilyLocked(until: lockedUntil)
-            return false
-        }
         let verifier: PINVerifier
+        var attempts: PINAttemptState
         do {
+            attempts = try loadAttempts(for: scope)
+            failedAttempts = attempts.failures
+            lockedUntil = attempts.lockedUntil
+            if let until = attempts.lockedUntil, Date() < until {
+                lastError = .temporarilyLocked(until: until)
+                return false
+            }
             guard let stored = try self.verifier(for: scope) else { lastError = .notConfigured; return false }
             verifier = stored
         } catch {
@@ -83,24 +111,28 @@ enum PINScope: Sendable {
         }
         let candidate = Self.derive(pin: input, salt: verifier.salt, iterations: verifier.iterations)
         guard Self.constantTimeEqual(candidate, verifier.digest) else {
-            registerFailure(); lastError = .invalid; return false
+            attempts.failures += 1
+            if attempts.failures >= maxAttempts {
+                attempts.lockedUntil = Date().addingTimeInterval(lockoutDuration)
+                attempts.failures = 0
+            }
+            do { try saveAttempts(attempts, for: scope) }
+            catch { lastError = .storageFailure; return false }
+            if let until = attempts.lockedUntil, Date() < until {
+                lastError = .temporarilyLocked(until: until)
+            } else {
+                lastError = .invalid
+            }
+            return false
         }
-        failedAttempts = 0
-        lockedUntil = nil
+        do { try saveAttempts(PINAttemptState(), for: scope) }
+        catch { lastError = .storageFailure; return false }
         if case .cashier(let staffID, _) = scope { unlockedStaffID = staffID; lastActivity = .now }
         return true
     }
 
     func lock() { unlockedStaffID = nil; lastActivity = .distantPast }
     func touch() { if isUnlocked { lastActivity = .now } else { lock() } }
-
-    private func registerFailure() {
-        failedAttempts += 1
-        if failedAttempts >= maxAttempts {
-            lockedUntil = Date().addingTimeInterval(lockoutDuration)
-            failedAttempts = 0
-        }
-    }
 
     private func verifier(for scope: PINScope) throws -> PINVerifier? {
         let key: String
