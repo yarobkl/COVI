@@ -122,7 +122,7 @@ enum PINScope: Sendable {
             }
             do { try saveAttempts(attempts, for: scope) }
             catch { lastError = .storageFailure; return false }
-            if let until = attempts.lockedUntil, Date() < until {
+            if let until = attempts.lockedUntil, now() < until {
                 lastError = .temporarilyLocked(until: until)
             } else {
                 lastError = .invalid
