@@ -7,6 +7,17 @@
 <key>CFBundleShortVersionString</key><string>$(MARKETING_VERSION)</string>
 <key>CFBundleVersion</key><string>$(CURRENT_PROJECT_VERSION)</string>
 <key>CFBundleDevelopmentRegion</key><string>fr</string>
+<key>UISupportedInterfaceOrientations</key>
+<array>
+    <string>UIInterfaceOrientationPortrait</string>
+</array>
+<key>UISupportedInterfaceOrientations~ipad</key>
+<array>
+    <string>UIInterfaceOrientationPortrait</string>
+    <string>UIInterfaceOrientationPortraitUpsideDown</string>
+    <string>UIInterfaceOrientationLandscapeLeft</string>
+    <string>UIInterfaceOrientationLandscapeRight</string>
+</array>
 <key>UILaunchScreen</key><dict/>
 <key>COVISupabaseURL</key><string>https://$(COVI_SUPABASE_HOST)</string>
 <key>COVISupabasePublishableKey</key><string>$(COVI_PUBLISHABLE_KEY)</string>
