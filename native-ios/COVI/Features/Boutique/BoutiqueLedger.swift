@@ -77,6 +77,11 @@ enum BoutiqueError: LocalizedError {
         let payment = PaymentRecord(orderID: order.id, establishmentID: shop.id, method: tender.rawValue, amountMinor: due, confirmedByID: actor)
         payment.cashReceived = tender == .cash ? received : nil
         context.insert(payment)
-        do { try context.save(); pin.touch() } catch { context.rollback(); throw error }
+        do {
+            try BusinessOutbox.enqueue(kind: "boutique.sale.completed", establishmentID: shop.id,
+                entityID: order.id, actorID: actor, relatedIDs: [payment.id], in: context)
+            try context.save()
+            pin.touch()
+        } catch { context.rollback(); throw error }
     }
 }
