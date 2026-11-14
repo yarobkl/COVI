@@ -22,7 +22,7 @@ struct RootView: View {
     }
     var body: some View {
         Group {
-            if restoring { ProgressView() }
+            if restoring { COVILaunch() }
             else if let account = session.accountID {
                 let shops = establishments.filter { role($0, account) != nil }
                 VStack {
@@ -40,11 +40,75 @@ struct RootView: View {
                         do { try session.signOut() } catch { logoutError = true }
                     }
                 }
-            } else { AccountLogin() }
+            } else { COVIWelcome() }
         }
         .task { if restoring { try? await session.restore(); restoring = false } }
         .onChange(of: phase) { _, phase in if phase != .active { pinManager.lock() } }
         .onChange(of: session.accountID) { _, _ in pinManager.lock(); selectedID = nil }
         .alert("Effacement de la session locale impossible", isPresented: $logoutError) { Button("OK") {} }
+    }
+}
+
+private struct COVILaunch: View {
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            Color(red: 0.055, green: 0.14, blue: 0.20)
+            Image("LaunchMark")
+                .resizable().scaledToFit().frame(maxWidth: 205)
+                .accessibilityLabel("COVI, Commerce & Vie")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            Wave().fill(LinearGradient(colors: [COVITheme.sand, .brown], startPoint: .leading, endPoint: .trailing))
+                .frame(height: 130)
+        }.ignoresSafeArea()
+    }
+
+    private struct Wave: Shape {
+        func path(in rect: CGRect) -> Path {
+            Path { path in
+                path.move(to: CGPoint(x: 0, y: rect.height * 0.28))
+                path.addCurve(to: CGPoint(x: rect.width, y: rect.height * 0.5),
+                              control1: CGPoint(x: rect.width * 0.4, y: -20),
+                              control2: CGPoint(x: rect.width * 0.58, y: rect.height))
+                path.addLine(to: CGPoint(x: rect.width, y: rect.height))
+                path.addLine(to: CGPoint(x: 0, y: rect.height))
+                path.closeSubpath()
+            }
+        }
+    }
+}
+
+private struct COVIWelcome: View {
+    private enum Route: Hashable { case register, login }
+    @State private var path: [Route] = []
+
+    var body: some View {
+        NavigationStack(path: $path) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Image("WelcomeMark").resizable().scaledToFit().frame(width: 150)
+                        .accessibilityLabel("COVI, Commerce & Vie")
+                    Text("Le système d’exploitation de votre commerce")
+                        .font(.largeTitle.bold()).accessibilityAddTraits(.isHeader)
+                    Capsule().fill(COVITheme.sand).frame(width: 56, height: 4)
+                    Text("Gérez vos ventes, votre stock, votre équipe et vos opérations au quotidien, depuis votre iPhone.")
+                    Image("WelcomeTrades").resizable().scaledToFit()
+                        .accessibilityLabel("Boutique, Restaurant, Salon de coiffure")
+                }.padding(20).frame(maxWidth: 520)
+            }
+            .frame(maxWidth: .infinity)
+            .safeAreaInset(edge: .bottom) {
+                VStack(spacing: 12) {
+                    COVIButton("Commencer →") { path.append(.register) }
+                    COVIButton("Se connecter", role: .secondary) { path.append(.login) }
+                }.padding(20).frame(maxWidth: 520).background(COVITheme.cream)
+            }
+            .foregroundStyle(COVITheme.navy).background(COVITheme.cream)
+            .navigationDestination(for: Route.self) { route in
+                switch route {
+                case .login: AccountLogin().navigationTitle("Se connecter")
+                case .register: RegistrationView()
+                }
+            }
+        }
     }
 }

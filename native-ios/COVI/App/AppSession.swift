@@ -36,6 +36,15 @@ import SwiftUI
     func authenticate(email: String, password: String) async throws {
         try await exchange("password", ["email": email, "password": password])
     }
+    func register(email: String, password: String) async throws -> Bool {
+        let data = try await request("signup", form: ["email": email, "password": password])
+        if let tokens = try? JSONDecoder().decode(Tokens.self, from: data) {
+            try activate(tokens)
+            return true
+        }
+        _ = try JSONDecoder().decode(Tokens.User.self, from: data)
+        return false
+    }
     func restore() async throws {
         guard let bytes = try store.data(for: "session.refresh"),
               let token = String(data: bytes, encoding: .utf8) else { return }
@@ -47,6 +56,11 @@ import SwiftUI
         let data = try await request("token?grant_type=" + grant, form: form)
         let tokens = try JSONDecoder().decode(Tokens.self, from: data)
         guard generation == attempt else { throw CancellationError() }
+        try activate(tokens)
+    }
+    private func activate(_ tokens: Tokens) throws {
+        let attempt = UUID()
+        generation = attempt
         try store.save(Data(tokens.refresh_token.utf8), for: "session.refresh")
         accountID = tokens.user.id
         accessToken = tokens.access_token
@@ -88,5 +102,38 @@ struct AccountLogin: View {
             }.disabled(busy)
             if !message.isEmpty { Text(message) }
         }
+    }
+}
+
+struct RegistrationView: View {
+    @Environment(AppSession.self) private var session
+    @State private var email = ""
+    @State private var password = ""
+    @State private var confirmation = ""
+    @State private var busy = false
+    @State private var message = ""
+
+    var body: some View {
+        Form {
+            TextField("Adresse e-mail", text: $email)
+                .textContentType(.emailAddress).keyboardType(.emailAddress)
+                .textInputAutocapitalization(.never).autocorrectionDisabled()
+            SecureField("Mot de passe", text: $password).textContentType(.newPassword)
+            SecureField("Confirmer le mot de passe", text: $confirmation).textContentType(.newPassword)
+            COVIButton("Créer un compte") {
+                busy = true
+                Task {
+                    defer { busy = false }
+                    do {
+                        let connected = try await session.register(email: email.trimmingCharacters(in: .whitespacesAndNewlines), password: password)
+                        if !connected { message = "Consultez votre messagerie pour confirmer votre adresse, puis connectez-vous." }
+                        password = ""
+                        confirmation = ""
+                    } catch { message = "Inscription impossible. Vérifiez vos informations et votre connexion." }
+                }
+            }.disabled(busy || email.isEmpty || password.isEmpty || password != confirmation)
+            if !message.isEmpty { Text(message) }
+        }
+        .navigationTitle("Créer un compte")
     }
 }
