@@ -78,29 +78,44 @@ private struct COVILaunch: View {
 }
 
 private struct COVIWelcome: View {
+    @ScaledMetric(relativeTo: .largeTitle) private var headingSize: CGFloat = 36
     private enum Route: Hashable { case register, login }
     @State private var path: [Route] = []
 
     var body: some View {
         NavigationStack(path: $path) {
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    Image("WelcomeMark").resizable().scaledToFit().frame(width: 150)
-                        .accessibilityLabel("COVI, Commerce & Vie")
-                    Text("Le système d’exploitation de votre commerce")
-                        .font(.largeTitle.bold()).accessibilityAddTraits(.isHeader)
-                    Capsule().fill(COVITheme.sand).frame(width: 56, height: 4)
-                    Text("Gérez vos ventes, votre stock, votre équipe et vos opérations au quotidien, depuis votre iPhone.")
+                VStack(alignment: .leading, spacing: 0) {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Image("WelcomeMark").resizable().scaledToFit().frame(width: 144)
+                            .accessibilityLabel("COVI, Commerce & Vie")
+                            .padding(.bottom, 8)
+                        Text("Le système\nd’exploitation de\nvotre commerce")
+                            .font(.system(size: headingSize, weight: .bold))
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityAddTraits(.isHeader)
+                        Capsule().fill(COVITheme.sand).frame(width: 62, height: 5)
+                        Text("Gérez vos ventes, votre stock, votre équipe et vos opérations au quotidien, depuis votre iPhone.")
+                            .font(.body)
+                            .frame(maxWidth: 284, alignment: .leading)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 30)
+                    .padding(.top, 12)
                     Image("WelcomeTrades").resizable().scaledToFit()
                         .accessibilityLabel("Boutique, Restaurant, Salon de coiffure")
-                }.padding(20).frame(maxWidth: 520)
+                }.frame(maxWidth: 520)
             }
             .frame(maxWidth: .infinity)
             .safeAreaInset(edge: .bottom) {
                 VStack(spacing: 12) {
                     COVIButton("Commencer →") { path.append(.register) }
                     COVIButton("Se connecter", role: .secondary) { path.append(.login) }
-                }.padding(20).frame(maxWidth: 520).background(COVITheme.cream)
+                }
+                .padding(.horizontal, 18)
+                .padding(.vertical, 16)
+                .frame(maxWidth: 520)
+                .background(COVITheme.cream)
             }
             .foregroundStyle(COVITheme.navy).background(COVITheme.cream)
             .navigationDestination(for: Route.self) { route in
