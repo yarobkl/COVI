@@ -111,6 +111,11 @@ enum SalonFault: String, LocalizedError {
         }
         db.insert(PaymentRecord(orderID: order.id, establishmentID: shop.id, method: tender.rawValue, amountMinor: order.totalMinor, confirmedByID: actor))
         visit?.receipt = order.id
-        try save(db); pin.touch()
+        do {
+            try BusinessOutbox.enqueue(kind: "salon.sale.completed", establishmentID: shop.id,
+                entityID: order.id, actorID: actor, relatedIDs: visit.map { [$0.id] } ?? [], in: db)
+            try save(db)
+            pin.touch()
+        } catch { db.rollback(); throw error }
     }
 }
