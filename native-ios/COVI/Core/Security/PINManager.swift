@@ -29,6 +29,7 @@ enum PINScope: Sendable {
     private let maxAttempts = 5
     private let lockoutDuration: TimeInterval = 60
     private let keychain: KeychainStore
+    private let now: () -> Date
 
     enum PINError: LocalizedError, Equatable {
         case malformed
@@ -48,14 +49,17 @@ enum PINScope: Sendable {
         }
     }
 
-    init(keychain: KeychainStore = KeychainStore()) { self.keychain = keychain }
+    init(keychain: KeychainStore = KeychainStore(), now: @escaping () -> Date = Date.init) {
+        self.keychain = keychain
+        self.now = now
+    }
 
     var isUnlocked: Bool {
         guard unlockedStaffID != nil else { return false }
-        return Date().timeIntervalSince(lastActivity) < inactivityTimeout
+        return now().timeIntervalSince(lastActivity) < inactivityTimeout
     }
 
-    var remainingLockout: TimeInterval { max(0, lockedUntil?.timeIntervalSinceNow ?? 0) }
+    var remainingLockout: TimeInterval { max(0, lockedUntil.map { $0.timeIntervalSince(now()) } ?? 0) }
 
     func configureMasterPIN(_ pin: String, ownerID: UUID) throws {
         let key = "pin.master.\(ownerID.uuidString)"
@@ -99,7 +103,7 @@ enum PINScope: Sendable {
             attempts = try loadAttempts(for: scope)
             failedAttempts = attempts.failures
             lockedUntil = attempts.lockedUntil
-            if let until = attempts.lockedUntil, Date() < until {
+            if let until = attempts.lockedUntil, now() < until {
                 lastError = .temporarilyLocked(until: until)
                 return false
             }
@@ -113,7 +117,7 @@ enum PINScope: Sendable {
         guard Self.constantTimeEqual(candidate, verifier.digest) else {
             attempts.failures += 1
             if attempts.failures >= maxAttempts {
-                attempts.lockedUntil = Date().addingTimeInterval(lockoutDuration)
+                attempts.lockedUntil = now().addingTimeInterval(lockoutDuration)
                 attempts.failures = 0
             }
             do { try saveAttempts(attempts, for: scope) }
@@ -127,7 +131,7 @@ enum PINScope: Sendable {
         }
         do { try saveAttempts(PINAttemptState(), for: scope) }
         catch { lastError = .storageFailure; return false }
-        if case .cashier(let staffID, _) = scope { unlockedStaffID = staffID; lastActivity = .now }
+        if case .cashier(let staffID, _) = scope { unlockedStaffID = staffID; lastActivity = now() }
         return true
     }
 
