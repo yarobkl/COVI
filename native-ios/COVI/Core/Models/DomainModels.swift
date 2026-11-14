@@ -141,6 +141,29 @@ enum SyncState: String, Codable { case pending, syncing, synced, conflict, faile
     }
 }
 
+/// Stable, versioned business event. The same ModelContext save persists both the
+/// domain mutation and its outbox entry; delivery happens separately.
+struct BusinessEventPayload: Codable {
+    let version: Int
+    let kind: String
+    let establishmentID: UUID
+    let entityID: UUID
+    let actorID: UUID
+    let relatedIDs: [UUID]
+    let occurredAt: Date
+}
+
+@MainActor enum BusinessOutbox {
+    static func enqueue(kind: String, establishmentID: UUID, entityID: UUID,
+                        actorID: UUID, relatedIDs: [UUID] = [], in context: ModelContext) throws {
+        let payload = BusinessEventPayload(version: 1, kind: kind,
+            establishmentID: establishmentID, entityID: entityID,
+            actorID: actorID, relatedIDs: relatedIDs, occurredAt: .now)
+        context.insert(OutboxEvent(establishmentID: establishmentID, entityID: entityID,
+            eventType: "business.v1", payloadJSON: try JSONEncoder().encode(payload)))
+    }
+}
+
 @Model final class OutboxEvent {
     @Attribute(.unique) var id: UUID
     var establishmentID: UUID
