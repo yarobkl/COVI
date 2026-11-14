@@ -201,6 +201,6 @@ private struct EstablishmentSetup: View {
             }
             saved = true
             onCreated(shop.id)
-        } catch { error = "La création a échoué. Vous pouvez réessayer." }
+        } catch { self.error = "La création a échoué. Vous pouvez réessayer." }
     }
 }
