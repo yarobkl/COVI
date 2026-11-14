@@ -12,7 +12,7 @@ enum COVITheme {
         static let screenPadding: CGFloat = 20
         static let cardPadding: CGFloat = 16
         static let buttonHeight: CGFloat = 56
-        static let cardRadius: CGFloat = 16
+        static let cardRadius: CGFloat = 12
         static let buttonRadius: CGFloat = 16
     }
 }
