@@ -37,7 +37,10 @@ import SwiftUI
         try await exchange("password", ["email": email, "password": password])
     }
     func register(email: String, password: String) async throws -> Bool {
+        let attempt = UUID()
+        generation = attempt
         let data = try await request("signup", form: ["email": email, "password": password])
+        guard generation == attempt else { throw CancellationError() }
         if let tokens = try? JSONDecoder().decode(Tokens.self, from: data) {
             try activate(tokens)
             return true
@@ -69,15 +72,21 @@ import SwiftUI
             do { try await Task.sleep(for: .seconds(max(1, tokens.expires_in - 60))) }
             catch { return }
             guard generation == attempt else { return }
-            accountID = nil
-            try? await restore()
+            // Keep local navigation stable while Supabase rotates the refresh token.
+            do { try await restore() }
+            catch is CancellationError { return }
+            catch {
+                guard !Task.isCancelled else { return }
+                accessToken = nil
+                accountID = nil
+            }
         }
     }
     func signOut() throws {
         generation = UUID()
         expiry?.cancel()
-        accountID = nil
         try store.delete("session.refresh")
+        accountID = nil
         accessToken = nil
     }
 }

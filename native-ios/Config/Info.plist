@@ -18,6 +18,7 @@
     <string>UIInterfaceOrientationLandscapeLeft</string>
     <string>UIInterfaceOrientationLandscapeRight</string>
 </array>
+<key>ITSAppUsesNonExemptEncryption</key><false/>
 <key>UILaunchScreen</key><dict/>
 <key>COVISupabaseURL</key><string>https://$(COVI_SUPABASE_HOST)</string>
 <key>COVISupabasePublishableKey</key><string>$(COVI_PUBLISHABLE_KEY)</string>
