@@ -250,7 +250,7 @@ private struct COVIWelcome: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 30)
                     .padding(.top, 12)
-                    Image("WelcomeTrades").resizable().scaledToFit()
+                    WelcomeTradePhoto()
                         .accessibilityLabel("Boutique, Restaurant, Salon de coiffure")
                 }.frame(maxWidth: 520)
             }
@@ -273,6 +273,26 @@ private struct COVIWelcome: View {
                 }
             }
         }
+    }
+}
+
+/// La photographie source contient une ligne de texte recadrée en haut.
+/// Ce cadrage conserve les trois commerces sans superposer la ligne au texte natif.
+private struct WelcomeTradePhoto: View {
+    private let originalWidth: CGFloat = 490
+    private let originalHeight: CGFloat = 284
+    private let topTrim: CGFloat = 20
+
+    var body: some View {
+        GeometryReader { geometry in
+            Image("WelcomeTrades")
+                .resizable()
+                .frame(width: geometry.size.width,
+                       height: geometry.size.width * originalHeight / originalWidth)
+                .offset(y: -geometry.size.width * topTrim / originalWidth)
+        }
+        .aspectRatio(originalWidth / (originalHeight - topTrim), contentMode: .fit)
+        .clipped()
     }
 }
 
