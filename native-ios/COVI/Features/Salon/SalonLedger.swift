@@ -126,6 +126,36 @@ enum SalonFault: String, LocalizedError {
             try save(db)
         } catch { db.rollback(); throw error }
     }
+
+    static func reschedule(_ visit: SalonVisit, shop: UUID, actor: UUID,
+                           client: SalonClient, item: CatalogItem, team: SalonStaff,
+                           start: Date, minutes: Int, db: ModelContext) throws {
+        guard visit.shop == shop, !visit.cancelled, visit.receipt == nil else { throw SalonFault.stale }
+        guard client.shop == shop, item.establishmentID == shop, item.isService,
+              team.shop == shop, team.active, !team.name.isEmpty,
+              (5...720).contains(minutes), start >= Date.now.addingTimeInterval(-60),
+              start <= Date.now.addingTimeInterval(366 * 24 * 3_600)
+        else { throw SalonFault.invalid }
+        let end = start.addingTimeInterval(Double(minutes * 60))
+        let visitID = visit.id, person = team.name, clientID = client.id
+        let competing = FetchDescriptor<SalonVisit>(predicate: #Predicate {
+            $0.shop == shop && $0.id != visitID && !$0.cancelled &&
+            ($0.stylist == person || $0.client == clientID) && $0.start < end && $0.end > start
+        })
+        guard try db.fetchCount(competing) == 0 else { throw SalonFault.clash }
+        visit.client = client.id
+        visit.service = item.id
+        visit.stylist = team.name
+        visit.start = start
+        visit.end = end
+        visit.walkIn = false
+        do {
+            try BusinessOutbox.enqueue(kind: "salon.appointment.rescheduled",
+                establishmentID: shop, entityID: visit.id, actorID: actor,
+                relatedIDs: [client.id, item.id, team.id], in: db)
+            try save(db)
+        } catch { db.rollback(); throw error }
+    }
     @discardableResult static func pay(shop: Establishment, actor: UUID, pin: PINManager, client: SalonClient, team: String,
                     visit: SalonVisit?, basket: [UUID:Int], menu: [CatalogItem],
                     tender: Tender, confirmed: Bool, db: ModelContext) throws -> CommerceOrder {

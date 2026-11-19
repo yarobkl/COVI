@@ -55,10 +55,13 @@ struct SalonSpace: View {
                         let rows = visits.filter { Calendar.current.isDate($0.start, inSameDayAs: date) && (filter == nil || $0.stylist == filter) && !$0.cancelled }
                         if rows.isEmpty { Text("Aucun rendez-vous sur cette journée.") }
                         ForEach(rows) { v in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(v.start.formatted(date: .omitted, time: .shortened) + " – " + v.end.formatted(date: .omitted, time: .shortened) + " · " + v.stylist).font(.headline)
-                                Text((clients.first { $0.id == v.client }?.name ?? "Client") + " · " + (menu.first { $0.id == v.service }?.title ?? "Prestation"))
-                                Text(v.receipt != nil ? "Encaissé" : v.walkIn ? "Passage spontané" : "Confirmé").font(.caption)
+                            Group {
+                                if v.receipt == nil {
+                                    NavigationLink {
+                                        SalonAppointmentEditor(visit: v, shop: shop.id, actor: actor,
+                                            clients: clients, menu: menu, team: team)
+                                    } label: { appointmentSummary(v) }
+                                } else { appointmentSummary(v) }
                             }.swipeActions {
                                 if v.receipt == nil {
                                     Button("Annuler", role: .destructive) { cancellingVisit = v.id }
@@ -128,6 +131,18 @@ struct SalonSpace: View {
             Text("Cette action conserve l’historique mais libère le créneau dans l’agenda.")
         }
     }
+
+    private func appointmentSummary(_ visit: SalonVisit) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(visit.start.formatted(date: .omitted, time: .shortened) + " – " +
+                 visit.end.formatted(date: .omitted, time: .shortened) + " · " + visit.stylist)
+                .font(.headline)
+            Text((clients.first { $0.id == visit.client }?.name ?? "Client") + " · " +
+                 (menu.first { $0.id == visit.service }?.title ?? "Prestation"))
+            Text(visit.receipt != nil ? "Encaissé" : visit.walkIn ? "Passage spontané" : "Confirmé")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+    }
 }
 
 private struct SalonClientSearch: ViewModifier {
@@ -195,6 +210,76 @@ struct SalonBooking: View {
                     }
                 }
         }
+    }
+}
+
+private struct SalonAppointmentEditor: View {
+    let visit: SalonVisit
+    let shop: UUID
+    let actor: UUID
+    let clients: [SalonClient]
+    let menu: [CatalogItem]
+    let team: [SalonStaff]
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var db
+    @State private var clientID: UUID
+    @State private var serviceID: UUID
+    @State private var teamID: UUID?
+    @State private var start: Date
+    @State private var minutes: Int
+    @State private var message = ""
+
+    init(visit: SalonVisit, shop: UUID, actor: UUID, clients: [SalonClient],
+         menu: [CatalogItem], team: [SalonStaff]) {
+        self.visit = visit; self.shop = shop; self.actor = actor
+        self.clients = clients; self.menu = menu; self.team = team
+        _clientID = State(initialValue: visit.client)
+        _serviceID = State(initialValue: visit.service)
+        _teamID = State(initialValue: team.first { $0.name == visit.stylist }?.id)
+        _start = State(initialValue: max(visit.start, Date.now.addingTimeInterval(15 * 60)))
+        _minutes = State(initialValue: max(5, min(720, Int(visit.end.timeIntervalSince(visit.start) / 60))))
+    }
+
+    var body: some View {
+        Form {
+            Section("Rendez-vous") {
+                Picker("Client", selection: $clientID) {
+                    ForEach(clients) { Text($0.name).tag($0.id) }
+                }
+                Picker("Prestation", selection: $serviceID) {
+                    ForEach(menu.filter(\.isService)) { Text($0.title).tag($0.id) }
+                }
+                Picker("Collaborateur", selection: $teamID) {
+                    Text("Choisir").tag(nil as UUID?)
+                    ForEach(team.filter(\.active)) { person in
+                        Text(person.name).tag(Optional(person.id))
+                    }
+                }
+                DatePicker("Début", selection: $start,
+                           in: Date.now...Date.now.addingTimeInterval(366 * 24 * 3_600))
+                Stepper("\(minutes) minutes", value: $minutes, in: 5...720, step: 5)
+            }
+            Section {
+                Button("Enregistrer le changement") {
+                    guard let client = clients.first(where: { $0.id == clientID }),
+                          let service = menu.first(where: { $0.id == serviceID }),
+                          let member = team.first(where: { $0.id == teamID }) else {
+                        message = "Choisissez un client, une prestation et un collaborateur actif."
+                        return
+                    }
+                    do {
+                        try SalonLedger.reschedule(visit, shop: shop, actor: actor,
+                            client: client, item: service, team: member,
+                            start: start, minutes: minutes, db: db)
+                        dismiss()
+                    } catch { message = error.localizedDescription }
+                }.disabled(visit.cancelled || visit.receipt != nil || team.filter(\.active).isEmpty)
+                if !message.isEmpty { Text(message).foregroundStyle(.red) }
+            } footer: {
+                Text("Le changement libère l’ancien créneau et contrôle les disponibilités du client et du collaborateur.")
+            }
+        }
+        .navigationTitle("Modifier le rendez-vous")
     }
 }
 

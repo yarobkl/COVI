@@ -66,7 +66,8 @@ enum BoutiqueError: LocalizedError {
         guard tender == .cash ? (received ?? -1) >= due : confirmed else { throw BoutiqueError.invalid }
         for line in lines {
             let item = line.product
-            guard item.establishmentID == shop.id, !item.isService, item.stockReserved >= 0,
+            guard item.establishmentID == shop.id, !item.isService, !item.soldOut,
+                  item.stockReserved >= 0,
                   item.stockOnHand >= item.stockReserved, item.stockOnHand - item.stockReserved >= line.units
             else { throw BoutiqueError.stock }
         }

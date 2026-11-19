@@ -1,6 +1,72 @@
 import SwiftUI
 import SwiftData
 
+struct StockSnapshot {
+    let articleCount: Int
+    let suspendedCount: Int
+    let availableUnits: Decimal
+    let retailValue: Decimal
+    let lowStock: [CatalogItem]
+    let invalidItems: [CatalogItem]
+
+    static func make(items: [CatalogItem], shopID: UUID) -> StockSnapshot {
+        let catalog = items.filter { $0.establishmentID == shopID && !$0.isService }
+        let inconsistent = catalog.filter {
+            $0.stockOnHand < 0 || $0.stockReserved < 0 ||
+            $0.stockReserved > $0.stockOnHand || $0.priceMinor < 0
+        }
+        let invalidIDs = Set(inconsistent.map(\.id))
+        let valid = catalog.filter { !invalidIDs.contains($0.id) }
+        let available = valid.reduce(Decimal.zero) {
+            $0 + Decimal($1.stockOnHand - $1.stockReserved)
+        }
+        let value = valid.reduce(Decimal.zero) {
+            $0 + Decimal($1.stockOnHand - $1.stockReserved) * Decimal($1.priceMinor)
+        }
+        return StockSnapshot(articleCount: catalog.count,
+                             suspendedCount: catalog.filter(\.soldOut).count,
+                             availableUnits: available, retailValue: value,
+                             lowStock: valid.filter { !$0.soldOut && $0.stockOnHand - $0.stockReserved <= 2 }
+                                 .sorted { $0.title < $1.title },
+                             invalidItems: inconsistent.sorted { $0.title < $1.title })
+    }
+}
+
+struct BoutiqueStockOverview: View {
+    let shop: Establishment
+    let goods: [CatalogItem]
+
+    var body: some View {
+        let summary = StockSnapshot.make(items: goods, shopID: shop.id)
+        List {
+            Section("Inventaire disponible") {
+                LabeledContent("Références", value: String(summary.articleCount))
+                LabeledContent("Références en pause", value: String(summary.suspendedCount))
+                LabeledContent("Unités disponibles", value: summary.availableUnits.formatted())
+                LabeledContent("Valeur au prix de vente", value: "\(summary.retailValue.formatted()) \(shop.currencyCode)")
+                Text("Les quantités comprennent les articles temporairement retirés de la vente. La valeur utilise les prix de vente : ce n'est ni le coût d'achat ni le bénéfice.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+            Section("Stock faible · deux pièces ou moins") {
+                if summary.lowStock.isEmpty { Text("Aucun article en alerte.").foregroundStyle(.secondary) }
+                ForEach(summary.lowStock) { item in
+                    LabeledContent(item.title,
+                                   value: "\(item.stockOnHand - item.stockReserved) disponibles")
+                }
+            }
+            if !summary.invalidItems.isEmpty {
+                Section("Inventaire à vérifier") {
+                    Text("Ces articles comportent une quantité réservée ou un prix incohérent. La valeur n'a pas été ajoutée au total.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                    ForEach(summary.invalidItems) { Text($0.title).foregroundStyle(.orange) }
+                }
+            }
+        }
+        .navigationTitle("État des stocks")
+        .scrollContentBackground(.hidden).background(COVITheme.cream)
+    }
+}
+
 @MainActor enum BoutiqueInventoryService {
     enum Fault: LocalizedError {
         case invalid, duplicate, wrongShop
@@ -56,6 +122,21 @@ import SwiftData
             try context.save()
         } catch { context.rollback(); throw error }
     }
+
+    static func setAvailability(_ item: CatalogItem, in shop: Establishment,
+                                available: Bool, actor: UUID, context: ModelContext) throws {
+        guard shop.kind == .boutique, !shop.archived,
+              item.establishmentID == shop.id, !item.isService else { throw Fault.wrongShop }
+        guard item.soldOut == available else { return }
+        item.soldOut = !available
+        item.updatedAt = .now
+        do {
+            try BusinessOutbox.enqueue(
+                kind: available ? "boutique.product.reactivated" : "boutique.product.suspended",
+                establishmentID: shop.id, entityID: item.id, actorID: actor, in: context)
+            try context.save()
+        } catch { context.rollback(); throw error }
+    }
 }
 
 struct NewProduct: View {
@@ -94,6 +175,7 @@ struct ProductDetail: View {
     @State private var message = ""
     @State private var editedName = ""
     @State private var editedPrice = ""
+    @State private var availabilityChange = false
     init(shop: Establishment, item: CatalogItem, actor: UUID) {
         self.shop = shop; self.item = item; self.actor = actor
         let id = item.id
@@ -104,6 +186,11 @@ struct ProductDetail: View {
             Section(item.title) {
                 Text("\(item.priceMinor) FCFA")
                 LabeledContent("Stock · réservé", value: "\(item.stockOnHand) · \(item.stockReserved)")
+                Label(item.soldOut ? "Vente suspendue" : "Disponible à la vente",
+                      systemImage: item.soldOut ? "pause.circle" : "checkmark.circle")
+                Button(item.soldOut ? "Remettre en vente" : "Suspendre la vente") {
+                    availabilityChange = true
+                }
             }
             Section("Modifier l’article") {
                 TextField("Nom de l’article", text: $editedName)
@@ -150,6 +237,18 @@ struct ProductDetail: View {
             }
         }.navigationTitle("Fiche produit").scrollContentBackground(.hidden).background(COVITheme.cream)
             .onAppear { editedName = item.title; editedPrice = String(item.priceMinor) }
+            .confirmationDialog(item.soldOut ? "Remettre cet article en vente ?" : "Suspendre les ventes de cet article ?",
+                                isPresented: $availabilityChange) {
+                Button(item.soldOut ? "Remettre en vente" : "Suspendre les ventes") {
+                    do {
+                        try BoutiqueInventoryService.setAvailability(item, in: shop,
+                            available: item.soldOut, actor: actor, context: context)
+                        message = item.soldOut ? "Vente suspendue ; historique et stock conservés." : "Article de nouveau disponible."
+                    } catch { message = error.localizedDescription }
+                }
+            } message: {
+                Text("Le stock et les reçus restent conservés. Vous pourrez réactiver la vente plus tard.")
+            }
     }
 }
 

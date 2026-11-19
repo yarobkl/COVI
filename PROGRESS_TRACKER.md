@@ -26,15 +26,15 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 | Synchronisation CloudKit **des données métier** | 5 % | 34 % | Reçus et dépenses archivés ; produits, stock, commandes actives, réservations, clients, personnel non synchronisés |
 | Multi-appareils propriétaire | 15 % | 52 % | Validation Apple/iCloud, inventaires, activités actives, séparation de comptes |
 | Multi-personnel / rôles | 25 % | 30 % | Invitations, identité stable du personnel, permissions |
-| Boutique : catalogue | 65 % | 78 % | Catégories, désactivation sûre, tests de parcours iPhone |
-| Boutique : stock / balles / inventaire | 64 % | 73 % | Historique complet, valorisation, tests stock concurrents |
+| Boutique : catalogue | 65 % | 81 % | Catégories, tests d'usage sur iPhone, synchronisation catalogue |
+| Boutique : stock / balles / inventaire | 64 % | 82 % | Historique complet, coût de revient, tests de stock concurrents |
 | Boutique : caisse / confirmation manuelle | 75 % | 80 % | Tests physiques, coupure réseau, remboursement partiel |
 | Boutique : reçus / historique | 28 % | 84 % | Impression système et tests UI sur iPhone |
 | Restaurant : salle et tables | 66 % | 78 % | Réservations, flux multi-serveurs, tests iPhone |
 | Restaurant : commandes et cuisine | 64 % | 76 % | Annulation / corrections, calculs avancés, tests |
 | Restaurant : règlement en caisse | 66 % | 81 % | Reçu imprimable, tests concurrence et double paiement sur appareil |
 | Salon : équipe réelle | 5 % | 79 % | Historique des affectations, rôles, tests UI |
-| Salon : agenda / rendez-vous | 61 % | 79 % | Plages horaires avancées, rappels et tests iPhone |
+| Salon : agenda / rendez-vous | 61 % | 82 % | Plages horaires avancées, rappels et tests iPhone |
 | Salon : catalogue / encaissement | 66 % | 73 % | Retour client, modifications, tests de flux |
 | Salon : clients / fiches | 65 % | 79 % | Consentements, export, suppression, tests iPhone |
 | Salon : rapports / commissions | 55 % | 65 % | Périodes, réconciliation financière, tests |
@@ -45,8 +45,8 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 | Aide et accessibilité | 25 % | 30 % | Guide initial, Dynamic Type, VoiceOver, états erreur/vides |
 | Conformité aux 46 maquettes | Non vérifiée | Non vérifiée | Maquettes et comparaison sur iPhone indispensables |
 | Journal des événements métier local | 30 % | 82 % | Protocole de réplication effectif, purge sécurisée et résolutions de conflits |
-| Tests unitaires iOS | 25 % | 82 % | 68/68 XCTest réussis sur la révision `eebf54c` ; nouveaux tests PDF et clients à exécuter |
-| Build et tests globaux iOS | 0 % | 74 % | Compilation + 68 XCTest réussis sur macOS ; dernière révision à revérifier ; tests visuels indisponibles |
+| Tests unitaires iOS | 25 % | 85 % | 78/78 XCTest réussis sur `32a49d` ; nouveaux tests de modification de rendez-vous et de suspension boutique à exécuter |
+| Build et tests globaux iOS | 0 % | 78 % | Compilation + 78 XCTest réussis sur macOS ; dernière révision à revérifier ; tests visuels indisponibles |
 | Livraison TestFlight | En pause | En pause | Aucune action autorisée dans ce lot |
 
 ## Changements réellement effectués dans ce lot
@@ -195,6 +195,24 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 142. Refuser la propagation d'une annulation de dépense émise par une identité autre que le propriétaire.
 143. Ajouter un test de rejet des annulations iCloud sans auteur légitime.
 144. Signaler à l'utilisateur les annulations de dépenses encore en attente de leur événement d'origine.
+145. Ajouter un écran natif d'état des stocks à la boutique.
+146. Distinguer quantitativement stock physique, quantités réservées et unités disponibles.
+147. Calculer la valeur disponible au prix de vente sans la présenter comme un bénéfice.
+148. Signaler les articles faibles et les inventaires incohérents sans fausser les totaux.
+149. Ajouter des tests de valorisation, stocks réservés, anomalies et isolation des autres boutiques.
+150. Ajouter le changement de créneau d'un rendez-vous salon sans effacer l'historique de réservation.
+151. Vérifier les conflits à la fois du client et du collaborateur lors du changement de rendez-vous.
+152. Bloquer la modification des rendez-vous annulés ou déjà encaissés.
+153. Ajouter un formulaire SwiftUI natif pour déplacer les rendez-vous depuis l'agenda.
+154. Préserver le journal métier de modification et l'identifiant stable du rendez-vous.
+155. Tester le déplacement, la libération de l'ancien créneau, les collisions et l'accès inter-établissements.
+156. Permettre la suspension temporaire des ventes d'un article boutique sans suppression.
+157. Préserver les ventes et les mouvements de stock historiques lors de sa désactivation.
+158. Interdire toute nouvelle vente d'un article suspendu, même si le panier existait déjà.
+159. Permettre la réactivation du catalogue sans recréation ni doublon d'article.
+160. Rendre visibles les références suspendues à l'inventaire mais les masquer de la caisse.
+161. Journaliser et tester la suspension, la réactivation et l'idempotence des changements d'état.
+162. Vérifier que les alertes de stock faible ignorent les références volontairement suspendues.
 
 ## Vérification macOS sans signature (branche de diagnostic uniquement)
 
@@ -213,9 +231,10 @@ Un quatrième lancement (`b0944ac`) a permis de trouver, au compilateur, deux
 affectations ambiguës dans le nouvel éditeur restaurant ; elles ont été corrigées
 avant le lancement du lot incluant également dépenses et trésorerie.
 Le cinquième lancement (`eebf54c`, action `44475555009`) a **compilé et exécuté
-68 XCTest sans aucun échec**. Les ajouts ultérieurs (PDF, nouveaux parcours salon,
-états vides) ont été sauvegardés sur une branche de diagnostic dédiée et attendent
-leur propre validation iOS.
+68 XCTest sans aucun échec**. Le lancement ultérieur (`32a49d`, action `44489621987`,
+job `135441631979`) a **compilé et exécuté 78 XCTest sans aucun échec**, y compris
+le journal CloudKit des dépenses. Les changements de rendez-vous, la suspension boutique
+et leurs tests nécessitent encore un lancement de diagnostic distinct.
 Ce contrôle ne crée **ni archive de distribution ni provisioning**, et ne valide pas les maquettes.
 
 ## Limites bloquantes

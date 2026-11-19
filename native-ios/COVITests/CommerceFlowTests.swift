@@ -92,6 +92,37 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<CatalogItem>()), 1)
     }
 
+    func testBoutiqueCanSuspendAndResumeSalesWithoutDeletingInventoryOrHistory() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Épicerie", kind: .boutique, city: "Kinshasa")
+        let foreign = Establishment(ownerID: UUID(), name: "Autre", kind: .boutique, city: "Libreville")
+        db.insert(shop); db.insert(foreign)
+        let item = try BoutiqueInventoryService.create(shop: shop, name: "Manioc", price: 300,
+            actor: owner, context: db)
+        item.stockOnHand = 10
+        try db.save()
+        let previous = try BoutiqueLedger.sell([.init(product: item, units: 2)],
+            discount: 0, quote: 600, tender: .cash, received: 1_000,
+            confirmed: false, shop: shop, actor: owner, pin: ownerPIN(), context: db)
+        try BoutiqueInventoryService.setAvailability(item, in: shop, available: false,
+            actor: owner, context: db)
+        XCTAssertTrue(item.soldOut)
+        XCTAssertThrowsError(try BoutiqueLedger.sell([.init(product: item, units: 1)],
+            discount: 0, quote: 300, tender: .cash, received: 300,
+            confirmed: false, shop: shop, actor: owner, pin: ownerPIN(), context: db))
+        XCTAssertThrowsError(try BoutiqueInventoryService.setAvailability(item, in: foreign,
+            available: true, actor: owner, context: db))
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<PaymentRecord>()), 1)
+        XCTAssertEqual(item.stockOnHand, 8)
+        XCTAssertEqual(previous.totalMinor, 600)
+        try BoutiqueInventoryService.setAvailability(item, in: shop, available: true,
+            actor: owner, context: db)
+        XCTAssertFalse(item.soldOut)
+        try BoutiqueInventoryService.setAvailability(item, in: shop, available: true,
+            actor: owner, context: db)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 4)
+    }
+
     func testStockCannotBeOversoldEvenWhenEachLineLooksValid() throws {
         let db = try database(), owner = UUID()
         let shop = Establishment(ownerID: owner, name: "Marché", kind: .boutique, city: "Brazzaville")
@@ -105,6 +136,47 @@ final class CommerceFlowTests: XCTestCase {
             tender: .cash, received: 400, confirmed: false,
             shop: shop, actor: owner, pin: ownerPIN(), context: db))
         XCTAssertEqual(item.stockOnHand, 3)
+    }
+
+    func testStockOverviewSeparatesAvailableReservedAndOtherShopStock() {
+        let shop = UUID()
+        let good = CatalogItem(establishmentID: shop, title: "Riz", priceMinor: 1_000)
+        good.stockOnHand = 10
+        good.stockReserved = 3
+        let low = CatalogItem(establishmentID: shop, title: "Huile", priceMinor: 2_000)
+        low.stockOnHand = 2
+        let foreign = CatalogItem(establishmentID: UUID(), title: "Café", priceMinor: 20_000)
+        foreign.stockOnHand = 100
+        let summary = StockSnapshot.make(items: [good, low, foreign], shopID: shop)
+        XCTAssertEqual(summary.articleCount, 2)
+        XCTAssertEqual(summary.suspendedCount, 0)
+        XCTAssertEqual(summary.availableUnits, Decimal(9))
+        XCTAssertEqual(summary.retailValue, Decimal(11_000))
+        XCTAssertEqual(summary.lowStock.map(\.id), [low.id])
+        XCTAssertTrue(summary.invalidItems.isEmpty)
+    }
+
+    func testStockOverviewHighlightsInconsistentReservationsWithoutInflatingValue() {
+        let shop = UUID()
+        let broken = CatalogItem(establishmentID: shop, title: "Sucre", priceMinor: 5_000)
+        broken.stockOnHand = 2
+        broken.stockReserved = 4
+        let summary = StockSnapshot.make(items: [broken], shopID: shop)
+        XCTAssertEqual(summary.articleCount, 1)
+        XCTAssertEqual(summary.availableUnits, .zero)
+        XCTAssertEqual(summary.retailValue, .zero)
+        XCTAssertEqual(summary.invalidItems.map(\.id), [broken.id])
+    }
+
+    func testStockOverviewDoesNotFlagSuspendedCatalogAsActiveShortage() {
+        let shop = UUID()
+        let item = CatalogItem(establishmentID: shop, title: "Hors saison", priceMinor: 5_000)
+        item.soldOut = true
+        let summary = StockSnapshot.make(items: [item], shopID: shop)
+        XCTAssertEqual(summary.articleCount, 1)
+        XCTAssertEqual(summary.suspendedCount, 1)
+        XCTAssertTrue(summary.lowStock.isEmpty)
+        XCTAssertEqual(summary.availableUnits, .zero)
     }
 
     func testSalonBookingRequiresRealActiveCollaborator() throws {
@@ -291,6 +363,74 @@ final class CommerceFlowTests: XCTestCase {
         db.insert(visit); try db.save()
         XCTAssertThrowsError(try SalonLedger.cancel(shop: visit.shop, actor: owner, visit: visit, db: db))
         XCTAssertFalse(visit.cancelled)
+    }
+
+    func testSalonReschedulingReleasesOldSlotAndKeepsOneAppointment() throws {
+        let db = try database(), owner = UUID(), shopID = UUID()
+        let first = SalonClient(shop: shopID, name: "Cliente A")
+        let second = SalonClient(shop: shopID, name: "Cliente B")
+        let service = CatalogItem(establishmentID: shopID, title: "Coiffure", priceMinor: 5_000,
+                                  isService: true)
+        let stylist = SalonStaff(shop: shopID, name: "Coiffeuse")
+        db.insert(first); db.insert(second); db.insert(service); db.insert(stylist)
+        try db.save()
+        let oldSlot = Date.now.addingTimeInterval(7_200)
+        let newSlot = oldSlot.addingTimeInterval(7_200)
+        try SalonLedger.book(shop: shopID, actor: owner, client: first, item: service,
+            team: stylist, start: oldSlot, minutes: 60, walkIn: false, db: db)
+        let visit = try XCTUnwrap(db.fetch(FetchDescriptor<SalonVisit>()).first)
+        let identifier = visit.id
+        try SalonLedger.reschedule(visit, shop: shopID, actor: owner, client: second,
+            item: service, team: stylist, start: newSlot, minutes: 90, db: db)
+        XCTAssertEqual(visit.id, identifier)
+        XCTAssertEqual(visit.client, second.id)
+        XCTAssertEqual(visit.start, newSlot)
+        XCTAssertEqual(visit.end, newSlot.addingTimeInterval(90 * 60))
+        try SalonLedger.book(shop: shopID, actor: owner, client: first, item: service,
+            team: stylist, start: oldSlot, minutes: 60, walkIn: false, db: db)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<SalonVisit>()), 2)
+        let events = try db.fetch(FetchDescriptor<OutboxEvent>())
+        XCTAssertEqual(events.count, 3)
+        XCTAssertTrue(try events.contains {
+            try JSONDecoder().decode(BusinessEventPayload.self,
+                from: $0.payloadJSON).kind == "salon.appointment.rescheduled"
+        })
+    }
+
+    func testSalonRescheduleRefusesConflictPaidVisitAndForeignEntities() throws {
+        let db = try database(), owner = UUID(), shopID = UUID()
+        let client = SalonClient(shop: shopID, name: "Cliente")
+        let stranger = SalonClient(shop: UUID(), name: "Étrangère")
+        let service = CatalogItem(establishmentID: shopID, title: "Coupe", priceMinor: 3_000,
+                                  isService: true)
+        let stylist = SalonStaff(shop: shopID, name: "Coiffeur")
+        db.insert(client); db.insert(stranger); db.insert(service); db.insert(stylist)
+        try db.save()
+        let start = Date.now.addingTimeInterval(7_200)
+        try SalonLedger.book(shop: shopID, actor: owner, client: client, item: service,
+            team: stylist, start: start, minutes: 30, walkIn: false, db: db)
+        try SalonLedger.book(shop: shopID, actor: owner, client: client, item: service,
+            team: stylist, start: start.addingTimeInterval(3_600),
+            minutes: 30, walkIn: false, db: db)
+        let visits = try db.fetch(FetchDescriptor<SalonVisit>(sortBy: [SortDescriptor(\.start)]))
+        let first = try XCTUnwrap(visits.first)
+        XCTAssertThrowsError(try SalonLedger.reschedule(first, shop: shopID, actor: owner,
+            client: client, item: service, team: stylist,
+            start: start.addingTimeInterval(3_600), minutes: 30, db: db))
+        XCTAssertThrowsError(try SalonLedger.reschedule(first, shop: shopID, actor: owner,
+            client: stranger, item: service, team: stylist,
+            start: start.addingTimeInterval(7_200), minutes: 30, db: db))
+        XCTAssertEqual(first.start, start)
+        stylist.active = false
+        XCTAssertThrowsError(try SalonLedger.reschedule(first, shop: shopID, actor: owner,
+            client: client, item: service, team: stylist,
+            start: start.addingTimeInterval(7_200), minutes: 30, db: db))
+        stylist.active = true
+        first.receipt = UUID()
+        XCTAssertThrowsError(try SalonLedger.reschedule(first, shop: shopID, actor: owner,
+            client: client, item: service, team: stylist,
+            start: start.addingTimeInterval(7_200), minutes: 30, db: db))
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 2)
     }
 
     func testSalonRejectsPastAndFarFutureAppointments() throws {

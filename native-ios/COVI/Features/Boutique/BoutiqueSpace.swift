@@ -28,7 +28,10 @@ struct BoutiqueSpace: View {
     }
     var rebate: Int64 { discount.isEmpty ? 0 : Int64(discount) ?? -1 }
     var total: Int64? { try? BoutiqueLedger.total(lines, discount: rebate) }
-    var filtered: [CatalogItem] { goods.filter { search.isEmpty || $0.title.localizedCaseInsensitiveContains(search) } }
+    var filtered: [CatalogItem] {
+        goods.filter { (tab == .stock || !$0.soldOut) &&
+            (search.isEmpty || $0.title.localizedCaseInsensitiveContains(search)) }
+    }
     var body: some View {
         List {
             if tab == .home {
@@ -38,7 +41,7 @@ struct BoutiqueSpace: View {
                     Text("\(today.count) ventes")
                     COVIButton("Vendre") { startSale() }
                 }
-                Section("À suivre") { Text("\(goods.filter { $0.stockOnHand - $0.stockReserved <= 2 }.count) articles à stock faible") }
+                Section("À suivre") { Text("\(goods.filter { !$0.soldOut && $0.stockOnHand - $0.stockReserved <= 2 }.count) articles à stock faible") }
                 Section("Dernières ventes") {
                     ForEach(sales.filter { $0.state == .completed }.prefix(5)) { sale in
                         LabeledContent(sale.createdAt.formatted(date: .abbreviated, time: .shortened), value: "\(sale.totalMinor) FCFA")
@@ -46,6 +49,7 @@ struct BoutiqueSpace: View {
                 }
             } else {
                 if tab == .stock {
+                    NavigationLink("État des stocks") { BoutiqueStockOverview(shop: shop, goods: goods) }
                     NavigationLink("Arrivages de balles") { BaleList(shop: shop, actor: actor, goods: goods) }
                     NavigationLink("Ajouter un article") { NewProduct(shop: shop, actor: actor) }
                 }
@@ -61,7 +65,8 @@ struct BoutiqueSpace: View {
                     ForEach(filtered) { item in
                         if tab == .stock {
                             NavigationLink { ProductDetail(shop: shop, item: item, actor: actor) } label: {
-                                LabeledContent(item.title, value: "\(item.stockOnHand) unités")
+                                LabeledContent(item.title,
+                                    value: item.soldOut ? "En pause · \(item.stockOnHand)" : "\(item.stockOnHand) unités")
                             }
                         } else {
                             Button { add(item) } label: { LabeledContent(item.title, value: "\(item.priceMinor) FCFA  ＋") }
@@ -96,7 +101,9 @@ struct BoutiqueSpace: View {
     }
     private func add(_ item: CatalogItem) {
         let units = basket[item.id] ?? 0
-        guard units < item.stockOnHand - item.stockReserved else { message = "Stock disponible atteint."; return }
+        guard !item.soldOut, units < item.stockOnHand - item.stockReserved else {
+            message = "Article indisponible ou stock épuisé."; return
+        }
         basket[item.id] = units + 1
         pin.touch()
     }
