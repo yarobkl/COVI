@@ -34,8 +34,8 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 | Restaurant : commandes et cuisine | 64 % | 76 % | Annulation / corrections, calculs avancés, tests |
 | Restaurant : règlement en caisse | 66 % | 81 % | Reçu imprimable, tests concurrence et double paiement sur appareil |
 | Salon : équipe réelle | 5 % | 79 % | Historique des affectations, rôles, tests UI |
-| Salon : agenda / rendez-vous | 61 % | 82 % | Plages horaires avancées, rappels et tests iPhone |
-| Salon : catalogue / encaissement | 66 % | 73 % | Retour client, modifications, tests de flux |
+| Salon : agenda / rendez-vous | 61 % | 83 % | Plages horaires avancées, rappels et tests iPhone |
+| Salon : catalogue / encaissement | 66 % | 82 % | Corrections et retours avancés, tests multi-iPhone et synchronisation catalogue |
 | Salon : clients / fiches | 65 % | 79 % | Consentements, export, suppression, tests iPhone |
 | Salon : rapports / commissions | 55 % | 65 % | Périodes, réconciliation financière, tests |
 | Dépenses (trois métiers) | 0 % | 82 % | Tests réels multi-iPhone, confidentialité des exports et rapports de marge à ajouter |
@@ -227,6 +227,30 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 174. Ajouter des tests CSV pour les citations, injections de formules et montants négatifs.
 175. Tester l'isolation inter-boutiques lors de l'export des stocks.
 176. Tester les exports des dépenses annulées et les agrégats de trésorerie.
+177. Centraliser la création de prestations et produits du salon dans un service métier transactionnel.
+178. Valider noms, prix, nature de service et niveaux de commission avant création.
+179. Interdire les références dupliquées sans distinction de casse ou d'accents.
+180. Refuser la modification du catalogue provenant d'un salon différent.
+181. Vérifier la commission entre 0 et 100 % pour chaque référence.
+182. Distinguer le stock initial des produits physiques et les prestations sans inventaire.
+183. Conserver le premier mouvement de stock et sa piste d'audit à la création du produit.
+184. Permettre la modification des noms et des prix du catalogue depuis une fiche native.
+185. Garder le nom et le prix d'origine sur les tickets déjà encaissés après modification du catalogue.
+186. Permettre la correction du taux de commission pour les futures ventes sans réécrire les commissions passées.
+187. Conserver l'identifiant du service sur les rendez-vous antérieurs lors d'une édition.
+188. Permettre la suspension temporaire d'une prestation ou d'un produit salon sans suppression.
+189. Réactiver une référence avec le même identifiant et le même historique.
+190. Interdire les nouvelles réservations de prestations suspendues.
+191. Interdire l'encaissement direct des références suspendues au niveau du service métier.
+192. Préserver la possibilité d'encaisser une prestation déjà réservée avant sa suspension.
+193. Afficher la disponibilité dans le catalogue et retirer les références suspendues des sélecteurs de réservation.
+194. Ajouter une fiche SwiftUI pour les modifications et la disponibilité des prestations et produits.
+195. Permettre le recomptage manuel du stock de soin dans le salon.
+196. Interdire un recomptage qui ferait passer le stock physique sous les unités réservées.
+197. Consigner les ajustements de stock salon comme mouvements non destructifs avec motif et acteur.
+198. Ajouter des tests d'invalidité de catalogue, doublons, limites de taux et isolation inter-salons.
+199. Ajouter des tests de prix et commissions historiques ainsi que d'inventaire du salon.
+200. Tester le cycle suspension → refus de réservation / vente directe → encaissement d'ancien RDV → réactivation.
 
 ## Vérification macOS sans signature (branche de diagnostic uniquement)
 

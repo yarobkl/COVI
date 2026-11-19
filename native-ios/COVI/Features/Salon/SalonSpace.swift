@@ -179,7 +179,7 @@ struct SalonBooking: View {
                 }
                 Picker("Prestation", selection: $item) {
                     Text("Choisir").tag(nil as UUID?)
-                    ForEach(menu.filter(\.isService)) { Text($0.title).tag(Optional($0.id)) }
+                    ForEach(menu.filter { $0.isService && !$0.soldOut }) { Text($0.title).tag(Optional($0.id)) }
                 }
                 Picker("Collaborateur", selection: $personID) {
                     Text("Choisir").tag(nil as UUID?)
@@ -247,7 +247,7 @@ private struct SalonAppointmentEditor: View {
                     ForEach(clients) { Text($0.name).tag($0.id) }
                 }
                 Picker("Prestation", selection: $serviceID) {
-                    ForEach(menu.filter(\.isService)) { Text($0.title).tag($0.id) }
+                    ForEach(menu.filter { $0.isService && !$0.soldOut }) { Text($0.title).tag($0.id) }
                 }
                 Picker("Collaborateur", selection: $teamID) {
                     Text("Choisir").tag(nil as UUID?)

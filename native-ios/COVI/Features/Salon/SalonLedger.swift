@@ -91,9 +91,99 @@ enum SalonFault: String, LocalizedError {
             try save(db)
         } catch { db.rollback(); throw error }
     }
+
+    private static func catalogTitle(_ title: String, shop: UUID, excluding: UUID?,
+                                     db: ModelContext) throws -> String {
+        let cleaned = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard (2...120).contains(cleaned.count) else { throw SalonFault.invalid }
+        let candidates = try db.fetch(FetchDescriptor<CatalogItem>(predicate: #Predicate {
+            $0.establishmentID == shop
+        }))
+        guard !candidates.contains(where: {
+            $0.id != excluding && $0.title.compare(cleaned,
+                options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame
+        }) else { throw SalonFault.invalid }
+        return cleaned
+    }
+
+    @discardableResult
+    static func createCatalog(shop: Establishment, actor: UUID, title: String,
+                              price: Int64, service: Bool, quantity: Int, percent: Int,
+                              db: ModelContext) throws -> CatalogItem {
+        guard shop.kind == .salon, !shop.archived, price > 0, (0...100).contains(percent),
+              quantity >= 0, (!service || quantity == 0) else { throw SalonFault.invalid }
+        let name = try catalogTitle(title, shop: shop.id, excluding: nil, db: db)
+        let item = CatalogItem(establishmentID: shop.id, title: name,
+                               priceMinor: price, isService: service)
+        item.salonPercent = percent
+        item.stockOnHand = quantity
+        db.insert(item)
+        var movementIDs: [UUID] = []
+        if quantity > 0 {
+            let movement = StockMovement(establishmentID: shop.id, itemID: item.id,
+                delta: quantity, reason: "Stock initial du salon", actorID: actor)
+            db.insert(movement)
+            movementIDs.append(movement.id)
+        }
+        do {
+            try BusinessOutbox.enqueue(kind: service ? "salon.service.created" : "salon.product.created",
+                establishmentID: shop.id, entityID: item.id, actorID: actor,
+                relatedIDs: movementIDs, in: db)
+            try save(db)
+            return item
+        } catch { db.rollback(); throw error }
+    }
+
+    static func editCatalog(_ item: CatalogItem, shop: Establishment, actor: UUID,
+                            title: String, price: Int64, percent: Int, db: ModelContext) throws {
+        guard shop.kind == .salon, !shop.archived, item.establishmentID == shop.id,
+              price > 0, (0...100).contains(percent) else { throw SalonFault.invalid }
+        let name = try catalogTitle(title, shop: shop.id, excluding: item.id, db: db)
+        guard name != item.title || price != item.priceMinor || percent != item.salonPercent else { return }
+        item.title = name; item.priceMinor = price; item.salonPercent = percent
+        item.updatedAt = .now
+        do {
+            try BusinessOutbox.enqueue(kind: "salon.catalog.edited", establishmentID: shop.id,
+                entityID: item.id, actorID: actor, in: db)
+            try save(db)
+        } catch { db.rollback(); throw error }
+    }
+
+    static func setCatalogAvailability(_ item: CatalogItem, shop: Establishment,
+                                       actor: UUID, available: Bool, db: ModelContext) throws {
+        guard shop.kind == .salon, !shop.archived, item.establishmentID == shop.id else {
+            throw SalonFault.invalid
+        }
+        guard item.soldOut == available else { return }
+        item.soldOut = !available; item.updatedAt = .now
+        do {
+            try BusinessOutbox.enqueue(kind: available ? "salon.catalog.reactivated" : "salon.catalog.suspended",
+                establishmentID: shop.id, entityID: item.id, actorID: actor, in: db)
+            try save(db)
+        } catch { db.rollback(); throw error }
+    }
+
+    static func adjustProductStock(_ item: CatalogItem, shop: Establishment,
+                                   actor: UUID, counted: Int, reason: String, db: ModelContext) throws {
+        let why = reason.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard shop.kind == .salon, !shop.archived, item.establishmentID == shop.id,
+              !item.isService, counted >= item.stockReserved, counted >= 0,
+              item.stockOnHand >= 0, (3...200).contains(why.count) else { throw SalonFault.invalid }
+        let (delta, overflow) = counted.subtractingReportingOverflow(item.stockOnHand)
+        guard !overflow, delta != 0 else { throw SalonFault.invalid }
+        let movement = StockMovement(establishmentID: shop.id, itemID: item.id,
+                                     delta: delta, reason: "Inventaire salon · " + why, actorID: actor)
+        db.insert(movement)
+        item.stockOnHand = counted; item.updatedAt = .now
+        do {
+            try BusinessOutbox.enqueue(kind: "salon.stock.adjusted", establishmentID: shop.id,
+                entityID: item.id, actorID: actor, relatedIDs: [movement.id], in: db)
+            try save(db)
+        } catch { db.rollback(); throw error }
+    }
     static func book(shop: UUID, actor: UUID, client: SalonClient, item: CatalogItem, team: SalonStaff, start: Date,
                      minutes: Int, walkIn: Bool, db: ModelContext) throws {
-        guard item.establishmentID == shop, item.isService, client.shop == shop,
+        guard item.establishmentID == shop, item.isService, !item.soldOut, client.shop == shop,
               team.shop == shop, team.active, !team.name.isEmpty,
               (5...720).contains(minutes),
               start >= Date.now.addingTimeInterval(-60),
@@ -131,7 +221,7 @@ enum SalonFault: String, LocalizedError {
                            client: SalonClient, item: CatalogItem, team: SalonStaff,
                            start: Date, minutes: Int, db: ModelContext) throws {
         guard visit.shop == shop, !visit.cancelled, visit.receipt == nil else { throw SalonFault.stale }
-        guard client.shop == shop, item.establishmentID == shop, item.isService,
+        guard client.shop == shop, item.establishmentID == shop, item.isService, !item.soldOut,
               team.shop == shop, team.active, !team.name.isEmpty,
               (5...720).contains(minutes), start >= Date.now.addingTimeInterval(-60),
               start <= Date.now.addingTimeInterval(366 * 24 * 3_600)
@@ -175,6 +265,9 @@ enum SalonFault: String, LocalizedError {
         for (id, qty) in basket {
             guard let item = menu.first(where: { $0.id == id && $0.establishmentID == shop.id }),
                   qty > 0, item.priceMinor > 0, (0...100).contains(item.salonPercent) else { throw SalonFault.invalid }
+            guard !item.soldOut || (item.isService && visit?.service == item.id) else {
+                throw SalonFault.invalid
+            }
             if !item.isService {
                 guard item.stockReserved >= 0, item.stockOnHand >= item.stockReserved,
                       qty <= item.stockOnHand - item.stockReserved else { throw SalonFault.stock }

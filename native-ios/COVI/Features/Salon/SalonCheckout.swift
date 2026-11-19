@@ -56,7 +56,8 @@ struct SalonCheckout: View {
             }
             ForEach([true,false], id: \.self) { services in
                 Section(services ? "Prestations" : "Produits de soin") {
-                    ForEach(menu.filter { $0.isService == services }) { item in
+                    ForEach(menu.filter { $0.isService == services &&
+                        (!$0.soldOut || (visitID != nil && visits.first(where: { $0.id == visitID })?.service == $0.id)) }) { item in
                         Stepper(value: Binding(get: { basket[item.id] ?? 0 }, set: { basket[item.id] = $0 == 0 ? nil : $0 }), in: 0...999) {
                             Text("\(basket[item.id] ?? 0) × \(item.title)")
                             Text("\(item.priceMinor) FCFA").font(.caption)
@@ -113,32 +114,117 @@ struct SalonCatalog: View {
                 if !service { TextField("Stock initial", text: $qty).keyboardType(.numberPad) }
                 Stepper("Commission : \(percent) %", value: $percent, in: 0...100)
                 Button("Ajouter au catalogue") {
-                    let title = name.trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !title.isEmpty, let amount = Int64(price), amount > 0,
+                    guard let amount = Int64(price), amount > 0,
                           let count = Int(service ? "0" : qty), count >= 0 else { message = SalonFault.invalid.localizedDescription; return }
-                    let item = CatalogItem(establishmentID: shop.id, title: title, priceMinor: amount, isService: service)
-                    item.stockOnHand = count; item.salonPercent = percent; db.insert(item)
-                    var movementIDs: [UUID] = []
-                    if count > 0 {
-                        let movement = StockMovement(establishmentID: shop.id, itemID: item.id,
-                                                     delta: count, reason: "Stock initial du salon",
-                                                     actorID: actor)
-                        db.insert(movement)
-                        movementIDs.append(movement.id)
-                    }
                     do {
-                        try BusinessOutbox.enqueue(kind: service ? "salon.service.created" : "salon.product.created",
-                            establishmentID: shop.id, entityID: item.id,
-                            actorID: actor, relatedIDs: movementIDs, in: db)
-                        try SalonLedger.save(db); name = ""; price = ""; qty = ""; message = "Référence ajoutée."
-                    } catch { db.rollback(); message = error.localizedDescription }
+                        try SalonLedger.createCatalog(shop: shop, actor: actor, title: name,
+                            price: amount, service: service, quantity: count, percent: percent, db: db)
+                        name = ""; price = ""; qty = ""; message = "Référence ajoutée."
+                    } catch { message = error.localizedDescription }
                 }
             }
-            ForEach(menu) { item in
-                LabeledContent(item.title, value: "\(item.priceMinor) FCFA · \(item.salonPercent) %")
+            Section("Catalogue actif et suspendu") {
+                if menu.isEmpty {
+                    ContentUnavailableView("Catalogue vide", systemImage: "list.bullet.rectangle",
+                        description: Text("Ajoutez votre première prestation ou produit de soin."))
+                }
+                ForEach(menu) { item in
+                    NavigationLink {
+                        SalonCatalogEditor(shop: shop, item: item, actor: actor)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(item.title).font(.headline)
+                            Text("\(item.priceMinor) FCFA · \(item.salonPercent) %" +
+                                 (item.soldOut ? " · Suspendu" : ""))
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                }
             }
             Text(message)
         }.navigationTitle("Catalogue salon")
+    }
+}
+
+private struct SalonCatalogEditor: View {
+    let shop: Establishment
+    let item: CatalogItem
+    let actor: UUID
+    @Environment(\.modelContext) private var db
+    @Query private var movements: [StockMovement]
+    @State private var title = ""
+    @State private var price = ""
+    @State private var percent = 0
+    @State private var counted = ""
+    @State private var reason = ""
+    @State private var changingAvailability = false
+    @State private var message = ""
+
+    init(shop: Establishment, item: CatalogItem, actor: UUID) {
+        self.shop = shop; self.item = item; self.actor = actor
+        let id = item.id
+        _movements = Query(filter: #Predicate<StockMovement> { $0.itemID == id },
+                           sort: \.createdAt, order: .reverse)
+    }
+
+    var body: some View {
+        Form {
+            Section(item.isService ? "Prestation" : "Produit de soin") {
+                TextField("Libellé", text: $title)
+                TextField("Prix FCFA", text: $price).keyboardType(.numberPad)
+                Stepper("Commission : \(percent) %", value: $percent, in: 0...100)
+                Button("Enregistrer les modifications") {
+                    do {
+                        try SalonLedger.editCatalog(item, shop: shop, actor: actor,
+                            title: title, price: Int64(price) ?? 0, percent: percent, db: db)
+                        message = "Catalogue mis à jour. Les anciens reçus restent inchangés."
+                    } catch { message = error.localizedDescription }
+                }
+                Label(item.soldOut ? "Vente suspendue" : "Disponible à la vente",
+                      systemImage: item.soldOut ? "pause.circle" : "checkmark.circle")
+                Button(item.soldOut ? "Remettre en vente" : "Suspendre les ventes") {
+                    changingAvailability = true
+                }
+            }
+            if !item.isService {
+                Section("Inventaire du produit") {
+                    LabeledContent("Physique", value: String(item.stockOnHand))
+                    LabeledContent("Réservé", value: String(item.stockReserved))
+                    TextField("Quantité réellement comptée", text: $counted).keyboardType(.numberPad)
+                    TextField("Motif de l'inventaire", text: $reason)
+                    Button("Corriger le stock") {
+                        do {
+                            try SalonLedger.adjustProductStock(item, shop: shop, actor: actor,
+                                counted: Int(counted) ?? -1, reason: reason, db: db)
+                            counted = ""; reason = ""; message = "Inventaire enregistré."
+                        } catch { message = error.localizedDescription }
+                    }
+                    ForEach(movements) { movement in
+                        VStack(alignment: .leading) {
+                            Text("\(movement.delta > 0 ? "+" : "")\(movement.delta) · \(movement.reason)")
+                            Text(movement.createdAt.formatted()).font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+            if !message.isEmpty { Text(message).foregroundStyle(.secondary) }
+        }
+        .navigationTitle("Fiche catalogue")
+        .onAppear {
+            title = item.title; price = String(item.priceMinor); percent = item.salonPercent
+        }
+        .confirmationDialog(item.soldOut ? "Réactiver cette référence ?" : "Suspendre cette référence ?",
+                            isPresented: $changingAvailability) {
+            Button(item.soldOut ? "Réactiver" : "Suspendre les ventes") {
+                do {
+                    try SalonLedger.setCatalogAvailability(item, shop: shop, actor: actor,
+                        available: item.soldOut, db: db)
+                    message = "Disponibilité enregistrée ; historique conservé."
+                } catch { message = error.localizedDescription }
+            }
+        } message: {
+            Text("Les anciennes réservations, les commissions et les reçus restent conservés.")
+        }
     }
 }
 

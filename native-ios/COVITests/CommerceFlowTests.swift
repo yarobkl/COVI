@@ -244,6 +244,106 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<SalonVisit>()), 0)
     }
 
+    func testSalonCatalogValidatesNamesRatesAndShopOwnership() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Salon", kind: .salon, city: "Brazzaville")
+        let foreign = Establishment(ownerID: UUID(), name: "Autre", kind: .salon, city: "Douala")
+        db.insert(shop); db.insert(foreign)
+        let service = try SalonLedger.createCatalog(shop: shop, actor: owner, title: " Tresses ",
+            price: 5_000, service: true, quantity: 0, percent: 20, db: db)
+        XCTAssertEqual(service.title, "Tresses")
+        XCTAssertThrowsError(try SalonLedger.createCatalog(shop: shop, actor: owner,
+            title: "TRESSES", price: 6_000, service: true, quantity: 0, percent: 20, db: db))
+        XCTAssertThrowsError(try SalonLedger.createCatalog(shop: shop, actor: owner,
+            title: "Shampoing", price: 2_000, service: true, quantity: 2, percent: 20, db: db))
+        XCTAssertThrowsError(try SalonLedger.editCatalog(service, shop: foreign, actor: owner,
+            title: "Intrus", price: 5_000, percent: 30, db: db))
+        XCTAssertThrowsError(try SalonLedger.editCatalog(service, shop: shop, actor: owner,
+            title: "Tresses", price: 5_000, percent: 101, db: db))
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<CatalogItem>()), 1)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 1)
+    }
+
+    func testSalonCatalogEditKeepsExistingVisitAndPastSaleAuditStable() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Salon", kind: .salon, city: "Libreville")
+        let service = try SalonLedger.createCatalog(shop: shop, actor: owner,
+            title: "Coiffure", price: 4_000, service: true, quantity: 0, percent: 20, db: db)
+        let client = SalonClient(shop: shop.id, name: "Cliente")
+        let stylist = SalonStaff(shop: shop.id, name: "Coiffeuse")
+        db.insert(shop); db.insert(client); db.insert(stylist); try db.save()
+        try SalonLedger.book(shop: shop.id, actor: owner, client: client, item: service,
+            team: stylist, start: Date.now.addingTimeInterval(3_600),
+            minutes: 30, walkIn: false, db: db)
+        let visit = try XCTUnwrap(db.fetch(FetchDescriptor<SalonVisit>()).first)
+        let sale = try SalonLedger.pay(shop: shop, actor: owner, pin: ownerPIN(), client: client,
+            team: stylist.name, visit: visit, basket: [service.id: 1], menu: [service],
+            tender: .cash, confirmed: true, db: db)
+        try SalonLedger.editCatalog(service, shop: shop, actor: owner,
+            title: "Nouvelle coiffure", price: 7_000, percent: 25, db: db)
+        XCTAssertEqual(visit.service, service.id)
+        XCTAssertEqual(sale.totalMinor, 4_000)
+        let line = try XCTUnwrap(db.fetch(FetchDescriptor<OrderLine>()).first)
+        XCTAssertEqual(line.dishName, "Coiffure")
+        XCTAssertEqual(line.unitPriceMinor, 4_000)
+        let commission = try XCTUnwrap(db.fetch(FetchDescriptor<SalonSaleLine>()).first)
+        XCTAssertEqual(commission.commission, 800)
+        XCTAssertEqual(commission.percent, 20)
+        XCTAssertEqual(service.priceMinor, 7_000)
+    }
+
+    func testSalonSuspensionBlocksNewAppointmentsButKeepsPreviouslyBookedServicePayable() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Salon", kind: .salon, city: "Kinshasa")
+        let service = try SalonLedger.createCatalog(shop: shop, actor: owner,
+            title: "Coupe", price: 3_000, service: true, quantity: 0, percent: 10, db: db)
+        let client = SalonClient(shop: shop.id, name: "Cliente")
+        let stylist = SalonStaff(shop: shop.id, name: "Coiffeur")
+        db.insert(shop); db.insert(client); db.insert(stylist); try db.save()
+        let start = Date.now.addingTimeInterval(3_600)
+        try SalonLedger.book(shop: shop.id, actor: owner, client: client, item: service,
+            team: stylist, start: start, minutes: 30, walkIn: false, db: db)
+        let visit = try XCTUnwrap(db.fetch(FetchDescriptor<SalonVisit>()).first)
+        try SalonLedger.setCatalogAvailability(service, shop: shop, actor: owner,
+            available: false, db: db)
+        XCTAssertThrowsError(try SalonLedger.book(shop: shop.id, actor: owner, client: client,
+            item: service, team: stylist, start: start.addingTimeInterval(7_200),
+            minutes: 30, walkIn: false, db: db))
+        XCTAssertThrowsError(try SalonLedger.pay(shop: shop, actor: owner, pin: ownerPIN(),
+            client: client, team: stylist.name, visit: nil, basket: [service.id: 1],
+            menu: [service], tender: .cash, confirmed: true, db: db))
+        let sale = try SalonLedger.pay(shop: shop, actor: owner, pin: ownerPIN(),
+            client: client, team: stylist.name, visit: visit, basket: [service.id: 1],
+            menu: [service], tender: .cash, confirmed: true, db: db)
+        XCTAssertEqual(visit.receipt, sale.id)
+        try SalonLedger.setCatalogAvailability(service, shop: shop, actor: owner,
+            available: true, db: db)
+        XCTAssertFalse(service.soldOut)
+    }
+
+    func testSalonProductInventoryCorrectionPreservesMovementsAndRejectsForeignStock() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Salon", kind: .salon, city: "Douala")
+        let foreign = Establishment(ownerID: UUID(), name: "Autre", kind: .salon, city: "Douala")
+        db.insert(shop); db.insert(foreign)
+        let product = try SalonLedger.createCatalog(shop: shop, actor: owner,
+            title: "Crème", price: 1_500, service: false, quantity: 15, percent: 5, db: db)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<StockMovement>()), 1)
+        product.stockReserved = 4
+        try db.save()
+        XCTAssertThrowsError(try SalonLedger.adjustProductStock(product, shop: shop,
+            actor: owner, counted: 3, reason: "Comptage matin", db: db))
+        XCTAssertThrowsError(try SalonLedger.adjustProductStock(product, shop: foreign,
+            actor: owner, counted: 10, reason: "Comptage matin", db: db))
+        try SalonLedger.adjustProductStock(product, shop: shop, actor: owner,
+            counted: 10, reason: "Comptage matin", db: db)
+        XCTAssertEqual(product.stockOnHand, 10)
+        let movements = try db.fetch(FetchDescriptor<StockMovement>())
+        XCTAssertEqual(movements.count, 2)
+        XCTAssertEqual(movements.reduce(0) { $0 + $1.delta }, 10)
+        XCTAssertTrue(movements.contains { $0.delta == -5 })
+    }
+
     func testSalonNeverRecordsUnconfirmedMobilePayment() throws {
         let db = try database(), owner = UUID()
         let shop = Establishment(ownerID: owner, name: "Salon", kind: .salon, city: "Libreville")
