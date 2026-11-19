@@ -167,25 +167,48 @@ struct AccountLogin: View {
     @Environment(AppSession.self) private var session
     @State private var message = ""
     var body: some View {
-        Form {
-            Section {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                Image("WelcomeMark").resizable().scaledToFit()
+                    .frame(width: 155).frame(maxWidth: .infinity)
+                    .accessibilityLabel("COVI, Commerce & Vie")
+                    .padding(.top, 20)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Se connecter")
+                        .font(.system(size: 37, weight: .bold))
+                        .foregroundStyle(COVITheme.navy)
+                    Text("Accédez à votre espace COVI et gérez votre commerce en toute simplicité.")
+                        .font(.body).foregroundStyle(COVITheme.secondaryText)
+                }
+                COVICard {
+                    VStack(alignment: .leading, spacing: 13) {
+                        Label("Votre identité Apple", systemImage: "person.crop.circle")
+                            .font(.headline)
+                        Text("La connexion Apple retrouve votre identité sur vos appareils iCloud.")
+                            .font(.subheadline).foregroundStyle(COVITheme.secondaryText)
+                    }
+                }
                 NativeAppleSignIn()
-                Text("Retrouvez votre identité sur vos appareils connectés au même identifiant Apple.")
-                    .font(.footnote).foregroundStyle(.secondary)
-            }
-            Section("Cet iPhone") {
-                Button("Reprendre mon espace local") {
+                HStack(spacing: 12) {
+                    Rectangle().fill(COVITheme.separator).frame(height: 1)
+                    Text("ou continuer sur cet iPhone")
+                        .font(.subheadline).foregroundStyle(COVITheme.secondaryText)
+                        .fixedSize()
+                    Rectangle().fill(COVITheme.separator).frame(height: 1)
+                }
+                COVIButton("Reprendre mon espace local", role: .secondary) {
                     do { try session.continueLocally() }
                     catch { message = error.localizedDescription }
                 }
-                Text("Le mode local fonctionne sans compte ni connexion Internet.")
-                    .font(.footnote).foregroundStyle(.secondary)
+                Text("Le mode local fonctionne sans Internet, mais ne permet pas de retrouver votre identité sur un autre iPhone.")
+                    .font(.footnote).foregroundStyle(COVITheme.secondaryText)
+                if !message.isEmpty { Text(message).foregroundStyle(.red) }
             }
-            if !message.isEmpty { Text(message).foregroundStyle(.red) }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 30)
         }
-        .navigationTitle("Se connecter")
-        .scrollContentBackground(.hidden)
-        .background(COVITheme.cream)
+        .background(COVIBackdrop())
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -195,28 +218,66 @@ struct RegistrationView: View {
     @State private var email = ""
     @State private var message = ""
     var body: some View {
-        Form {
-            Section("Votre espace gratuit") {
-                TextField("Votre nom", text: $name).textContentType(.name)
-                TextField("Adresse e-mail (facultative)", text: $email)
-                    .textContentType(.emailAddress).keyboardType(.emailAddress)
-                    .textInputAutocapitalization(.never).autocorrectionDisabled()
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                Image("WelcomeMark").resizable().scaledToFit()
+                    .frame(width: 155).frame(maxWidth: .infinity)
+                    .accessibilityLabel("COVI, Commerce & Vie")
+                    .padding(.top, 20)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Créer un compte")
+                        .font(.system(size: 37, weight: .bold)).foregroundStyle(COVITheme.navy)
+                    Text("Rejoignez COVI pour gérer votre commerce, votre équipe et vos opérations au quotidien.")
+                        .foregroundStyle(COVITheme.secondaryText)
+                }
+                COVICard {
+                    VStack(spacing: 18) {
+                        VStack(alignment: .leading, spacing: 5) {
+                            Label("Votre nom", systemImage: "person")
+                                .font(.subheadline.weight(.semibold))
+                            TextField("Nom et prénom", text: $name)
+                                .textContentType(.name)
+                                .textInputAutocapitalization(.words)
+                        }
+                        Divider()
+                        VStack(alignment: .leading, spacing: 5) {
+                            Label("Adresse e-mail (facultative)", systemImage: "envelope")
+                                .font(.subheadline.weight(.semibold))
+                            TextField("exemple@commerce.cg", text: $email)
+                                .textContentType(.emailAddress).keyboardType(.emailAddress)
+                                .textInputAutocapitalization(.never).autocorrectionDisabled()
+                        }
+                    }
+                    .foregroundStyle(COVITheme.navy)
+                    .textFieldStyle(.plain)
+                }
                 COVIButton("Créer mon espace") {
                     do { try session.createLocalAccount(name: name, email: email); HapticService.confirm() }
                     catch { message = error.localizedDescription }
                 }.disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                Text("Gratuit, sans abonnement. Vos données restent sur votre appareil.")
-                    .font(.footnote).foregroundStyle(.secondary)
-            }
-            Section("Identité Apple") {
+                COVICard {
+                    HStack(alignment: .top, spacing: 14) {
+                        Image(systemName: "envelope.badge.shield.half.filled")
+                            .font(.title2).foregroundStyle(COVITheme.navy)
+                            .frame(width: 46, height: 46)
+                            .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 13))
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text("Création locale").font(.headline)
+                            Text("L’adresse e-mail ne sert pas encore à confirmer un compte. Votre espace local reste sur cet appareil.")
+                                .font(.subheadline).foregroundStyle(COVITheme.secondaryText)
+                        }
+                    }
+                }
+                Text("Ou créer votre identité avec Apple")
+                    .font(.subheadline).foregroundStyle(COVITheme.secondaryText)
+                    .frame(maxWidth: .infinity)
                 NativeAppleSignIn()
-                Text("Connexion Apple sécurisée, sans mot de passe COVI.")
-                    .font(.footnote).foregroundStyle(.secondary)
+                if !message.isEmpty { Text(message).foregroundStyle(.red) }
             }
-            if !message.isEmpty { Text(message).foregroundStyle(.red) }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 30)
         }
-        .navigationTitle("Créer un compte")
-        .scrollContentBackground(.hidden)
-        .background(COVITheme.cream)
+        .background(COVIBackdrop())
+        .navigationBarTitleDisplayMode(.inline)
     }
 }

@@ -10,6 +10,7 @@ struct RootView: View {
     @Environment(\.scenePhase) private var phase
     @State private var selectedID: UUID?
     @State private var addingShop = false
+    @State private var showingSpaces = false
     private func selectShop(_ id: UUID, for account: UUID) {
         pinManager.lock()
         selectedID = id
@@ -34,20 +35,31 @@ struct RootView: View {
             else if let account = session.accountID {
                 let preferred = selectedID ?? UserDefaults.standard.string(forKey: "covi.shop." + account.uuidString).flatMap(UUID.init(uuidString:))
                 let shops = establishments.filter { role($0, account) != nil }
-                VStack {
+                let activeID = shops.first(where: { $0.id == preferred })?.id ?? shops.first?.id
+                VStack(spacing: 0) {
                     if let shop = shops.first(where: { $0.id == preferred }) ?? shops.first,
                        let role = role(shop, account) {
-                        if shops.count > 1 {
-                            Picker("Établissement", selection: Binding(get: { shop.id }, set: { selectShop($0, for: account) })) {
-                                ForEach(shops) { Text($0.name).tag($0.id) }
+                        HStack(spacing: 10) {
+                            Image("WelcomeMark")
+                                .resizable().scaledToFit().frame(width: 86, height: 42)
+                                .accessibilityLabel("COVI, Commerce & Vie")
+                            Spacer(minLength: 4)
+                            Button { showingSpaces = true } label: {
+                                HStack(spacing: 7) {
+                                    Text(shop.name).lineLimit(1)
+                                    Image(systemName: "chevron.down").font(.caption.bold())
+                                }
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(COVITheme.navy)
+                                .padding(.horizontal, 12).padding(.vertical, 11)
+                                .background(COVITheme.champagne, in: Capsule())
                             }
-                        } else {
-                            Text(shop.name).font(.headline).foregroundStyle(COVITheme.navy)
+                            .accessibilityLabel("Mes espaces, établissement actif : \(shop.name)")
                         }
-                        if EstablishmentPolicy.canCreate(owner: account, in: establishments) {
-                            Button("Ajouter un établissement") { addingShop = true }
-                        }
-                        DynamicTabView(establishment: shop, accountID: account, role: role, pinManager: pinManager)
+                        .padding(.horizontal, 16)
+                        .background(COVITheme.cream)
+                        DynamicTabView(establishment: shop, accountID: account, role: role,
+                                       pinManager: pinManager, onSwitchShop: { showingSpaces = true })
                             .id("\(account)-\(shop.id)-\(role.rawValue)")
                         if role == .owner { ShopSyncStatus(shop: shop).id(shop.id) }
                     } else if importingDirectory {
@@ -77,6 +89,40 @@ struct RootView: View {
                         addingShop = false
                     }
                 }
+                .sheet(isPresented: $showingSpaces) {
+                    NavigationStack {
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 22) {
+                                Image("WelcomeMark").resizable().scaledToFit()
+                                    .frame(width: 150).frame(maxWidth: .infinity)
+                                Text("Mes espaces")
+                                    .font(.system(size: 36, weight: .bold))
+                                    .foregroundStyle(COVITheme.navy)
+                                Text("Basculez d’un établissement à l’autre sans vous déconnecter.")
+                                    .foregroundStyle(COVITheme.secondaryText)
+                                COVISectionTitle("Établissements détenus (\(shops.filter { $0.ownerID == account }.count) / \(EstablishmentPolicy.maximumActivePerOwner) maximum)")
+                                ForEach(shops.filter { $0.ownerID == account }) { candidate in
+                                    spaceButton(candidate, activeID: activeID, account: account)
+                                }
+                                if shops.contains(where: { $0.ownerID != account }) {
+                                    COVISectionTitle("Accès collaborateur")
+                                    ForEach(shops.filter { $0.ownerID != account }) { candidate in
+                                        spaceButton(candidate, activeID: activeID, account: account)
+                                    }
+                                }
+                                if EstablishmentPolicy.canCreate(owner: account, in: establishments) {
+                                    COVIButton("Ajouter un établissement", systemImage: "plus", role: .secondary) {
+                                        showingSpaces = false
+                                        addingShop = true
+                                    }
+                                }
+                            }
+                            .padding(22)
+                        }
+                        .background(COVIBackdrop())
+                        .toolbar { Button("Fermer") { showingSpaces = false } }
+                    }
+                }
             } else { COVIWelcome() }
         }
         .task { if restoring { try? await session.restore(); restoring = false } }
@@ -87,6 +133,35 @@ struct RootView: View {
         }
         .onChange(of: phase) { _, phase in if phase != .active { pinManager.lock() } }
         .onChange(of: session.accountID) { _, _ in pinManager.lock(); selectedID = nil; addingShop = false }
+    }
+
+    private func spaceButton(_ candidate: Establishment, activeID: UUID?, account: UUID) -> some View {
+        Button {
+            selectShop(candidate.id, for: account)
+            showingSpaces = false
+        } label: {
+            COVICard {
+                HStack(spacing: 15) {
+                    Image(systemName: candidate.kind == .boutique ? "bag" : candidate.kind == .restaurant ? "fork.knife" : "scissors")
+                        .font(.title2).foregroundStyle(COVITheme.navy)
+                        .frame(width: 68, height: 68)
+                        .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 14))
+                    VStack(alignment: .leading, spacing: 7) {
+                        Text(candidate.name).font(.headline).foregroundStyle(COVITheme.navy)
+                        COVIBadge(title: candidate.kind == .boutique ? "Boutique" : candidate.kind == .restaurant ? "Restaurant" : "Salon")
+                        Text("\(candidate.city) · \(candidate.currencyCode)")
+                            .font(.caption).foregroundStyle(COVITheme.secondaryText)
+                    }
+                    Spacer(minLength: 4)
+                    Image(systemName: candidate.id == activeID ? "checkmark.circle.fill" : "circle")
+                        .font(.title2).foregroundStyle(COVITheme.navy)
+                }
+            }
+            .overlay(RoundedRectangle(cornerRadius: COVITheme.Metrics.cardRadius)
+                .stroke(candidate.id == activeID ? COVITheme.navy : .clear, lineWidth: 1.5))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Ouvrir \(candidate.name)")
     }
 
     private func importDirectory(_ account: UUID) async {
@@ -215,31 +290,88 @@ private struct EstablishmentSetup: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Informations de l’établissement") {
-                    Picker("Activité", selection: $kind) {
-                        Text("Boutique").tag(BusinessKind.boutique)
-                        Text("Restaurant").tag(BusinessKind.restaurant)
-                        Text("Salon").tag(BusinessKind.salon)
-                    }.pickerStyle(.segmented)
-                    TextField("Nom de l’établissement", text: $name)
-                    TextField("Ville", text: $city)
-                    Picker("Devise", selection: $currency) {
-                        ForEach(SupportedCurrency.options) { option in
-                            Text(option.label + " · " + option.code).tag(option.code)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    Image("WelcomeMark")
+                        .resizable().scaledToFit().frame(width: 145)
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 10)
+                    HStack(spacing: 12) {
+                        COVIBadge(title: "Étape 1 sur 2")
+                        GeometryReader { geometry in
+                            Capsule().fill(COVITheme.navy.opacity(0.12))
+                                .overlay(alignment: .leading) {
+                                    Capsule().fill(COVITheme.navy)
+                                        .frame(width: geometry.size.width / 2)
+                                }
                         }
+                        .frame(height: 8)
                     }
-                    Text("Les montants seront saisis dans cette devise, sans conversion automatique.")
-                        .font(.footnote).foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 7) {
+                        Text("Votre établissement")
+                            .font(.system(size: 35, weight: .bold))
+                            .foregroundStyle(COVITheme.navy)
+                        Text("Renseignez les informations de votre commerce.")
+                            .foregroundStyle(COVITheme.secondaryText)
+                    }
+                    HStack(spacing: 10) {
+                        kindCard(.boutique, title: "Boutique", symbol: "bag")
+                        kindCard(.restaurant, title: "Restaurant", symbol: "fork.knife")
+                        kindCard(.salon, title: "Salon", symbol: "scissors")
+                    }
+                    COVICard {
+                        VStack(alignment: .leading, spacing: 15) {
+                            Label("Nom de l’établissement", systemImage: "storefront")
+                                .font(.subheadline.weight(.semibold))
+                            TextField("Ex. Maison Kongo Style", text: $name)
+                                .textContentType(.organizationName)
+                            Divider()
+                            Label("Ville", systemImage: "mappin.and.ellipse")
+                                .font(.subheadline.weight(.semibold))
+                            TextField("Ex. Brazzaville", text: $city)
+                            Divider()
+                            Label("Devise", systemImage: "banknote")
+                                .font(.subheadline.weight(.semibold))
+                            Picker("Devise", selection: $currency) {
+                                ForEach(SupportedCurrency.options) { option in
+                                    Text(option.label + " · " + option.code).tag(option.code)
+                                }
+                            }
+                            .tint(COVITheme.navy)
+                            Text("La devise est fixée lors de la création : aucune conversion automatique.")
+                                .font(.caption).foregroundStyle(COVITheme.secondaryText)
+                        }
+                        .foregroundStyle(COVITheme.navy)
+                    }
+                    COVIButton("Créer mon espace") { create() }
+                        .disabled(saved || clean(name).isEmpty || clean(city).isEmpty)
+                    if !error.isEmpty { Text(error).foregroundStyle(.red) }
                 }
-                COVIButton("Créer mon espace") { create() }
-                    .disabled(saved || clean(name).isEmpty || clean(city).isEmpty)
-                if !error.isEmpty { Text(error) }
+                .padding(22)
             }
-            .scrollContentBackground(.hidden)
-            .background(COVITheme.cream)
-            .navigationTitle("Votre établissement")
+            .background(COVIBackdrop())
+            .navigationBarTitleDisplayMode(.inline)
         }
+    }
+
+    private func kindCard(_ candidate: BusinessKind, title: String, symbol: String) -> some View {
+        Button { kind = candidate; HapticService.tap() } label: {
+            VStack(spacing: 13) {
+                Image(systemName: symbol).font(.system(size: 27))
+                Text(title).font(.subheadline.weight(.semibold))
+                    .minimumScaleFactor(0.75).lineLimit(1)
+            }
+            .foregroundStyle(COVITheme.navy)
+            .frame(maxWidth: .infinity, minHeight: 86)
+            .padding(.vertical, 10)
+            .background(kind == candidate ? COVITheme.champagne : .white,
+                        in: RoundedRectangle(cornerRadius: 18))
+            .overlay(RoundedRectangle(cornerRadius: 18)
+                .stroke(kind == candidate ? COVITheme.navy : COVITheme.separator,
+                        lineWidth: kind == candidate ? 2 : 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(kind == candidate ? .isSelected : [])
     }
 
     private func clean(_ text: String) -> String {

@@ -11,29 +11,76 @@ struct RestaurantComposer: View {
     @State private var basket: [UUID:Int] = [:]
     @State private var message = ""
     @State private var sent = false
+    var total: Int64 {
+        menu.reduce(Int64(0)) { partial, item in
+            let (line, overflow) = item.priceMinor.multipliedReportingOverflow(by: Int64(basket[item.id] ?? 0))
+            let (next, exceeds) = partial.addingReportingOverflow(overflow ? Int64.max : line)
+            return exceeds ? Int64.max : next
+        }
+    }
     var body: some View {
         NavigationStack {
-            List {
-                Picker("Catégorie", selection: $category) {
-                    ForEach(MenuGroup.allCases, id: \.self) { Text($0.rawValue).tag($0) }
-                }.pickerStyle(.segmented)
-                if !menu.contains(where: { $0.menuCategory == category.rawValue && !$0.soldOut }) {
-                    ContentUnavailableView("Aucun article disponible", systemImage: "fork.knife",
-                        description: Text("Un responsable peut compléter la carte depuis Configurer."))
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    HStack(spacing: 9) {
+                        ForEach(MenuGroup.allCases, id: \.self) { option in
+                            Button { category = option } label: {
+                                Text("\(option.rawValue) (\(menu.filter { $0.menuCategory == option.rawValue }.count))")
+                                    .font(.subheadline.weight(.semibold))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 13)
+                                    .foregroundStyle(category == option ? .white : COVITheme.navy)
+                                    .background(category == option ? COVITheme.navy : .white, in: Capsule())
+                            }.buttonStyle(.plain)
+                        }
+                    }
+                    if !menu.contains(where: { $0.menuCategory == category.rawValue && !$0.soldOut }) {
+                        ContentUnavailableView("Aucun article disponible", systemImage: "fork.knife",
+                            description: Text("Un responsable peut compléter la carte depuis Configurer."))
+                    }
+                    COVICard {
+                        VStack(spacing: 12) {
+                            ForEach(menu.filter { $0.menuCategory == category.rawValue }) { item in
+                                HStack(spacing: 12) {
+                                    Image(systemName: category == .food ? "fork.knife" : "cup.and.saucer")
+                                        .font(.title2)
+                                        .frame(width: 62, height: 70)
+                                        .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 14))
+                                    VStack(alignment: .leading, spacing: 7) {
+                                        Text(item.title).font(.headline)
+                                        if item.soldOut {
+                                            COVIBadge(title: "Épuisé", tint: COVITheme.dangerTint, foreground: .red)
+                                        }
+                                        Text(COVIMoney.text(item.priceMinor, currency: service.shop.currencyCode))
+                                            .font(.subheadline.weight(.semibold))
+                                    }
+                                    Spacer(minLength: 0)
+                                    HStack(spacing: 10) {
+                                        Button {
+                                            let count = basket[item.id] ?? 0
+                                            basket[item.id] = count > 1 ? count - 1 : nil
+                                        } label: { Image(systemName: "minus") }
+                                            .disabled((basket[item.id] ?? 0) == 0)
+                                        Text("\(basket[item.id] ?? 0)").frame(minWidth: 15)
+                                        Button {
+                                            if !item.soldOut { basket[item.id] = min(999, (basket[item.id] ?? 0) + 1) }
+                                        } label: { Image(systemName: "plus") }
+                                            .disabled(item.soldOut)
+                                    }
+                                    .buttonStyle(.borderless)
+                                }
+                                .foregroundStyle(COVITheme.navy)
+                                Divider()
+                            }
+                        }
+                    }
+                    if !message.isEmpty { Text(message).foregroundStyle(.red) }
                 }
-                ForEach(menu.filter { $0.menuCategory == category.rawValue }) { item in
-                    Stepper(onIncrement: {
-                        if !item.soldOut { basket[item.id] = min(999, (basket[item.id] ?? 0) + 1) }
-                    }, onDecrement: {
-                        let n = basket[item.id] ?? 0
-                        basket[item.id] = n > 1 ? n - 1 : nil
-                    }) {
-                        Text("\(basket[item.id] ?? 0) × \(item.title)")
-                        Text(item.soldOut ? "Rupture" : "\(item.priceMinor) \(service.shop.currencyCode)").font(.caption)
-                    }.disabled(item.soldOut && basket[item.id] == nil)
-                }
-                let total = menu.reduce(Decimal.zero) { $0 + Decimal($1.priceMinor) * Decimal(basket[$1.id] ?? 0) }
-                COVIButton("Envoyer en cuisine · \(total.formatted()) \(service.shop.currencyCode)") {
+                .padding(18)
+            }
+            .background(COVIBackdrop())
+            .safeAreaInset(edge: .bottom) {
+                COVIButton("Envoyer en cuisine (\(basket.values.reduce(0, +)) articles · \(COVIMoney.text(total, currency: service.shop.currencyCode)))") {
                     guard !sent else { return }
                     do {
                         try service.send(basket, menu: menu, table: table, order: order)
@@ -41,9 +88,12 @@ struct RestaurantComposer: View {
                         HapticService.confirm()
                         dismiss()
                     } catch { message = error.localizedDescription; HapticService.error() }
-                }.disabled(sent || basket.isEmpty)
-                if !message.isEmpty { Text(message) }
-            }.navigationTitle("Commander · " + table.label)
+                }
+                .disabled(sent || basket.isEmpty)
+                .padding(18)
+                .background(COVITheme.cream)
+            }
+            .navigationTitle("Commander · " + table.label)
             .toolbar { Button("Fermer") { dismiss() } }
         }
     }

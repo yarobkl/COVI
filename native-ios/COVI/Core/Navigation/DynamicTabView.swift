@@ -40,6 +40,7 @@ struct DynamicTabView: View {
     let accountID: UUID
     let role: StaffRole
     @Bindable var pinManager: PINManager
+    let onSwitchShop: () -> Void
     @State private var selected: BusinessTab = .home
     @State private var pending: BusinessTab?
     @State private var showingPIN = false
@@ -74,7 +75,8 @@ struct DynamicTabView: View {
                     if TabPolicy.requiresPIN(tab) && !pinManager.mayOperate(shop: establishment, actor: accountID) {
                         Button("Déverrouiller") { pending = tab; showingPIN = true }
                     } else if tab == .more {
-                        MoreSpace(shop: establishment, actor: accountID, role: role, pin: pinManager)
+                        MoreSpace(shop: establishment, actor: accountID, role: role,
+                                  pin: pinManager, onSwitchShop: onSwitchShop)
                     } else if establishment.kind == .salon {
                         SalonSpace(shop: establishment, tab: tab, actor: accountID, role: role, pin: pinManager)
                     } else if establishment.kind == .restaurant && [.service, .tables, .kitchen].contains(tab) {

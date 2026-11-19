@@ -71,50 +71,136 @@ struct MoreSpace: View {
     let actor: UUID
     let role: StaffRole
     let pin: PINManager
+    let onSwitchShop: () -> Void
     @Environment(AppSession.self) private var session
+    @Query private var salonMenu: [CatalogItem]
+    @Query private var salonSales: [SalonSaleLine]
+    @Query private var salonVisits: [SalonVisit]
     @State private var confirmingSignOut = false
     @State private var signOutFailed = false
 
+    init(shop: Establishment, actor: UUID, role: StaffRole, pin: PINManager,
+         onSwitchShop: @escaping () -> Void) {
+        self.shop = shop; self.actor = actor; self.role = role; self.pin = pin
+        self.onSwitchShop = onSwitchShop
+        let id = shop.id
+        _salonMenu = Query(filter: #Predicate<CatalogItem> { $0.establishmentID == id }, sort: \.title)
+        _salonSales = Query(filter: #Predicate<SalonSaleLine> { $0.shop == id }, sort: \.date, order: .reverse)
+        _salonVisits = Query(filter: #Predicate<SalonVisit> { $0.shop == id }, sort: \.start, order: .reverse)
+    }
+
     var body: some View {
-        List {
-            Section("Établissement") {
-                Text(shop.name).font(.headline)
-                Text(shop.city)
-                NavigationLink("Fiche à partager") { LocalShopCard(shop: shop) }
-            }
-            Section("Votre espace") {
-                NavigationLink("Paramètres système") { SystemSettings(shop: shop, actor: actor, pin: pin) }
-                NavigationLink("Historique des reçus") { CommerceReceiptHistory(shop: shop) }
-                if role == .owner || role == .manager {
-                    NavigationLink("Dépenses du commerce") {
-                        ExpenseSpace(shop: shop, actor: actor, canCancel: role == .owner)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 22) {
+                COVICard {
+                    HStack(spacing: 14) {
+                        Text(initials)
+                            .font(.title2.bold())
+                            .foregroundStyle(COVITheme.navy)
+                            .frame(width: 65, height: 65)
+                            .background(COVITheme.champagne, in: Circle())
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(session.displayName.isEmpty ? "Mon profil COVI" : session.displayName)
+                                .font(.title3.bold())
+                            COVIBadge(title: roleName)
+                        }
+                        Spacer(minLength: 0)
                     }
-                    NavigationLink("Bilan de trésorerie") { FinanceOverview(shop: shop) }
                 }
-                NavigationLink("Aide et confidentialité") { HelpPrivacyView(kind: shop.kind) }
-                if role == .owner {
-                    NavigationLink("Paramètres propriétaire") { OwnerSettings(shop: shop, pinManager: pin) }
-                }
+
                 if shop.kind == .salon && (role == .owner || role == .manager) {
-                    NavigationLink("Catalogue et rapports salon") {
-                        SalonSpace(shop: shop, tab: .more, actor: actor, role: role, pin: pin)
+                    COVISectionTitle("Gestion du salon")
+                    COVICard {
+                        VStack(spacing: 11) {
+                            NavigationLink {
+                                SalonCatalog(shop: shop, menu: salonMenu, actor: actor)
+                            } label: {
+                                COVIIconRow(symbol: "scissors", title: "Catalogue prestations & produits", detail: nil)
+                            }
+                            Divider()
+                            NavigationLink {
+                                SalonReport(sales: salonSales, visits: salonVisits, currency: shop.currencyCode)
+                            } label: {
+                                COVIIconRow(symbol: "chart.bar", title: "Rapports & Commissions équipe", detail: nil)
+                            }
+                            Divider()
+                            NavigationLink { LocalShopCard(shop: shop) } label: {
+                                COVIIconRow(symbol: "link", title: "Fiche à partager & QR", detail: "Fiche locale ; pas de réservation publique")
+                            }
+                            Divider()
+                            NavigationLink { SalonTeamSettings(shop: shop, actor: actor) } label: {
+                                COVIIconRow(symbol: "person.3", title: "Équipe, Rôles & Codes PIN", detail: nil)
+                            }
+                        }
                     }
                 }
-            }
-            Section {
-                LabeledContent("Abonnement", value: "Gratuit")
-                Text("Les données du commerce sont gérées sur iPhone, sans base de données web.")
-                    .font(.footnote).foregroundStyle(.secondary)
-            }
-            Section("Compte") {
-                Button(role: .destructive) { confirmingSignOut = true } label: {
-                    Label("Se déconnecter", systemImage: "rectangle.portrait.and.arrow.right")
+
+                COVISectionTitle("Gestion du commerce")
+                COVICard {
+                    VStack(spacing: 11) {
+                        NavigationLink { CommerceReceiptHistory(shop: shop) } label: {
+                            COVIIconRow(symbol: "receipt", title: "Historique des reçus", detail: nil)
+                        }
+                        if role == .owner || role == .manager {
+                            Divider()
+                            NavigationLink {
+                                ExpenseSpace(shop: shop, actor: actor, canCancel: role == .owner)
+                            } label: {
+                                COVIIconRow(symbol: "wallet.pass", title: "Dépenses du commerce", detail: nil)
+                            }
+                            Divider()
+                            NavigationLink { FinanceOverview(shop: shop) } label: {
+                                COVIIconRow(symbol: "chart.bar.xaxis", title: "Bilan de trésorerie", detail: nil)
+                            }
+                        }
+                        if role == .owner {
+                            Divider()
+                            NavigationLink { OwnerSettings(shop: shop, pinManager: pin) } label: {
+                                COVIIconRow(symbol: "lock.shield", title: "Équipe & Accès sécurisés", detail: nil)
+                            }
+                        }
+                    }
                 }
+
+                COVISectionTitle("Système & Multi-espaces")
+                COVICard {
+                    VStack(spacing: 11) {
+                        Button(action: onSwitchShop) {
+                            COVIIconRow(symbol: "storefront", title: "Changer d’établissement",
+                                detail: "Boutique / Restaurant / Salon")
+                        }.buttonStyle(.plain)
+                        Divider()
+                        NavigationLink { COVISyncCentre(shop: shop) } label: {
+                            COVIIconRow(symbol: "icloud", title: "Centre de synchronisation hors-ligne", detail: nil)
+                        }
+                        Divider()
+                        NavigationLink { SystemSettings(shop: shop, actor: actor, pin: pin) } label: {
+                            COVIIconRow(symbol: "gearshape", title: "Profil & Paramètres de sécurité", detail: nil)
+                        }
+                        Divider()
+                        NavigationLink { HelpPrivacyView(kind: shop.kind) } label: {
+                            COVIIconRow(symbol: "questionmark.circle", title: "Aide & Confidentialité", detail: nil)
+                        }
+                    }
+                }
+
+                Button(role: .destructive) { confirmingSignOut = true } label: {
+                    Label("Déconnecter le compte principal", systemImage: "rectangle.portrait.and.arrow.right")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(17)
+                        .overlay(RoundedRectangle(cornerRadius: 15).stroke(.red, lineWidth: 1.5))
+                }
+                .buttonStyle(.plain)
+                Text("COVI · Gratuit · Vos données restent enregistrées sur votre iPhone.")
+                    .font(.caption).foregroundStyle(COVITheme.secondaryText)
+                    .frame(maxWidth: .infinity)
             }
+            .foregroundStyle(COVITheme.navy)
+            .padding(18)
         }
         .navigationTitle("Plus")
-        .scrollContentBackground(.hidden)
-        .background(COVITheme.cream)
+        .background(COVIBackdrop())
         .confirmationDialog("Se déconnecter de COVI ?", isPresented: $confirmingSignOut) {
             Button("Se déconnecter", role: .destructive) {
                 do { try session.signOut() }
@@ -127,6 +213,115 @@ struct MoreSpace: View {
             Button("OK") {}
         } message: {
             Text("Le trousseau iOS n'a pas permis d'effacer la session active.")
+        }
+    }
+
+    private var initials: String {
+        let parts = session.displayName.split(separator: " ")
+        return String(parts.prefix(2).compactMap(\.first)).uppercased()
+    }
+
+    private var roleName: String {
+        switch role {
+        case .owner: "Propriétaire"
+        case .manager: "Responsable"
+        case .cashier: "Caissier"
+        case .waiter: "Serveur"
+        case .kitchen: "Cuisine"
+        case .stylist: "Coiffeur / Coiffeuse"
+        }
+    }
+}
+
+private struct COVISyncCentre: View {
+    let shop: Establishment
+    @Environment(AppSession.self) private var session
+    @Environment(\.modelContext) private var context
+    @Query private var outbox: [OutboxEvent]
+    @State private var syncing = false
+    @State private var result = ""
+
+    init(shop: Establishment) {
+        self.shop = shop
+        let id = shop.id
+        _outbox = Query(filter: #Predicate<OutboxEvent> { $0.establishmentID == id })
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 22) {
+                COVISectionTitle("Synchronisation")
+                COVICard {
+                    HStack(spacing: 15) {
+                        Image(systemName: "icloud.and.arrow.up")
+                            .font(.largeTitle).foregroundStyle(COVITheme.warning)
+                        VStack(alignment: .leading, spacing: 7) {
+                            Text(session.usesAppleAccount ? "Sauvegarde iCloud" : "Mode hors-ligne actif")
+                                .font(.headline)
+                            Text("\(outbox.filter { $0.state == .pending }.count) opérations en attente · Cache local conservé")
+                                .font(.subheadline).foregroundStyle(COVITheme.secondaryText)
+                        }
+                    }
+                }
+                COVIButton("Synchroniser maintenant", systemImage: "arrow.triangle.2.circlepath") {
+                    Task { await syncNow() }
+                }
+                .disabled(syncing || !session.usesAppleAccount)
+                if syncing { ProgressView("Synchronisation en cours…") }
+                if !result.isEmpty { Text(result).foregroundStyle(COVITheme.navy) }
+                COVISectionTitle("Journal des opérations")
+                COVICard {
+                    if outbox.isEmpty { Text("Aucune opération en attente.") }
+                    ForEach(outbox.sorted { $0.createdAt > $1.createdAt }.prefix(30)) { event in
+                        HStack(spacing: 13) {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .font(.title3)
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text(event.eventType).font(.subheadline.weight(.semibold))
+                                Text(event.createdAt.formatted(date: .abbreviated, time: .shortened))
+                                    .font(.caption).foregroundStyle(COVITheme.secondaryText)
+                            }
+                            Spacer()
+                            COVIBadge(title: status(event.state),
+                                tint: event.state == .synced ? COVITheme.successTint : COVITheme.warningTint)
+                        }
+                        Divider()
+                    }
+                }
+                Text("COVI n’exécute aucun débit bancaire. Les paiements Mobile Money sont confirmés manuellement.")
+                    .font(.footnote).foregroundStyle(COVITheme.secondaryText)
+            }
+            .padding(18)
+        }
+        .background(COVIBackdrop())
+        .navigationTitle("Synchronisation")
+    }
+
+    private func status(_ value: SyncState) -> String {
+        switch value {
+        case .pending: "En attente"
+        case .syncing: "En cours"
+        case .synced: "Confirmée"
+        case .conflict: "À vérifier"
+        case .failed: "Échec"
+        }
+    }
+
+    private func syncNow() async {
+        guard session.usesAppleAccount, !syncing else { return }
+        syncing = true
+        defer { syncing = false }
+        do {
+            try await CloudShopDirectory.reconcile(owner: shop.ownerID, context: context)
+            try await SyncCoordinator.cycle(shop: shop, context: context)
+            try await CloudReceiptArchive.cycle(shop: shop, context: context)
+            try await CloudExpenseLedger.cycle(shop: shop, context: context)
+            try await CloudOperationalSync.cycle(shop: shop, context: context)
+            result = "Synchronisation terminée."
+            HapticService.confirm()
+        } catch {
+            result = "Synchronisation suspendue : \(error.localizedDescription). Vos données restent sur cet appareil."
+            HapticService.error()
         }
     }
 }

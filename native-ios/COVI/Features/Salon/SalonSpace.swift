@@ -16,6 +16,7 @@ struct SalonSpace: View {
     @State private var day = Date()
     @State private var filter: String?
     @State private var booking = false
+    @State private var bookingClientID: UUID?
     @State private var newClient = ""
     @State private var clientSearch = ""
     @State private var cancellingVisit: UUID?
@@ -38,15 +39,42 @@ struct SalonSpace: View {
             } else {
                 List {
                     if tab == .today || tab == .agenda {
-                        if tab == .agenda { DatePicker("Jour", selection: $day, displayedComponents: .date) }
-                        Picker("Collaborateur", selection: $filter) {
-                            Text("Tous").tag(nil as String?)
-                            ForEach(team.filter(\.active)) { person in
-                                Text(person.name).tag(Optional(person.name))
+                        if tab == .today {
+                            let todayVisits = visits.filter { !$0.cancelled && Calendar.current.isDateInToday($0.start) }
+                            let income = sales.filter { Calendar.current.isDateInToday($0.date) }
+                                .reduce(Int64(0)) { $0 + $1.gross }
+                            HStack(spacing: 15) {
+                                Image(systemName: "calendar")
+                                    .font(.largeTitle).foregroundStyle(COVITheme.sand)
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text("\(todayVisits.count) rendez-vous · Encaissé :")
+                                        .font(.headline)
+                                    Text(COVIMoney.text(income, currency: shop.currencyCode))
+                                        .font(.title2.bold())
+                                }
                             }
-                        }.pickerStyle(.menu)
-                        Button("Nouveau rendez-vous") { booking = true }
-                            .disabled(team.filter(\.active).isEmpty)
+                            .foregroundStyle(.white)
+                            .padding(18)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(COVITheme.navy, in: RoundedRectangle(cornerRadius: 19))
+                        } else {
+                            DatePicker("Jour", selection: $day, displayedComponents: .date)
+                                .tint(COVITheme.navy)
+                        }
+                        ScrollView(.horizontal) {
+                            HStack(spacing: 9) {
+                                filterChip("Tous", name: nil)
+                                ForEach(team.filter(\.active)) { person in
+                                    filterChip(person.name, name: person.name)
+                                }
+                            }
+                        }
+                        .scrollIndicators(.hidden)
+                        COVIButton(tab == .today ? "+ RDV" : "Nouveau rendez-vous", systemImage: "calendar.badge.plus") {
+                            bookingClientID = nil
+                            booking = true
+                        }
+                        .disabled(team.filter(\.active).isEmpty)
                         if team.filter(\.active).isEmpty {
                             Text("Ajoutez un collaborateur depuis Plus pour ouvrir l’agenda.")
                                 .font(.footnote).foregroundStyle(.secondary)
@@ -97,11 +125,19 @@ struct SalonSpace: View {
                                 description: Text(clients.isEmpty ? "Créez une fiche client pour réserver et encaisser." :
                                     "Essayez un autre nom ou numéro de téléphone."))
                         }
-                        ForEach(matching) { c in NavigationLink(c.name) {
-                            SalonProfile(client: c, actor: actor,
-                                         history: sales.filter { $0.client == c.id && $0.service },
-                                         currency: shop.currencyCode)
-                        } }
+                        ForEach(matching) { c in
+                            NavigationLink {
+                                SalonProfile(client: c, actor: actor,
+                                    history: sales.filter { $0.client == c.id && $0.service },
+                                    currency: shop.currencyCode) {
+                                        bookingClientID = c.id
+                                        booking = true
+                                    }
+                            } label: {
+                                COVIIconRow(symbol: "person.crop.circle", title: c.name,
+                                    detail: c.phone.isEmpty ? "Fiche client" : c.phone)
+                            }
+                        }
                     } else if admin {
                         NavigationLink("Rapports du salon") { SalonReport(sales: sales, visits: visits,
                                                                               currency: shop.currencyCode) }
@@ -112,13 +148,15 @@ struct SalonSpace: View {
                     if !message.isEmpty { Text(message) }
                 }
                 .modifier(SalonClientSearch(enabled: tab == .clients, text: $clientSearch))
+                .listStyle(.plain)
             }
-        }.navigationTitle(tab.title).scrollContentBackground(.hidden).background(COVITheme.cream)
+        }.navigationTitle(tab.title).scrollContentBackground(.hidden).background(COVIBackdrop())
         .sheet(isPresented: $booking) {
             SalonBooking(shop: shop.id, actor: actor, clients: clients, menu: menu,
                          team: team.filter(\.active),
                          day: tab == .today ? .now : day,
-                         personID: team.first(where: { $0.name == filter && $0.active })?.id)
+                         personID: team.first(where: { $0.name == filter && $0.active })?.id,
+                         initialClient: bookingClientID)
         }
         .confirmationDialog("Annuler le rendez-vous ?", isPresented: Binding(
             get: { cancellingVisit != nil }, set: { if !$0 { cancellingVisit = nil } }
@@ -132,6 +170,17 @@ struct SalonSpace: View {
         } message: {
             Text("Cette action conserve l’historique mais libère le créneau dans l’agenda.")
         }
+    }
+
+    private func filterChip(_ title: String, name: String?) -> some View {
+        Button { filter = name } label: {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(filter == name ? .white : COVITheme.navy)
+                .padding(.horizontal, 16).padding(.vertical, 11)
+                .background(filter == name ? COVITheme.navy : .white, in: Capsule())
+        }
+        .buttonStyle(.plain)
     }
 
     private func appointmentSummary(_ visit: SalonVisit) -> some View {
@@ -166,6 +215,7 @@ struct SalonBooking: View {
     @Environment(\.modelContext) private var db
     @State var day: Date
     @State var personID: UUID?
+    let initialClient: UUID?
     @State private var client: UUID?
     @State private var item: UUID?
     @State private var walk = false
@@ -205,8 +255,12 @@ struct SalonBooking: View {
                     catch { message = error.localizedDescription }
                 }
                 Text(message)
-            }.navigationTitle("Nouveau rendez-vous").toolbar { Button("Fermer") { dismiss() } }
+            }.navigationTitle("Nouveau rendez-vous")
+                .scrollContentBackground(.hidden)
+                .background(COVIBackdrop())
+                .toolbar { Button("Fermer") { dismiss() } }
                 .onAppear {
+                    if let initialClient { client = initialClient }
                     if day < Date.now.addingTimeInterval(5 * 60) {
                         day = Date.now.addingTimeInterval(15 * 60)
                     }
@@ -290,34 +344,109 @@ private struct SalonProfile: View {
     let actor: UUID
     let history: [SalonSaleLine]
     let currency: String
+    let onNewBooking: () -> Void
     @Environment(\.modelContext) private var db
     @State private var notes = ""
     @State private var name = ""
     @State private var preferences = ""
     @State private var phone = ""
     @State private var message = ""
+    @State private var editing = false
     var body: some View {
-        Form {
-            TextField("Nom du client", text: $name).textContentType(.name)
-            TextField("Téléphone", text: $phone).keyboardType(.phonePad)
-            TextField("Préférences capillaires", text: $preferences, axis: .vertical)
-            TextField("Notes techniques", text: $notes, axis: .vertical)
-            Button("Enregistrer") {
-                do {
-                    try SalonLedger.updateClient(client, shop: client.shop, actor: actor,
-                        name: name, phone: phone, notes: notes, preferences: preferences, db: db)
-                    message = "Fiche enregistrée."
-                } catch { message = error.localizedDescription }
-            }
-            Section("Trois dernières prestations") {
-                ForEach(history.prefix(3)) { row in
-                    Text(row.title + " · " + row.stylist)
-                    Text(row.date.formatted() + " · \(row.gross) \(currency)").font(.caption)
+        Group {
+            if editing {
+                Form {
+                    TextField("Nom du client", text: $name).textContentType(.name)
+                    TextField("Téléphone", text: $phone).keyboardType(.phonePad)
+                    TextField("Préférences capillaires", text: $preferences, axis: .vertical)
+                    TextField("Notes techniques", text: $notes, axis: .vertical)
+                    COVIButton("Enregistrer") {
+                        do {
+                            try SalonLedger.updateClient(client, shop: client.shop, actor: actor,
+                                name: name, phone: phone, notes: notes, preferences: preferences, db: db)
+                            message = "Fiche enregistrée."
+                            editing = false
+                        } catch { message = error.localizedDescription }
+                    }
+                    if !message.isEmpty { Text(message).foregroundStyle(.red) }
+                }
+                .scrollContentBackground(.hidden)
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 22) {
+                        COVICard {
+                            VStack(spacing: 20) {
+                                HStack(spacing: 16) {
+                                    Text(String(client.name.prefix(1)).uppercased())
+                                        .font(.largeTitle.bold())
+                                        .frame(width: 85, height: 85)
+                                        .background(COVITheme.champagne, in: Circle())
+                                    VStack(alignment: .leading, spacing: 9) {
+                                        Text(client.name).font(.title2.bold())
+                                        Label(client.phone.isEmpty ? "Téléphone non renseigné" : client.phone,
+                                              systemImage: "phone")
+                                            .font(.subheadline)
+                                    }
+                                    Spacer(minLength: 0)
+                                }
+                                HStack {
+                                    stat("Visites", value: "\(Set(history.map(\.order)).count)")
+                                    Divider()
+                                    stat("Total", value: COVIMoney.text(history.reduce(0) { $0 + $1.gross }, currency: currency))
+                                }
+                            }
+                        }
+                        VStack(alignment: .leading, spacing: 12) {
+                            COVISectionTitle("Préférences & Notes techniques")
+                            COVICard {
+                                COVIIconRow(symbol: "list.clipboard", title: "Préférences",
+                                    detail: client.preferences.isEmpty ? "Aucune préférence renseignée" : client.preferences,
+                                    accessory: nil)
+                                if !client.notes.isEmpty {
+                                    Divider()
+                                    Text(client.notes).font(.subheadline)
+                                }
+                            }
+                        }
+                        VStack(alignment: .leading, spacing: 12) {
+                            COVISectionTitle("Historique des prestations (3 dernières)")
+                            COVICard {
+                                if history.isEmpty {
+                                    Text("Aucune prestation encaissée.")
+                                        .foregroundStyle(COVITheme.secondaryText)
+                                }
+                                ForEach(Array(history.prefix(3))) { row in
+                                    if row.id != history.first?.id { Divider() }
+                                    COVIIconRow(symbol: "calendar", title: row.title,
+                                        detail: "\(row.date.formatted(date: .abbreviated, time: .omitted)) · \(row.stylist) · \(COVIMoney.text(row.gross, currency: currency))",
+                                        accessory: nil)
+                                }
+                            }
+                        }
+                        COVIButton("Nouveau rendez-vous pour \(client.name)", systemImage: "plus") {
+                            onNewBooking()
+                        }
+                    }
+                    .foregroundStyle(COVITheme.navy)
+                    .padding(18)
                 }
             }
-            Text(message)
-        }.navigationTitle(client.name).onAppear {
+        }
+        .background(COVIBackdrop())
+        .navigationTitle(editing ? "Modifier la fiche" : "Fiche client")
+        .toolbar {
+            Button(editing ? "Annuler" : "Modifier") { editing.toggle() }
+        }
+        .onAppear {
             name = client.name; notes = client.notes; preferences = client.preferences; phone = client.phone
         }
+    }
+
+    private func stat(_ title: String, value: String) -> some View {
+        VStack(spacing: 8) {
+            Text(value).font(.headline).minimumScaleFactor(0.7).lineLimit(1)
+            Text(title).font(.caption).foregroundStyle(COVITheme.secondaryText)
+        }
+        .frame(maxWidth: .infinity)
     }
 }

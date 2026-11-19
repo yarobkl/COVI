@@ -25,13 +25,28 @@ struct RestaurantSpace: View {
     }
     var service: RestaurantService { RestaurantService(shop: shop, actor: actor, role: role, pin: pin, db: db) }
     func state(_ t: DiningTable) -> String { t.billRequested ? "Addition demandée" : t.isOccupied ? "Occupée" : "Libre" }
+    var filteredTables: [DiningTable] {
+        tables.filter { table in
+            filter == "Toutes" || (filter == "Occupées" && table.isOccupied) ||
+                (filter == "Libres" && !table.isOccupied)
+        }
+    }
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 22) {
                 if tab == .kitchen {
-                    Picker("Préparation", selection: $phase) {
-                        ForEach(Prep.allCases, id: \.self) { Text($0.rawValue).tag($0) }
-                    }.pickerStyle(.segmented)
+                    HStack(spacing: 8) {
+                        ForEach(Prep.allCases, id: \.self) { option in
+                            Button { phase = option } label: {
+                                Text(option == .cooking ? "À préparer" : option == .ready ? "Prêts" : "Servis")
+                                    .font(.subheadline.weight(.semibold))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 13)
+                                    .foregroundStyle(phase == option ? .white : COVITheme.navy)
+                                    .background(phase == option ? COVITheme.navy : .white, in: Capsule())
+                            }.buttonStyle(.plain)
+                        }
+                    }
                     let activeOrders = Set(tables.compactMap(\.activeSessionID))
                     if !lines.contains(where: { activeOrders.contains($0.orderID) && $0.preparation == phase.rawValue }) {
                         ContentUnavailableView("Aucune commande", systemImage: "checkmark.circle",
@@ -40,41 +55,74 @@ struct RestaurantSpace: View {
                     ForEach(tables) { t in
                         if let order = orders.first(where: { $0.id == t.activeSessionID }) {
                             ForEach(lines.filter { $0.orderID == order.id && $0.preparation == phase.rawValue }) { line in
-                                COVICard { VStack(alignment: .leading, spacing: 8) {
-                                    Text(t.label).font(.caption)
-                                    Text("\(line.quantity) × \(line.dishName ?? "Article")").font(.headline)
-                                    if let sent = line.sentAt { Text(sent, style: .time) }
+                                COVICard { VStack(alignment: .leading, spacing: 15) {
+                                    HStack {
+                                        Label(t.label, systemImage: "fork.knife")
+                                            .font(.headline)
+                                        Spacer()
+                                        if let sent = line.sentAt { COVIBadge(title: sent.formatted(date: .omitted, time: .shortened), tint: COVITheme.warningTint, foreground: COVITheme.warning) }
+                                    }
+                                    Text("\(line.quantity) × \(line.dishName ?? "Article")")
+                                        .font(.title3.bold())
                                     if phase == .cooking || phase == .ready {
-                                        Button(phase == .cooking ? "Marquer prêt" : "Marquer servi") {
+                                        COVIButton(phase == .cooking ? "Marquer prêt" : "Marquer servi") {
                                             perform { try service.advance(line, from: phase, table: t, order: order) }
                                         }
                                     }
-                                } }
+                                }.foregroundStyle(COVITheme.navy) }
                             }
                         }
                     }
                 } else {
-                    Picker("État", selection: $filter) {
-                        ForEach(["Toutes","Libre","Occupée","Addition demandée"], id: \.self) { Text($0) }
-                    }.pickerStyle(.menu)
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 145))]) {
-                        ForEach(tables.filter { filter == "Toutes" || state($0) == filter }) { t in
+                    HStack(spacing: 8) {
+                        ForEach(["Toutes", "Occupées", "Libres"], id: \.self) { option in
+                            Button { filter = option } label: {
+                                let count = option == "Toutes" ? tables.count : option == "Occupées" ? tables.filter(\.isOccupied).count : tables.filter { !$0.isOccupied }.count
+                                Text("\(option) (\(count))")
+                                    .font(.subheadline.weight(.semibold))
+                                    .minimumScaleFactor(0.75).lineLimit(1)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .foregroundStyle(filter == option ? .white : COVITheme.navy)
+                                    .background(filter == option ? COVITheme.navy : .white, in: Capsule())
+                            }.buttonStyle(.plain)
+                        }
+                    }
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 15) {
+                        ForEach(filteredTables) { t in
                             NavigationLink {
                                 RestaurantTable(table: t, order: orders.first { $0.id == t.activeSessionID }, menu: menu,
                                                 lines: lines.filter { $0.orderID == t.activeSessionID }, service: service)
                             } label: {
-                                COVICard { VStack(alignment: .leading, spacing: 8) {
-                                    Label(t.label, systemImage: "table.furniture")
-                                    Text("\(t.capacity) places").font(.caption)
-                                    Text(state(t)).foregroundStyle(t.billRequested ? Color.orange : t.isOccupied ? COVITheme.navy : .green)
-                                } }
+                                COVICard {
+                                    VStack(spacing: 12) {
+                                        Image(systemName: "table.furniture")
+                                            .font(.system(size: 36))
+                                            .foregroundStyle(t.billRequested ? COVITheme.warning : t.isOccupied ? COVITheme.navy : COVITheme.success)
+                                            .frame(height: 48)
+                                        Text(t.label).font(.title3.bold()).lineLimit(1)
+                                        Text("(\(t.capacity) pers.)").font(.caption)
+                                        COVIBadge(title: state(t),
+                                            tint: t.billRequested ? COVITheme.warningTint : t.isOccupied ? COVITheme.champagne : COVITheme.successTint,
+                                            foreground: t.billRequested ? COVITheme.warning : t.isOccupied ? COVITheme.navy : COVITheme.success)
+                                        if let order = orders.first(where: { $0.id == t.activeSessionID }) {
+                                            Text(COVIMoney.text(order.totalMinor, currency: shop.currencyCode))
+                                                .font(.subheadline.bold())
+                                        } else { Text("Prête au service").font(.caption) }
+                                    }
+                                    .foregroundStyle(COVITheme.navy)
+                                    .frame(maxWidth: .infinity, minHeight: 174)
+                                }
+                                .overlay(RoundedRectangle(cornerRadius: COVITheme.Metrics.cardRadius)
+                                    .stroke(t.isOccupied ? COVITheme.navy : .clear, lineWidth: 1.5))
                             }
+                            .buttonStyle(.plain)
                         }
                     }
                     if tables.isEmpty { Text("Aucune table configurée.") }
                 }
-            }.padding()
-        }.background(COVITheme.cream).navigationTitle(tab == .kitchen ? "Cuisine" : tab.title)
+            }.padding(18)
+        }.background(COVIBackdrop()).navigationTitle(tab == .kitchen ? "Cuisine" : tab.title)
         .toolbar { if service.admin && tab == .tables { Button("Configurer") { setup = true } } }
         .sheet(isPresented: $setup) { RestaurantSetup(service: service, menu: menu, tables: tables) }
         .alert("Restaurant", isPresented: Binding(get: { !message.isEmpty }, set: { if !$0 { message = "" } })) { Button("OK") {} } message: { Text(message) }
@@ -97,31 +145,90 @@ struct RestaurantTable: View {
     @State private var confirmed = false
     @State private var message = ""
     var body: some View {
-        List {
-            if let order {
-                Section("Détail de la session") {
-                    ForEach(lines) { line in
-                        VStack(alignment: .leading) {
-                            Text("\(line.quantity) × \(line.dishName ?? "Article")")
-                            Text("\(line.unitPriceMinor) \(service.shop.currencyCode) / unité · \(line.preparation ?? "")").font(.caption)
-                            if line.preparation == Prep.ready.rawValue {
-                                Button("Marquer servi") { run { try service.advance(line, from: .ready, table: table, order: order) } }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                if let order {
+                    COVICard {
+                        HStack {
+                            Label(table.label, systemImage: "person")
+                            Spacer()
+                            Text("\(table.capacity) couverts")
+                        }
+                        .font(.subheadline)
+                    }
+                    COVISectionTitle("Détail de la session")
+                    COVICard {
+                        VStack(spacing: 13) {
+                            if lines.isEmpty {
+                                Text("Aucun plat commandé pour cette table.")
+                                    .foregroundStyle(COVITheme.secondaryText)
+                            }
+                            ForEach(lines) { line in
+                                HStack(alignment: .top, spacing: 12) {
+                                    Image(systemName: "fork.knife")
+                                        .font(.title3).foregroundStyle(COVITheme.navy)
+                                        .frame(width: 52, height: 55)
+                                        .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 12))
+                                    VStack(alignment: .leading, spacing: 7) {
+                                        Text("\(line.quantity) × \(line.dishName ?? "Article")").font(.headline)
+                                        Text(COVIMoney.text(line.unitPriceMinor * Int64(line.quantity), currency: service.shop.currencyCode))
+                                            .font(.subheadline.weight(.semibold))
+                                        if line.preparation == Prep.ready.rawValue {
+                                            Button("Marquer servi") {
+                                                run { try service.advance(line, from: .ready, table: table, order: order) }
+                                            }
+                                            .font(.subheadline.weight(.semibold))
+                                            .foregroundStyle(COVITheme.blue)
+                                        } else {
+                                            COVIBadge(title: line.preparation ?? "Commandé",
+                                                tint: line.preparation == Prep.served.rawValue ? COVITheme.successTint : COVITheme.warningTint,
+                                                foreground: line.preparation == Prep.served.rawValue ? COVITheme.success : COVITheme.warning)
+                                        }
+                                    }
+                                    Spacer(minLength: 0)
+                                }
+                                Divider()
                             }
                         }
                     }
-                }
-                LabeledContent("Addition", value: "\(order.totalMinor) \(service.shop.currencyCode)")
-                if table.billRequested {
-                    Button("Confirmer le règlement et libérer") { closing = true }
+                    HStack {
+                        Image(systemName: "circle.stack").font(.title2)
+                        Spacer()
+                        Text("Reste à encaisser :").font(.headline)
+                        Text(COVIMoney.text(order.totalMinor, currency: service.shop.currencyCode))
+                            .font(.headline)
+                    }
+                    .foregroundStyle(COVITheme.navy)
+                    .padding(16)
+                    .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 15))
+                    if table.billRequested {
+                        COVIButton("Encaisser") { closing = true }
+                    } else {
+                        HStack(spacing: 12) {
+                            COVIButton("Ajouter", systemImage: "plus", role: .secondary) { ordering = true }
+                            COVIButton("Demander l’addition") {
+                                run { try service.finish(table, order: order, paid: false) }
+                            }
+                        }
+                    }
+                } else if !table.isOccupied {
+                    COVICard {
+                        VStack(alignment: .leading, spacing: 12) {
+                            COVIBadge(title: "Libre", tint: COVITheme.successTint, foreground: COVITheme.success)
+                            Text("Ouvrez une session pour prendre les commandes de cette table.")
+                        }
+                    }
+                    COVIButton("Ouvrir une session") { run { try service.open(table) } }
                 } else {
-                    Button("Ajouter à la commande") { ordering = true }
-                    Button("Demander l’addition") { run { try service.finish(table, order: order, paid: false) } }
+                    Text("Session à réconcilier.").foregroundStyle(.red)
                 }
-            } else if !table.isOccupied {
-                Button("Ouvrir une session") { run { try service.open(table) } }
-            } else { Text("Session à réconcilier.") }
-            if !message.isEmpty { Text(message) }
-        }.navigationTitle(table.label)
+                if !message.isEmpty { Text(message).foregroundStyle(.red) }
+            }
+            .foregroundStyle(COVITheme.navy)
+            .padding(18)
+        }
+        .background(COVIBackdrop())
+        .navigationTitle(table.label)
         .sheet(isPresented: $closing) {
             if let order {
                 NavigationStack {

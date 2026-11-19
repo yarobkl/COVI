@@ -21,6 +21,20 @@ struct SalonCheckout: View {
     var total: Decimal { menu.reduce(Decimal.zero) { $0 + Decimal($1.priceMinor) * Decimal(basket[$1.id] ?? 0) } }
     var body: some View {
         Form {
+            Section {
+                COVICard {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Label("Ticket en cours", systemImage: "person.crop.circle")
+                            .font(.title3.bold())
+                        if let visit = visits.first(where: { $0.id == visitID }) {
+                            Text(clients.first(where: { $0.id == visit.client })?.name ?? "Client")
+                                .font(.headline)
+                        } else {
+                            Text("Vente directe").foregroundStyle(COVITheme.secondaryText)
+                        }
+                    }
+                }
+            }
             if clients.isEmpty {
                 Text("Créez d’abord une fiche dans Clients pour encaisser une prestation.")
                     .font(.footnote).foregroundStyle(.secondary)
@@ -65,9 +79,24 @@ struct SalonCheckout: View {
                     }
                 }
             }
-            Picker("Règlement externe", selection: $tender) { ForEach(Tender.allCases, id: \.self) { Text($0.rawValue) } }
-            COVIButton("Encaisser \(total.formatted()) \(shop.currencyCode)") { confirm = true }
-                .disabled(clientID == nil || basket.isEmpty || stylist.isEmpty || menu.isEmpty)
+            Section("Règlement externe") {
+                Picker("Moyen de paiement", selection: $tender) {
+                    ForEach(Tender.allCases, id: \.self) { option in
+                        Text(option.rawValue).tag(option)
+                    }
+                }
+                .pickerStyle(.menu)
+                HStack {
+                    Text("Total à encaisser").font(.headline)
+                    Spacer()
+                    Text("\(total.formatted()) \(shop.currencyCode)")
+                        .font(.headline).foregroundStyle(COVITheme.navy)
+                }
+            }
+            Section {
+                COVIButton("Encaisser \(total.formatted()) \(shop.currencyCode)") { confirm = true }
+                    .disabled(clientID == nil || basket.isEmpty || stylist.isEmpty || menu.isEmpty)
+            }
             if let receipt {
                 NavigationLink {
                     ReceiptDetail(order: receipt, shop: shop)
@@ -75,7 +104,7 @@ struct SalonCheckout: View {
                     Label("Voir et partager le dernier reçu", systemImage: "receipt")
                 }
             }
-            Text(message)
+            if !message.isEmpty { Text(message).foregroundStyle(COVITheme.navy) }
         }.confirmationDialog("Confirmer la réception de \(total.formatted()) \(shop.currencyCode) ?", isPresented: $confirm) {
             Button("Je confirme avoir reçu · " + tender.rawValue) {
                 guard let client = clients.first(where: { $0.id == clientID }) else { return }
@@ -91,6 +120,8 @@ struct SalonCheckout: View {
         .onAppear {
             if stylist.isEmpty { stylist = team.first(where: \.active)?.name ?? "" }
         }
+        .scrollContentBackground(.hidden)
+        .background(COVIBackdrop())
     }
 }
 
@@ -238,30 +269,94 @@ struct SalonReport: View {
     var body: some View {
         let rows = sales.filter { includes($0.date) }
         let periodVisits = visits.filter { includes($0.start) }
-        let gross = rows.reduce(Decimal.zero) { $0 + Decimal($1.gross) }
-        let commissions = rows.reduce(Decimal.zero) { $0 + Decimal($1.commission) }
+        let gross = rows.reduce(Int64(0)) { $0 + $1.gross }
+        let services = rows.filter(\.service).reduce(Int64(0)) { $0 + $1.gross }
+        let products = rows.filter { !$0.service }.reduce(Int64(0)) { $0 + $1.gross }
+        let commissions = rows.reduce(Int64(0)) { $0 + $1.commission }
         let people = Array(Set(rows.map(\.stylist) + periodVisits.map(\.stylist))).sorted()
-        Form {
-            Picker("Période", selection: $monthly) { Text("Jour").tag(false); Text("Mois").tag(true) }.pickerStyle(.segmented)
-            DatePicker("Date", selection: $date, displayedComponents: .date)
-            Section("Encaissements bruts") {
-                LabeledContent("CA encaissé", value: "\(gross.formatted()) \(currency)")
-                LabeledContent("Commissions équipe", value: "\(commissions.formatted()) \(currency)")
-                LabeledContent("Après commissions · hors charges", value: "\((gross - commissions).formatted()) \(currency)")
-            }
-            if people.isEmpty {
-                ContentUnavailableView("Aucune activité sur cette période", systemImage: "chart.bar.xaxis",
-                    description: Text("Choisissez un autre jour ou mois, ou enregistrez votre première prestation."))
-            }
-            ForEach(people, id: \.self) { person in
-                let activity = rows.filter { $0.stylist == person }
-                Section(person) {
-                    LabeledContent("RDV hors annulations", value: "\(periodVisits.filter { !$0.cancelled && $0.stylist == person }.count)")
-                    LabeledContent("Tickets encaissés", value: "\(Set(activity.map(\.order)).count)")
-                    LabeledContent("CA", value: "\(activity.reduce(Decimal.zero) { $0 + Decimal($1.gross) }.formatted()) \(currency)")
-                    LabeledContent("Commission", value: "\(activity.reduce(Decimal.zero) { $0 + Decimal($1.commission) }.formatted()) \(currency)")
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                HStack {
+                    Picker("Période", selection: $monthly) {
+                        Text("Jour").tag(false)
+                        Text("Mois").tag(true)
+                    }.pickerStyle(.segmented)
+                    DatePicker("Date", selection: $date, displayedComponents: .date)
+                        .labelsHidden()
+                }
+
+                VStack(alignment: .leading, spacing: 18) {
+                    HStack(spacing: 15) {
+                        Image(systemName: "chart.bar.fill")
+                            .font(.largeTitle).foregroundStyle(COVITheme.sand)
+                            .frame(width: 62, height: 62)
+                            .background(.white.opacity(0.14), in: Circle())
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Chiffre d’affaires total :").font(.headline)
+                            Text(COVIMoney.text(gross, currency: currency))
+                                .font(.system(size: 29, weight: .bold))
+                                .minimumScaleFactor(0.7).lineLimit(1)
+                        }
+                    }
+                    Rectangle().fill(.white.opacity(0.48)).frame(height: 1)
+                    HStack(spacing: 8) {
+                        reportMoney("Prestations", amount: services, symbol: "scissors")
+                        Rectangle().fill(.white.opacity(0.48)).frame(width: 1, height: 45)
+                        reportMoney("Revente produits", amount: products, symbol: "shippingbox")
+                    }
+                }
+                .foregroundStyle(.white)
+                .padding(18)
+                .background(COVITheme.navy, in: RoundedRectangle(cornerRadius: 20))
+
+                COVISectionTitle("Activité & Commissions équipe")
+                COVICard {
+                    if people.isEmpty {
+                        Text("Aucune activité sur cette période.")
+                            .foregroundStyle(COVITheme.secondaryText)
+                    }
+                    ForEach(people, id: \.self) { person in
+                        let activity = rows.filter { $0.stylist == person }
+                        VStack(alignment: .leading, spacing: 9) {
+                            COVIIconRow(symbol: "person.crop.circle", title: person,
+                                detail: "\(Set(activity.map(\.order)).count) tickets · CA : \(COVIMoney.text(activity.reduce(0) { $0 + $1.gross }, currency: currency))",
+                                accessory: nil)
+                            HStack {
+                                COVIBadge(title: "Part : \(COVIMoney.text(activity.reduce(0) { $0 + $1.commission }, currency: currency))")
+                                Spacer()
+                                Text("\(periodVisits.filter { !$0.cancelled && $0.stylist == person }.count) RDV")
+                                    .font(.caption).foregroundStyle(COVITheme.secondaryText)
+                            }
+                        }
+                        Divider()
+                    }
+                }
+                COVICard {
+                    VStack(alignment: .leading, spacing: 10) {
+                        LabeledContent("Commissions équipe", value: COVIMoney.text(commissions, currency: currency))
+                        Divider()
+                        LabeledContent("Après commissions · hors charges", value: COVIMoney.text(gross - commissions, currency: currency))
+                    }
+                    .font(.subheadline)
                 }
             }
-        }.navigationTitle("Rapports salon")
+            .foregroundStyle(COVITheme.navy)
+            .padding(18)
+        }
+        .background(COVIBackdrop())
+        .navigationTitle("Rapports salon")
+    }
+
+    private func reportMoney(_ title: String, amount: Int64, symbol: String) -> some View {
+        HStack(spacing: 9) {
+            Image(systemName: symbol).foregroundStyle(COVITheme.sand)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title).font(.caption)
+                Text(COVIMoney.text(amount, currency: currency))
+                    .font(.subheadline.bold())
+                    .lineLimit(1).minimumScaleFactor(0.7)
+            }
+            Spacer(minLength: 0)
+        }
     }
 }
