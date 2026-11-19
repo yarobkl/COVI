@@ -50,7 +50,7 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 | Journal des événements métier local | 30 % | 82 % | Protocole de réplication effectif, purge sécurisée et résolutions de conflits |
 | Tests unitaires iOS | 25 % | 90 % | 113/113 XCTest réussis sur `4f037fe` ; parcours physiques et validations CloudKit multi-appareils encore nécessaires |
 | Build et tests globaux iOS | 0 % | 86 % | Compilation + 113 XCTest réussis sur macOS sans signature ; tests visuels indisponibles |
-| Livraison TestFlight native | En pause | 45 % | Autorisation reçue pour préparer une version interne. Workflow SwiftUI natif corrigé et contrôles de signature ajoutés ; profil existant, archive signée, schéma CloudKit Production et traitement Apple encore non validés |
+| Livraison TestFlight native | En pause | 45 % | Le préflight réel a refusé le profil App Store existant : il ne contient pas les entitlements CloudKit. Archive, schéma Production et traitement Apple restent bloqués ; aucune signature modifiée |
 
 ## Changements réellement effectués dans ce lot
 
@@ -317,6 +317,7 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 261. Tester les rendez-vous salon concurrents sur deux copies distinctes d'un établissement.
 262. Documenter les tests physiques restants et la limite d'ACL de `CKShare` avant toute invitation d'employés.
 263. Remplacer la cible hybride de l'ancien workflow TestFlight manuel par le projet SwiftUI/XcodeGen natif, avec préflight XCTest, contrôle du profil CloudKit Production et de Sign in with Apple, version supérieure à 1.0.7 et envoi soumis au drapeau explicite `uploadToTestFlight`. Aucun certificat ni profil Apple n'est créé ou modifié.
+264. Exécuter un véritable préflight manuel macOS sans envoi (`uploadToTestFlight=false`, action `44516821945`, commit `8182716`) ; valider l'équipe, le Bundle ID et Sign in with Apple, puis constater le blocage de sécurité : le profil App Store existant ne contient ni conteneur ni service CloudKit ni environnement Production. Arrêt avant compilation/signature/envoi, comme prévu.
 
 ## Vérification macOS sans signature (branche de diagnostic uniquement)
 
@@ -379,6 +380,14 @@ au CloudKit Production avant transmission. La syntaxe YAML et des 11 scripts
 Bash a été vérifiée localement ; **le workflow n'a pas encore été exécuté sur
 macOS**, le profil de signature n'est pas encore certifié compatible, et
 aucune archive n'a été transmise à Apple.
+
+Le préflight GitHub Actions **`44516821945`** (job `135534878731`) a ensuite
+confirmé que la branche et tous les secrets configurés étaient disponibles.
+Le profil existant porte le bon Team ID, le Bundle ID `com.covi.app` et
+`Sign in with Apple`, mais **aucun des trois droits CloudKit requis**
+(identifiant de conteneur, service et environnement `Production`). Le workflow
+s'est interrompu avant la compilation et avant tout envoi, conformément aux
+protections. Le profil ne sera pas recréé ni modifié par cet agent.
 
 L'inspection du diff **avant** déploiement CloudKit Production a montré que
 les trois nouveaux record types recevraient en base **publique** les droits

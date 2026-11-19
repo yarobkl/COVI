@@ -89,7 +89,7 @@ jobs:
               'Production CloudKit': entitlements.get('com.apple.developer.icloud-container-environment') == 'Production',
               'Sign in with Apple': 'Default' in entitlements.get('com.apple.developer.applesignin', []),
               'App Store distribution': not entitlements.get('get-task-allow', True) and 'ProvisionedDevices' not in profile,
-              'Profile not expired': profile.get('ExpirationDate', datetime.datetime.min) > datetime.datetime.utcnow(),
+              'Profile not expired': profile.get('ExpirationDate', datetime.datetime.min) > datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None),
           }
           for label, valid in checks.items():
               print(f'{label}: {"OK" if valid else "INCOMPATIBLE"}')
