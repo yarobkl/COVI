@@ -18,7 +18,7 @@ Les pièces jointes accessibles dans ce lot comprennent **16 fichiers JPEG compo
 | `058F98E6` | Restaurant : Équipe & Accès, Rapports service | `OwnerSettings.swift`, `MoreSpace.swift` | Fonctions de sécurité/rapports existantes ; apparence à finaliser |
 | `C0053217` | Restaurant : Gestion de la carte, Stock boissons | `RestaurantMenu.swift` | Gestion de carte existante ; réservations de boissons et écran de réassort spécifiques non réalisés |
 | `6155DBBE` | Restaurant : Cuisine, Encaissement partiel, Incident | `RestaurantSpace.swift`, `RestaurantService.swift` | Cuisine opérationnelle ; encaissement partiel et incident/remboursement spécifiques non réalisés |
-| `A2188A03` | Salon : Aujourd’hui, Agenda, Nouveau rendez-vous | `SalonSpace.swift` | Résumé du jour, filtre d'équipe et réservation opérationnels ; grille horaire fidèle à finaliser |
+| `A2188A03` | Salon : Aujourd’hui, Agenda, Nouveau rendez-vous | `SalonSpace.swift` | Résumé du jour, grille horaire par collaborateur et formulaire de réservation reliés au contrôle de chevauchement ; capture comparative encore à effectuer |
 | `57D4B495` | Salon : Clients, Fiche client | `SalonSpace.swift` | Liste, historique, modification et rendez-vous depuis la fiche reliés aux données |
 | `683EE982` | Salon : Caisse, Catalogue | `SalonCheckout.swift` | Encaissement et catalogue existants ; finition visuelle à compléter |
 | `657B79B7` | Salon : Demandes en ligne, Rapports salon | `SalonCheckout.swift` | Rapport relié aux opérations ; demandes publiques Instagram/QR non intégrées |

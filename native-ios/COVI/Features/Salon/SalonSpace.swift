@@ -168,8 +168,8 @@ struct SalonSpace: View {
             }
         }
         .sheet(isPresented: $booking) {
-            SalonBooking(shop: shop.id, actor: actor, clients: clients, menu: menu,
-                         team: team.filter(\.active),
+            SalonBooking(shop: shop.id, actor: actor, currency: shop.currencyCode, clients: clients, menu: menu,
+                         team: team.filter(\.active), visits: visits,
                          day: tab == .today ? .now : day,
                          personID: team.first(where: { $0.name == filter && $0.active })?.id,
                          initialClient: bookingClientID)
@@ -357,9 +357,11 @@ private struct SalonClientSearch: ViewModifier {
 struct SalonBooking: View {
     let shop: UUID
     let actor: UUID
+    let currency: String
     let clients: [SalonClient]
     let menu: [CatalogItem]
     let team: [SalonStaff]
+    let visits: [SalonVisit]
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var db
     @State var day: Date
@@ -370,51 +372,140 @@ struct SalonBooking: View {
     @State private var walk = false
     @State private var minutes = 30
     @State private var message = ""
+    private var chosenClient: SalonClient? { clients.first { $0.id == client } }
+    private var chosenItem: CatalogItem? { menu.first { $0.id == item } }
+    private var chosenStylist: SalonStaff? { team.first { $0.id == personID } }
+    private var chosenStart: Date { walk ? .now : day }
+    private var slotAvailable: Bool? {
+        guard let chosenClient, let chosenStylist else { return nil }
+        let start = chosenStart
+        let end = start.addingTimeInterval(TimeInterval(minutes * 60))
+        return !visits.contains {
+            !$0.cancelled && $0.shop == shop &&
+            ($0.client == chosenClient.id || $0.stylist == chosenStylist.name) &&
+            $0.start < end && $0.end > start
+        }
+    }
     var body: some View {
         NavigationStack {
-            Form {
-                Picker("Accueil", selection: $walk) { Text("Sur rendez-vous").tag(false); Text("Passage spontané").tag(true) }.pickerStyle(.segmented)
-                Picker("Client", selection: $client) {
-                    Text("Choisir").tag(nil as UUID?)
-                    ForEach(clients) { Text($0.name).tag(Optional($0.id)) }
-                }
-                Picker("Prestation", selection: $item) {
-                    Text("Choisir").tag(nil as UUID?)
-                    ForEach(menu.filter { $0.isService && !$0.soldOut }) { Text($0.title).tag(Optional($0.id)) }
-                }
-                Picker("Collaborateur", selection: $personID) {
-                    Text("Choisir").tag(nil as UUID?)
-                    ForEach(team) { person in Text(person.name).tag(Optional(person.id)) }
-                }
-                if !walk {
-                    DatePicker("Début", selection: $day,
-                               in: Date.now...Date.now.addingTimeInterval(366 * 24 * 3_600))
-                }
-                Text("Créneaux possibles jusqu'à un an à l'avance.")
-                    .font(.footnote).foregroundStyle(.secondary)
-                Stepper("\(minutes) minutes", value: $minutes, in: 5...720, step: 5)
-                COVIButton("Confirmer") {
-                    guard let c = clients.first(where: { $0.id == client }),
-                          let p = menu.first(where: { $0.id == item }),
-                          let stylist = team.first(where: { $0.id == personID }) else {
-                        message = "Sélectionnez un client, une prestation et un collaborateur."; return
+            ScrollView {
+                VStack(alignment: .leading, spacing: 23) {
+                    HStack(spacing: 0) {
+                        forEachArrival(false, label: "Rendez-vous prévu")
+                        forEachArrival(true, label: "Passage spontané")
                     }
-                    do { try SalonLedger.book(shop: shop, actor: actor, client: c, item: p, team: stylist,
-                                              start: walk ? .now : day, minutes: minutes, walkIn: walk, db: db); dismiss() }
-                    catch { message = error.localizedDescription }
-                }
-                Text(message)
-            }.navigationTitle("Nouveau rendez-vous")
-                .scrollContentBackground(.hidden)
-                .background(COVIBackdrop())
-                .toolbar { Button("Fermer") { dismiss() } }
-                .onAppear {
-                    if let initialClient { client = initialClient }
-                    if day < Date.now.addingTimeInterval(5 * 60) {
-                        day = Date.now.addingTimeInterval(15 * 60)
+                    .padding(4)
+                    .background(.white, in: Capsule())
+                    COVICard {
+                        VStack(spacing: 17) {
+                            HStack(spacing: 12) {
+                                bookingIcon("person")
+                                Picker("Client", selection: $client) {
+                                    Text("Choisir un client").tag(nil as UUID?)
+                                    ForEach(clients) { Text($0.name).tag(Optional($0.id)) }
+                                }
+                                .tint(COVITheme.navy)
+                            }
+                            Divider()
+                            HStack(spacing: 12) {
+                                bookingIcon("scissors")
+                                Picker("Prestation", selection: $item) {
+                                    Text("Choisir une prestation").tag(nil as UUID?)
+                                    ForEach(menu.filter { $0.isService && !$0.soldOut }) {
+                                        Text("\($0.title) · \(COVIMoney.text($0.priceMinor, currency: currency))")
+                                            .tag(Optional($0.id))
+                                    }
+                                }
+                                .tint(COVITheme.navy)
+                            }
+                            Divider()
+                            HStack(spacing: 12) {
+                                bookingIcon("person.2")
+                                Picker("Collaborateur", selection: $personID) {
+                                    Text("Choisir un collaborateur").tag(nil as UUID?)
+                                    ForEach(team) { person in Text(person.name).tag(Optional(person.id)) }
+                                }
+                                .tint(COVITheme.navy)
+                            }
+                            Divider()
+                            HStack(spacing: 12) {
+                                bookingIcon("calendar")
+                                if walk {
+                                    LabeledContent("Créneau", value: "Maintenant")
+                                } else {
+                                    DatePicker("Créneau", selection: $day,
+                                        in: Date.now...Date.now.addingTimeInterval(366 * 24 * 3_600))
+                                        .tint(COVITheme.navy)
+                                }
+                            }
+                            Divider()
+                            Stepper("Durée : \(minutes) minutes", value: $minutes, in: 5...720, step: 5)
+                                .tint(COVITheme.navy)
+                            if let slotAvailable {
+                                COVIBadge(title: slotAvailable ? "Créneau libre (sans chevauchement)" :
+                                        "Créneau indisponible", tint: slotAvailable ? COVITheme.successTint : COVITheme.dangerTint,
+                                        foreground: slotAvailable ? COVITheme.success : .red)
+                                    .frame(maxWidth: .infinity)
+                            }
+                        }
+                        .foregroundStyle(COVITheme.navy)
                     }
+                    if !message.isEmpty { Text(message).foregroundStyle(.red).font(.footnote) }
                 }
+                .padding(18)
+            }
+            .background(COVIBackdrop())
+            .navigationTitle("Nouveau rendez-vous")
+            .navigationBarTitleDisplayMode(.inline)
+            .safeAreaInset(edge: .bottom) {
+                COVIButton("Confirmer le rendez-vous") { saveBooking() }
+                    .disabled(chosenClient == nil || chosenItem == nil || chosenStylist == nil || slotAvailable == false)
+                    .padding(.horizontal, 18).padding(.vertical, 12)
+                    .background(COVITheme.cream)
+            }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Annuler") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Enregistrer") { saveBooking() }
+                        .disabled(chosenClient == nil || chosenItem == nil || chosenStylist == nil || slotAvailable == false)
+                }
+            }
+            .onAppear {
+                if let initialClient { client = initialClient }
+                if day < Date.now.addingTimeInterval(5 * 60) {
+                    day = Date.now.addingTimeInterval(15 * 60)
+                }
+            }
         }
+    }
+
+    private func forEachArrival(_ spontaneous: Bool, label: String) -> some View {
+        Button { walk = spontaneous } label: {
+            Text(label)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(walk == spontaneous ? .white : COVITheme.navy)
+                .frame(maxWidth: .infinity).padding(.vertical, 13)
+                .background(walk == spontaneous ? COVITheme.navy : .clear, in: Capsule())
+        }.buttonStyle(.plain)
+    }
+
+    private func bookingIcon(_ symbol: String) -> some View {
+        Image(systemName: symbol)
+            .font(.title3).foregroundStyle(COVITheme.navy)
+            .frame(width: 46, height: 46)
+            .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 13))
+    }
+
+    private func saveBooking() {
+        guard let c = chosenClient, let p = chosenItem, let stylist = chosenStylist else {
+            message = "Sélectionnez un client, une prestation et un collaborateur."
+            return
+        }
+        do {
+            try SalonLedger.book(shop: shop, actor: actor, client: c, item: p, team: stylist,
+                                 start: chosenStart, minutes: minutes, walkIn: walk, db: db)
+            dismiss()
+        } catch { message = error.localizedDescription }
     }
 }
 
