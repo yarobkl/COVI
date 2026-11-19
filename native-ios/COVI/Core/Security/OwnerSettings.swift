@@ -39,6 +39,7 @@ struct OwnerSettings: View {
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var phase
     @Query private var members: [Membership]
+    @Query private var accounts: [Account]
     @State private var operatorID: UUID?
     @State private var cashierPIN = ""
     @Query private var payments: [PaymentRecord]
@@ -62,12 +63,16 @@ struct OwnerSettings: View {
                     }
                 }
             }
-            Section("Code opérateur") {
+            Section("Sécurité de caisse · facultative") {
+                Text("En tant que propriétaire, vous pouvez encaisser directement. Un code à quatre chiffres devient obligatoire seulement si vous choisissez d'en attribuer un.")
+                    .font(.footnote).foregroundStyle(.secondary)
                 Picker("Opérateur", selection: $operatorID) {
                     Text("Choisir").tag(nil as UUID?)
                     Text("Propriétaire").tag(Optional(shop.ownerID))
                     ForEach(members.filter { $0.active && $0.establishmentID == shop.id && $0.accountID != shop.ownerID }) { member in
-                        Text(member.accountID.uuidString).tag(Optional(member.accountID))
+                        Text(accounts.first(where: { $0.id == member.accountID })?.fullName ??
+                             "Collaborateur " + String(member.accountID.uuidString.prefix(8)))
+                            .tag(Optional(member.accountID))
                     }
                 }
                 SecureField("Nouveau PIN de caisse", text: $cashierPIN).keyboardType(.numberPad)
@@ -87,6 +92,8 @@ struct OwnerSettings: View {
             if !message.isEmpty { Text(message) }
         }
         .onAppear { name = shop.name }
+        .scrollContentBackground(.hidden)
+        .background(COVITheme.cream)
         .onChange(of: phase) { _, phase in if phase != .active { command = nil; pin = ""; confirmation = "" } }
         .sheet(item: $command) { pending in
             PINEntryView(pinManager: pinManager, scope: .master(ownerID: shop.ownerID)) { success in

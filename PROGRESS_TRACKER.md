@@ -18,7 +18,7 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 | --- | ---: | ---: | --- |
 | Coque iOS SwiftUI / navigation | 65 % | 72 % | Validation visuelle iPhone/iPad, tests VoiceOver |
 | Accueil et parcours de première ouverture | 55 % | 68 % | Comparaison des 46 écrans approuvés, animations |
-| Identité locale sans mot de passe | 0 % | 78 % | Tests XCTest exécutés, récupération/export de compte |
+| Identité locale sans mot de passe | 0 % | 81 % | Tests XCTest exécutés, récupération/export de compte |
 | Connexion native Apple | 0 % | 68 % | Validation réelle Sign in with Apple et profil déjà provisionné |
 | Persistance SwiftData locale | 62 % | 70 % | Migration de schéma, tests de corruption/restauration |
 | Répertoire d'établissements iCloud privé | 0 % | 65 % | Tests multi-iPhone, collisions et hors-ligne prolongé |
@@ -26,23 +26,24 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 | Synchronisation CloudKit **des données métier** | 5 % | 23 % | Reçus confirmés archivés ; produits, stock, commandes actives, réservations, clients, personnel non synchronisés |
 | Multi-appareils propriétaire | 15 % | 52 % | Validation Apple/iCloud, inventaires, activités actives, séparation de comptes |
 | Multi-personnel / rôles | 25 % | 30 % | Invitations, identité stable du personnel, permissions |
-| Boutique : catalogue | 65 % | 68 % | Édition, catégories, suppression contrôlée, tests |
-| Boutique : stock / balles / inventaire | 64 % | 70 % | Historique complet, valorisation, tests stock concurrents |
+| Boutique : catalogue | 65 % | 70 % | Édition, catégories, suppression contrôlée, tests |
+| Boutique : stock / balles / inventaire | 64 % | 73 % | Historique complet, valorisation, tests stock concurrents |
 | Boutique : caisse / confirmation manuelle | 75 % | 80 % | Tests physiques, coupure réseau, remboursement partiel |
 | Boutique : reçus / historique | 28 % | 73 % | Export PDF natif, impression, tests UI |
-| Restaurant : salle et tables | 66 % | 71 % | Réservations, flux multi-serveurs, tests |
-| Restaurant : commandes et cuisine | 64 % | 70 % | Annulation / corrections, calculs avancés, tests |
+| Restaurant : salle et tables | 66 % | 73 % | Réservations, flux multi-serveurs, tests |
+| Restaurant : commandes et cuisine | 64 % | 72 % | Annulation / corrections, calculs avancés, tests |
 | Restaurant : règlement en caisse | 66 % | 73 % | Reçu imprimable, tests concurrence et double paiement |
-| Salon : équipe réelle | 5 % | 77 % | Historique des affectations, rôles, tests UI |
-| Salon : agenda / rendez-vous | 61 % | 72 % | Gestion annulations, plages horaires, rappels |
+| Salon : équipe réelle | 5 % | 79 % | Historique des affectations, rôles, tests UI |
+| Salon : agenda / rendez-vous | 61 % | 75 % | Gestion annulations, plages horaires, rappels |
 | Salon : catalogue / encaissement | 66 % | 73 % | Retour client, modifications, tests de flux |
-| Salon : clients / fiches | 65 % | 66 % | Recherche, consentements, export, suppression |
+| Salon : clients / fiches | 65 % | 69 % | Recherche, consentements, export, suppression |
 | Salon : rapports / commissions | 55 % | 65 % | Périodes, réconciliation financière, tests |
 | Paiements externes manuels (sans SDK de paiement) | 65 % | 78 % | Traçabilité du moyen de paiement et reçus réels |
 | Sécurité PIN et accès caisse simplifié | 52 % | 76 % | Tests exécutés, parcours d'enrôlement simplifié |
 | Aide et accessibilité | 25 % | 30 % | Guide initial, Dynamic Type, VoiceOver, états erreur/vides |
 | Conformité aux 46 maquettes | Non vérifiée | Non vérifiée | Maquettes et comparaison sur iPhone indispensables |
-| Tests unitaires iOS | 25 % | 51 % | Compilation et exécution réelles de toute la suite |
+| Journal des événements métier local | 30 % | 82 % | Protocole de réplication effectif, purge sécurisée et résolutions de conflits |
+| Tests unitaires iOS | 25 % | 55 % | Compilation et exécution réelles de toute la suite |
 | Build et tests globaux iOS | 0 % | 0 % | Compilation macOS Xcode sans déclencher TestFlight |
 | Livraison TestFlight | En pause | En pause | Aucune action autorisée dans ce lot |
 
@@ -75,6 +76,23 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 25. Détecter les doublons, collisions et divergences de montants lors du rejeu de reçus CloudKit.
 26. Empêcher qu'une archive distante modifie le stock ou confirme un paiement non enregistré.
 27. Ajouter les tests de sérialisation, réimportation idempotente et isolation inter-établissements.
+28. Lier définitivement une identité COVI à son compte iCloud privé pour empêcher un changement de compte silencieux.
+29. Journaliser la création de produits, les arrivages, les balles et les ajustements de stock boutique.
+30. Journaliser la création des tables, les articles de menu et leur disponibilité au restaurant.
+31. Journaliser la création, désactivation et réactivation des collaborateurs du salon.
+32. Journaliser les créations, modifications et annulations de rendez-vous et de fiches clients salon.
+33. Tracer la réception initiale du stock du salon avec un mouvement comptable.
+34. Ajouter des tests de cycle restaurant, doubles règlements et événements métier salon.
+35. Rendre les journaux Boutique entièrement transactionnels pour création, arrivages et stock.
+36. Journaliser les changements de cartes et de tables restaurant, avec retour arrière sur erreur.
+37. Associer chaque rendez-vous salon à un acteur et journaliser sa création.
+38. Journaliser la modification du profil client salon et les annulations de rendez-vous.
+39. Journaliser l'ajout des prestations, produits et quantités initiales du salon.
+40. Ajouter un test du parcours complet restaurant : table, commande, cuisine, règlement, idempotence.
+41. Empêcher une identité COVI de réutiliser silencieusement le CloudKit privé d'un autre compte iCloud.
+42. Persister la fiche de profil locale SwiftData lors de la connexion native.
+43. Remplacer les identifiants UUID affichés au personnel par des noms lisibles.
+44. Permettre le changement du nom de profil sans connexion réseau et le tester.
 
 ## Limites bloquantes
 

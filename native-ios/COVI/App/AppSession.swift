@@ -87,6 +87,19 @@ import SwiftUI
         usesAppleAccount = false
     }
 
+    func updateDisplayName(_ value: String) throws {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              let current = try storedIdentity(for: identityKey) else {
+            throw Failure.invalidCredential
+        }
+        let updated = Identity(accountID: current.accountID,
+                               appleUserID: current.appleUserID,
+                               displayName: trimmed, email: current.email)
+        if current.appleUserID == nil { try save(updated, for: localIdentityKey) }
+        try activate(updated)
+    }
+
     private func activate(_ identity: Identity) throws {
         try save(identity, for: identityKey)
         apply(identity)
@@ -171,6 +184,8 @@ struct AccountLogin: View {
             if !message.isEmpty { Text(message).foregroundStyle(.red) }
         }
         .navigationTitle("Se connecter")
+        .scrollContentBackground(.hidden)
+        .background(COVITheme.cream)
     }
 }
 
@@ -201,5 +216,7 @@ struct RegistrationView: View {
             if !message.isEmpty { Text(message).foregroundStyle(.red) }
         }
         .navigationTitle("Créer un compte")
+        .scrollContentBackground(.hidden)
+        .background(COVITheme.cream)
     }
 }

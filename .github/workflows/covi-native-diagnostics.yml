@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - feature/covi-native-swiftui-cloud
+      - wip/covi-native-20261119-no-testflight
     paths:
       - 'native-ios/**'
       - '.github/workflows/covi-native-diagnostics.yml'

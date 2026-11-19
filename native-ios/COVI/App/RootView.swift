@@ -82,8 +82,9 @@ struct RootView: View {
         }
         .task { if restoring { try? await session.restore(); restoring = false } }
         .task(id: session.accountID) {
-            guard let owner = session.accountID, session.usesAppleAccount else { return }
-            await importDirectory(owner)
+            guard let owner = session.accountID else { return }
+            saveNativeProfile(owner)
+            if session.usesAppleAccount { await importDirectory(owner) }
         }
         .onChange(of: phase) { _, phase in if phase != .active { pinManager.lock() } }
         .onChange(of: session.accountID) { _, _ in pinManager.lock(); selectedID = nil; addingShop = false }
@@ -100,6 +101,25 @@ struct RootView: View {
         } catch is CancellationError { return }
         catch {
             directoryError = error.localizedDescription
+        }
+    }
+
+    private func saveNativeProfile(_ account: UUID) {
+        do {
+            let profiles = try context.fetch(FetchDescriptor<Account>(
+                predicate: #Predicate { $0.id == account }))
+            let fullName = session.displayName
+            let email = session.email
+            if let profile = profiles.first {
+                if !fullName.isEmpty { profile.fullName = fullName }
+                if !email.isEmpty { profile.email = email }
+            } else {
+                context.insert(Account(id: account, fullName: fullName,
+                                       email: email, phone: ""))
+            }
+            try context.save()
+        } catch {
+            context.rollback()
         }
     }
 }

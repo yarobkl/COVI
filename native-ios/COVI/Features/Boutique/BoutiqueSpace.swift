@@ -47,7 +47,7 @@ struct BoutiqueSpace: View {
             } else {
                 if tab == .stock {
                     NavigationLink("Arrivages de balles") { BaleList(shop: shop, actor: actor, goods: goods) }
-                    NavigationLink("Ajouter un article") { NewProduct(shop: shop) }
+                    NavigationLink("Ajouter un article") { NewProduct(shop: shop, actor: actor) }
                 }
                 Section("Catalogue") {
                     TextField("Rechercher un article", text: $search)

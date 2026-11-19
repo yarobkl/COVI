@@ -60,7 +60,12 @@ struct SalonSpace: View {
                             }.swipeActions {
                                 if v.receipt == nil { Button("Annuler", role: .destructive) {
                                     v.cancelled = true
-                                    do { try SalonLedger.save(db) } catch { message = error.localizedDescription }
+                                    do {
+                                        try BusinessOutbox.enqueue(kind: "salon.appointment.cancelled",
+                                            establishmentID: shop.id, entityID: v.id,
+                                            actorID: actor, in: db)
+                                        try SalonLedger.save(db)
+                                    } catch { db.rollback(); message = error.localizedDescription }
                                 } }
                             }
                         }
@@ -70,15 +75,24 @@ struct SalonSpace: View {
                             Button("Créer la fiche") {
                                 let name = newClient.trimmingCharacters(in: .whitespacesAndNewlines)
                                 guard !name.isEmpty else { return }
-                                db.insert(SalonClient(shop: shop.id, name: name))
-                                do { try SalonLedger.save(db); newClient = "" } catch { message = error.localizedDescription }
+                                let client = SalonClient(shop: shop.id, name: name)
+                                db.insert(client)
+                                do {
+                                    try BusinessOutbox.enqueue(kind: "salon.client.created",
+                                        establishmentID: shop.id, entityID: client.id,
+                                        actorID: actor, in: db)
+                                    try SalonLedger.save(db); newClient = ""
+                                } catch { db.rollback(); message = error.localizedDescription }
                             }
                         }
-                        ForEach(clients) { c in NavigationLink(c.name) { SalonProfile(client: c, history: sales.filter { $0.client == c.id && $0.service }) } }
+                        ForEach(clients) { c in NavigationLink(c.name) {
+                            SalonProfile(client: c, actor: actor,
+                                         history: sales.filter { $0.client == c.id && $0.service })
+                        } }
                     } else if admin {
                         NavigationLink("Rapports du salon") { SalonReport(sales: sales, visits: visits) }
                         NavigationLink("Catalogue du salon") { SalonCatalog(shop: shop, menu: menu, actor: actor) }
-                        NavigationLink("Équipe du salon") { SalonTeamSettings(shop: shop) }
+                        NavigationLink("Équipe du salon") { SalonTeamSettings(shop: shop, actor: actor) }
                         if role == .owner { NavigationLink("Paramètres propriétaire") { OwnerSettings(shop: shop, pinManager: pin) } }
                     } else { Text("Salon · " + shop.name) }
                     if !message.isEmpty { Text(message) }
@@ -86,7 +100,7 @@ struct SalonSpace: View {
             }
         }.navigationTitle(tab.title).scrollContentBackground(.hidden).background(COVITheme.cream)
         .sheet(isPresented: $booking) {
-            SalonBooking(shop: shop.id, clients: clients, menu: menu,
+            SalonBooking(shop: shop.id, actor: actor, clients: clients, menu: menu,
                          team: team.filter(\.active),
                          day: tab == .today ? .now : day,
                          personID: team.first(where: { $0.name == filter && $0.active })?.id)
@@ -96,6 +110,7 @@ struct SalonSpace: View {
 
 struct SalonBooking: View {
     let shop: UUID
+    let actor: UUID
     let clients: [SalonClient]
     let menu: [CatalogItem]
     let team: [SalonStaff]
@@ -137,7 +152,8 @@ struct SalonBooking: View {
                           let stylist = team.first(where: { $0.id == personID }) else {
                         message = "Sélectionnez un client, une prestation et un collaborateur."; return
                     }
-                    do { try SalonLedger.book(shop: shop, client: c, item: p, team: stylist, start: walk ? .now : day, minutes: minutes, walkIn: walk, db: db); dismiss() }
+                    do { try SalonLedger.book(shop: shop, actor: actor, client: c, item: p, team: stylist,
+                                              start: walk ? .now : day, minutes: minutes, walkIn: walk, db: db); dismiss() }
                     catch { message = error.localizedDescription }
                 }
                 Text(message)
@@ -153,6 +169,7 @@ struct SalonBooking: View {
 
 private struct SalonProfile: View {
     let client: SalonClient
+    let actor: UUID
     let history: [SalonSaleLine]
     @Environment(\.modelContext) private var db
     @State private var notes = ""
@@ -166,7 +183,11 @@ private struct SalonProfile: View {
             TextField("Notes techniques", text: $notes, axis: .vertical)
             Button("Enregistrer") {
                 client.phone = phone; client.notes = notes; client.preferences = preferences
-                do { try SalonLedger.save(db); message = "Fiche enregistrée." } catch { message = error.localizedDescription }
+                do {
+                    try BusinessOutbox.enqueue(kind: "salon.client.updated",
+                        establishmentID: client.shop, entityID: client.id, actorID: actor, in: db)
+                    try SalonLedger.save(db); message = "Fiche enregistrée."
+                } catch { db.rollback(); message = error.localizedDescription }
             }
             Section("Trois dernières prestations") {
                 ForEach(history.prefix(3)) { row in

@@ -74,7 +74,7 @@ enum SalonFault: String, LocalizedError {
     static func save(_ db: ModelContext) throws {
         do { try db.save() } catch { db.rollback(); throw error }
     }
-    static func book(shop: UUID, client: SalonClient, item: CatalogItem, team: SalonStaff, start: Date,
+    static func book(shop: UUID, actor: UUID, client: SalonClient, item: CatalogItem, team: SalonStaff, start: Date,
                      minutes: Int, walkIn: Bool, db: ModelContext) throws {
         guard item.establishmentID == shop, item.isService, client.shop == shop,
               team.shop == shop, team.active, !team.name.isEmpty,
@@ -89,8 +89,15 @@ enum SalonFault: String, LocalizedError {
             $0.shop == shop && !$0.cancelled && ($0.stylist == person || $0.client == cid) && $0.start < end && $0.end > start
         })
         guard try db.fetchCount(matches) == 0 else { throw SalonFault.clash }
-        db.insert(SalonVisit(shop: shop, client: cid, service: item.id, stylist: person, start: start, end: end, walkIn: walkIn))
-        try save(db)
+        let visit = SalonVisit(shop: shop, client: cid, service: item.id,
+                               stylist: person, start: start, end: end, walkIn: walkIn)
+        db.insert(visit)
+        do {
+            try BusinessOutbox.enqueue(kind: "salon.appointment.created",
+                establishmentID: shop, entityID: visit.id, actorID: actor,
+                relatedIDs: [client.id, item.id, team.id], in: db)
+            try save(db)
+        } catch { db.rollback(); throw error }
     }
     @discardableResult static func pay(shop: Establishment, actor: UUID, pin: PINManager, client: SalonClient, team: String,
                     visit: SalonVisit?, basket: [UUID:Int], menu: [CatalogItem], tender: Tender, db: ModelContext) throws -> CommerceOrder {

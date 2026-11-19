@@ -61,4 +61,22 @@ final class NativeSessionTests: XCTestCase {
         XCTAssertEqual(first, again)
         XCTAssertNotEqual(first, second)
     }
+
+    func testLocalDisplayNameUpdateIsPersisted() throws {
+        let session = AppSession(keychain: store)
+        try session.createLocalAccount(name: "Ancien nom")
+        try session.updateDisplayName("  Nouveau nom  ")
+        XCTAssertEqual(session.displayName, "Nouveau nom")
+        try session.signOut()
+        let reopened = AppSession(keychain: store)
+        try reopened.continueLocally()
+        XCTAssertEqual(reopened.displayName, "Nouveau nom")
+    }
+
+    func testEmptyNameUpdateDoesNotReplaceExistingProfile() throws {
+        let session = AppSession(keychain: store)
+        try session.createLocalAccount(name: "Nom valide")
+        XCTAssertThrowsError(try session.updateDisplayName(" "))
+        XCTAssertEqual(session.displayName, "Nom valide")
+    }
 }

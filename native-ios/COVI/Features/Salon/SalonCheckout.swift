@@ -110,13 +110,20 @@ struct SalonCatalog: View {
                           let count = Int(service ? "0" : qty), count >= 0 else { message = SalonFault.invalid.localizedDescription; return }
                     let item = CatalogItem(establishmentID: shop.id, title: title, priceMinor: amount, isService: service)
                     item.stockOnHand = count; item.salonPercent = percent; db.insert(item)
+                    var movementIDs: [UUID] = []
                     if count > 0 {
-                        db.insert(StockMovement(establishmentID: shop.id, itemID: item.id,
-                                                delta: count, reason: "Stock initial du salon",
-                                                actorID: actor))
+                        let movement = StockMovement(establishmentID: shop.id, itemID: item.id,
+                                                     delta: count, reason: "Stock initial du salon",
+                                                     actorID: actor)
+                        db.insert(movement)
+                        movementIDs.append(movement.id)
                     }
-                    do { try SalonLedger.save(db); name = ""; price = ""; qty = ""; message = "Référence ajoutée." }
-                    catch { message = error.localizedDescription }
+                    do {
+                        try BusinessOutbox.enqueue(kind: service ? "salon.service.created" : "salon.product.created",
+                            establishmentID: shop.id, entityID: item.id,
+                            actorID: actor, relatedIDs: movementIDs, in: db)
+                        try SalonLedger.save(db); name = ""; price = ""; qty = ""; message = "Référence ajoutée."
+                    } catch { db.rollback(); message = error.localizedDescription }
                 }
             }
             ForEach(menu) { item in

@@ -3,6 +3,7 @@ import SwiftData
 
 struct NewProduct: View {
     let shop: Establishment
+    let actor: UUID
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @State private var title = ""
@@ -13,9 +14,17 @@ struct NewProduct: View {
             TextField("Nom", text: $title)
             TextField("Prix en FCFA", text: $price).keyboardType(.numberPad)
             Button("Créer l’article") {
-                guard let price = Int64(price), price > 0, !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { error = "Nom et prix positif requis."; return }
-                context.insert(CatalogItem(establishmentID: shop.id, title: title, priceMinor: price))
-                do { try context.save(); dismiss() } catch { context.rollback(); self.error = error.localizedDescription }
+                let cleaned = title.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard let price = Int64(price), price > 0, !cleaned.isEmpty else {
+                    error = "Nom et prix positif requis."; return
+                }
+                let item = CatalogItem(establishmentID: shop.id, title: cleaned, priceMinor: price)
+                context.insert(item)
+                do {
+                    try BusinessOutbox.enqueue(kind: "boutique.product.created",
+                        establishmentID: shop.id, entityID: item.id, actorID: actor, in: context)
+                    try context.save(); dismiss()
+                } catch { context.rollback(); self.error = error.localizedDescription }
             }
             Text(error)
         }.navigationTitle("Nouvel article")
@@ -52,9 +61,16 @@ struct ProductDetail: View {
                     let delta = operation == "Inventaire" ? count - item.stockOnHand : (operation == "Perte" ? -count : count)
                     let (next, overflow) = item.stockOnHand.addingReportingOverflow(delta)
                     guard !overflow, delta != 0, next >= max(0, item.stockReserved) else { message = "Ajustement incompatible avec le disponible."; return }
-                    context.insert(StockMovement(establishmentID: item.establishmentID, itemID: item.id, delta: delta, reason: operation + " · " + reason, actorID: actor))
+                    let movement = StockMovement(establishmentID: item.establishmentID, itemID: item.id,
+                                                 delta: delta, reason: operation + " · " + reason, actorID: actor)
+                    context.insert(movement)
                     item.stockOnHand = next; item.updatedAt = .now
-                    do { try context.save(); units = ""; reason = ""; message = "Stock ajusté." }
+                    do {
+                        try BusinessOutbox.enqueue(kind: "boutique.stock.adjusted",
+                            establishmentID: item.establishmentID, entityID: item.id,
+                            actorID: actor, relatedIDs: [movement.id], in: context)
+                        try context.save(); units = ""; reason = ""; message = "Stock ajusté."
+                    }
                     catch { context.rollback(); message = error.localizedDescription }
                 }
                 Text(message)
@@ -93,8 +109,13 @@ struct BaleList: View {
                     guard !ref.isEmpty, let value = Int64(cost), value >= 0,
                           !bales.contains(where: { $0.shop == shop.id && $0.label.caseInsensitiveCompare(ref) == .orderedSame })
                     else { message = "Vérifiez la référence et le coût."; return }
-                    context.insert(Bale(shop: shop.id, label: ref, cost: value))
-                    do { try context.save(); cost = ""; label = "" } catch { context.rollback(); message = error.localizedDescription }
+                    let bale = Bale(shop: shop.id, label: ref, cost: value)
+                    context.insert(bale)
+                    do {
+                        try BusinessOutbox.enqueue(kind: "boutique.bale.received",
+                            establishmentID: shop.id, entityID: bale.id, actorID: actor, in: context)
+                        try context.save(); cost = ""; label = ""
+                    } catch { context.rollback(); message = error.localizedDescription }
                 }
             }
             ForEach(bales.filter { $0.shop == shop.id }.sorted { $0.received > $1.received }) { bale in
@@ -114,7 +135,12 @@ struct BaleList: View {
                             let log = StockMovement(establishmentID: shop.id, itemID: item.id, delta: count, reason: "Arrivage · " + bale.label, actorID: actor)
                             log.baleID = bale.id; context.insert(log)
                             item.stockOnHand = next; item.updatedAt = .now
-                            do { try context.save(); units = ""; message = "Pièces ajoutées." }
+                            do {
+                                try BusinessOutbox.enqueue(kind: "boutique.bale.stock-added",
+                                    establishmentID: shop.id, entityID: item.id,
+                                    actorID: actor, relatedIDs: [bale.id, log.id], in: context)
+                                try context.save(); units = ""; message = "Pièces ajoutées."
+                            }
                             catch { context.rollback(); message = error.localizedDescription }
                         }
                         Section("Pièces découvertes") {

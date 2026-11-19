@@ -12,6 +12,7 @@ struct SystemSettings: View {
     @Query private var entries: [MaintenanceEntry]
     @State private var cloud = "Vérification en cours"
     @State private var currency = "XAF"
+    @State private var profileName = ""
     @State private var currencyPIN = false
     @State private var message = ""
     init(shop: Establishment, actor: UUID, pin: PINManager) {
@@ -29,9 +30,21 @@ struct SystemSettings: View {
             }
             Section("Identité") {
                 LabeledContent("Mode", value: session.usesAppleAccount ? "Connexion Apple" : "Sur cet appareil")
-                if !session.displayName.isEmpty {
-                    LabeledContent("Compte", value: session.displayName)
+                TextField("Nom du profil", text: $profileName).textContentType(.name)
+                Button("Enregistrer le nom") {
+                    do {
+                        try session.updateDisplayName(profileName)
+                        if let owner = session.accountID,
+                           let profile = try db.fetch(FetchDescriptor<Account>(
+                            predicate: #Predicate { $0.id == owner })).first {
+                            profile.fullName = session.displayName
+                            try db.save()
+                        }
+                        message = "Profil actualisé."
+                    } catch { db.rollback(); message = "Impossible de modifier le nom." }
                 }
+                .disabled(profileName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+                          profileName == session.displayName)
                 Text("La déconnexion à distance d'autres appareils n'est pas disponible sans service de gestion de sessions.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
@@ -48,7 +61,11 @@ struct SystemSettings: View {
                 }
             }
             if !message.isEmpty { Text(message) }
-        }.navigationTitle("Paramètres système").task { currency = shop.currencyCode; await refresh() }
+        }
+        .navigationTitle("Paramètres système")
+        .scrollContentBackground(.hidden)
+        .background(COVITheme.cream)
+        .task { currency = shop.currencyCode; profileName = session.displayName; await refresh() }
         .sheet(isPresented: $currencyPIN) {
             PINEntryView(pinManager: pin, scope: .master(ownerID: shop.ownerID)) { ok in
                 currencyPIN = false

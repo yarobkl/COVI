@@ -2,6 +2,15 @@ import CloudKit
 import Foundation
 import SwiftData
 
+@Model final class CloudAccountBinding {
+    @Attribute(.unique) var ownerID: UUID
+    var cloudUserID: String
+    init(ownerID: UUID, cloudUserID: String) {
+        self.ownerID = ownerID
+        self.cloudUserID = cloudUserID
+    }
+}
+
 /// Petit index privé dans iCloud qui permet de retrouver les établissements
 /// après une connexion Apple sur un second appareil. Aucune base web.
 @MainActor enum CloudShopDirectory {
@@ -71,6 +80,15 @@ import SwiftData
     static func reconcile(owner: UUID, context: ModelContext) async throws {
         let container = CKContainer.default()
         guard try await container.accountStatus() == .available else { throw DirectoryError.noICloud }
+        let cloudUser = try await container.userRecordID().recordName
+        let bindings = try context.fetch(FetchDescriptor<CloudAccountBinding>(
+            predicate: #Predicate { $0.ownerID == owner }))
+        if let binding = bindings.first {
+            guard binding.cloudUserID == cloudUser else { throw DirectoryError.wrongAccount }
+        } else {
+            context.insert(CloudAccountBinding(ownerID: owner, cloudUserID: cloudUser))
+            try context.save()
+        }
         let database = container.privateCloudDatabase
         let key = CKRecord.ID(recordName: "COVIAccount-v1-\(owner.uuidString)")
 

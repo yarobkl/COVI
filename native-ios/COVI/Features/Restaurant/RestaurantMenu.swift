@@ -66,8 +66,10 @@ struct RestaurantSetup: View {
                     Button("Créer la table") { change {
                         let name = label.trimmingCharacters(in: .whitespacesAndNewlines)
                         guard !name.isEmpty, !tables.contains(where: { $0.label.caseInsensitiveCompare(name) == .orderedSame }) else { throw RestaurantFault.invalid }
-                        service.db.insert(DiningTable(establishmentID: service.shop.id, label: name, capacity: seats))
+                        let table = DiningTable(establishmentID: service.shop.id, label: name, capacity: seats)
+                        service.db.insert(table)
                         label = ""
+                        return ("restaurant.table.created", table.id)
                     } }
                 }
                 Section("Carte du restaurant") {
@@ -83,10 +85,15 @@ struct RestaurantSetup: View {
                         item.menuCategory = category.rawValue
                         service.db.insert(item)
                         dish = ""; price = ""
+                        return ("restaurant.menu.created", item.id)
                     } }
                     ForEach(menu.filter { $0.menuCategory != nil }) { item in
                         Toggle(item.title + (item.soldOut ? " · Rupture" : ""), isOn: Binding(get: { !item.soldOut }, set: { available in
-                            change { item.soldOut = !available }
+                            change {
+                                item.soldOut = !available
+                                item.updatedAt = .now
+                                return ("restaurant.menu.availability-changed", item.id)
+                            }
                         }))
                     }
                 }
@@ -94,13 +101,18 @@ struct RestaurantSetup: View {
             }.navigationTitle("Salle et carte").toolbar { Button("Fermer") { dismiss() } }
         }
     }
-    func change(_ mutation: () throws -> Void) {
+    func change(_ mutation: () throws -> (String, UUID)) {
         do {
             try service.authorize()
             guard service.admin else { throw RestaurantFault.access }
-            try mutation()
+            let (kind, entityID) = try mutation()
+            try BusinessOutbox.enqueue(kind: kind, establishmentID: service.shop.id,
+                                       entityID: entityID, actorID: service.actor, in: service.db)
             try service.save()
             message = "Enregistré."
-        } catch { message = error.localizedDescription }
+        } catch {
+            service.db.rollback()
+            message = error.localizedDescription
+        }
     }
 }

@@ -7,7 +7,7 @@ import XCTest
 final class CommerceFlowTests: XCTestCase {
     private func database() throws -> ModelContext {
         let schema = Schema([
-            Establishment.self, Membership.self, CatalogItem.self, CommerceOrder.self,
+            Establishment.self, Membership.self, CatalogItem.self, DiningTable.self, CommerceOrder.self,
             OrderLine.self, PaymentRecord.self, StockMovement.self, OutboxEvent.self,
             SalonClient.self, SalonStaff.self, SalonVisit.self, SalonSaleLine.self
         ])
@@ -77,7 +77,7 @@ final class CommerceFlowTests: XCTestCase {
         db.insert(shop); db.insert(client); db.insert(service); db.insert(collaborator)
         try db.save()
         collaborator.active = false
-        XCTAssertThrowsError(try SalonLedger.book(shop: shop.id, client: client,
+        XCTAssertThrowsError(try SalonLedger.book(shop: shop.id, actor: owner, client: client,
             item: service, team: collaborator, start: .now, minutes: 30, walkIn: false, db: db))
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<SalonVisit>()), 0)
     }
@@ -95,9 +95,9 @@ final class CommerceFlowTests: XCTestCase {
         try db.save()
         let start = Date.now.addingTimeInterval(2 * 3_600)
 
-        try SalonLedger.book(shop: shop.id, client: first, item: service, team: collaborator,
+        try SalonLedger.book(shop: shop.id, actor: owner, client: first, item: service, team: collaborator,
                              start: start, minutes: 60, walkIn: false, db: db)
-        XCTAssertThrowsError(try SalonLedger.book(shop: shop.id, client: second,
+        XCTAssertThrowsError(try SalonLedger.book(shop: shop.id, actor: owner, client: second,
             item: service, team: collaborator, start: start.addingTimeInterval(30 * 60),
             minutes: 30, walkIn: false, db: db))
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<SalonVisit>()), 1)
@@ -114,10 +114,66 @@ final class CommerceFlowTests: XCTestCase {
         try db.save()
         for date in [Date.now.addingTimeInterval(-3_600),
                      Date.now.addingTimeInterval(2 * 366 * 24 * 3_600)] {
-            XCTAssertThrowsError(try SalonLedger.book(shop: shop.id, client: client,
+            XCTAssertThrowsError(try SalonLedger.book(shop: shop.id, actor: owner, client: client,
                 item: service, team: stylist, start: date, minutes: 30,
                 walkIn: false, db: db))
         }
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<SalonVisit>()), 0)
+    }
+
+    func testRestaurantCompleteLifecycleIsIdempotentAtCheckout() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Restaurant", kind: .restaurant,
+                                 city: "Brazzaville")
+        let table = DiningTable(establishmentID: shop.id, label: "Table 1", capacity: 4)
+        let dish = CatalogItem(establishmentID: shop.id, title: "Poulet", priceMinor: 5_000)
+        dish.menuCategory = MenuGroup.food.rawValue
+        db.insert(shop); db.insert(table); db.insert(dish)
+        try db.save()
+        let service = RestaurantService(shop: shop, actor: owner, role: .owner,
+                                        pin: ownerPIN(), db: db)
+
+        try service.open(table)
+        let order = try XCTUnwrap(db.fetch(FetchDescriptor<CommerceOrder>()).first)
+        XCTAssertTrue(table.isOccupied)
+        XCTAssertEqual(order.state, .accepted)
+
+        try service.send([dish.id: 2], menu: [dish], table: table, order: order)
+        let line = try XCTUnwrap(db.fetch(FetchDescriptor<OrderLine>()).first)
+        XCTAssertEqual(order.totalMinor, 10_000)
+        try service.advance(line, from: .cooking, table: table, order: order)
+        try service.advance(line, from: .ready, table: table, order: order)
+        try service.finish(table, order: order, paid: false)
+        XCTAssertTrue(table.billRequested)
+        try service.finish(table, order: order, paid: true)
+        XCTAssertFalse(table.isOccupied)
+        XCTAssertEqual(order.state, .completed)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<PaymentRecord>()), 1)
+
+        XCTAssertThrowsError(try service.finish(table, order: order, paid: true))
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<PaymentRecord>()), 1)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 6)
+    }
+
+    func testSalonBookingWritesBusinessJournalAndDoesNotDoubleBook() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Salon", kind: .salon, city: "Brazzaville")
+        let client = SalonClient(shop: shop.id, name: "Cliente")
+        let item = CatalogItem(establishmentID: shop.id, title: "Tresses", priceMinor: 5_000,
+                               isService: true)
+        let stylist = SalonStaff(shop: shop.id, name: "Responsable")
+        db.insert(shop); db.insert(client); db.insert(item); db.insert(stylist)
+        try db.save()
+        let start = Date.now.addingTimeInterval(60 * 60)
+        try SalonLedger.book(shop: shop.id, actor: owner, client: client, item: item,
+                             team: stylist, start: start, minutes: 45, walkIn: false, db: db)
+        let event = try XCTUnwrap(db.fetch(FetchDescriptor<OutboxEvent>()).first)
+        let payload = try JSONDecoder().decode(BusinessEventPayload.self, from: event.payloadJSON)
+        XCTAssertEqual(payload.kind, "salon.appointment.created")
+        XCTAssertEqual(payload.establishmentID, shop.id)
+        XCTAssertEqual(payload.actorID, owner)
+        XCTAssertThrowsError(try SalonLedger.book(shop: shop.id, actor: owner, client: client,
+            item: item, team: stylist, start: start, minutes: 45, walkIn: false, db: db))
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 1)
     }
 }
