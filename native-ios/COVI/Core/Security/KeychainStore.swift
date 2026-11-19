@@ -13,7 +13,15 @@ enum KeychainError: LocalizedError {
     }
 }
 
-struct KeychainStore {
+/// A small seam for deterministic tests. The production implementation remains
+/// the iOS Keychain; simulator tests may run without a signing entitlement.
+protocol SecureStorage {
+    func save(_ data: Data, for key: String) throws
+    func data(for key: String) throws -> Data?
+    func delete(_ key: String) throws
+}
+
+struct KeychainStore: SecureStorage {
     let service: String
     private let accessGroup: String?
 

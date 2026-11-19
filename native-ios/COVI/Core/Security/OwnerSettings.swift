@@ -30,6 +30,13 @@ private enum OwnerCommand: Identifiable {
         case .enroll(let id): "enroll-" + id.uuidString
         case .refund(let id): id.uuidString }
     }
+    var confirmationMessage: String {
+        switch self {
+        case .rename: "Le nouveau nom de l'établissement sera enregistré sur cet iPhone."
+        case .enroll: "Un code de caisse sera attribué à l'opérateur sélectionné."
+        case .refund: "Confirmez uniquement si le montant a réellement été rendu au client. COVI ne transfère aucun argent."
+        }
+    }
 }
 
 struct OwnerSettings: View {
@@ -52,7 +59,9 @@ struct OwnerSettings: View {
     var body: some View {
         Form {
             if !pinManager.hasConfiguredPIN(for: .master(ownerID: shop.ownerID)) {
-                Section("Créer le PIN maître de ce compte") {
+                Section("PIN maître facultatif") {
+                    Text("Vous pouvez gérer votre établissement sans ce code. Si vous l'ajoutez, il sera demandé pour les modifications sensibles.")
+                        .font(.footnote).foregroundStyle(.secondary)
                     SecureField("4 chiffres", text: $pin).keyboardType(.numberPad)
                     SecureField("Confirmer", text: $confirmation).keyboardType(.numberPad)
                     Button("Enregistrer le PIN") {
@@ -96,32 +105,62 @@ struct OwnerSettings: View {
         .background(COVITheme.cream)
         .onChange(of: phase) { _, phase in if phase != .active { command = nil; pin = ""; confirmation = "" } }
         .sheet(item: $command) { pending in
-            PINEntryView(pinManager: pinManager, scope: .master(ownerID: shop.ownerID)) { success in
-                defer { command = nil }
-                guard success, command?.id == pending.id, phase == .active, let owner = session.accountID,
-                      owner == shop.ownerID, !shop.archived else { return }
-                switch pending {
-                case .enroll(let id):
-                    guard id == shop.ownerID || members.contains(where: { $0.active && $0.establishmentID == shop.id && $0.accountID == id }) else { return }
-                    do { try pinManager.configureCashierPIN(cashierPIN, for: id, shopID: shop.id); message = "Code attribué." }
-                    catch { message = error.localizedDescription }
-                    cashierPIN = ""
-                    return
-                case .rename(let value):
-                    shop.name = value
-                    shop.updatedAt = .now
-                    do { try SyncCoordinator.enqueue(.rename, shop: shop, in: context) }
-                    catch { context.rollback(); message = "Échec du journal local."; return }
-                case .refund(let id):
-                    guard let payment = payments.first(where: { $0.id == id && $0.establishmentID == shop.id && $0.amountMinor > 0 }),
-                          !refunds.contains(where: { $0.paymentID == id }) else { message = "Paiement indisponible."; return }
-                    context.insert(Refund(payment: payment, ownerID: owner))
-                    do { try SyncCoordinator.enqueue(.refund, shop: shop, payment: payment, in: context) }
-                    catch { context.rollback(); message = "Échec du journal local."; return }
+            if let configured = try? pinManager.isPINConfigured(for: .master(ownerID: shop.ownerID)),
+               configured {
+                PINEntryView(pinManager: pinManager, scope: .master(ownerID: shop.ownerID)) { success in
+                    if success { execute(pending) }
+                    command = nil
                 }
-                do { try context.save(); message = "Opération enregistrée sur cet appareil." }
-                catch { context.rollback(); message = "Échec de l’enregistrement." }
+            } else if (try? pinManager.isPINConfigured(for: .master(ownerID: shop.ownerID))) == false {
+                VStack(spacing: 20) {
+                    Image(systemName: "checkmark.shield").font(.largeTitle)
+                        .foregroundStyle(COVITheme.navy)
+                    Text("Confirmer l’opération").font(.title3.bold())
+                    Text(pending.confirmationMessage)
+                        .multilineTextAlignment(.center).foregroundStyle(.secondary)
+                    Button("Confirmer") { execute(pending); command = nil }
+                        .buttonStyle(.borderedProminent)
+                    Button("Annuler", role: .cancel) { command = nil }
+                }
+                .padding(24)
+                .presentationDetents([.medium])
+            } else {
+                ContentUnavailableView("Stockage sécurisé inaccessible", systemImage: "lock.slash",
+                    description: Text("L’opération ne peut pas être autorisée. Vérifiez votre iPhone et réessayez."))
             }
         }
+    }
+
+    private func execute(_ pending: OwnerCommand) {
+        guard command?.id == pending.id, phase == .active, let owner = session.accountID,
+              owner == shop.ownerID, !shop.archived else { return }
+        switch pending {
+        case .enroll(let id):
+            guard id == shop.ownerID || members.contains(where: {
+                $0.active && $0.establishmentID == shop.id && $0.accountID == id
+            }) else { return }
+            do { try pinManager.configureCashierPIN(cashierPIN, for: id, shopID: shop.id); message = "Code attribué." }
+            catch { message = error.localizedDescription }
+            cashierPIN = ""
+            return
+        case .rename(let value):
+            guard !value.isEmpty else { return }
+            shop.name = value
+            shop.updatedAt = .now
+            do { try SyncCoordinator.enqueue(.rename, shop: shop, in: context) }
+            catch { context.rollback(); message = "Échec du journal local."; return }
+        case .refund(let id):
+            guard let payment = payments.first(where: {
+                $0.id == id && $0.establishmentID == shop.id && $0.amountMinor > 0
+            }), !refunds.contains(where: { $0.paymentID == id }) else {
+                message = "Paiement indisponible."
+                return
+            }
+            context.insert(Refund(payment: payment, ownerID: owner))
+            do { try SyncCoordinator.enqueue(.refund, shop: shop, payment: payment, in: context) }
+            catch { context.rollback(); message = "Échec du journal local."; return }
+        }
+        do { try context.save(); message = "Opération enregistrée sur cet appareil." }
+        catch { context.rollback(); message = "Échec de l’enregistrement." }
     }
 }

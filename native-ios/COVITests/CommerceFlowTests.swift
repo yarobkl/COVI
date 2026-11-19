@@ -18,7 +18,7 @@ final class CommerceFlowTests: XCTestCase {
     }
 
     private func ownerPIN() -> PINManager {
-        PINManager(keychain: KeychainStore(service: "com.covi.app.flow-tests.\(UUID().uuidString)"))
+        PINManager(keychain: InMemorySecureStore())
     }
 
     func testCashSaleDecrementsStockAndCreatesPaymentAndJournal() throws {

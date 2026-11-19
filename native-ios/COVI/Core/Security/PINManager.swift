@@ -28,7 +28,7 @@ enum PINScope: Sendable {
     private let inactivityTimeout: TimeInterval = 120
     private let maxAttempts = 5
     private let lockoutDuration: TimeInterval = 60
-    private let keychain: KeychainStore
+    private let keychain: any SecureStorage
     private let now: () -> Date
 
     enum PINError: LocalizedError, Equatable {
@@ -49,7 +49,7 @@ enum PINScope: Sendable {
         }
     }
 
-    init(keychain: KeychainStore = KeychainStore(), now: @escaping () -> Date = Date.init) {
+    init(keychain: any SecureStorage = KeychainStore(), now: @escaping () -> Date = Date.init) {
         self.keychain = keychain
         self.now = now
     }
@@ -75,7 +75,9 @@ enum PINScope: Sendable {
         try saveVerifier(makeVerifier(for: pin), key: cashierKey(staffID, shopID))
     }
 
-    func hasConfiguredPIN(for scope: PINScope) -> Bool { (try? verifier(for: scope)) != nil }
+    func isPINConfigured(for scope: PINScope) throws -> Bool { try verifier(for: scope) != nil }
+
+    func hasConfiguredPIN(for scope: PINScope) -> Bool { (try? isPINConfigured(for: scope)) ?? false }
 
     /// Le propriétaire seul peut démarrer immédiatement, sans configuration de caisse.
     /// Dès qu'un code de caisse est installé, le déverrouillage redevient obligatoire.
@@ -157,7 +159,7 @@ enum PINScope: Sendable {
     }
 
     func lock() { unlockedStaffID = nil; lastActivity = .distantPast }
-    func touch() { if isUnlocked { lastActivity = .now } else { lock() } }
+    func touch() { if isUnlocked { lastActivity = now() } else { lock() } }
 
     private func verifier(for scope: PINScope) throws -> PINVerifier? {
         let key: String

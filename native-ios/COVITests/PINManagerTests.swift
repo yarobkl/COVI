@@ -2,7 +2,7 @@ import Foundation
 import XCTest
 @testable import COVI
 
-/// Tests use an isolated Keychain service and a controllable clock.
+/// Tests use an isolated in-memory secure storage and a controllable clock.
 /// They never read or modify the application's production PIN entries.
 @MainActor
 final class PINManagerTests: XCTestCase {
@@ -11,17 +11,15 @@ final class PINManagerTests: XCTestCase {
         func advance(by seconds: TimeInterval) { date.addTimeInterval(seconds) }
     }
 
-    private var service = ""
     private var keys: [String] = []
-    private var store: KeychainStore!
+    private var store: InMemorySecureStore!
     private var clock: TestClock!
     private let correctPIN = "1234"
     private let wrongPIN = "0000"
 
     override func setUpWithError() throws {
         try super.setUpWithError()
-        service = "com.covi.app.pin-tests.\(UUID().uuidString)"
-        store = KeychainStore(service: service)
+        store = InMemorySecureStore()
         clock = TestClock()
         keys = []
     }
@@ -132,6 +130,16 @@ final class PINManagerTests: XCTestCase {
         XCTAssertFalse(manager.mayOperate(shop: shop, actor: UUID()))
     }
 
+    func testOwnerCannotOperateWhenSecureStorageIsUnavailable() {
+        let owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Marché", kind: .boutique, city: "Yaoundé")
+        let manager = PINManager(keychain: UnavailableSecureStore())
+        XCTAssertFalse(manager.mayOperate(shop: shop, actor: owner))
+        XCTAssertThrowsError(try manager.isPINConfigured(for: .master(ownerID: owner)))
+        XCTAssertFalse(manager.verify("1234", scope: .cashier(staffID: owner, shopID: shop.id)))
+        XCTAssertEqual(manager.lastError, .storageFailure)
+    }
+
     func testConfiguredOwnerCashierPINRestoresTheLock() throws {
         let owner = UUID()
         let shop = Establishment(ownerID: owner, name: "Marché", kind: .boutique,
@@ -158,5 +166,18 @@ final class PINManagerTests: XCTestCase {
         try configure(manager, staff: staff, shop: shop)
         XCTAssertFalse(manager.verify("١٢٣٤", scope: .cashier(staffID: staff, shopID: shop)))
         XCTAssertEqual(manager.lastError, .malformed)
+    }
+
+    func testActivityRefreshUsesTheSameClockAsTheCashierSession() throws {
+        let staff = UUID(), shop = UUID()
+        let manager = makeManager()
+        try configure(manager, staff: staff, shop: shop)
+        XCTAssertTrue(manager.verify(correctPIN, scope: .cashier(staffID: staff, shopID: shop)))
+        clock.advance(by: 60)
+        manager.touch()
+        clock.advance(by: 119)
+        XCTAssertTrue(manager.isUnlocked)
+        clock.advance(by: 2)
+        XCTAssertFalse(manager.isUnlocked)
     }
 }

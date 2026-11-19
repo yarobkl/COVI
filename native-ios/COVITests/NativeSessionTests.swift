@@ -2,13 +2,29 @@ import Foundation
 import XCTest
 @testable import COVI
 
+/// XCTest is intentionally unsigned in the diagnostic workflow. Use a local
+/// deterministic storage fake; on-device checks still exercise KeychainStore.
+final class InMemorySecureStore: SecureStorage {
+    private var entries: [String: Data] = [:]
+    func save(_ data: Data, for key: String) throws { entries[key] = data }
+    func data(for key: String) throws -> Data? { entries[key] }
+    func delete(_ key: String) throws { entries.removeValue(forKey: key) }
+}
+
+struct UnavailableSecureStore: SecureStorage {
+    enum Failure: Error { case inaccessible }
+    func save(_ data: Data, for key: String) throws { throw Failure.inaccessible }
+    func data(for key: String) throws -> Data? { throw Failure.inaccessible }
+    func delete(_ key: String) throws { throw Failure.inaccessible }
+}
+
 @MainActor
 final class NativeSessionTests: XCTestCase {
-    private var store: KeychainStore!
+    private var store: InMemorySecureStore!
 
     override func setUpWithError() throws {
         try super.setUpWithError()
-        store = KeychainStore(service: "com.covi.app.session-tests.\(UUID().uuidString)")
+        store = InMemorySecureStore()
     }
 
     override func tearDownWithError() throws {
@@ -78,5 +94,13 @@ final class NativeSessionTests: XCTestCase {
         try session.createLocalAccount(name: "Nom valide")
         XCTAssertThrowsError(try session.updateDisplayName(" "))
         XCTAssertEqual(session.displayName, "Nom valide")
+    }
+
+    func testUnavailableSecureStoreNeverCreatesAUserSession() {
+        let session = AppSession(keychain: UnavailableSecureStore())
+        XCTAssertThrowsError(try session.createLocalAccount(name: "Commerce"))
+        XCTAssertNil(session.accountID)
+        XCTAssertThrowsError(try session.continueLocally())
+        XCTAssertNil(session.accountID)
     }
 }

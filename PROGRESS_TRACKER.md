@@ -43,8 +43,8 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 | Aide et accessibilité | 25 % | 30 % | Guide initial, Dynamic Type, VoiceOver, états erreur/vides |
 | Conformité aux 46 maquettes | Non vérifiée | Non vérifiée | Maquettes et comparaison sur iPhone indispensables |
 | Journal des événements métier local | 30 % | 82 % | Protocole de réplication effectif, purge sécurisée et résolutions de conflits |
-| Tests unitaires iOS | 25 % | 60 % | Exécution réelle de toute la suite sur simulateur |
-| Build et tests globaux iOS | 0 % | 45 % | Compilation macOS réussie ; XCTest en cours, tests visuels indisponibles |
+| Tests unitaires iOS | 25 % | 60 % | Première exécution réelle : 18/46 tests réussis ; reprise après injection du stockage de test |
+| Build et tests globaux iOS | 0 % | 45 % | Compilation macOS réussie ; suite XCTest à relancer après correctifs, tests visuels indisponibles |
 | Livraison TestFlight | En pause | En pause | Aucune action autorisée dans ce lot |
 
 ## Changements réellement effectués dans ce lot
@@ -104,13 +104,28 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 53. Ajouter des tests pour les espèces insuffisantes, les paiements mobiles non confirmés et les additions vides.
 54. Vérifier les détails immuables des reçus iCloud lors de leur réconciliation (libellés, acteurs, périodes, sommes encaissées).
 55. Ajouter des tests de divergence entre reçus locaux et reçus déjà archivés.
+56. Exécuter pour la première fois l'app et les XCTest en véritable Xcode macOS distant, sans code signing.
+57. Isoler la cause des 28 échecs de tests du simulateur : Keychain refuse les opérations sans entitlement (`-34018`).
+58. Introduire une abstraction de stockage sécurisé injectable, conservant Keychain dans la production iOS.
+59. Remplacer uniquement le stockage des tests par une implémentation mémoire déterministe.
+60. Ajouter des scénarios d'échec du stockage sécurisé prouvant que le propriétaire et la session restent bloqués si la clé est inaccessible.
+61. Corriger le rafraîchissement de la session PIN pour utiliser la même horloge que les vérifications d'inactivité.
+62. Tester précisément la prolongation de session et l'expiration après deux minutes.
+63. Permettre au propriétaire de gérer son établissement sans avoir à créer un second code maître.
+64. Maintenir la vérification du code maître lorsqu'il a été volontairement configuré.
+65. Refuser toute modification sensible lorsque la lecture du stockage sécurisé est indisponible.
+66. Distinguer la confirmation d'un remboursement réellement remis de tout paiement automatisé.
 
 ## Vérification macOS sans signature (branche de diagnostic uniquement)
 
 Le workflow GitHub Actions `COVI Native iOS Diagnostics` s'exécute sur la branche
 `wip/covi-native-20261119-no-testflight`, distincte de la branche Xcode Cloud.
-Le second lancement a **compilé l'app et ses tests avec succès** (`build-for-testing`, étape 6) ;
-les tests XCTest sur simulateur étaient encore en cours au dernier contrôle.
+Le second lancement a **compilé l'app et ses tests avec succès** (`build-for-testing`, étape 6).
+Il a ensuite exécuté 46 XCTest : 18 réussis, 28 en échec, **dont les erreurs sont toutes liées à
+l'accès Keychain non signé** (`OSStatus -34018`, ou refus de caisse qui en découle).
+La signature étant volontairement interdite, le stockage sécurisé a été rendu injectable,
+avec Keychain inchangé en production et un stockage isolé en mémoire dans les XCTest.
+Ce correctif doit encore être validé par le lancement suivant ; aucun test non exécuté n'est prétendu réussi.
 Ce contrôle ne crée **ni archive de distribution ni provisioning**, et ne valide pas les maquettes.
 
 ## Limites bloquantes

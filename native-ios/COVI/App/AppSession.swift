@@ -13,7 +13,7 @@ import SwiftUI
         let email: String
     }
 
-    private let keychain: KeychainStore
+    private let keychain: any SecureStorage
     private let identityKey = "session.native.identity"
     private let localIdentityKey = "session.native.local"
     private(set) var accountID: UUID?
@@ -21,7 +21,7 @@ import SwiftUI
     private(set) var email = ""
     private(set) var usesAppleAccount = false
 
-    init(keychain: KeychainStore = KeychainStore()) {
+    init(keychain: any SecureStorage = KeychainStore()) {
         self.keychain = keychain
     }
 
