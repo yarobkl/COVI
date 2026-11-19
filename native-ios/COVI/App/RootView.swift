@@ -58,10 +58,17 @@ struct RootView: View {
                         }
                         .padding(.horizontal, 16)
                         .background(COVITheme.cream)
+                        // La synchronisation appartient à l'en-tête de l'espace,
+                        // pas à une barre supplémentaire sous les onglets iOS.
+                        if role == .owner {
+                            ShopSyncStatus(shop: shop)
+                                .id(shop.id)
+                                .padding(.horizontal, 16)
+                                .padding(.bottom, 5)
+                        }
                         DynamicTabView(establishment: shop, accountID: account, role: role,
                                        pinManager: pinManager, onSwitchShop: { showingSpaces = true })
                             .id("\(account)-\(shop.id)-\(role.rawValue)")
-                        if role == .owner { ShopSyncStatus(shop: shop).id(shop.id) }
                     } else if importingDirectory {
                         ContentUnavailableView {
                             Label("Recherche de vos établissements", systemImage: "icloud")
@@ -83,6 +90,7 @@ struct RootView: View {
                         EstablishmentSetup(account: account) { selectShop($0, for: account) }.id(account)
                     }
                 }
+                .background(COVITheme.cream)
                 .sheet(isPresented: $addingShop) {
                     EstablishmentSetup(account: account) { id in
                         selectShop(id, for: account)

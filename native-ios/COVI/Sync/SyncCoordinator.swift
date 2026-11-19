@@ -125,12 +125,20 @@ struct ShopSyncStatus: View {
     @Environment(\.scenePhase) private var phase
     @State private var status = "Synchronisation en attente"
     var body: some View {
-        Text(status)
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-            .lineLimit(1)
-            .minimumScaleFactor(0.7)
+        HStack(spacing: 7) {
+            Image(systemName: status.contains("à jour") ? "checkmark.icloud" :
+                  status.contains("suspendue") || status.contains("bloquée") ? "icloud.slash" : "arrow.triangle.2.circlepath.icloud")
+                .accessibilityHidden(true)
+            Text(status)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+            .font(.caption2.weight(.medium))
+            .foregroundStyle(COVITheme.navy)
             .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(COVITheme.champagne.opacity(0.65), in: Capsule())
+            .frame(maxWidth: .infinity, alignment: .trailing)
             .accessibilityLabel("Synchronisation : " + status)
             .task(id: "\(shop.id)-\(phase)") {
             guard phase == .active else { return }
