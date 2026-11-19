@@ -12,9 +12,9 @@ Le workflow GitHub Actions `COVI Native iOS Diagnostics` sur la branche isolée
 `wip/covi-native-20261119-no-testflight` utilise un runner macOS et
 `CODE_SIGNING_ALLOWED=NO`. Il **compile puis exécute les tests**, sans archive,
 signature, livraison ni modification de Xcode Cloud.
-La révision `68c7de5` a réussi **97 XCTest sur 97**. Les nouveaux miroirs
-opérationnels compilent sur le workflow macOS, mais leurs tests de fusion
-doivent encore être rendus verts puis validés sur deux appareils réels.
+La révision `2d7e912` a réussi **109 XCTest sur 109**, avec les 12 tests
+des miroirs opérationnels, sur simulateur iOS via le workflow macOS
+`44501925643`. La suite doit également être validée sur deux appareils réels.
 
 ## État réel
 - SwiftUI et SwiftData locaux pour Boutique, Restaurant et Salon ; aucune WebView ni API Supabase.

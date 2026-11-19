@@ -1,6 +1,8 @@
 # COVI — progression iOS native
 
-Dernier audit : 19 novembre 2026 — dépôt `yarobkl/COVI`, branche `feature/covi-native-swiftui-cloud`.
+Dernier audit : 19 novembre 2026 — dépôt `yarobkl/COVI`, branche source
+`feature/covi-native-swiftui-cloud` laissée intacte ; travail isolé sur
+`wip/covi-native-20261119-no-testflight` (diagnostic distant).
 
 Le checkout a été reconstruit depuis le dernier commit distant `acd3f383`.
 Les changements non publiés du précédent environnement ne figuraient **pas** dans GitHub.
@@ -24,8 +26,8 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 | Persistance SwiftData locale | 62 % | 70 % | Migration de schéma, tests de corruption/restauration |
 | Répertoire d'établissements iCloud privé | 0 % | 65 % | Tests multi-iPhone, collisions et hors-ligne prolongé |
 | Journal CloudKit des renommages / remboursements | 40 % | 48 % | Tests de rejeu et résolution des conflits |
-| Synchronisation CloudKit **des données métier** | 5 % | 56 % | Réplication privée des états métiers codée, diagnostic macOS et vrais tests à deux iPhone encore nécessaires ; partage inter-comptes à concevoir |
-| Multi-appareils propriétaire | 15 % | 62 % | Vérifier reprises réseau, conflits hors ligne, réception iCloud sur deux iPhone et partage multi-personnel |
+| Synchronisation CloudKit **des données métier** | 5 % | 68 % | Réplication privée des états métiers compilée et 12 XCTest spécifiques réussis ; tests CloudKit réels à deux iPhone et partage inter-comptes à concevoir |
+| Multi-appareils propriétaire | 15 % | 70 % | Vérifier reprises réseau, conflits hors ligne et réception iCloud sur deux iPhone ; pas de synchronisation d'employés entre Apple ID distincts |
 | Multi-personnel / rôles | 25 % | 30 % | Invitations, identité stable du personnel, permissions |
 | Boutique : catalogue | 65 % | 81 % | Catégories, tests d'usage sur iPhone, synchronisation catalogue |
 | Boutique : stock / balles / inventaire | 64 % | 83 % | Historique complet, coût de revient, tests de stock concurrents |
@@ -46,8 +48,8 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 | Aide et accessibilité | 25 % | 30 % | Guide initial, Dynamic Type, VoiceOver, états erreur/vides |
 | Conformité aux 46 maquettes | Non vérifiée | Non vérifiée | Maquettes et comparaison sur iPhone indispensables |
 | Journal des événements métier local | 30 % | 82 % | Protocole de réplication effectif, purge sécurisée et résolutions de conflits |
-| Tests unitaires iOS | 25 % | 88 % | 97/97 XCTest réussis sur `68c7de5` ; parcours physiques et validations CloudKit multi-appareils encore nécessaires |
-| Build et tests globaux iOS | 0 % | 82 % | Compilation + 97 XCTest réussis sur macOS à la dernière révision de code ; tests visuels indisponibles |
+| Tests unitaires iOS | 25 % | 89 % | 109/109 XCTest réussis sur `2d7e912` ; parcours physiques et validations CloudKit multi-appareils encore nécessaires |
+| Build et tests globaux iOS | 0 % | 85 % | Compilation + 109 XCTest réussis sur macOS sans signature ; tests visuels indisponibles |
 | Livraison TestFlight | En pause | En pause | Aucune action autorisée dans ce lot |
 
 ## Changements réellement effectués dans ce lot
@@ -339,7 +341,11 @@ Le premier lot de miroirs opérationnels (`7b30a00`, action `44500183345`)
 **compile sans erreur**, mais son exécution de **108 XCTest présentait 7 échecs**,
 liés aux références des articles restaurés avec un identifiant aléatoire.
 Le correctif conserve désormais l'identifiant source ; son nouveau contrôle
-macOS et le test de table réglée sont encore en attente.
+macOS et le test de table réglée ont ensuite réussi : révision distante
+**`2d7e912`**, action **`44501925643`**, job **`135483623881`** :
+**build-for-testing réussi et 109/109 XCTest réussis, 0 échec**.
+Cette validation couvre la fusion SwiftData en mémoire ; elle ne prouve pas
+la disponibilité du CloudKit privé de production ou le partage entre comptes Apple.
 
 ## Limites bloquantes
 
