@@ -44,4 +44,15 @@ final class CloudShopDirectoryTests: XCTestCase {
         XCTAssertEqual(once.count, 2)
         XCTAssertEqual(CloudShopDirectory.merge(local: once, remote: once), once)
     }
+
+    func testThreeActiveEstablishmentsPerOwnerWithArchival() {
+        let shops = (0..<3).map { index in
+            Establishment(ownerID: owner, name: "Commerce \(index)", kind: .boutique,
+                          city: "Brazzaville")
+        }
+        XCTAssertFalse(EstablishmentPolicy.canCreate(owner: owner, in: shops))
+        XCTAssertTrue(EstablishmentPolicy.canCreate(owner: UUID(), in: shops))
+        shops[0].archived = true
+        XCTAssertTrue(EstablishmentPolicy.canCreate(owner: owner, in: shops))
+    }
 }

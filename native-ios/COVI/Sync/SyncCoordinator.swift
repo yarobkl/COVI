@@ -146,8 +146,15 @@ struct ShopSyncStatus: View {
                     try await CloudShopDirectory.reconcile(owner: shop.ownerID, context: context)
                     try await SyncCoordinator.cycle(shop: shop, context: context)
                     try await CloudReceiptArchive.cycle(shop: shop, context: context)
+                    try await CloudExpenseLedger.cycle(shop: shop, context: context)
                     let conflict = try SyncCoordinator.history(shop.id, context).contains { $0.state == .conflict }
-                    status = conflict ? "Remboursement à vérifier" : "Établissement et reçus iCloud à jour · stock local"
+                    let shopID = shop.id
+                    let waiting = try context.fetchCount(FetchDescriptor<PendingExpenseVoid>(predicate: #Predicate {
+                        $0.shopID == shopID
+                    }))
+                    status = conflict ? "Remboursement à vérifier" :
+                        waiting > 0 ? "Dépenses iCloud en attente de consolidation" :
+                        "Établissement, reçus et dépenses iCloud à jour · stock local"
                     delay = 2
                 } catch is CancellationError { return }
                 catch {

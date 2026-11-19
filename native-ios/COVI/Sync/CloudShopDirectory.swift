@@ -106,7 +106,9 @@ import SwiftData
             ))
 
             let combined = merge(local: shopList.map { Entry($0) }, remote: remote.shops)
-            guard combined.filter({ !$0.archived }).count <= 3 else { throw DirectoryError.tooManyShops }
+            guard combined.filter({ !$0.archived }).count <= EstablishmentPolicy.maximumActivePerOwner else {
+                throw DirectoryError.tooManyShops
+            }
 
             var didChange = false
             for entry in combined where entry.ownerID == owner {

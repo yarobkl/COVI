@@ -1,4 +1,5 @@
 import CloudKit
+import CryptoKit
 import Foundation
 import SwiftData
 
@@ -217,6 +218,221 @@ struct ArchivedReceipt: Codable, Equatable {
                             alreadySynced.insert(key)
                         }
                     }
+                    checkpoint.token = page.token
+                    try context.save()
+                } catch { context.rollback(); throw error }
+                if !page.more { return }
+            } catch let error as CKError where error.code == .changeTokenExpired && checkpoint.token != nil {
+                checkpoint.token = nil
+                try context.save()
+            }
+        }
+    }
+}
+
+/// Les dépenses sont répliquées comme deux faits immuables : saisie et éventuelle
+/// annulation. Le stockage iCloud privé ne confirme jamais un paiement client.
+struct CloudExpenseFact: Codable, Equatable {
+    enum Action: String, Codable { case created, voided }
+    let version: Int
+    let action: Action
+    let ownerID: UUID
+    let shopID: UUID
+    let expenseID: UUID
+    let actorID: UUID
+    let category: String
+    let amountMinor: Int64
+    let spentAt: Date
+    let note: String
+    let voidedAt: Date?
+    let voidedByID: UUID?
+
+    init(shop: Establishment, entry: ExpenseEntry, action: Action) {
+        version = 1
+        self.action = action
+        ownerID = shop.ownerID
+        shopID = shop.id
+        expenseID = entry.id
+        actorID = entry.actorID
+        category = entry.category
+        amountMinor = entry.amountMinor
+        spentAt = entry.spentAt
+        note = entry.note
+        voidedAt = action == .voided ? entry.voidedAt : nil
+        voidedByID = action == .voided ? entry.voidedByID : nil
+    }
+
+    static func eventID(for expenseID: UUID, action: Action) -> UUID {
+        guard action == .voided else { return expenseID }
+        var bytes = Array(SHA256.hash(data: Data("COVI.expense.void.v1.\(expenseID.uuidString)".utf8)).prefix(16))
+        bytes[6] = (bytes[6] & 0x0f) | 0x50
+        bytes[8] = (bytes[8] & 0x3f) | 0x80
+        return UUID(uuid: (bytes[0], bytes[1], bytes[2], bytes[3],
+                           bytes[4], bytes[5], bytes[6], bytes[7],
+                           bytes[8], bytes[9], bytes[10], bytes[11],
+                           bytes[12], bytes[13], bytes[14], bytes[15]))
+    }
+
+    func canonicalData() throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        return try encoder.encode(self)
+    }
+
+    func validate(shop: Establishment) throws {
+        guard version == 1, shopID == shop.id, ownerID == shop.ownerID,
+              amountMinor > 0, ExpenseCategory.all.contains(category)
+        else { throw SyncFault.invalidEvent }
+        switch action {
+        case .created:
+            guard voidedAt == nil, voidedByID == nil else { throw SyncFault.invalidEvent }
+        case .voided:
+            guard voidedAt != nil, voidedByID == ownerID
+            else { throw SyncFault.invalidEvent }
+        }
+    }
+
+    @MainActor
+    func apply(shop: Establishment, context: ModelContext) throws {
+        try validate(shop: shop)
+        let id = expenseID
+        let stored = try context.fetch(FetchDescriptor<ExpenseEntry>(predicate: #Predicate { $0.id == id })).first
+        if let stored {
+            guard stored.establishmentID == shop.id, stored.actorID == actorID,
+                  stored.category == category, stored.amountMinor == amountMinor,
+                  abs(stored.spentAt.timeIntervalSince(spentAt)) < 1,
+                  stored.note == note else { throw SyncFault.journalChanged }
+            if action == .voided {
+                if let existing = stored.voidedAt {
+                    guard let voidedAt, abs(existing.timeIntervalSince(voidedAt)) < 1,
+                          stored.voidedByID == voidedByID else { throw SyncFault.journalChanged }
+                } else {
+                    stored.voidedAt = voidedAt
+                    stored.voidedByID = voidedByID
+                }
+            }
+        } else if action == .created {
+            let entry = ExpenseEntry(establishmentID: shop.id, actorID: actorID, category: category,
+                                     amountMinor: amountMinor, spentAt: spentAt, note: note)
+            entry.id = expenseID
+            context.insert(entry)
+        } else {
+            // Le changement CloudKit peut arriver avant la saisie d'origine.
+            let key = Self.eventID(for: expenseID, action: .voided)
+            let pending = try context.fetch(FetchDescriptor<PendingExpenseVoid>(predicate: #Predicate {
+                $0.eventID == key
+            }))
+            if let existing = pending.first {
+                guard try JSONDecoder().decode(CloudExpenseFact.self, from: existing.payload) == self
+                else { throw SyncFault.journalChanged }
+            } else {
+                context.insert(PendingExpenseVoid(eventID: key, shopID: shop.id,
+                    payload: try canonicalData()))
+            }
+        }
+    }
+}
+
+@Model final class ExpenseCloudCheckpoint {
+    @Attribute(.unique) var shopID: UUID
+    var cloudUserID: String
+    var token: Data?
+    init(shopID: UUID, cloudUserID: String) {
+        self.shopID = shopID; self.cloudUserID = cloudUserID
+    }
+}
+
+@Model final class ExpenseCloudMarker {
+    @Attribute(.unique) var eventID: UUID
+    var shopID: UUID
+    var cloudUserID: String
+    init(eventID: UUID, shopID: UUID, cloudUserID: String) {
+        self.eventID = eventID; self.shopID = shopID; self.cloudUserID = cloudUserID
+    }
+}
+
+@Model final class PendingExpenseVoid {
+    @Attribute(.unique) var eventID: UUID
+    var shopID: UUID
+    var payload: Data
+    init(eventID: UUID, shopID: UUID, payload: Data) {
+        self.eventID = eventID; self.shopID = shopID; self.payload = payload
+    }
+}
+
+@MainActor enum CloudExpenseLedger {
+    static func resolvePending(shop: Establishment, context: ModelContext) throws {
+        let shopID = shop.id
+        let rows = try context.fetch(FetchDescriptor<PendingExpenseVoid>(predicate: #Predicate {
+            $0.shopID == shopID
+        }))
+        for row in rows {
+            let fact = try JSONDecoder().decode(CloudExpenseFact.self, from: row.payload)
+            try fact.validate(shop: shop)
+            guard fact.action == .voided,
+                  CloudExpenseFact.eventID(for: fact.expenseID, action: .voided) == row.eventID
+            else { throw SyncFault.invalidEvent }
+            let id = fact.expenseID
+            if try context.fetchCount(FetchDescriptor<ExpenseEntry>(predicate: #Predicate { $0.id == id })) > 0 {
+                try fact.apply(shop: shop, context: context)
+                context.delete(row)
+            }
+        }
+    }
+
+    static func cycle(shop: Establishment, context: ModelContext) async throws {
+        let cloud = CloudKitAdapter(owner: shop.ownerID, shop: shop.id, namespace: "COVIExpenses")
+        let identity = try await cloud.container.userRecordID().recordName
+        let shopID = shop.id
+        let checkpoints = try context.fetch(FetchDescriptor<ExpenseCloudCheckpoint>(predicate: #Predicate {
+            $0.shopID == shopID
+        }))
+        let checkpoint = checkpoints.first ?? ExpenseCloudCheckpoint(shopID: shopID, cloudUserID: identity)
+        guard checkpoint.cloudUserID == identity else { throw SyncFault.accountChanged }
+        if checkpoints.isEmpty { context.insert(checkpoint); try context.save() }
+        try await cloud.prepare()
+        let entries = try context.fetch(FetchDescriptor<ExpenseEntry>(predicate: #Predicate {
+            $0.establishmentID == shopID
+        }))
+        let markers = try context.fetch(FetchDescriptor<ExpenseCloudMarker>(predicate: #Predicate {
+            $0.shopID == shopID
+        }))
+        guard markers.allSatisfy({ $0.cloudUserID == identity }) else { throw SyncFault.accountChanged }
+        var uploaded = Set(markers.map(\.eventID))
+
+        for entry in entries {
+            try Task.checkCancellation()
+            let actions: [CloudExpenseFact.Action] = entry.voidedAt == nil ? [.created] : [.created, .voided]
+            for action in actions {
+                let fact = CloudExpenseFact(shop: shop, entry: entry, action: action)
+                try fact.validate(shop: shop)
+                let key = CloudExpenseFact.eventID(for: entry.id, action: action)
+                guard !uploaded.contains(key) else { continue }
+                try await cloud.push(id: key, bytes: try fact.canonicalData())
+                try Task.checkCancellation()
+                context.insert(ExpenseCloudMarker(eventID: key, shopID: shop.id, cloudUserID: identity))
+                try context.save()
+                uploaded.insert(key)
+            }
+        }
+
+        while true {
+            try Task.checkCancellation()
+            do {
+                let page = try await cloud.page(after: checkpoint.token)
+                do {
+                    for (key, bytes) in page.events {
+                        let fact = try JSONDecoder().decode(CloudExpenseFact.self, from: bytes)
+                        guard CloudExpenseFact.eventID(for: fact.expenseID, action: fact.action) == key
+                        else { throw SyncFault.invalidEvent }
+                        try fact.apply(shop: shop, context: context)
+                        if !uploaded.contains(key) {
+                            context.insert(ExpenseCloudMarker(eventID: key, shopID: shop.id,
+                                                              cloudUserID: identity))
+                            uploaded.insert(key)
+                        }
+                    }
+                    try resolvePending(shop: shop, context: context)
                     checkpoint.token = page.token
                     try context.save()
                 } catch { context.rollback(); throw error }

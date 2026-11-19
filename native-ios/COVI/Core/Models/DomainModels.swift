@@ -32,6 +32,14 @@ enum SyncState: String, Codable { case pending, syncing, synced, conflict, faile
     }
 }
 
+enum EstablishmentPolicy {
+    static let maximumActivePerOwner = 3
+
+    static func canCreate(owner: UUID, in shops: [Establishment]) -> Bool {
+        shops.filter { $0.ownerID == owner && !$0.archived }.count < maximumActivePerOwner
+    }
+}
+
 @Model final class Membership {
     @Attribute(.unique) var id: UUID
     var accountID: UUID

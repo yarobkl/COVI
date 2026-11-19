@@ -7,6 +7,7 @@ enum PersistenceController {
             SalonVisit.self, SalonClient.self, SalonSaleLine.self, SalonStaff.self,
             Bale.self, SyncCheckpoint.self, CloudAccountBinding.self,
             ReceiptCloudCheckpoint.self, ReceiptCloudMarker.self,
+            ExpenseCloudCheckpoint.self, ExpenseCloudMarker.self, PendingExpenseVoid.self,
             Account.self, Establishment.self, Membership.self, ExpenseEntry.self,
             CatalogItem.self, DiningTable.self, CommerceOrder.self,
             Refund.self, OrderLine.self, PaymentRecord.self, StockMovement.self, OutboxEvent.self

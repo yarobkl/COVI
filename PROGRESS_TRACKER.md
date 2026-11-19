@@ -23,7 +23,7 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 | Persistance SwiftData locale | 62 % | 70 % | Migration de schéma, tests de corruption/restauration |
 | Répertoire d'établissements iCloud privé | 0 % | 65 % | Tests multi-iPhone, collisions et hors-ligne prolongé |
 | Journal CloudKit des renommages / remboursements | 40 % | 48 % | Tests de rejeu et résolution des conflits |
-| Synchronisation CloudKit **des données métier** | 5 % | 23 % | Reçus confirmés archivés ; produits, stock, commandes actives, réservations, clients, personnel non synchronisés |
+| Synchronisation CloudKit **des données métier** | 5 % | 34 % | Reçus et dépenses archivés ; produits, stock, commandes actives, réservations, clients, personnel non synchronisés |
 | Multi-appareils propriétaire | 15 % | 52 % | Validation Apple/iCloud, inventaires, activités actives, séparation de comptes |
 | Multi-personnel / rôles | 25 % | 30 % | Invitations, identité stable du personnel, permissions |
 | Boutique : catalogue | 65 % | 78 % | Catégories, désactivation sûre, tests de parcours iPhone |
@@ -38,15 +38,15 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 | Salon : catalogue / encaissement | 66 % | 73 % | Retour client, modifications, tests de flux |
 | Salon : clients / fiches | 65 % | 79 % | Consentements, export, suppression, tests iPhone |
 | Salon : rapports / commissions | 55 % | 65 % | Périodes, réconciliation financière, tests |
-| Dépenses (trois métiers) | 0 % | 74 % | Rapports de marge, export et partage iCloud à ajouter |
+| Dépenses (trois métiers) | 0 % | 80 % | Tests réels multi-iPhone, exports et rapports de marge à ajouter |
 | Trésorerie mensuelle multi-métier | 0 % | 76 % | Recoupement sur appareils, tests UI, export mensuel |
 | Paiements externes manuels (sans SDK de paiement) | 65 % | 78 % | Traçabilité du moyen de paiement et reçus réels |
 | Sécurité PIN et accès caisse simplifié | 52 % | 76 % | Tests exécutés, parcours d'enrôlement simplifié |
 | Aide et accessibilité | 25 % | 30 % | Guide initial, Dynamic Type, VoiceOver, états erreur/vides |
 | Conformité aux 46 maquettes | Non vérifiée | Non vérifiée | Maquettes et comparaison sur iPhone indispensables |
 | Journal des événements métier local | 30 % | 82 % | Protocole de réplication effectif, purge sécurisée et résolutions de conflits |
-| Tests unitaires iOS | 25 % | 78 % | 53/53 XCTest réussis sur la révision de référence ; tests ajoutés ensuite à exécuter |
-| Build et tests globaux iOS | 0 % | 70 % | Compilation + 53 XCTest réussis sur macOS ; dernières modifications à revérifier ; tests visuels indisponibles |
+| Tests unitaires iOS | 25 % | 82 % | 68/68 XCTest réussis sur la révision `eebf54c` ; nouveaux tests PDF et clients à exécuter |
+| Build et tests globaux iOS | 0 % | 74 % | Compilation + 68 XCTest réussis sur macOS ; dernière révision à revérifier ; tests visuels indisponibles |
 | Livraison TestFlight | En pause | En pause | Aucune action autorisée dans ce lot |
 
 ## Changements réellement effectués dans ce lot
@@ -178,6 +178,23 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 125. Ajouter un XCTest ouvrant le document PDF avec PDFKit et vérifiant son contenu.
 126. Retirer le faux QR de table qui n'effectuait aucune vraie commande native et pouvait troubler le personnel.
 127. Remplacer le sélecteur de boutique inutile par un titre simple lorsque le propriétaire n'a qu'un établissement.
+128. Réaffirmer la règle produit validée : trois établissements actifs maximum par propriétaire.
+129. Unifier cette limite entre l'accueil local, la création SwiftData et le répertoire privé iCloud.
+130. Autoriser à nouveau la création après archivage d'un établissement, sans supprimer l'historique.
+131. Ajouter un test de la limite multi-établissements et de l'isolation entre propriétaires.
+132. Introduire la synchronisation des dépenses entre appareils via CloudKit privé Apple.
+133. Répliquer la création d'une dépense comme un fait immuable, sans service web externe.
+134. Répliquer séparément son annulation, en conservant la preuve de l'opération initiale.
+135. Définir des identifiants déterministes pour rendre le rejeu des annulations idempotent.
+136. Gérer les événements CloudKit reçus dans le désordre, grâce à une file locale d'annulations en attente.
+137. Refuser les montants, propriétaires, établissements ou contenus contradictoires entre appareils.
+138. Lier les marqueurs de dépenses au même compte iCloud privé et conserver un jeton de reprise par établissement.
+139. Ajouter des tests de réimportation, désordre des événements, isolation et déterminisme des identifiants.
+140. Documenter honnêtement la portée du CloudKit actuel : dépenses et reçus oui, stock et rendez-vous pas encore.
+141. Canoniser l'encodage JSON des faits de dépenses pour limiter les divergences de rejeu multi-appareils.
+142. Refuser la propagation d'une annulation de dépense émise par une identité autre que le propriétaire.
+143. Ajouter un test de rejet des annulations iCloud sans auteur légitime.
+144. Signaler à l'utilisateur les annulations de dépenses encore en attente de leur événement d'origine.
 
 ## Vérification macOS sans signature (branche de diagnostic uniquement)
 
@@ -195,6 +212,10 @@ un nouveau lancement : leurs tests ne sont pas encore comptés comme exécutés.
 Un quatrième lancement (`b0944ac`) a permis de trouver, au compilateur, deux
 affectations ambiguës dans le nouvel éditeur restaurant ; elles ont été corrigées
 avant le lancement du lot incluant également dépenses et trésorerie.
+Le cinquième lancement (`eebf54c`, action `44475555009`) a **compilé et exécuté
+68 XCTest sans aucun échec**. Les ajouts ultérieurs (PDF, nouveaux parcours salon,
+états vides) ont été sauvegardés sur une branche de diagnostic dédiée et attendent
+leur propre validation iOS.
 Ce contrôle ne crée **ni archive de distribution ni provisioning**, et ne valide pas les maquettes.
 
 ## Limites bloquantes

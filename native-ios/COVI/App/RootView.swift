@@ -44,7 +44,7 @@ struct RootView: View {
                         } else {
                             Text(shop.name).font(.headline).foregroundStyle(COVITheme.navy)
                         }
-                        if establishments.filter({ $0.ownerID == account && !$0.archived }).count < 3 {
+                        if EstablishmentPolicy.canCreate(owner: account, in: establishments) {
                             Button("Ajouter un établissement") { addingShop = true }
                         }
                         DynamicTabView(establishment: shop, accountID: account, role: role, pinManager: pinManager)
@@ -250,7 +250,10 @@ private struct EstablishmentSetup: View {
             let count = try context.fetchCount(FetchDescriptor<Establishment>(predicate: #Predicate {
                 $0.ownerID == owner && !$0.archived
             }))
-            guard count < 3 else { error = "Trois établissements sont déjà actifs sur cet appareil."; return }
+            guard count < EstablishmentPolicy.maximumActivePerOwner else {
+                error = "Trois établissements sont déjà actifs sur cet appareil."
+                return
+            }
             let shop = Establishment(ownerID: account, name: clean(name), kind: kind, city: clean(city), currencyCode: currency)
             try context.transaction {
                 context.insert(shop)

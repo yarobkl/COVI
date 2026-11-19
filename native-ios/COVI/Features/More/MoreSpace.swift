@@ -318,7 +318,7 @@ struct HelpPrivacyView: View {
                 Label("Données locales enregistrées avec SwiftData.", systemImage: "iphone")
                 Label("Identité locale enregistrée dans le trousseau sécurisé iOS.", systemImage: "lock")
                 Label("Le compte Apple utilise AuthenticationServices.", systemImage: "person.crop.circle")
-                Text("Le répertoire des établissements et les reçus confirmés peuvent être synchronisés dans le CloudKit privé de votre compte iCloud. Les stocks, fiches clients et commandes en cours restent sur cet iPhone.")
+                Text("Le répertoire, les reçus confirmés et les dépenses peuvent être synchronisés dans le CloudKit privé de votre compte iCloud. Les stocks, fiches clients et commandes en cours restent sur cet iPhone.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
         }
