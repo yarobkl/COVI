@@ -11,8 +11,9 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 - 0 % : absent ; 25 % : squelette ; 50 % : parcours principal partiel ; 70 % : utilisable sur cas normal ;
   90 % : parcours complet, erreurs, états vides et tests compilés ; 100 % : vérifié sur iPhone contre les maquettes.
 - **Aucun module ne peut obtenir 90 % sans compilation iOS et tests sur simulateur/iPhone.**
-- L'outil Xcode/Swift n'est pas installé dans cet environnement Linux. L'analyse syntaxique Swift a été exécutée
-  avec tree-sitter, **ce qui n'est pas une compilation ni une exécution XCTest**.
+- L'outil Xcode/Swift n'est pas installé dans cet environnement Linux. L'analyse syntaxique locale
+  ne remplace pas une compilation ; **les compilations et XCTest réels sont assurés par le workflow
+  macOS distinct, sans signature**, détaillé en fin de document.
 
 | Module | Initial distant | Actuel, estimé | Ce qui reste avant 90 % |
 | --- | ---: | ---: | --- |
@@ -45,8 +46,8 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 | Aide et accessibilité | 25 % | 30 % | Guide initial, Dynamic Type, VoiceOver, états erreur/vides |
 | Conformité aux 46 maquettes | Non vérifiée | Non vérifiée | Maquettes et comparaison sur iPhone indispensables |
 | Journal des événements métier local | 30 % | 82 % | Protocole de réplication effectif, purge sécurisée et résolutions de conflits |
-| Tests unitaires iOS | 25 % | 87 % | 92/92 XCTest réussis sur `2b02e7d` ; validations des devises et corrections finales à exécuter |
-| Build et tests globaux iOS | 0 % | 80 % | Compilation + 92 XCTest réussis sur macOS ; dernière révision à revérifier ; tests visuels indisponibles |
+| Tests unitaires iOS | 25 % | 88 % | 97/97 XCTest réussis sur `68c7de5` ; parcours physiques et validations CloudKit multi-appareils encore nécessaires |
+| Build et tests globaux iOS | 0 % | 82 % | Compilation + 97 XCTest réussis sur macOS à la dernière révision de code ; tests visuels indisponibles |
 | Livraison TestFlight | En pause | En pause | Aucune action autorisée dans ce lot |
 
 ## Changements réellement effectués dans ce lot
@@ -287,9 +288,7 @@ l'accès Keychain non signé** (`OSStatus -34018`, ou refus de caisse qui en dé
 La signature étant volontairement interdite, le stockage sécurisé a été rendu injectable,
 avec Keychain inchangé en production et un stockage isolé en mémoire dans les XCTest.
 Le troisième lancement de référence (`765f157`, action `44473901012`) a ensuite
-**réussi la compilation et les 53 XCTest** sans aucune erreur. Les modifications
-des lots Boutique / Salon / Restaurant ajoutées après cette révision nécessitent
-un nouveau lancement : leurs tests ne sont pas encore comptés comme exécutés.
+**réussi la compilation et les 53 XCTest** sans aucune erreur.
 Un quatrième lancement (`b0944ac`) a permis de trouver, au compilateur, deux
 affectations ambiguës dans le nouvel éditeur restaurant ; elles ont été corrigées
 avant le lancement du lot incluant également dépenses et trésorerie.
@@ -297,12 +296,15 @@ Le cinquième lancement (`eebf54c`, action `44475555009`) a **compilé et exécu
 68 XCTest sans aucun échec**. Le lancement ultérieur (`32a49d`, action `44489621987`,
 job `135441631979`) a **compilé et exécuté 78 XCTest sans aucun échec**, y compris
 le journal CloudKit des dépenses. Les changements de rendez-vous, la suspension boutique
-et leurs tests, ainsi que les exports CSV, nécessitent encore un lancement de diagnostic distinct.
+et leurs tests, ainsi que les exports CSV, ont ensuite fait l'objet de
+lancements supplémentaires du même workflow de diagnostic.
 Depuis, les deux lancements suivants ont également réussi : `3ffe8d4` avec **84/84**
 XCTest et `1a6c74e` avec **88/88** XCTest. Le lancement `2b02e7d` a réussi
 **92/92 XCTest**, validant le catalogue salon, ses commissions et les blocages
 de vente. Le lot de devises d'Afrique centrale et les corrections ajoutées
-ensuite sont en cours de vérification macOS.
+ensuite ont également été validés : le lancement `68c7de5`, action `44492890062`,
+a **compilé l'intégralité du projet et exécuté 97/97 XCTest sans échec** sur
+simulateur iPhone macOS, sans signature, sans archive et sans TestFlight.
 Ce contrôle ne crée **ni archive de distribution ni provisioning**, et ne valide pas les maquettes.
 
 ## Limites bloquantes
