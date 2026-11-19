@@ -423,6 +423,10 @@ struct OperationalCloudAdapter {
         case .kitchenLine:
             let detail = try decode(row, as: OperationalKitchenLine.self)
             return try find(CommerceOrder.self, id: detail.order, context: context)?.state == .completed
+        case .table:
+            let detail = try decode(row, as: OperationalTable.self)
+            guard let session = detail.session else { return false }
+            return try find(CommerceOrder.self, id: session, context: context)?.state == .completed
         default: return false
         }
     }
@@ -442,6 +446,7 @@ struct OperationalCloudAdapter {
                 CatalogItem(establishmentID: sid, title: x.title, priceMinor: x.price,
                             isService: x.service)
             guard item.establishmentID == sid, item.isService == x.service else { throw SyncFault.journalChanged }
+            item.id = id
             item.title = x.title; item.priceMinor = x.price
             item.salonPercent = x.commission; item.menuCategory = x.menuCategory
             item.soldOut = x.unavailable; item.stockReserved = x.reserved; item.updatedAt = x.updated
@@ -526,12 +531,21 @@ struct OperationalCloudAdapter {
             guard x.id == id, x.shop == sid, !x.label.isEmpty,
                   (1...100).contains(x.capacity), x.occupied == (x.session != nil),
                   (!x.billRequested || x.occupied) else { throw SyncFault.invalidEvent }
+            let paidSession: Bool
+            if let session = x.session {
+                paidSession = try find(CommerceOrder.self, id: session, context: context)?.state == .completed
+            } else { paidSession = false }
             let table = try find(DiningTable.self, id: id, context: context) ??
                 DiningTable(establishmentID: sid, label: x.label, capacity: x.capacity)
             guard table.establishmentID == sid else { throw SyncFault.journalChanged }
+            // A verified receipt wins over stale room state. If the table is
+            // already used for a newer session, do not evict that guest either.
+            if paidSession, table.isOccupied, table.activeSessionID != x.session { return }
             table.id = id; table.label = x.label; table.capacity = x.capacity
-            table.isOccupied = x.occupied; table.activeSessionID = x.session
-            table.billRequested = x.billRequested; context.insert(table)
+            table.isOccupied = !paidSession && x.occupied
+            table.activeSessionID = paidSession ? nil : x.session
+            table.billRequested = !paidSession && x.billRequested
+            context.insert(table)
         case .kitchenLine:
             let x = try decode(row, as: OperationalKitchenLine.self)
             guard x.id == id, x.quantity > 0, x.price > 0,
@@ -629,7 +643,7 @@ struct OperationalCloudAdapter {
                 throw SyncFault.journalChanged
             }
             if oldPayload != bytes && localPayload != bytes &&
-               !protectedByReceipt {
+               (!protectedByReceipt || row.kind == .table) {
                 try apply(row, shop: shop, context: context)
             }
             if let marker = markers[key] {

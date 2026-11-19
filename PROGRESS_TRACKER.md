@@ -302,6 +302,10 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 248. Tester le refus de deux rendez-vous concurrents pour un même collaborateur.
 249. Tester le refus d'une sortie de stock qui ferait passer l'inventaire total sous zéro.
 250. Réduire les lectures SwiftData de lignes de cuisine aux seules commandes ouvertes de l'établissement.
+251. Conserver exactement les UUID des articles importés afin que stocks, rendez-vous et lignes restent liés.
+252. Empêcher qu'un ancien état de table rouvre une addition déjà réglée par un reçu vérifié.
+253. Tester l'arrivée du reçu avant un ancien état de salle dans le simulateur.
+254. Documenter la réplication CloudKit explicite, les comptes Apple et l'absence de partage du personnel entre identifiants.
 
 ## Vérification macOS sans signature (branche de diagnostic uniquement)
 
@@ -331,6 +335,11 @@ ensuite ont également été validés : le lancement `68c7de5`, action `44492890
 a **compilé l'intégralité du projet et exécuté 97/97 XCTest sans échec** sur
 simulateur iPhone macOS, sans signature, sans archive et sans TestFlight.
 Ce contrôle ne crée **ni archive de distribution ni provisioning**, et ne valide pas les maquettes.
+Le premier lot de miroirs opérationnels (`7b30a00`, action `44500183345`)
+**compile sans erreur**, mais son exécution de **108 XCTest présentait 7 échecs**,
+liés aux références des articles restaurés avec un identifiant aléatoire.
+Le correctif conserve désormais l'identifiant source ; son nouveau contrôle
+macOS et le test de table réglée sont encore en attente.
 
 ## Limites bloquantes
 

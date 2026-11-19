@@ -300,4 +300,40 @@ final class CloudOperationalSyncTests: XCTestCase {
         XCTAssertEqual(try target.fetchCount(FetchDescriptor<PaymentRecord>()), 1)
         XCTAssertEqual(try target.fetch(FetchDescriptor<DiningTable>()).first?.isOccupied, false)
     }
+
+    func testStaleDiningTableSnapshotCannotReopenPaidSession() throws {
+        let source = try memory(), target = try memory(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Restaurant", kind: .restaurant, city: "Libreville")
+        let copy = clone(shop)
+        let dish = CatalogItem(establishmentID: shop.id, title: "Poisson", priceMinor: 3_000)
+        dish.menuCategory = MenuGroup.food.rawValue
+        let table = DiningTable(establishmentID: shop.id, label: "Terrasse", capacity: 2)
+        let order = CommerceOrder(establishmentID: shop.id, createdByID: owner, tableID: table.id)
+        order.state = .accepted; order.totalMinor = 3_000
+        table.activeSessionID = order.id; table.isOccupied = true
+        let line = OrderLine(orderID: order.id, catalogItemID: dish.id,
+            quantity: 1, unitPriceMinor: 3_000)
+        line.dishName = dish.title
+        source.insert(shop); source.insert(dish); source.insert(table)
+        source.insert(order); source.insert(line); try source.save()
+        let staleRoom = try export(source, shop: shop)
+
+        order.state = .completed
+        let payment = PaymentRecord(orderID: order.id, establishmentID: shop.id,
+            method: Tender.cash.rawValue, amountMinor: 3_000, confirmedByID: owner)
+        source.insert(payment); try source.save()
+        let receipt = try ArchivedReceipt(shop: shop, order: order,
+            lines: [line], payments: [payment], catalog: [dish])
+        target.insert(copy); try target.save()
+        try receipt.importIfNeeded(shop: copy, context: target)
+        try CloudOperationalSync.merge(staleRoom, shop: copy,
+            cloudUserID: "iCloud-A", context: target)
+        try target.save()
+        let syncedTable = try XCTUnwrap(target.fetch(FetchDescriptor<DiningTable>()).first)
+        XCTAssertEqual(syncedTable.id, table.id)
+        XCTAssertFalse(syncedTable.isOccupied)
+        XCTAssertNil(syncedTable.activeSessionID)
+        XCTAssertEqual(try target.fetch(FetchDescriptor<CommerceOrder>()).first?.state, .completed)
+        XCTAssertEqual(try target.fetchCount(FetchDescriptor<PaymentRecord>()), 1)
+    }
 }
