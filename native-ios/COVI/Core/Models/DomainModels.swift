@@ -141,6 +141,78 @@ enum SyncState: String, Codable { case pending, syncing, synced, conflict, faile
     }
 }
 
+@Model final class ExpenseEntry {
+    @Attribute(.unique) var id: UUID
+    var establishmentID: UUID
+    var actorID: UUID
+    var category: String
+    var amountMinor: Int64
+    var spentAt: Date
+    var note: String
+    var voidedAt: Date?
+    var voidedByID: UUID?
+    init(establishmentID: UUID, actorID: UUID, category: String,
+         amountMinor: Int64, spentAt: Date, note: String) {
+        id = UUID(); self.establishmentID = establishmentID; self.actorID = actorID
+        self.category = category; self.amountMinor = amountMinor
+        self.spentAt = spentAt; self.note = note
+    }
+}
+
+enum ExpenseCategory {
+    static let all = ["Loyer", "Électricité", "Eau", "Internet", "Téléphone", "Salaire",
+                      "Prime", "Transport", "Livraison", "Carburant", "Manutention",
+                      "Emballage", "Sacs", "Cintres", "Nettoyage", "Réparations",
+                      "Fournitures", "Publicité", "Influenceurs", "Frais bancaires",
+                      "Frais Mobile Money", "Taxes", "Autre"]
+}
+
+@MainActor enum ExpenseLedger {
+    enum Fault: LocalizedError {
+        case invalid, unauthorized, alreadyVoided
+        var errorDescription: String? {
+            switch self {
+            case .invalid: "Vérifiez la catégorie, la date et le montant de la dépense."
+            case .unauthorized: "Seul le propriétaire peut annuler cette dépense."
+            case .alreadyVoided: "Cette dépense a déjà été annulée."
+            }
+        }
+    }
+
+    @discardableResult
+    static func record(shop: Establishment, actor: UUID, category: String,
+                       amount: Int64, date: Date, note: String,
+                       context: ModelContext) throws -> ExpenseEntry {
+        guard !shop.archived, ExpenseCategory.all.contains(category), amount > 0,
+              date <= Date.now.addingTimeInterval(24 * 3_600),
+              date >= Date.now.addingTimeInterval(-10 * 366 * 24 * 3_600) else { throw Fault.invalid }
+        let entry = ExpenseEntry(establishmentID: shop.id, actorID: actor,
+                                 category: category, amountMinor: amount, spentAt: date,
+                                 note: note.trimmingCharacters(in: .whitespacesAndNewlines))
+        context.insert(entry)
+        do {
+            try BusinessOutbox.enqueue(kind: "expense.recorded", establishmentID: shop.id,
+                entityID: entry.id, actorID: actor, in: context)
+            try context.save()
+            return entry
+        } catch { context.rollback(); throw error }
+    }
+
+    static func void(_ expense: ExpenseEntry, shop: Establishment,
+                     actor: UUID, context: ModelContext) throws {
+        guard actor == shop.ownerID else { throw Fault.unauthorized }
+        guard expense.establishmentID == shop.id, !shop.archived else { throw Fault.invalid }
+        guard expense.voidedAt == nil else { throw Fault.alreadyVoided }
+        expense.voidedAt = .now
+        expense.voidedByID = actor
+        do {
+            try BusinessOutbox.enqueue(kind: "expense.voided", establishmentID: shop.id,
+                entityID: expense.id, actorID: actor, in: context)
+            try context.save()
+        } catch { context.rollback(); throw error }
+    }
+}
+
 /// Stable, versioned business event. The same ModelContext save persists both the
 /// domain mutation and its outbox entry; delivery happens separately.
 struct BusinessEventPayload: Codable {

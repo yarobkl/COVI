@@ -38,6 +38,8 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 | Salon : catalogue / encaissement | 66 % | 73 % | Retour client, modifications, tests de flux |
 | Salon : clients / fiches | 65 % | 74 % | Consentements, export, suppression, tests iPhone |
 | Salon : rapports / commissions | 55 % | 65 % | Périodes, réconciliation financière, tests |
+| Dépenses (trois métiers) | 0 % | 74 % | Rapports de marge, export et partage iCloud à ajouter |
+| Trésorerie mensuelle multi-métier | 0 % | 76 % | Recoupement sur appareils, tests UI, export mensuel |
 | Paiements externes manuels (sans SDK de paiement) | 65 % | 78 % | Traçabilité du moyen de paiement et reçus réels |
 | Sécurité PIN et accès caisse simplifié | 52 % | 76 % | Tests exécutés, parcours d'enrôlement simplifié |
 | Aide et accessibilité | 25 % | 30 % | Guide initial, Dynamic Type, VoiceOver, états erreur/vides |
@@ -141,6 +143,22 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 90. Vérifier par XCTest qu'un plat en rupture ne peut pas être envoyé et qu'aucun ajout n'est possible après l'addition.
 91. Obtenir une compilation iOS native sans signature réussie sur un hôte macOS Xcode.
 92. Obtenir une exécution complète de 53 XCTest sur simulateur avec zéro échec, zéro code de distribution.
+93. Recenser les 23 catégories réelles de dépenses existantes dans la version web COVI.
+94. Créer un modèle SwiftData natif pour les dépenses avec montant entier, acteur, catégorie, date et note.
+95. Mettre à disposition la saisie des dépenses pour propriétaires et responsables des trois métiers.
+96. Construire un journal des dépenses par mois avec total et états vides.
+97. Permettre l'annulation non destructive d'une dépense par le propriétaire, en conservant une trace d'audit.
+98. Journaliser la saisie et l'annulation de dépense dans l'outbox transactionnelle.
+99. Ajouter des tests pour les montants invalides, le cloisonnement, le refus d'annulation non autorisée et l'idempotence.
+100. Ajouter un tableau de trésorerie natif utilisable par les trois métiers.
+101. Basculer le calcul du chiffre d'affaires sur les paiements réellement confirmés plutôt que les commandes seulement ouvertes.
+102. Déduire les remboursements réels et les dépenses actives du mois sélectionné.
+103. Regrouper les entrées par moyen de paiement et les sorties par catégorie.
+104. Éviter de présenter ce solde net comme un bénéfice comptable ou un solde bancaire.
+105. Vérifier la séparation stricte entre établissements et périodes dans les statistiques.
+106. Ajouter des tests de calcul et d'exclusion des dépenses annulées.
+107. Analyser le diagnostic Xcode de la carte restaurant et corriger la collision entre erreur attrapée et état d'interface.
+108. Corriger le même risque d'ombre portée sur les écrans de dépenses ajoutés dans ce lot.
 
 ## Vérification macOS sans signature (branche de diagnostic uniquement)
 
@@ -155,6 +173,9 @@ Le troisième lancement de référence (`765f157`, action `44473901012`) a ensui
 **réussi la compilation et les 53 XCTest** sans aucune erreur. Les modifications
 des lots Boutique / Salon / Restaurant ajoutées après cette révision nécessitent
 un nouveau lancement : leurs tests ne sont pas encore comptés comme exécutés.
+Un quatrième lancement (`b0944ac`) a permis de trouver, au compilateur, deux
+affectations ambiguës dans le nouvel éditeur restaurant ; elles ont été corrigées
+avant le lancement du lot incluant également dépenses et trésorerie.
 Ce contrôle ne crée **ni archive de distribution ni provisioning**, et ne valide pas les maquettes.
 
 ## Limites bloquantes

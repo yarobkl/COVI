@@ -9,7 +9,8 @@ final class CommerceFlowTests: XCTestCase {
         let schema = Schema([
             Establishment.self, Membership.self, CatalogItem.self, DiningTable.self, CommerceOrder.self,
             OrderLine.self, PaymentRecord.self, StockMovement.self, OutboxEvent.self,
-            SalonClient.self, SalonStaff.self, SalonVisit.self, SalonSaleLine.self
+            SalonClient.self, SalonStaff.self, SalonVisit.self, SalonSaleLine.self,
+            ExpenseEntry.self
         ])
         let container = try ModelContainer(for: schema, configurations: [
             ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
@@ -140,6 +141,80 @@ final class CommerceFlowTests: XCTestCase {
             menu: [item], tender: .orange, confirmed: true, db: db)
         XCTAssertEqual(item.stockOnHand, 3)
         XCTAssertEqual(try db.fetch(FetchDescriptor<PaymentRecord>()).first?.method, Tender.orange.rawValue)
+    }
+
+    func testExpenseJournalCanRecordAndCancelWithoutErasingHistory() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Salon", kind: .salon, city: "Libreville")
+        db.insert(shop); try db.save()
+        let expense = try ExpenseLedger.record(shop: shop, actor: owner, category: "Loyer",
+            amount: 50_000, date: .now, note: "Local", context: db)
+        XCTAssertEqual(expense.category, "Loyer")
+        XCTAssertEqual(expense.amountMinor, 50_000)
+        XCTAssertNil(expense.voidedAt)
+        try ExpenseLedger.void(expense, shop: shop, actor: owner, context: db)
+        XCTAssertNotNil(expense.voidedAt)
+        XCTAssertEqual(expense.voidedByID, owner)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<ExpenseEntry>()), 1)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 2)
+        XCTAssertThrowsError(try ExpenseLedger.void(expense, shop: shop, actor: owner, context: db))
+    }
+
+    func testExpenseRejectsInvalidAmountAndUnauthorizedCancellation() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Épicerie", kind: .boutique, city: "Douala")
+        let other = Establishment(ownerID: UUID(), name: "Autre", kind: .boutique, city: "Douala")
+        db.insert(shop); db.insert(other); try db.save()
+        XCTAssertThrowsError(try ExpenseLedger.record(shop: shop, actor: owner, category: "Loyer",
+            amount: 0, date: .now, note: "", context: db))
+        XCTAssertThrowsError(try ExpenseLedger.record(shop: shop, actor: owner, category: "Inconnue",
+            amount: 100, date: .now, note: "", context: db))
+        let expense = try ExpenseLedger.record(shop: shop, actor: owner, category: "Transport",
+            amount: 2_000, date: .now, note: "Bus", context: db)
+        XCTAssertThrowsError(try ExpenseLedger.void(expense, shop: shop, actor: UUID(), context: db))
+        XCTAssertThrowsError(try ExpenseLedger.void(expense, shop: other, actor: other.ownerID, context: db))
+        XCTAssertNil(expense.voidedAt)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 1)
+    }
+
+    func testFinanceSummarySubtractsRefundsAndOnlyActiveExpenses() {
+        let owner = UUID(), shop = UUID()
+        let payment = PaymentRecord(orderID: UUID(), establishmentID: shop, method: "MTN MoMo",
+                                    amountMinor: 10_000, confirmedByID: owner)
+        let refund = Refund(payment: payment, ownerID: owner)
+        refund.amountMinor = 3_000
+        let expense = ExpenseEntry(establishmentID: shop, actorID: owner,
+                                   category: "Transport", amountMinor: 2_000,
+                                   spentAt: .now, note: "Livraison")
+        let cancelled = ExpenseEntry(establishmentID: shop, actorID: owner,
+                                     category: "Loyer", amountMinor: 50_000,
+                                     spentAt: .now, note: "Erreur de saisie")
+        cancelled.voidedAt = .now
+        let summary = FinanceSnapshot.make(shop: shop, month: .now, payments: [payment],
+            refunds: [refund], expenses: [expense, cancelled])
+        XCTAssertEqual(summary.collected, Decimal(10_000))
+        XCTAssertEqual(summary.refunded, Decimal(3_000))
+        XCTAssertEqual(summary.expenses, Decimal(2_000))
+        XCTAssertEqual(summary.balance, Decimal(5_000))
+        XCTAssertEqual(summary.paymentCount, 1)
+        XCTAssertEqual(summary.byMethod.first?.0, "MTN MoMo")
+    }
+
+    func testFinanceSummaryIsolatesOtherShopsAndMonths() throws {
+        let shop = UUID(), other = UUID(), owner = UUID()
+        let previousMonth = try XCTUnwrap(Calendar.current.date(byAdding: .month, value: -1, to: .now))
+        let current = PaymentRecord(orderID: UUID(), establishmentID: shop, method: "Espèces",
+                                    amountMinor: 5_000, confirmedByID: owner)
+        let old = PaymentRecord(orderID: UUID(), establishmentID: shop, method: "Espèces",
+                                amountMinor: 10_000, confirmedByID: owner)
+        old.confirmedAt = previousMonth
+        let foreign = PaymentRecord(orderID: UUID(), establishmentID: other, method: "Espèces",
+                                    amountMinor: 100_000, confirmedByID: owner)
+        let snapshot = FinanceSnapshot.make(shop: shop, month: .now,
+            payments: [current, old, foreign], refunds: [], expenses: [])
+        XCTAssertEqual(snapshot.collected, Decimal(5_000))
+        XCTAssertEqual(snapshot.paymentCount, 1)
+        XCTAssertEqual(snapshot.balance, Decimal(5_000))
     }
 
     func testSameStylistCannotReceiveOverlappingAppointments() throws {

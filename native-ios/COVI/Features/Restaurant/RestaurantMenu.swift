@@ -151,7 +151,7 @@ private struct RestaurantMenuEditor: View {
                 do {
                     try service.editMenu(item, title: title, price: Int64(price) ?? 0, category: category)
                     dismiss()
-                } catch { error = error.localizedDescription }
+                } catch { self.error = error.localizedDescription }
             }
             if !error.isEmpty { Text(error).foregroundStyle(.red) }
             Text("Les commandes déjà envoyées conservent leur prix et leur libellé d’origine.")
@@ -180,7 +180,7 @@ private struct RestaurantTableEditor: View {
             Stepper("\(seats) places", value: $seats, in: 1...100)
             Button("Enregistrer la table") {
                 do { try service.editTable(table, label: label, capacity: seats); dismiss() }
-                catch { error = error.localizedDescription }
+                catch { self.error = error.localizedDescription }
             }
             .disabled(table.isOccupied)
             if table.isOccupied {

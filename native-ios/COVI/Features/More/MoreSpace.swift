@@ -34,6 +34,12 @@ struct MoreSpace: View {
             Section("Votre espace") {
                 NavigationLink("Paramètres système") { SystemSettings(shop: shop, actor: actor, pin: pin) }
                 NavigationLink("Historique des reçus") { CommerceReceiptHistory(shop: shop) }
+                if role == .owner || role == .manager {
+                    NavigationLink("Dépenses du commerce") {
+                        ExpenseSpace(shop: shop, actor: actor, canCancel: role == .owner)
+                    }
+                    NavigationLink("Bilan de trésorerie") { FinanceOverview(shop: shop) }
+                }
                 NavigationLink("Aide et confidentialité") { HelpPrivacyView(kind: shop.kind) }
                 if role == .owner {
                     NavigationLink("Paramètres propriétaire") { OwnerSettings(shop: shop, pinManager: pin) }
@@ -70,6 +76,210 @@ struct MoreSpace: View {
             Button("OK") {}
         } message: {
             Text("Le trousseau iOS n'a pas permis d'effacer la session active.")
+        }
+    }
+}
+
+struct FinanceSnapshot {
+    let collected: Decimal
+    let refunded: Decimal
+    let expenses: Decimal
+    let paymentCount: Int
+    let byMethod: [(String, Decimal)]
+    let byExpense: [(String, Decimal)]
+    var balance: Decimal { collected - refunded - expenses }
+
+    static func make(shop: UUID, month: Date, payments: [PaymentRecord],
+                     refunds: [Refund], expenses: [ExpenseEntry],
+                     calendar: Calendar = .current) -> FinanceSnapshot {
+        let income = payments.filter {
+            $0.establishmentID == shop && $0.amountMinor > 0 &&
+            calendar.isDate($0.confirmedAt, equalTo: month, toGranularity: .month)
+        }
+        let returned = refunds.filter {
+            $0.establishmentID == shop && $0.amountMinor > 0 &&
+            calendar.isDate($0.date, equalTo: month, toGranularity: .month)
+        }
+        let costs = expenses.filter {
+            $0.establishmentID == shop && $0.voidedAt == nil && $0.amountMinor > 0 &&
+            calendar.isDate($0.spentAt, equalTo: month, toGranularity: .month)
+        }
+        let methods = Dictionary(grouping: income, by: \.method).map { pair in
+            (pair.key, pair.value.reduce(Decimal.zero) { $0 + Decimal($1.amountMinor) })
+        }.sorted { $0.0 < $1.0 }
+        let categories = Dictionary(grouping: costs, by: \.category).map { pair in
+            (pair.key, pair.value.reduce(Decimal.zero) { $0 + Decimal($1.amountMinor) })
+        }.sorted { $0.0 < $1.0 }
+        return FinanceSnapshot(
+            collected: income.reduce(Decimal.zero) { $0 + Decimal($1.amountMinor) },
+            refunded: returned.reduce(Decimal.zero) { $0 + Decimal($1.amountMinor) },
+            expenses: costs.reduce(Decimal.zero) { $0 + Decimal($1.amountMinor) },
+            paymentCount: income.count, byMethod: methods, byExpense: categories)
+    }
+}
+
+struct FinanceOverview: View {
+    let shop: Establishment
+    @Query private var payments: [PaymentRecord]
+    @Query private var refunds: [Refund]
+    @Query private var expenses: [ExpenseEntry]
+    @State private var month = Date()
+
+    init(shop: Establishment) {
+        self.shop = shop
+        let sid = shop.id
+        _payments = Query(filter: #Predicate<PaymentRecord> { $0.establishmentID == sid })
+        _refunds = Query(filter: #Predicate<Refund> { $0.establishmentID == sid })
+        _expenses = Query(filter: #Predicate<ExpenseEntry> { $0.establishmentID == sid })
+    }
+
+    var body: some View {
+        let summary = FinanceSnapshot.make(shop: shop.id, month: month,
+                                           payments: payments, refunds: refunds, expenses: expenses)
+        List {
+            Section("Période") {
+                DatePicker("Mois", selection: $month, displayedComponents: .date)
+            }
+            Section("Flux enregistrés") {
+                LabeledContent("Encaissements confirmés", value: "\(summary.collected.formatted()) \(shop.currencyCode)")
+                LabeledContent("Remboursements remis", value: "−\(summary.refunded.formatted()) \(shop.currencyCode)")
+                LabeledContent("Dépenses", value: "−\(summary.expenses.formatted()) \(shop.currencyCode)")
+                LabeledContent("Solde net des flux", value: "\(summary.balance.formatted()) \(shop.currencyCode)")
+                    .font(.headline)
+                LabeledContent("Paiements", value: String(summary.paymentCount))
+                Text("Ce solde est une estimation basée uniquement sur les opérations enregistrées. Il ne représente ni le bénéfice comptable ni le solde de votre banque ou Mobile Money.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+            Section("Par moyen de paiement") {
+                if summary.byMethod.isEmpty { Text("Aucun paiement confirmé ce mois.") }
+                ForEach(summary.byMethod.indices, id: \.self) { index in
+                    let row = summary.byMethod[index]
+                    LabeledContent(row.0, value: "\(row.1.formatted()) \(shop.currencyCode)")
+                }
+            }
+            Section("Par catégorie de dépense") {
+                if summary.byExpense.isEmpty { Text("Aucune dépense active ce mois.") }
+                ForEach(summary.byExpense.indices, id: \.self) { index in
+                    let row = summary.byExpense[index]
+                    LabeledContent(row.0, value: "\(row.1.formatted()) \(shop.currencyCode)")
+                }
+            }
+        }
+        .navigationTitle("Bilan de trésorerie")
+        .scrollContentBackground(.hidden).background(COVITheme.cream)
+    }
+}
+
+struct ExpenseSpace: View {
+    let shop: Establishment
+    let actor: UUID
+    let canCancel: Bool
+    @Environment(\.modelContext) private var context
+    @Query private var expenses: [ExpenseEntry]
+    @State private var month = Date()
+    @State private var showingAdd = false
+    @State private var cancelling: UUID?
+    @State private var error = ""
+
+    init(shop: Establishment, actor: UUID, canCancel: Bool) {
+        self.shop = shop; self.actor = actor; self.canCancel = canCancel
+        let shopID = shop.id
+        _expenses = Query(filter: #Predicate<ExpenseEntry> { $0.establishmentID == shopID },
+                          sort: \.spentAt, order: .reverse)
+    }
+
+    var body: some View {
+        let monthRows = expenses.filter { Calendar.current.isDate($0.spentAt, equalTo: month, toGranularity: .month) }
+        let total = monthRows.filter { $0.voidedAt == nil }
+            .reduce(Decimal.zero) { $0 + Decimal($1.amountMinor) }
+        List {
+            Section("Période") {
+                DatePicker("Mois", selection: $month, displayedComponents: .date)
+                LabeledContent("Dépenses confirmées", value: "\(total.formatted()) \(shop.currencyCode)")
+                    .font(.headline)
+            }
+            Section("Journal des dépenses") {
+                if monthRows.isEmpty {
+                    ContentUnavailableView("Aucune dépense", systemImage: "wallet.pass",
+                        description: Text("Ajoutez vos frais de loyer, transport, salaire ou exploitation."))
+                }
+                ForEach(monthRows) { expense in
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text(expense.category).font(.headline)
+                            Spacer()
+                            Text("\(expense.amountMinor) \(shop.currencyCode)")
+                        }
+                        Text(expense.spentAt.formatted(date: .abbreviated, time: .omitted))
+                            .font(.caption).foregroundStyle(.secondary)
+                        if !expense.note.isEmpty { Text(expense.note).font(.subheadline) }
+                        if expense.voidedAt != nil {
+                            Label("Annulée · historique conservé", systemImage: "xmark.circle")
+                                .font(.caption).foregroundStyle(.orange)
+                        }
+                    }
+                    .swipeActions {
+                        if canCancel && expense.voidedAt == nil {
+                            Button("Annuler", role: .destructive) { cancelling = expense.id }
+                        }
+                    }
+                }
+            }
+            if !error.isEmpty { Text(error).foregroundStyle(.red) }
+        }
+        .navigationTitle("Dépenses")
+        .toolbar { Button("Ajouter", systemImage: "plus") { showingAdd = true } }
+        .sheet(isPresented: $showingAdd) { ExpenseForm(shop: shop, actor: actor) }
+        .confirmationDialog("Annuler cette dépense ?", isPresented: Binding(
+            get: { cancelling != nil }, set: { if !$0 { cancelling = nil } }
+        )) {
+            Button("Confirmer l’annulation", role: .destructive) {
+                guard let id = cancelling, let row = expenses.first(where: { $0.id == id }) else { return }
+                do { try ExpenseLedger.void(row, shop: shop, actor: actor, context: context) }
+                catch { self.error = error.localizedDescription }
+                cancelling = nil
+            }
+        } message: {
+            Text("Le mouvement sera exclu des totaux, mais restera dans votre historique.")
+        }
+        .scrollContentBackground(.hidden)
+        .background(COVITheme.cream)
+    }
+}
+
+private struct ExpenseForm: View {
+    let shop: Establishment
+    let actor: UUID
+    @Environment(\.modelContext) private var context
+    @Environment(\.dismiss) private var dismiss
+    @State private var category = ExpenseCategory.all[0]
+    @State private var amount = ""
+    @State private var date = Date()
+    @State private var note = ""
+    @State private var error = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Picker("Catégorie", selection: $category) {
+                    ForEach(ExpenseCategory.all, id: \.self) { Text($0) }
+                }
+                TextField("Montant en FCFA", text: $amount).keyboardType(.numberPad)
+                DatePicker("Date de la dépense", selection: $date, in: ...Date.now,
+                           displayedComponents: .date)
+                TextField("Note facultative", text: $note, axis: .vertical)
+                Button("Enregistrer la dépense") {
+                    do {
+                        try ExpenseLedger.record(shop: shop, actor: actor, category: category,
+                            amount: Int64(amount) ?? 0, date: date, note: note, context: context)
+                        dismiss()
+                    } catch { self.error = error.localizedDescription }
+                }
+                .disabled((Int64(amount) ?? 0) <= 0)
+                if !error.isEmpty { Text(error).foregroundStyle(.red) }
+            }
+            .navigationTitle("Nouvelle dépense")
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Fermer") { dismiss() } } }
         }
     }
 }
