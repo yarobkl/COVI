@@ -48,8 +48,8 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 | Aide et accessibilité | 25 % | 30 % | Guide initial, Dynamic Type, VoiceOver, états erreur/vides |
 | Conformité aux 46 maquettes | Non vérifiée | Non vérifiée | Maquettes et comparaison sur iPhone indispensables |
 | Journal des événements métier local | 30 % | 82 % | Protocole de réplication effectif, purge sécurisée et résolutions de conflits |
-| Tests unitaires iOS | 25 % | 89 % | 109/109 XCTest réussis sur `2d7e912` ; parcours physiques et validations CloudKit multi-appareils encore nécessaires |
-| Build et tests globaux iOS | 0 % | 85 % | Compilation + 109 XCTest réussis sur macOS sans signature ; tests visuels indisponibles |
+| Tests unitaires iOS | 25 % | 90 % | 113/113 XCTest réussis sur `4f037fe` ; parcours physiques et validations CloudKit multi-appareils encore nécessaires |
+| Build et tests globaux iOS | 0 % | 86 % | Compilation + 113 XCTest réussis sur macOS sans signature ; tests visuels indisponibles |
 | Livraison TestFlight | En pause | En pause | Aucune action autorisée dans ce lot |
 
 ## Changements réellement effectués dans ce lot
@@ -362,6 +362,11 @@ La prévisualisation du déploiement annonce trois nouveaux types et des
 modifications aux rôles système ; le déploiement a été annulé avant toute
 action sur la production. Le protocole détaillé de validation physique et de
 partage inter-comptes est dans `native-ios/CLOUDKIT_VALIDATION.md`.
+Le lancement de diagnostic suivant, **`4f037fe`**, action GitHub
+**`44511213881`** (job `135515635113`), a **compilé sans erreur** et
+**exécuté 113/113 XCTest, 0 échec**. Les nouveaux tests valident les deux
+bases SwiftData de téléphones simulés, y compris les ventes concurrentes et
+l'agenda hors-ligne ; les deux vrais iPhone demeurent nécessaires.
 
 ## Limites bloquantes
 
