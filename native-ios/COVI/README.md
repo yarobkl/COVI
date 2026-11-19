@@ -10,8 +10,8 @@
 ## État réel
 - SwiftUI et SwiftData locaux pour Boutique, Restaurant et Salon ; aucune WebView ni API Supabase.
 - Identité locale en Keychain ou Sign in with Apple (identifiant stable entre appareils).
-- CloudKit privé : répertoire d'établissements et journal de **renommages et remboursements uniquement**.
-- Le stock, les réservations, les articles, les encaissements et les fiches clients **ne sont pas encore synchronisés entre appareils**.
+- CloudKit privé : répertoire d'établissements, journal de **renommages et remboursements**, et archive immuable des reçus confirmés.
+- Le stock, les réservations, les articles, les commandes en cours et les fiches clients **ne sont pas encore synchronisés entre appareils**.
 - La caisse est accessible sans PIN au propriétaire qui n'a pas installé de code ; le personnel et les propriétaires ayant configuré un code passent par un verrou local.
 - Réception de paiements en caisse uniquement. COVI n'encaisse pas de monnaie électronique.
 - Reçus natifs vérifiés à partir des lignes et du règlement enregistré, partageables par la feuille système.

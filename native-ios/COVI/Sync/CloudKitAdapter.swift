@@ -6,9 +6,9 @@ struct CloudKitAdapter {
     let zone: CKRecordZone
     var database: CKDatabase { container.privateCloudDatabase }
 
-    init(owner: UUID, shop: UUID) {
+    init(owner: UUID, shop: UUID, namespace: String = "COVI") {
         container = CKContainer.default()
-        zone = CKRecordZone(zoneName: "COVI-\(owner.uuidString)-\(shop.uuidString)")
+        zone = CKRecordZone(zoneName: "\(namespace)-\(owner.uuidString)-\(shop.uuidString)")
     }
 
     func prepare() async throws {

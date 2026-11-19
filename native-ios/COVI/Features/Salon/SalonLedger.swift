@@ -118,7 +118,10 @@ enum SalonFault: String, LocalizedError {
         }
         order.state = .completed; order.customerID = client.id; db.insert(order)
         for (item, qty, gross) in validated {
-            db.insert(OrderLine(orderID: order.id, catalogItemID: item.id, quantity: qty, unitPriceMinor: item.priceMinor))
+            let detail = OrderLine(orderID: order.id, catalogItemID: item.id, quantity: qty,
+                                   unitPriceMinor: item.priceMinor)
+            detail.dishName = item.title
+            db.insert(detail)
             db.insert(SalonSaleLine(order: order, client: client.id, stylist: team, item: item, units: qty, gross: gross))
             if !item.isService {
                 item.stockOnHand -= qty; item.updatedAt = .now

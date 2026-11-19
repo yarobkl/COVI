@@ -23,8 +23,8 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 | Persistance SwiftData locale | 62 % | 70 % | Migration de schéma, tests de corruption/restauration |
 | Répertoire d'établissements iCloud privé | 0 % | 65 % | Tests multi-iPhone, collisions et hors-ligne prolongé |
 | Journal CloudKit des renommages / remboursements | 40 % | 48 % | Tests de rejeu et résolution des conflits |
-| Synchronisation CloudKit **des données métier** | 5 % | 5 % | Produits, stock, commandes, réservations, clients, personnel : non synchronisés |
-| Multi-appareils propriétaire | 15 % | 45 % | Validation Apple/iCloud, données métier, séparation de comptes |
+| Synchronisation CloudKit **des données métier** | 5 % | 23 % | Reçus confirmés archivés ; produits, stock, commandes actives, réservations, clients, personnel non synchronisés |
+| Multi-appareils propriétaire | 15 % | 52 % | Validation Apple/iCloud, inventaires, activités actives, séparation de comptes |
 | Multi-personnel / rôles | 25 % | 30 % | Invitations, identité stable du personnel, permissions |
 | Boutique : catalogue | 65 % | 68 % | Édition, catégories, suppression contrôlée, tests |
 | Boutique : stock / balles / inventaire | 64 % | 70 % | Historique complet, valorisation, tests stock concurrents |
@@ -42,7 +42,7 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 | Sécurité PIN et accès caisse simplifié | 52 % | 76 % | Tests exécutés, parcours d'enrôlement simplifié |
 | Aide et accessibilité | 25 % | 30 % | Guide initial, Dynamic Type, VoiceOver, états erreur/vides |
 | Conformité aux 46 maquettes | Non vérifiée | Non vérifiée | Maquettes et comparaison sur iPhone indispensables |
-| Tests unitaires iOS | 25 % | 47 % | Compilation et exécution réelles de toute la suite |
+| Tests unitaires iOS | 25 % | 51 % | Compilation et exécution réelles de toute la suite |
 | Build et tests globaux iOS | 0 % | 0 % | Compilation macOS Xcode sans déclencher TestFlight |
 | Livraison TestFlight | En pause | En pause | Aucune action autorisée dans ce lot |
 
@@ -69,7 +69,12 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 19. Construire des reçus natifs vérifiant le total, la remise et les paiements.
 20. Brancher le partage des reçus en boutique, restaurant et salon.
 21. Ajouter des tests de session, fusion CloudKit, stock, caisse, salon et reçus.
-22. Vérifier la syntaxe des 36 fichiers Swift par analyseur syntaxique (aucune erreur détectée).
+22. Vérifier la syntaxe des fichiers Swift par analyseur syntaxique (aucune erreur détectée).
+23. Ajouter une archive iCloud privée immuable des paiements confirmés, indépendante de l'inventaire.
+24. Conserver noms, prix unitaires et montants exacts sur les reçus synchronisés.
+25. Détecter les doublons, collisions et divergences de montants lors du rejeu de reçus CloudKit.
+26. Empêcher qu'une archive distante modifie le stock ou confirme un paiement non enregistré.
+27. Ajouter les tests de sérialisation, réimportation idempotente et isolation inter-établissements.
 
 ## Limites bloquantes
 

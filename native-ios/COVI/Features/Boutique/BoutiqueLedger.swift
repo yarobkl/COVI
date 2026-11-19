@@ -77,7 +77,10 @@ enum BoutiqueError: LocalizedError {
         context.insert(order)
         for line in lines {
             let item = line.product
-            context.insert(OrderLine(orderID: order.id, catalogItemID: item.id, quantity: line.units, unitPriceMinor: item.priceMinor))
+            let detail = OrderLine(orderID: order.id, catalogItemID: item.id, quantity: line.units,
+                                   unitPriceMinor: item.priceMinor)
+            detail.dishName = item.title
+            context.insert(detail)
             item.stockOnHand -= line.units
             item.updatedAt = .now
             context.insert(StockMovement(establishmentID: shop.id, itemID: item.id, delta: -line.units,

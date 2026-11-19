@@ -138,8 +138,9 @@ struct ShopSyncStatus: View {
                 do {
                     try await CloudShopDirectory.reconcile(owner: shop.ownerID, context: context)
                     try await SyncCoordinator.cycle(shop: shop, context: context)
+                    try await CloudReceiptArchive.cycle(shop: shop, context: context)
                     let conflict = try SyncCoordinator.history(shop.id, context).contains { $0.state == .conflict }
-                    status = conflict ? "Remboursement à vérifier" : "Répertoire et journal iCloud à jour · opérations métier sur cet iPhone"
+                    status = conflict ? "Remboursement à vérifier" : "Établissement et reçus iCloud à jour · stock local"
                     delay = 2
                 } catch is CancellationError { return }
                 catch {

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A7A000000000000000000005 /* CloudReceiptArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7F000000000000000000005 /* CloudReceiptArchive.swift */; };
 		A7A000000000000000000001 /* ReceiptBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7F000000000000000000001 /* ReceiptBuilder.swift */; };
 		A7A000000000000000000002 /* ReceiptDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7F000000000000000000002 /* ReceiptDetail.swift */; };
 		A7A000000000000000000003 /* SalonTeamSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7F000000000000000000003 /* SalonTeamSettings.swift */; };
@@ -41,6 +42,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		A7F000000000000000000005 /* CloudReceiptArchive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudReceiptArchive.swift; sourceTree = "<group>"; };
 		A7F000000000000000000001 /* ReceiptBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiptBuilder.swift; sourceTree = "<group>"; };
 		A7F000000000000000000002 /* ReceiptDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiptDetail.swift; sourceTree = "<group>"; };
 		A7F000000000000000000003 /* SalonTeamSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SalonTeamSettings.swift; sourceTree = "<group>"; };
@@ -246,6 +248,7 @@
 			isa = PBXGroup;
 			children = (
 				FE326200C749B0CD478CCA65 /* CloudKitAdapter.swift */,
+				A7F000000000000000000005 /* CloudReceiptArchive.swift */,
 				A7F000000000000000000004 /* CloudShopDirectory.swift */,
 				FC80872AD77EA66E1C68E508 /* SyncCoordinator.swift */,
 			);
@@ -323,6 +326,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A7A000000000000000000005 /* CloudReceiptArchive.swift in Sources */,
 				A7A000000000000000000001 /* ReceiptBuilder.swift in Sources */,
 				A7A000000000000000000002 /* ReceiptDetail.swift in Sources */,
 				A7A000000000000000000003 /* SalonTeamSettings.swift in Sources */,

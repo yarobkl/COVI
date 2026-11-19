@@ -77,7 +77,7 @@ struct SalonSpace: View {
                         ForEach(clients) { c in NavigationLink(c.name) { SalonProfile(client: c, history: sales.filter { $0.client == c.id && $0.service }) } }
                     } else if admin {
                         NavigationLink("Rapports du salon") { SalonReport(sales: sales, visits: visits) }
-                        NavigationLink("Catalogue du salon") { SalonCatalog(shop: shop, menu: menu) }
+                        NavigationLink("Catalogue du salon") { SalonCatalog(shop: shop, menu: menu, actor: actor) }
                         NavigationLink("Équipe du salon") { SalonTeamSettings(shop: shop) }
                         if role == .owner { NavigationLink("Paramètres propriétaire") { OwnerSettings(shop: shop, pinManager: pin) } }
                     } else { Text("Salon · " + shop.name) }

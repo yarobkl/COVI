@@ -88,6 +88,7 @@ struct SalonCheckout: View {
 struct SalonCatalog: View {
     let shop: Establishment
     let menu: [CatalogItem]
+    let actor: UUID
     @Environment(\.modelContext) private var db
     @State private var name = ""
     @State private var price = ""
@@ -109,6 +110,11 @@ struct SalonCatalog: View {
                           let count = Int(service ? "0" : qty), count >= 0 else { message = SalonFault.invalid.localizedDescription; return }
                     let item = CatalogItem(establishmentID: shop.id, title: title, priceMinor: amount, isService: service)
                     item.stockOnHand = count; item.salonPercent = percent; db.insert(item)
+                    if count > 0 {
+                        db.insert(StockMovement(establishmentID: shop.id, itemID: item.id,
+                                                delta: count, reason: "Stock initial du salon",
+                                                actorID: actor))
+                    }
                     do { try SalonLedger.save(db); name = ""; price = ""; qty = ""; message = "Référence ajoutée." }
                     catch { message = error.localizedDescription }
                 }
