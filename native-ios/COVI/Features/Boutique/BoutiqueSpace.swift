@@ -51,6 +51,13 @@ struct BoutiqueSpace: View {
                 }
                 Section("Catalogue") {
                     TextField("Rechercher un article", text: $search)
+                    if filtered.isEmpty {
+                        ContentUnavailableView(goods.isEmpty ? "Aucun article" : "Aucun résultat",
+                            systemImage: "shippingbox",
+                            description: Text(goods.isEmpty ?
+                                "Ajoutez votre premier article dans Stock avant d’encaisser." :
+                                "Essayez un autre nom de produit."))
+                    }
                     ForEach(filtered) { item in
                         if tab == .stock {
                             NavigationLink { ProductDetail(shop: shop, item: item, actor: actor) } label: {

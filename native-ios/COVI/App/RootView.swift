@@ -37,8 +37,12 @@ struct RootView: View {
                 VStack {
                     if let shop = shops.first(where: { $0.id == preferred }) ?? shops.first,
                        let role = role(shop, account) {
-                        Picker("Établissement", selection: Binding(get: { shop.id }, set: { selectShop($0, for: account) })) {
-                            ForEach(shops) { Text($0.name).tag($0.id) }
+                        if shops.count > 1 {
+                            Picker("Établissement", selection: Binding(get: { shop.id }, set: { selectShop($0, for: account) })) {
+                                ForEach(shops) { Text($0.name).tag($0.id) }
+                            }
+                        } else {
+                            Text(shop.name).font(.headline).foregroundStyle(COVITheme.navy)
                         }
                         if establishments.filter({ $0.ownerID == account && !$0.archived }).count < 3 {
                             Button("Ajouter un établissement") { addingShop = true }

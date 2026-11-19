@@ -74,6 +74,23 @@ enum SalonFault: String, LocalizedError {
     static func save(_ db: ModelContext) throws {
         do { try db.save() } catch { db.rollback(); throw error }
     }
+    static func updateClient(_ client: SalonClient, shop: UUID, actor: UUID,
+                             name: String, phone: String, notes: String, preferences: String,
+                             db: ModelContext) throws {
+        let cleaned = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let number = phone.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard client.shop == shop, (2...120).contains(cleaned.count), number.count <= 30,
+              notes.count <= 2_000, preferences.count <= 1_000 else { throw SalonFault.invalid }
+        client.name = cleaned
+        client.phone = number
+        client.notes = notes
+        client.preferences = preferences
+        do {
+            try BusinessOutbox.enqueue(kind: "salon.client.updated", establishmentID: shop,
+                entityID: client.id, actorID: actor, in: db)
+            try save(db)
+        } catch { db.rollback(); throw error }
+    }
     static func book(shop: UUID, actor: UUID, client: SalonClient, item: CatalogItem, team: SalonStaff, start: Date,
                      minutes: Int, walkIn: Bool, db: ModelContext) throws {
         guard item.establishmentID == shop, item.isService, client.shop == shop,

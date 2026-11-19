@@ -169,11 +169,12 @@ enum ExpenseCategory {
 
 @MainActor enum ExpenseLedger {
     enum Fault: LocalizedError {
-        case invalid, unauthorized, alreadyVoided
+        case invalid, unauthorized, ownerOnly, alreadyVoided
         var errorDescription: String? {
             switch self {
             case .invalid: "Vérifiez la catégorie, la date et le montant de la dépense."
-            case .unauthorized: "Seul le propriétaire peut annuler cette dépense."
+            case .unauthorized: "Cette opération nécessite les droits du propriétaire ou du responsable."
+            case .ownerOnly: "Seul le propriétaire peut annuler cette dépense."
             case .alreadyVoided: "Cette dépense a déjà été annulée."
             }
         }
@@ -183,6 +184,14 @@ enum ExpenseCategory {
     static func record(shop: Establishment, actor: UUID, category: String,
                        amount: Int64, date: Date, note: String,
                        context: ModelContext) throws -> ExpenseEntry {
+        if actor != shop.ownerID {
+            let shopID = shop.id, personID = actor
+            let memberships = try context.fetch(FetchDescriptor<Membership>(predicate: #Predicate {
+                $0.accountID == personID && $0.establishmentID == shopID
+            }))
+            guard memberships.count == 1, memberships[0].active,
+                  memberships[0].role == .manager else { throw Fault.unauthorized }
+        }
         guard !shop.archived, ExpenseCategory.all.contains(category), amount > 0,
               date <= Date.now.addingTimeInterval(24 * 3_600),
               date >= Date.now.addingTimeInterval(-10 * 366 * 24 * 3_600) else { throw Fault.invalid }
@@ -200,7 +209,7 @@ enum ExpenseCategory {
 
     static func void(_ expense: ExpenseEntry, shop: Establishment,
                      actor: UUID, context: ModelContext) throws {
-        guard actor == shop.ownerID else { throw Fault.unauthorized }
+        guard actor == shop.ownerID else { throw Fault.ownerOnly }
         guard expense.establishmentID == shop.id, !shop.archived else { throw Fault.invalid }
         guard expense.voidedAt == nil else { throw Fault.alreadyVoided }
         expense.voidedAt = .now

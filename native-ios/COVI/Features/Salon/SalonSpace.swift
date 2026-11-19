@@ -70,7 +70,10 @@ struct SalonSpace: View {
                             TextField("Nom du client", text: $newClient)
                             Button("Créer la fiche") {
                                 let name = newClient.trimmingCharacters(in: .whitespacesAndNewlines)
-                                guard !name.isEmpty else { return }
+                                guard (2...120).contains(name.count) else {
+                                    message = "Le nom doit comporter entre 2 et 120 caractères."
+                                    return
+                                }
                                 let client = SalonClient(shop: shop.id, name: name)
                                 db.insert(client)
                                 do {
@@ -201,21 +204,22 @@ private struct SalonProfile: View {
     let history: [SalonSaleLine]
     @Environment(\.modelContext) private var db
     @State private var notes = ""
+    @State private var name = ""
     @State private var preferences = ""
     @State private var phone = ""
     @State private var message = ""
     var body: some View {
         Form {
+            TextField("Nom du client", text: $name).textContentType(.name)
             TextField("Téléphone", text: $phone).keyboardType(.phonePad)
             TextField("Préférences capillaires", text: $preferences, axis: .vertical)
             TextField("Notes techniques", text: $notes, axis: .vertical)
             Button("Enregistrer") {
-                client.phone = phone; client.notes = notes; client.preferences = preferences
                 do {
-                    try BusinessOutbox.enqueue(kind: "salon.client.updated",
-                        establishmentID: client.shop, entityID: client.id, actorID: actor, in: db)
-                    try SalonLedger.save(db); message = "Fiche enregistrée."
-                } catch { db.rollback(); message = error.localizedDescription }
+                    try SalonLedger.updateClient(client, shop: client.shop, actor: actor,
+                        name: name, phone: phone, notes: notes, preferences: preferences, db: db)
+                    message = "Fiche enregistrée."
+                } catch { message = error.localizedDescription }
             }
             Section("Trois dernières prestations") {
                 ForEach(history.prefix(3)) { row in
@@ -224,6 +228,8 @@ private struct SalonProfile: View {
                 }
             }
             Text(message)
-        }.navigationTitle(client.name).onAppear { notes = client.notes; preferences = client.preferences; phone = client.phone }
+        }.navigationTitle(client.name).onAppear {
+            name = client.name; notes = client.notes; preferences = client.preferences; phone = client.phone
+        }
     }
 }

@@ -1,5 +1,45 @@
 import SwiftUI
 import SwiftData
+import UIKit
+
+@MainActor enum ReceiptPDFExporter {
+    static func export(_ receipt: ReceiptSummary) throws -> URL {
+        let page = CGRect(x: 0, y: 0, width: 595, height: 842)
+        let renderer = UIGraphicsPDFRenderer(bounds: page)
+        let margin: CGFloat = 48
+        let width = page.width - margin * 2
+        let style = NSMutableParagraphStyle()
+        style.lineBreakMode = .byWordWrapping
+        let font = UIFont.systemFont(ofSize: 12)
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font, .foregroundColor: UIColor.black, .paragraphStyle: style
+        ]
+        let data = renderer.pdfData { context in
+            var y = margin
+            context.beginPage()
+            for rawLine in receipt.shareText.components(separatedBy: "\n") {
+                let line = (rawLine.isEmpty ? " " : rawLine) as NSString
+                let textSize = line.boundingRect(with: CGSize(width: width, height: .greatestFiniteMagnitude),
+                    options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: attributes,
+                    context: nil)
+                let height = max(18, ceil(textSize.height) + 3)
+                if y + height > page.height - margin {
+                    context.beginPage()
+                    y = margin
+                }
+                line.draw(with: CGRect(x: margin, y: y, width: width, height: height),
+                          options: [.usesLineFragmentOrigin, .usesFontLeading],
+                          attributes: attributes, context: nil)
+                y += height + 5
+            }
+        }
+        let file = FileManager.default.temporaryDirectory
+            .appendingPathComponent("COVI-recu-\(receipt.orderID.uuidString)-\(UUID().uuidString)")
+            .appendingPathExtension("pdf")
+        try data.write(to: file, options: .atomic)
+        return file
+    }
+}
 
 struct ReceiptDetail: View {
     let order: CommerceOrder
@@ -8,6 +48,8 @@ struct ReceiptDetail: View {
     @Query private var payments: [PaymentRecord]
     @Query private var items: [CatalogItem]
     @Query private var refunds: [Refund]
+    @State private var pdfURL: URL?
+    @State private var pdfError = ""
     private var receipt: Result<ReceiptSummary, Error> {
         Result { try ReceiptBuilder.create(order: order, shop: shop, lines: lines,
                                           products: items, payments: payments, refunds: refunds) }
@@ -69,6 +111,19 @@ struct ReceiptDetail: View {
                         ShareLink(item: model.shareText) {
                             Label("Partager le reçu", systemImage: "square.and.arrow.up")
                         }
+                        if let pdfURL {
+                            ShareLink(item: pdfURL, preview: SharePreview("Reçu COVI", image: Image(systemName: "doc.richtext"))) {
+                                Label("Partager le PDF", systemImage: "doc.text")
+                            }
+                        } else {
+                            Button {
+                                do { pdfURL = try ReceiptPDFExporter.export(model); pdfError = "" }
+                                catch { pdfError = "Impossible de créer le PDF : " + error.localizedDescription }
+                            } label: {
+                                Label("Préparer un PDF", systemImage: "doc.badge.plus")
+                            }
+                        }
+                        if !pdfError.isEmpty { Text(pdfError).foregroundStyle(.red) }
                     }
                 }
                 .scrollContentBackground(.hidden).background(COVITheme.cream)

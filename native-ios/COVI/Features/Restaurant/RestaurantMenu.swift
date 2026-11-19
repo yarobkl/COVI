@@ -17,6 +17,10 @@ struct RestaurantComposer: View {
                 Picker("Catégorie", selection: $category) {
                     ForEach(MenuGroup.allCases, id: \.self) { Text($0.rawValue).tag($0) }
                 }.pickerStyle(.segmented)
+                if !menu.contains(where: { $0.menuCategory == category.rawValue && !$0.soldOut }) {
+                    ContentUnavailableView("Aucun article disponible", systemImage: "fork.knife",
+                        description: Text("Un responsable peut compléter la carte depuis Configurer."))
+                }
                 ForEach(menu.filter { $0.menuCategory == category.rawValue }) { item in
                     Stepper(onIncrement: {
                         if !item.soldOut { basket[item.id] = min(999, (basket[item.id] ?? 0) + 1) }

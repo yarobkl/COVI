@@ -29,14 +29,14 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 | Boutique : catalogue | 65 % | 78 % | Catégories, désactivation sûre, tests de parcours iPhone |
 | Boutique : stock / balles / inventaire | 64 % | 73 % | Historique complet, valorisation, tests stock concurrents |
 | Boutique : caisse / confirmation manuelle | 75 % | 80 % | Tests physiques, coupure réseau, remboursement partiel |
-| Boutique : reçus / historique | 28 % | 78 % | Export PDF natif, impression, tests UI |
+| Boutique : reçus / historique | 28 % | 84 % | Impression système et tests UI sur iPhone |
 | Restaurant : salle et tables | 66 % | 78 % | Réservations, flux multi-serveurs, tests iPhone |
 | Restaurant : commandes et cuisine | 64 % | 76 % | Annulation / corrections, calculs avancés, tests |
 | Restaurant : règlement en caisse | 66 % | 81 % | Reçu imprimable, tests concurrence et double paiement sur appareil |
 | Salon : équipe réelle | 5 % | 79 % | Historique des affectations, rôles, tests UI |
 | Salon : agenda / rendez-vous | 61 % | 79 % | Plages horaires avancées, rappels et tests iPhone |
 | Salon : catalogue / encaissement | 66 % | 73 % | Retour client, modifications, tests de flux |
-| Salon : clients / fiches | 65 % | 74 % | Consentements, export, suppression, tests iPhone |
+| Salon : clients / fiches | 65 % | 79 % | Consentements, export, suppression, tests iPhone |
 | Salon : rapports / commissions | 55 % | 65 % | Périodes, réconciliation financière, tests |
 | Dépenses (trois métiers) | 0 % | 74 % | Rapports de marge, export et partage iCloud à ajouter |
 | Trésorerie mensuelle multi-métier | 0 % | 76 % | Recoupement sur appareils, tests UI, export mensuel |
@@ -159,6 +159,25 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 106. Ajouter des tests de calcul et d'exclusion des dépenses annulées.
 107. Analyser le diagnostic Xcode de la carte restaurant et corriger la collision entre erreur attrapée et état d'interface.
 108. Corriger le même risque d'ombre portée sur les écrans de dépenses ajoutés dans ce lot.
+109. Mettre à jour la documentation Xcode pour ouvrir le vrai projet plutôt que recréer un template.
+110. Expliquer clairement le mode de diagnostic sans signature ni distribution TestFlight.
+111. Ajouter une aide intégrée pour la saisie des dépenses et la lecture du bilan financier.
+112. Renforcer les droits d'enregistrement des dépenses : propriétaire ou responsable actif seulement.
+113. Ajouter des tests de refus pour les caissiers et les responsables désactivés.
+114. Permettre la correction native du nom du client salon sans perdre son historique.
+115. Contrôler la longueur des noms, téléphones, notes et préférences avant enregistrement.
+116. Tester la modification de fiche client et son journal d'audit.
+117. Ajouter les messages d'état vide au catalogue boutique et aux recherches sans résultat.
+118. Expliquer clairement l'absence de plats disponibles dans l'éditeur de commande du restaurant.
+119. Afficher l'état « aucune commande » dans la cuisine sans laisser un écran vide.
+120. Guider le salon lorsque l'équipe, les clients ou le catalogue n'ont pas encore été configurés.
+121. Générer un PDF de reçu directement sur l'iPhone avec le moteur PDF natif Apple.
+122. Paginer les lignes longues du reçu sans WebView ni bibliothèque externe.
+123. Rendre le PDF disponible dans la feuille de partage iOS.
+124. Conserver la mention des remboursements dans le PDF partagé.
+125. Ajouter un XCTest ouvrant le document PDF avec PDFKit et vérifiant son contenu.
+126. Retirer le faux QR de table qui n'effectuait aucune vraie commande native et pouvait troubler le personnel.
+127. Remplacer le sélecteur de boutique inutile par un titre simple lorsque le propriétaire n'a qu'un établissement.
 
 ## Vérification macOS sans signature (branche de diagnostic uniquement)
 

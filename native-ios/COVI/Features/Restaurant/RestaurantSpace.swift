@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import CoreImage.CIFilterBuiltins
 
 struct RestaurantSpace: View {
     let shop: Establishment
@@ -33,6 +32,11 @@ struct RestaurantSpace: View {
                     Picker("Préparation", selection: $phase) {
                         ForEach(Prep.allCases, id: \.self) { Text($0.rawValue).tag($0) }
                     }.pickerStyle(.segmented)
+                    let activeOrders = Set(tables.compactMap(\.activeSessionID))
+                    if !lines.contains(where: { activeOrders.contains($0.orderID) && $0.preparation == phase.rawValue }) {
+                        ContentUnavailableView("Aucune commande", systemImage: "checkmark.circle",
+                            description: Text("Les nouveaux plats envoyés en cuisine apparaîtront ici."))
+                    }
                     ForEach(tables) { t in
                         if let order = orders.first(where: { $0.id == t.activeSessionID }) {
                             ForEach(lines.filter { $0.orderID == order.id && $0.preparation == phase.rawValue }) { line in
@@ -91,11 +95,9 @@ struct RestaurantTable: View {
     @State private var tender = Tender.cash
     @State private var received = ""
     @State private var confirmed = false
-    @State private var qr = false
     @State private var message = ""
     var body: some View {
         List {
-            Button("Code QR de la table") { qr = true }
             if let order {
                 Section("Détail de la session") {
                     ForEach(lines) { line in
@@ -158,23 +160,6 @@ struct RestaurantTable: View {
             }
         }
         .sheet(isPresented: $ordering) { if let order { RestaurantComposer(menu: menu, table: table, order: order, service: service) } }
-        .sheet(isPresented: $qr) {
-            VStack {
-                Text(table.label).font(.title)
-                Text("Code interne de repérage de la table. La commande reste confirmée par le personnel.")
-                    .font(.footnote).multilineTextAlignment(.center)
-                let filter = CIFilter.qrCodeGenerator()
-                let payload = "covi:table/\(table.establishmentID.uuidString)/\(table.id.uuidString)"
-                if let cg = Self.code(filter, payload) {
-                    Image(decorative: cg, scale: 1).interpolation(.none).resizable().scaledToFit().padding(24).background(.white)
-                }
-            }.padding().presentationDetents([.medium])
-        }
-    }
-    static func code(_ filter: CIFilter & CIQRCodeGenerator, _ payload: String) -> CGImage? {
-        filter.message = Data(payload.utf8)
-        guard let image = filter.outputImage else { return nil }
-        return CIContext().createCGImage(image, from: image.extent)
     }
     func run(_ work: () throws -> Void) {
         do { try work(); message = ""; HapticService.confirm() } catch { message = error.localizedDescription; HapticService.error() }

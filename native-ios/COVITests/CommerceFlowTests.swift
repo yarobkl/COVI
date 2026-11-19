@@ -177,6 +177,23 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 1)
     }
 
+    func testExpenseEntryRequiresOwnerOrActiveManager() throws {
+        let db = try database(), owner = UUID(), manager = UUID(), cashier = UUID()
+        let shop = Establishment(ownerID: owner, name: "Restaurant", kind: .restaurant, city: "Yaoundé")
+        let membership = Membership(accountID: manager, establishmentID: shop.id, role: .manager)
+        let cashierMembership = Membership(accountID: cashier, establishmentID: shop.id, role: .cashier)
+        db.insert(shop); db.insert(membership); db.insert(cashierMembership); try db.save()
+        XCTAssertThrowsError(try ExpenseLedger.record(shop: shop, actor: cashier,
+            category: "Transport", amount: 1_000, date: .now, note: "", context: db))
+        _ = try ExpenseLedger.record(shop: shop, actor: manager,
+            category: "Transport", amount: 1_000, date: .now, note: "", context: db)
+        membership.active = false
+        try db.save()
+        XCTAssertThrowsError(try ExpenseLedger.record(shop: shop, actor: manager,
+            category: "Transport", amount: 1_000, date: .now, note: "", context: db))
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<ExpenseEntry>()), 1)
+    }
+
     func testFinanceSummarySubtractsRefundsAndOnlyActiveExpenses() {
         let owner = UUID(), shop = UUID()
         let payment = PaymentRecord(orderID: UUID(), establishmentID: shop, method: "MTN MoMo",
@@ -480,5 +497,25 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertThrowsError(try SalonLedger.book(shop: shop.id, actor: owner, client: client,
             item: item, team: stylist, start: start, minutes: 45, walkIn: false, db: db))
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 1)
+    }
+
+    func testSalonClientNameAndPhoneAreEditableWithAuditHistory() throws {
+        let db = try database(), owner = UUID(), shopID = UUID()
+        let client = SalonClient(shop: shopID, name: "Ancien nom")
+        db.insert(client); try db.save()
+        try SalonLedger.updateClient(client, shop: shopID, actor: owner,
+            name: " Nouveau nom ", phone: " +241 01 23 45 67 ",
+            notes: "Préférence douce", preferences: "Sans produits parfumés", db: db)
+        XCTAssertEqual(client.name, "Nouveau nom")
+        XCTAssertEqual(client.phone, "+241 01 23 45 67")
+        XCTAssertEqual(client.notes, "Préférence douce")
+        let event = try XCTUnwrap(db.fetch(FetchDescriptor<OutboxEvent>()).first)
+        XCTAssertEqual(try JSONDecoder().decode(BusinessEventPayload.self,
+            from: event.payloadJSON).kind, "salon.client.updated")
+        XCTAssertThrowsError(try SalonLedger.updateClient(client, shop: UUID(), actor: owner,
+            name: "Intrus", phone: "", notes: "", preferences: "", db: db))
+        XCTAssertThrowsError(try SalonLedger.updateClient(client, shop: shopID, actor: owner,
+            name: " ", phone: "", notes: "", preferences: "", db: db))
+        XCTAssertEqual(client.name, "Nouveau nom")
     }
 }

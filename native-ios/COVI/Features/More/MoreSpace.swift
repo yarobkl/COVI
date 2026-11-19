@@ -309,6 +309,11 @@ struct HelpPrivacyView: View {
                 Text("COVI ne retire aucun argent des comptes clients. Espèces et Mobile Money sont enregistrés uniquement après confirmation humaine.")
                 Text("Le service est gratuit : aucun abonnement ni achat intégré.")
             }
+            Section("Dépenses et trésorerie") {
+                Text("Dans Plus, les responsables peuvent saisir le loyer, les frais et les salaires du commerce.")
+                Text("Le bilan mensuel montre les encaissements confirmés, les remboursements et les dépenses. Ce n’est pas un bénéfice comptable.")
+                Text("Une dépense incorrecte est annulée, jamais effacée sans trace.")
+            }
             Section("Confidentialité") {
                 Label("Données locales enregistrées avec SwiftData.", systemImage: "iphone")
                 Label("Identité locale enregistrée dans le trousseau sécurisé iOS.", systemImage: "lock")

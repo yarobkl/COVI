@@ -21,6 +21,14 @@ struct SalonCheckout: View {
     var total: Decimal { menu.reduce(Decimal.zero) { $0 + Decimal($1.priceMinor) * Decimal(basket[$1.id] ?? 0) } }
     var body: some View {
         Form {
+            if clients.isEmpty {
+                Text("Créez d’abord une fiche dans Clients pour encaisser une prestation.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+            if menu.isEmpty {
+                Text("Ajoutez vos prestations ou produits dans Plus → Catalogue du salon.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
             Picker("Ticket", selection: $visitID) {
                 Text("Vente directe").tag(nil as UUID?)
                 ForEach(visits.filter { !$0.cancelled && $0.receipt == nil }) { v in
@@ -58,7 +66,7 @@ struct SalonCheckout: View {
             }
             Picker("Règlement externe", selection: $tender) { ForEach(Tender.allCases, id: \.self) { Text($0.rawValue) } }
             COVIButton("Encaisser \(total.formatted()) FCFA") { confirm = true }
-                .disabled(clientID == nil || basket.isEmpty || stylist.isEmpty)
+                .disabled(clientID == nil || basket.isEmpty || stylist.isEmpty || menu.isEmpty)
             if let receipt {
                 NavigationLink {
                     ReceiptDetail(order: receipt, shop: shop)

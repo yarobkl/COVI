@@ -1,11 +1,19 @@
 # COVI iOS — SwiftUI natif
 
 ## Démarrage
-1. Créer un projet **iOS App** nommé `COVI` dans Xcode (SwiftUI, Swift, iOS 17+).
-2. Ajouter le dossier `COVI/` au projet, avec tous les fichiers `.swift` dans la target.
-3. Supprimer le fichier `App` généré par le template afin de ne conserver qu'un seul `@main` (`COVIApp.swift`).
-4. Configurer le Team ID et le bundle identifier dans Signing & Capabilities.
-5. Compiler sur simulateur iPhone, puis intégrer les 46 écrans par fonctionnalité.
+1. Ouvrir `native-ios/COVI.xcodeproj` dans Xcode, ou exécuter `xcodegen generate` depuis `native-ios/` pour le régénérer à partir de `project.yml`.
+2. Utiliser un simulateur iPhone iOS 17+ pour compiler et exécuter les XCTest de la cible `COVITests`.
+3. Conserver les paramètres de signature Apple existants : **ne jamais créer ou modifier automatiquement un certificat ni un profil de provisioning**.
+4. Comparer chaque écran avec les 46 maquettes approuvées avant de déclarer la conformité visuelle.
+
+## Vérification sans TestFlight
+
+Le workflow GitHub Actions `COVI Native iOS Diagnostics` sur la branche isolée
+`wip/covi-native-20261119-no-testflight` utilise un runner macOS et
+`CODE_SIGNING_ALLOWED=NO`. Il **compile puis exécute les tests**, sans archive,
+signature, livraison ni modification de Xcode Cloud.
+La révision `765f157` a réussi ses 53 XCTest. Les modifications ultérieures
+doivent être revérifiées sur ce workflow, puis testées sur un appareil réel.
 
 ## État réel
 - SwiftUI et SwiftData locaux pour Boutique, Restaurant et Salon ; aucune WebView ni API Supabase.
@@ -15,6 +23,7 @@
 - La caisse est accessible sans PIN au propriétaire qui n'a pas installé de code ; le personnel et les propriétaires ayant configuré un code passent par un verrou local.
 - Réception de paiements en caisse uniquement. COVI n'encaisse pas de monnaie électronique.
 - Reçus natifs vérifiés à partir des lignes et du règlement enregistré, partageables par la feuille système.
+- Dépenses et bilan de trésorerie des trois métiers en SwiftData local. Ce bilan n'est pas un calcul de bénéfice comptable.
 - L'entitlement Sign in with Apple est déclaré dans la cible, mais la validation de la capacité sur le profil Apple **déjà existant** doit être effectuée au moment de compiler. Ne jamais modifier les certificats/profils automatiquement.
 - L'historique hybride/Supabase ne migre pas automatiquement vers l'identité locale/Apple. Une migration explicite et testée est nécessaire.
-- Le code Swift n'a pas été compilé dans cet environnement Linux : voir `PROGRESS_TRACKER.md`.
+- La compilation macOS et les tests simulateur sont assurés sur GitHub Actions ; l'environnement local Linux vérifie seulement la syntaxe Swift. Voir `PROGRESS_TRACKER.md` pour les dernières révisions certifiées.

@@ -1,4 +1,5 @@
 import XCTest
+import PDFKit
 @testable import COVI
 
 @MainActor
@@ -76,5 +77,17 @@ final class ReceiptBuilderTests: XCTestCase {
         let refund = Refund(payment: fixture.payment, ownerID: UUID())
         XCTAssertThrowsError(try ReceiptBuilder.create(order: fixture.order, shop: fixture.shop,
             lines: fixture.lines, products: [fixture.item], payments: [fixture.payment], refunds: [refund]))
+    }
+
+    func testNativePDFContainsConfirmedReceiptInformation() throws {
+        let fixture = fixture()
+        let summary = try ReceiptBuilder.create(order: fixture.order, shop: fixture.shop,
+            lines: fixture.lines, products: [fixture.item], payments: [fixture.payment])
+        let url = try ReceiptPDFExporter.export(summary)
+        defer { try? FileManager.default.removeItem(at: url) }
+        let document = try XCTUnwrap(PDFDocument(url: url))
+        XCTAssertGreaterThanOrEqual(document.pageCount, 1)
+        XCTAssertTrue(document.string?.contains("Boutique COVI") == true)
+        XCTAssertTrue(document.string?.contains("3500") == true)
     }
 }
