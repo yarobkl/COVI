@@ -27,7 +27,7 @@ struct PINEntryView: View {
             SecureField("Code PIN", text: $entered).focused($focused)
                 .keyboardType(.numberPad).opacity(0.01).frame(height: 1)
                 .onChange(of: entered) { _, value in
-                    let sanitized = String(value.filter(\.isNumber).prefix(4))
+                    let sanitized = String(decoding: value.utf8.filter { (48...57).contains($0) }.prefix(4), as: UTF8.self)
                     if sanitized != value { entered = sanitized }
                     HapticService.keyPress()
                     if sanitized.count == 4 { verify() }

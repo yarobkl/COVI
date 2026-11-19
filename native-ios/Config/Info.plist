@@ -20,7 +20,4 @@
 </array>
 <key>ITSAppUsesNonExemptEncryption</key><false/>
 <key>UILaunchScreen</key><dict/>
-<key>COVISupabaseURL</key><string>https://$(COVI_SUPABASE_HOST)</string>
-<key>COVISupabasePublishableKey</key><string>$(COVI_PUBLISHABLE_KEY)</string>
-<key>COVIShowcaseURL</key><string>https://$(COVI_SHOWCASE_HOST)/</string>
 </dict></plist>

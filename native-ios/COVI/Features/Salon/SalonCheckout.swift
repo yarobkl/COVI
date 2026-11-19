@@ -8,14 +8,16 @@ struct SalonCheckout: View {
     let clients: [SalonClient]
     let menu: [CatalogItem]
     let visits: [SalonVisit]
+    let team: [SalonStaff]
     @Environment(\.modelContext) private var db
     @State private var visitID: UUID?
     @State private var clientID: UUID?
-    @State private var team = SalonTeam.chloe
+    @State private var stylist = ""
     @State private var basket: [UUID:Int] = [:]
     @State private var tender = Tender.cash
     @State private var confirm = false
     @State private var message = ""
+    @State private var receipt: CommerceOrder?
     var total: Decimal { menu.reduce(Decimal.zero) { $0 + Decimal($1.priceMinor) * Decimal(basket[$1.id] ?? 0) } }
     var body: some View {
         Form {
@@ -27,16 +29,23 @@ struct SalonCheckout: View {
             }.onChange(of: visitID) { _, id in
                 basket = [:]
                 if let v = visits.first(where: { $0.id == id }) {
-                    clientID = v.client; team = SalonTeam(rawValue: v.stylist) ?? .chloe; basket[v.service] = 1
+                    clientID = v.client; stylist = v.stylist; basket[v.service] = 1
                 }
             }
             Picker("Client", selection: $clientID) {
                 Text("Choisir").tag(nil as UUID?)
                 ForEach(clients) { Text($0.name).tag(Optional($0.id)) }
             }.disabled(visitID != nil)
-            Picker("Collaborateur crédité", selection: $team) {
-                ForEach(SalonTeam.allCases, id: \.self) { Text($0.rawValue) }
+            Picker("Collaborateur crédité", selection: $stylist) {
+                Text("Choisir").tag("")
+                ForEach(team.filter { $0.active || $0.name == stylist }) { person in
+                    Text(person.name).tag(person.name)
+                }
             }.disabled(visitID != nil)
+            if team.isEmpty {
+                Text("Ajoutez votre équipe dans Plus avant d’encaisser.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
             ForEach([true,false], id: \.self) { services in
                 Section(services ? "Prestations" : "Produits de soin") {
                     ForEach(menu.filter { $0.isService == services }) { item in
@@ -48,7 +57,15 @@ struct SalonCheckout: View {
                 }
             }
             Picker("Règlement externe", selection: $tender) { ForEach(Tender.allCases, id: \.self) { Text($0.rawValue) } }
-            COVIButton("Encaisser \(total.formatted()) FCFA") { confirm = true }.disabled(clientID == nil || basket.isEmpty)
+            COVIButton("Encaisser \(total.formatted()) FCFA") { confirm = true }
+                .disabled(clientID == nil || basket.isEmpty || stylist.isEmpty)
+            if let receipt {
+                NavigationLink {
+                    ReceiptDetail(order: receipt, shop: shop)
+                } label: {
+                    Label("Voir et partager le dernier reçu", systemImage: "receipt")
+                }
+            }
             Text(message)
         }.confirmationDialog("Confirmer la réception de \(total.formatted()) FCFA ?", isPresented: $confirm) {
             Button("Paiement reçu · " + tender.rawValue) {
@@ -56,11 +73,14 @@ struct SalonCheckout: View {
                 let visit = visits.first { $0.id == visitID }
                 guard visitID == nil || visit != nil else { message = SalonFault.stale.localizedDescription; return }
                 do {
-                    try SalonLedger.pay(shop: shop, actor: actor, pin: pin, client: client, team: team, visit: visit,
+                    receipt = try SalonLedger.pay(shop: shop, actor: actor, pin: pin, client: client, team: stylist, visit: visit,
                                         basket: basket, menu: menu, tender: tender, db: db)
                     visitID = nil; basket = [:]; message = "Paiement enregistré."; HapticService.confirm()
                 } catch { message = error.localizedDescription }
             }
+        }
+        .onAppear {
+            if stylist.isEmpty { stylist = team.first(where: \.active)?.name ?? "" }
         }
     }
 }
@@ -119,13 +139,13 @@ struct SalonReport: View {
                 LabeledContent("Commissions équipe", value: "\(commissions.formatted()) FCFA")
                 LabeledContent("Part salon", value: "\((gross - commissions).formatted()) FCFA")
             }
-            ForEach(SalonTeam.allCases, id: \.self) { person in
-                let team = rows.filter { $0.stylist == person.rawValue }
-                Section(person.rawValue) {
-                    LabeledContent("RDV hors annulations", value: "\(visits.filter { !$0.cancelled && $0.stylist == person.rawValue && includes($0.start) }.count)")
-                    LabeledContent("Tickets encaissés", value: "\(Set(team.map(\.order)).count)")
-                    LabeledContent("CA", value: "\(team.reduce(Decimal.zero) { $0 + Decimal($1.gross) }.formatted()) FCFA")
-                    LabeledContent("Commission", value: "\(team.reduce(Decimal.zero) { $0 + Decimal($1.commission) }.formatted()) FCFA")
+            ForEach(Array(Set(rows.map(\.stylist) + visits.map(\.stylist))).sorted(), id: \.self) { person in
+                let activity = rows.filter { $0.stylist == person }
+                Section(person) {
+                    LabeledContent("RDV hors annulations", value: "\(visits.filter { !$0.cancelled && $0.stylist == person && includes($0.start) }.count)")
+                    LabeledContent("Tickets encaissés", value: "\(Set(activity.map(\.order)).count)")
+                    LabeledContent("CA", value: "\(activity.reduce(Decimal.zero) { $0 + Decimal($1.gross) }.formatted()) FCFA")
+                    LabeledContent("Commission", value: "\(activity.reduce(Decimal.zero) { $0 + Decimal($1.commission) }.formatted()) FCFA")
                 }
             }
         }.navigationTitle("Rapports salon")

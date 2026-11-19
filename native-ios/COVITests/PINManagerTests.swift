@@ -122,4 +122,26 @@ final class PINManagerTests: XCTestCase {
         XCTAssertEqual(manager.failedAttempts, 0)
         XCTAssertNil(manager.lockedUntil)
     }
+
+    func testOwnerWithoutConfiguredCashierPINCanOperateImmediately() throws {
+        let owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Marché", kind: .boutique,
+                                 city: "Brazzaville")
+        let manager = makeManager()
+        XCTAssertTrue(manager.mayOperate(shop: shop, actor: owner))
+        XCTAssertFalse(manager.mayOperate(shop: shop, actor: UUID()))
+    }
+
+    func testConfiguredOwnerCashierPINRestoresTheLock() throws {
+        let owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Marché", kind: .boutique,
+                                 city: "Brazzaville")
+        let manager = makeManager()
+        try configure(manager, staff: owner, shop: shop.id)
+        XCTAssertFalse(manager.mayOperate(shop: shop, actor: owner))
+        XCTAssertTrue(manager.verify(correctPIN, scope: .cashier(staffID: owner, shopID: shop.id)))
+        XCTAssertTrue(manager.mayOperate(shop: shop, actor: owner))
+        manager.lock()
+        XCTAssertFalse(manager.mayOperate(shop: shop, actor: owner))
+    }
 }

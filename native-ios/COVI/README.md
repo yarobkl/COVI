@@ -1,4 +1,4 @@
-# COVI iOS — Starter natif SwiftUI
+# COVI iOS — SwiftUI natif
 
 ## Démarrage
 1. Créer un projet **iOS App** nommé `COVI` dans Xcode (SwiftUI, Swift, iOS 17+).
@@ -8,8 +8,13 @@
 5. Compiler sur simulateur iPhone, puis intégrer les 46 écrans par fonctionnalité.
 
 ## État réel
-- Inclus : modèles SwiftData locaux, thème, politique de tabs dynamiques, garde PIN de navigation, outbox de base, retours haptiques.
-- **Non inclus / non fonctionnel en production** : CloudKit, sync multi-utilisateur, provisioning des PIN, validation serveur, authentification, permissions effectives, écrans métier finaux, migrations, tests.
-- Le `PINEntryView` ne reçoit pas encore d'identité ou de hash depuis une session : il **refuse l'accès** tant que le flux d'authentification n'est pas branché. C'est intentionnel.
-- Ne pas utiliser SHA-256 seul pour protéger un PIN à quatre chiffres. Utiliser un KDF lent + Keychain et un contrôle d'accès serveur.
-- Ne pas déduire une compatibilité CloudKit de ces modèles : une modélisation spécifique, contraintes et tests sont requis.
+- SwiftUI et SwiftData locaux pour Boutique, Restaurant et Salon ; aucune WebView ni API Supabase.
+- Identité locale en Keychain ou Sign in with Apple (identifiant stable entre appareils).
+- CloudKit privé : répertoire d'établissements et journal de **renommages et remboursements uniquement**.
+- Le stock, les réservations, les articles, les encaissements et les fiches clients **ne sont pas encore synchronisés entre appareils**.
+- La caisse est accessible sans PIN au propriétaire qui n'a pas installé de code ; le personnel et les propriétaires ayant configuré un code passent par un verrou local.
+- Réception de paiements en caisse uniquement. COVI n'encaisse pas de monnaie électronique.
+- Reçus natifs vérifiés à partir des lignes et du règlement enregistré, partageables par la feuille système.
+- L'entitlement Sign in with Apple est déclaré dans la cible, mais la validation de la capacité sur le profil Apple **déjà existant** doit être effectuée au moment de compiler. Ne jamais modifier les certificats/profils automatiquement.
+- L'historique hybride/Supabase ne migre pas automatiquement vers l'identité locale/Apple. Une migration explicite et testée est nécessaire.
+- Le code Swift n'a pas été compilé dans cet environnement Linux : voir `PROGRESS_TRACKER.md`.

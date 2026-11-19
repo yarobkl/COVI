@@ -124,6 +124,8 @@ struct RestaurantTable: View {
         .sheet(isPresented: $qr) {
             VStack {
                 Text(table.label).font(.title)
+                Text("Code interne de repérage de la table. La commande reste confirmée par le personnel.")
+                    .font(.footnote).multilineTextAlignment(.center)
                 let filter = CIFilter.qrCodeGenerator()
                 let payload = "covi:table/\(table.establishmentID.uuidString)/\(table.id.uuidString)"
                 if let cg = Self.code(filter, payload) {

@@ -59,7 +59,7 @@ struct DynamicTabView: View {
             get: { selected },
             set: { requested in
                 guard requested != selected else { return }
-                if TabPolicy.requiresPIN(requested) && !pinManager.isUnlocked {
+                if TabPolicy.requiresPIN(requested) && !pinManager.mayOperate(shop: establishment, actor: accountID) {
                     pending = requested
                     showingPIN = true
                 } else {
@@ -71,7 +71,7 @@ struct DynamicTabView: View {
         )) {
             ForEach(tabs) { tab in
                 NavigationStack {
-                    if TabPolicy.requiresPIN(tab) && !(pinManager.isUnlocked && pinManager.unlockedStaffID == accountID) {
+                    if TabPolicy.requiresPIN(tab) && !pinManager.mayOperate(shop: establishment, actor: accountID) {
                         Button("Déverrouiller") { pending = tab; showingPIN = true }
                     } else if tab == .more {
                         MoreSpace(shop: establishment, actor: accountID, role: role, pin: pinManager)
@@ -81,12 +81,15 @@ struct DynamicTabView: View {
                         RestaurantSpace(shop: establishment, tab: tab, actor: accountID, role: role, pin: pinManager)
                     } else if establishment.kind == .boutique && [.home, .sell, .stock].contains(tab) {
                         BoutiqueSpace(tab: tab, shop: establishment, actor: accountID, pin: pinManager) {
-                            if pinManager.isUnlocked && pinManager.unlockedStaffID == accountID { selected = .sell }
+                            if pinManager.mayOperate(shop: establishment, actor: accountID) { selected = .sell }
                             else { pending = .sell; showingPIN = true }
                         }
                     } else if tab == .orders && establishment.kind == .boutique {
                         BoutiqueOrders(shop: establishment)
-                    } else { FeaturePlaceholder(title: tab.title) }
+                    } else {
+                        ContentUnavailableView("Section indisponible", systemImage: "exclamationmark.triangle",
+                                               description: Text("Vérifiez le type d’établissement sélectionné."))
+                    }
                 }
                 .tabItem { Label(tab.title, systemImage: tab.symbol) }
                 .tag(tab)
@@ -109,22 +112,6 @@ struct DynamicTabView: View {
         }
     }
 }
-
-struct FeaturePlaceholder: View {
-    let title: String
-    var body: some View {
-        ScrollView {
-            COVICard {
-                Text("Écran \(title) à intégrer depuis la maquette validée")
-                    .foregroundStyle(COVITheme.navy)
-            }
-            .padding(16)
-        }
-        .background(COVITheme.cream)
-        .navigationTitle(title)
-    }
-}
-
 
 private struct BoutiqueOrders: View {
     @Query private var orders: [CommerceOrder]
@@ -177,6 +164,13 @@ private struct BoutiqueOrderDetail: View {
             }
             if order.discountMinor > 0 { LabeledContent("Remise", value: "\(order.discountMinor) \(shop.currencyCode)") }
             LabeledContent("Total", value: "\(order.totalMinor) \(shop.currencyCode)")
+            if order.state == .completed && order.totalMinor > 0 {
+                NavigationLink {
+                    ReceiptDetail(order: order, shop: shop)
+                } label: {
+                    Label("Voir et partager le reçu", systemImage: "receipt")
+                }
+            }
         }.navigationTitle("Détail de la commande")
     }
 }

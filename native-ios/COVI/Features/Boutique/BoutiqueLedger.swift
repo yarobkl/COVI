@@ -1,7 +1,14 @@
 import SwiftData
 import Foundation
 
-enum Tender: String, CaseIterable { case cash = "Espèces", airtel = "Airtel Money", mtn = "MTN MoMo" }
+enum Tender: String, CaseIterable {
+    case cash = "Espèces"
+    case airtel = "Airtel Money"
+    case mtn = "MTN MoMo"
+    case orange = "Orange Money"
+    case moov = "Moov Money"
+    case other = "Autre moyen reçu en caisse"
+}
 
 @Model final class Bale {
     @Attribute(.unique) var id: UUID
@@ -38,7 +45,9 @@ enum BoutiqueError: LocalizedError {
     static func total(_ lines: [Line], discount: Int64) throws -> Int64 {
         guard !lines.isEmpty, discount >= 0 else { throw BoutiqueError.invalid }
         var sum: Int64 = 0
+        var unique = Set<UUID>()
         for line in lines {
+            guard unique.insert(line.product.id).inserted else { throw BoutiqueError.invalid }
             guard line.units > 0, line.product.priceMinor >= 0 else { throw BoutiqueError.invalid }
             let (value, overflow) = line.product.priceMinor.multipliedReportingOverflow(by: Int64(line.units))
             let (next, exceeds) = sum.addingReportingOverflow(value)
@@ -49,9 +58,9 @@ enum BoutiqueError: LocalizedError {
         return sum - discount
     }
 
-    static func sell(_ lines: [Line], discount: Int64, quote: Int64, tender: Tender, received: Int64?,
-                     confirmed: Bool, shop: Establishment, actor: UUID, pin: PINManager, context: ModelContext) throws {
-        guard pin.isUnlocked, pin.unlockedStaffID == actor else { throw BoutiqueError.permission }
+    @discardableResult static func sell(_ lines: [Line], discount: Int64, quote: Int64, tender: Tender, received: Int64?,
+                     confirmed: Bool, shop: Establishment, actor: UUID, pin: PINManager, context: ModelContext) throws -> CommerceOrder {
+        guard pin.mayOperate(shop: shop, actor: actor) else { throw BoutiqueError.permission }
         let due = try total(lines, discount: discount)
         guard due == quote else { throw BoutiqueError.changed }
         guard tender == .cash ? (received ?? -1) >= due : confirmed else { throw BoutiqueError.invalid }
@@ -82,6 +91,7 @@ enum BoutiqueError: LocalizedError {
                 entityID: order.id, actorID: actor, relatedIDs: [payment.id], in: context)
             try context.save()
             pin.touch()
+            return order
         } catch { context.rollback(); throw error }
     }
 }

@@ -6,6 +6,7 @@ struct RootView: View {
     @Query(sort: \Establishment.name) private var establishments: [Establishment]
     @Query private var memberships: [Membership]
     @Environment(AppSession.self) private var session
+    @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var phase
     @State private var selectedID: UUID?
     @State private var addingShop = false
@@ -17,6 +18,8 @@ struct RootView: View {
     @State private var pinManager = PINManager()
     @State private var restoring = true
     @State private var logoutError = false
+    @State private var importingDirectory = false
+    @State private var directoryError = ""
 
     private func role(_ shop: Establishment, _ account: UUID) -> StaffRole? {
         guard !shop.archived else { return nil }
@@ -44,7 +47,26 @@ struct RootView: View {
                         DynamicTabView(establishment: shop, accountID: account, role: role, pinManager: pinManager)
                             .id("\(account)-\(shop.id)-\(role.rawValue)")
                         if role == .owner { ShopSyncStatus(shop: shop).id(shop.id) }
-                    } else { EstablishmentSetup(account: account) { selectShop($0, for: account) }.id(account) }
+                    } else if importingDirectory {
+                        ContentUnavailableView {
+                            Label("Recherche de vos établissements", systemImage: "icloud")
+                        } description: {
+                            Text("COVI vérifie votre répertoire iCloud privé.")
+                        } actions: {
+                            ProgressView()
+                        }
+                    } else {
+                        if !directoryError.isEmpty {
+                            ContentUnavailableView {
+                                Label("iCloud indisponible", systemImage: "icloud.slash")
+                            } description: {
+                                Text(directoryError)
+                            } actions: {
+                                Button("Réessayer") { Task { await importDirectory(account) } }
+                            }
+                        }
+                        EstablishmentSetup(account: account) { selectShop($0, for: account) }.id(account)
+                    }
                     Button("Se déconnecter") {
                         pinManager.lock()
                         do { try session.signOut() } catch { logoutError = true }
@@ -59,9 +81,26 @@ struct RootView: View {
             } else { COVIWelcome() }
         }
         .task { if restoring { try? await session.restore(); restoring = false } }
+        .task(id: session.accountID) {
+            guard let owner = session.accountID, session.usesAppleAccount else { return }
+            await importDirectory(owner)
+        }
         .onChange(of: phase) { _, phase in if phase != .active { pinManager.lock() } }
         .onChange(of: session.accountID) { _, _ in pinManager.lock(); selectedID = nil; addingShop = false }
         .alert("Effacement de la session locale impossible", isPresented: $logoutError) { Button("OK") {} }
+    }
+
+    private func importDirectory(_ account: UUID) async {
+        guard session.accountID == account, session.usesAppleAccount else { return }
+        importingDirectory = true
+        defer { importingDirectory = false }
+        do {
+            try await CloudShopDirectory.reconcile(owner: account, context: context)
+            directoryError = ""
+        } catch is CancellationError { return }
+        catch {
+            directoryError = error.localizedDescription
+        }
     }
 }
 

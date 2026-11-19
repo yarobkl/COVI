@@ -120,19 +120,26 @@ struct ShopChange: Codable {
 
 struct ShopSyncStatus: View {
     let shop: Establishment
+    @Environment(AppSession.self) private var session
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var phase
     @State private var status = "Synchronisation en attente"
     var body: some View {
         Text(status).font(.caption).task(id: "\(shop.id)-\(phase)") {
             guard phase == .active else { return }
+            guard session.usesAppleAccount else {
+                status = "Enregistré sur cet iPhone · iCloud non activé"
+                return
+            }
             var delay = 2.0
             while !Task.isCancelled {
-                var wait = 15.0
+                // Aucun polling serré : un cycle par minute au maximum en état sain.
+                var wait = 60.0
                 do {
+                    try await CloudShopDirectory.reconcile(owner: shop.ownerID, context: context)
                     try await SyncCoordinator.cycle(shop: shop, context: context)
                     let conflict = try SyncCoordinator.history(shop.id, context).contains { $0.state == .conflict }
-                    status = conflict ? "Remboursement à vérifier" : "Synchronisé"
+                    status = conflict ? "Remboursement à vérifier" : "Répertoire et journal iCloud à jour · opérations métier sur cet iPhone"
                     delay = 2
                 } catch is CancellationError { return }
                 catch {

@@ -78,11 +78,11 @@ struct BoutiqueSpace: View {
         }
         .scrollContentBackground(.hidden).background(COVITheme.cream).navigationTitle(tab.title)
         .sheet(item: $quote) { frozen in
-            Checkout(due: frozen.due) { tender, received, confirmed in
-                try BoutiqueLedger.sell(lines, discount: rebate, quote: frozen.due, tender: tender, received: received,
+            Checkout(due: frozen.due, shop: shop) { tender, received, confirmed in
+                let order = try BoutiqueLedger.sell(lines, discount: rebate, quote: frozen.due, tender: tender, received: received,
                     confirmed: confirmed, shop: shop, actor: actor, pin: pin, context: context)
-                basket.removeAll(); discount = ""; quote = nil
-                message = "Vente enregistrée · \(frozen.due) FCFA"
+                basket.removeAll(); discount = ""
+                return order
             }
         }
         .alert(message, isPresented: Binding(get: { !message.isEmpty }, set: { if !$0 { message = "" } })) { Button("OK") {} }
@@ -97,13 +97,14 @@ struct BoutiqueSpace: View {
 
 private struct Checkout: View {
     let due: Int64
-    let commit: (Tender, Int64?, Bool) throws -> Void
+    let shop: Establishment
+    let commit: (Tender, Int64?, Bool) throws -> CommerceOrder
     @Environment(\.dismiss) private var dismiss
     @State private var tender = Tender.cash
     @State private var received = ""
     @State private var confirmed = false
     @State private var error = ""
-    @State private var done = false
+    @State private var receipt: CommerceOrder?
     var body: some View {
         NavigationStack {
             Form {
@@ -116,11 +117,17 @@ private struct Checkout: View {
                     if let cash = Int64(received), cash >= due { LabeledContent("Monnaie à rendre", value: "\(cash - due) FCFA") }
                 } else { Toggle("Paiement reçu et vérifié sur \(tender.rawValue)", isOn: $confirmed) }
                 if !error.isEmpty { Text(error).foregroundStyle(.red) }
-                COVIButton("Confirmer la vente") {
-                    guard !done else { return }
-                    do { try commit(tender, Int64(received), confirmed); done = true; HapticService.confirm() }
-                    catch { self.error = error.localizedDescription }
-                }.disabled(done || (tender == .cash ? (Int64(received) ?? -1) < due : !confirmed))
+                if let receipt {
+                    Label("Paiement confirmé en caisse", systemImage: "checkmark.seal.fill")
+                        .foregroundStyle(.green)
+                    NavigationLink("Voir et partager le reçu") { ReceiptDetail(order: receipt, shop: shop) }
+                    COVIButton("Terminer") { dismiss() }
+                } else {
+                    COVIButton("Confirmer la vente") {
+                        do { receipt = try commit(tender, Int64(received), confirmed); HapticService.confirm() }
+                        catch { self.error = error.localizedDescription }
+                    }.disabled(tender == .cash ? (Int64(received) ?? -1) < due : !confirmed)
+                }
             }.navigationTitle("Encaissement").toolbar { Button("Fermer") { dismiss() } }
         }
     }

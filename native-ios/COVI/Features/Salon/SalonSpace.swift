@@ -12,8 +12,9 @@ struct SalonSpace: View {
     @Query var clients: [SalonClient]
     @Query var menu: [CatalogItem]
     @Query var sales: [SalonSaleLine]
+    @Query var team: [SalonStaff]
     @State private var day = Date()
-    @State private var filter: SalonTeam?
+    @State private var filter: String?
     @State private var booking = false
     @State private var newClient = ""
     @State private var message = ""
@@ -24,23 +25,32 @@ struct SalonSpace: View {
         _clients = Query(filter: #Predicate<SalonClient> { $0.shop == id }, sort: \.name)
         _menu = Query(filter: #Predicate<CatalogItem> { $0.establishmentID == id }, sort: \.title)
         _sales = Query(filter: #Predicate<SalonSaleLine> { $0.shop == id }, sort: \.date, order: .reverse)
+        _team = Query(filter: #Predicate<SalonStaff> { $0.shop == id }, sort: \.name)
     }
     var admin: Bool { role == .owner || role == .manager }
     var body: some View {
         Group {
             if tab == .checkout {
-                SalonCheckout(shop: shop, actor: actor, pin: pin, clients: clients, menu: menu, visits: visits)
+                SalonCheckout(shop: shop, actor: actor, pin: pin, clients: clients, menu: menu,
+                              visits: visits, team: team)
             } else {
                 List {
                     if tab == .today || tab == .agenda {
                         if tab == .agenda { DatePicker("Jour", selection: $day, displayedComponents: .date) }
                         Picker("Collaborateur", selection: $filter) {
-                            Text("Tous").tag(nil as SalonTeam?)
-                            ForEach(SalonTeam.allCases, id: \.self) { Text($0.rawValue).tag(Optional($0)) }
-                        }.pickerStyle(.segmented)
+                            Text("Tous").tag(nil as String?)
+                            ForEach(team.filter(\.active)) { person in
+                                Text(person.name).tag(Optional(person.name))
+                            }
+                        }.pickerStyle(.menu)
                         Button("Nouveau rendez-vous") { booking = true }
+                            .disabled(team.filter(\.active).isEmpty)
+                        if team.filter(\.active).isEmpty {
+                            Text("Ajoutez un collaborateur depuis Plus pour ouvrir l’agenda.")
+                                .font(.footnote).foregroundStyle(.secondary)
+                        }
                         let date = tab == .today ? Date.now : day
-                        let rows = visits.filter { Calendar.current.isDate($0.start, inSameDayAs: date) && (filter == nil || $0.stylist == filter?.rawValue) && !$0.cancelled }
+                        let rows = visits.filter { Calendar.current.isDate($0.start, inSameDayAs: date) && (filter == nil || $0.stylist == filter) && !$0.cancelled }
                         if rows.isEmpty { Text("Aucun rendez-vous sur cette journée.") }
                         ForEach(rows) { v in
                             VStack(alignment: .leading, spacing: 4) {
@@ -68,13 +78,19 @@ struct SalonSpace: View {
                     } else if admin {
                         NavigationLink("Rapports du salon") { SalonReport(sales: sales, visits: visits) }
                         NavigationLink("Catalogue du salon") { SalonCatalog(shop: shop, menu: menu) }
+                        NavigationLink("Équipe du salon") { SalonTeamSettings(shop: shop) }
                         if role == .owner { NavigationLink("Paramètres propriétaire") { OwnerSettings(shop: shop, pinManager: pin) } }
                     } else { Text("Salon · " + shop.name) }
                     if !message.isEmpty { Text(message) }
                 }
             }
         }.navigationTitle(tab.title).scrollContentBackground(.hidden).background(COVITheme.cream)
-        .sheet(isPresented: $booking) { SalonBooking(shop: shop.id, clients: clients, menu: menu, day: tab == .today ? .now : day, team: filter ?? .chloe) }
+        .sheet(isPresented: $booking) {
+            SalonBooking(shop: shop.id, clients: clients, menu: menu,
+                         team: team.filter(\.active),
+                         day: tab == .today ? .now : day,
+                         personID: team.first(where: { $0.name == filter && $0.active })?.id)
+        }
     }
 }
 
@@ -82,10 +98,11 @@ struct SalonBooking: View {
     let shop: UUID
     let clients: [SalonClient]
     let menu: [CatalogItem]
+    let team: [SalonStaff]
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var db
     @State var day: Date
-    @State var team: SalonTeam
+    @State var personID: UUID?
     @State private var client: UUID?
     @State private var item: UUID?
     @State private var walk = false
@@ -103,12 +120,19 @@ struct SalonBooking: View {
                     Text("Choisir").tag(nil as UUID?)
                     ForEach(menu.filter(\.isService)) { Text($0.title).tag(Optional($0.id)) }
                 }
-                Picker("Collaborateur", selection: $team) { ForEach(SalonTeam.allCases, id: \.self) { Text($0.rawValue) } }
+                Picker("Collaborateur", selection: $personID) {
+                    Text("Choisir").tag(nil as UUID?)
+                    ForEach(team) { person in Text(person.name).tag(Optional(person.id)) }
+                }
                 if !walk { DatePicker("Début", selection: $day) }
                 Stepper("\(minutes) minutes", value: $minutes, in: 5...720, step: 5)
                 COVIButton("Confirmer") {
-                    guard let c = clients.first(where: { $0.id == client }), let p = menu.first(where: { $0.id == item }) else { message = "Sélectionnez un client et une prestation."; return }
-                    do { try SalonLedger.book(shop: shop, client: c, item: p, team: team, start: walk ? .now : day, minutes: minutes, walkIn: walk, db: db); dismiss() }
+                    guard let c = clients.first(where: { $0.id == client }),
+                          let p = menu.first(where: { $0.id == item }),
+                          let stylist = team.first(where: { $0.id == personID }) else {
+                        message = "Sélectionnez un client, une prestation et un collaborateur."; return
+                    }
+                    do { try SalonLedger.book(shop: shop, client: c, item: p, team: stylist, start: walk ? .now : day, minutes: minutes, walkIn: walk, db: db); dismiss() }
                     catch { message = error.localizedDescription }
                 }
                 Text(message)

@@ -69,10 +69,28 @@ enum PINScope: Sendable {
     }
 
     func configureCashierPIN(_ pin: String, for staffID: UUID, shopID: UUID) throws {
+        guard pin.utf8.count == 4, pin.utf8.allSatisfy({ (48...57).contains($0) }) else {
+            throw PINError.malformed
+        }
         try saveVerifier(makeVerifier(for: pin), key: cashierKey(staffID, shopID))
     }
 
     func hasConfiguredPIN(for scope: PINScope) -> Bool { (try? verifier(for: scope)) != nil }
+
+    /// Le propriétaire seul peut démarrer immédiatement, sans configuration de caisse.
+    /// Dès qu'un code de caisse est installé, le déverrouillage redevient obligatoire.
+    /// Une erreur Keychain ferme toujours l'accès, même pour le propriétaire.
+    func mayOperate(shop: Establishment, actor: UUID) -> Bool {
+        guard !shop.archived else { return false }
+        if actor == shop.ownerID {
+            do {
+                if try verifier(for: .cashier(staffID: actor, shopID: shop.id)) == nil {
+                    return true
+                }
+            } catch { return false }
+        }
+        return isUnlocked && unlockedStaffID == actor
+    }
 
     private func attemptKey(for scope: PINScope) -> String {
         switch scope {
@@ -96,7 +114,10 @@ enum PINScope: Sendable {
     @discardableResult
     func verify(_ input: String, scope: PINScope) -> Bool {
         lastError = nil
-        guard input.count == 4, input.allSatisfy(\.isNumber) else { lastError = .malformed; return false }
+        guard input.utf8.count == 4, input.utf8.allSatisfy({ (48...57).contains($0) }) else {
+            lastError = .malformed
+            return false
+        }
         let verifier: PINVerifier
         var attempts: PINAttemptState
         do {

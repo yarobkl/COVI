@@ -1,129 +1,173 @@
 import SwiftUI
 import SwiftData
-import CloudKit
 import CoreImage.CIFilterBuiltins
-
-enum SystemAPI {
-    static func call(_ path: String, method: String, token: String, body: [String:String]? = nil, prefer: String = "") async throws -> Data {
-        guard let base = Bundle.main.object(forInfoDictionaryKey: "COVISupabaseURL") as? String,
-              let url = URL(string: base + path), url.scheme == "https",
-              let key = Bundle.main.object(forInfoDictionaryKey: "COVISupabasePublishableKey") as? String else { throw URLError(.badURL) }
-        var req = URLRequest(url: url)
-        req.httpMethod = method
-        req.setValue(key, forHTTPHeaderField: "apikey")
-        req.setValue("Bearer " + token, forHTTPHeaderField: "Authorization")
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        if !prefer.isEmpty { req.setValue(prefer, forHTTPHeaderField: "Prefer") }
-        if let body { req.httpBody = try JSONEncoder().encode(body) }
-        let (data, response) = try await URLSession.shared.data(for: req)
-        guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else { throw URLError(.badServerResponse) }
-        return data
-    }
-}
-
-@Model final class MaintenanceEntry {
-    var actor: UUID
-    var shop: UUID
-    var action: String
-    var date: Date
-    init(_ action: String, actor: UUID, shop: UUID) {
-        self.action = action; self.actor = actor; self.shop = shop; date = .now
-    }
-}
 
 struct MoreSpace: View {
     let shop: Establishment
     let actor: UUID
     let role: StaffRole
     let pin: PINManager
+
     var body: some View {
         List {
             Section("Établissement") {
                 Text(shop.name).font(.headline)
                 Text(shop.city)
-                NavigationLink("Vitrine publique") { ShowcaseView(shop: shop, actor: actor, pin: pin) }
+                NavigationLink("Fiche à partager") { LocalShopCard(shop: shop) }
             }
-            Section("Liens rapides") {
+            Section("Votre espace") {
                 NavigationLink("Paramètres système") { SystemSettings(shop: shop, actor: actor, pin: pin) }
-                if role == .owner { NavigationLink("Paramètres propriétaire") { OwnerSettings(shop: shop, pinManager: pin) } }
+                NavigationLink("Historique des reçus") { CommerceReceiptHistory(shop: shop) }
+                NavigationLink("Aide et confidentialité") { HelpPrivacyView(kind: shop.kind) }
+                if role == .owner {
+                    NavigationLink("Paramètres propriétaire") { OwnerSettings(shop: shop, pinManager: pin) }
+                }
                 if shop.kind == .salon && (role == .owner || role == .manager) {
-                    NavigationLink("Catalogue et rapports salon") { SalonSpace(shop: shop, tab: .more, actor: actor, role: role, pin: pin) }
+                    NavigationLink("Catalogue et rapports salon") {
+                        SalonSpace(shop: shop, tab: .more, actor: actor, role: role, pin: pin)
+                    }
                 }
             }
-        }.navigationTitle("Plus").scrollContentBackground(.hidden).background(COVITheme.cream)
+            Section {
+                LabeledContent("Abonnement", value: "Gratuit")
+                Text("Les données du commerce sont gérées sur iPhone, sans base de données web.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+        }
+        .navigationTitle("Plus")
+        .scrollContentBackground(.hidden)
+        .background(COVITheme.cream)
     }
 }
 
-@MainActor
-struct ShowcaseView: View {
-    let shop: Establishment
-    let actor: UUID
-    let pin: PINManager
-    @Environment(AppSession.self) private var session
-    @Environment(\.modelContext) private var db
-    @State private var link: URL?
-    @State private var message = ""
-    @State private var pending: Bool?
-    @State private var busy = false
-    private struct Row: Decodable { let id: UUID }
-    var endpoint: String { "/rest/v1/covi_showcases" }
-    func publicURL(_ id: UUID) throws -> URL {
-        guard let base = Bundle.main.object(forInfoDictionaryKey: "COVIShowcaseURL") as? String,
-              var parts = URLComponents(string: base), parts.scheme == "https", parts.host != nil else { throw URLError(.badURL) }
-        parts.queryItems = [URLQueryItem(name: "id", value: id.uuidString)]
-        guard let url = parts.url else { throw URLError(.badURL) }
-        return url
-    }
+struct HelpPrivacyView: View {
+    let kind: BusinessKind
+
     var body: some View {
         List {
-            Section("Aperçu") { Text(shop.name).font(.title2.bold()); Text(shop.city); Text(shop.kind.rawValue.capitalized); Text(shop.currencyCode) }
-            if let link {
-                Link("Ouvrir la vitrine", destination: link)
-                ShareLink(item: link)
-                if let qr = qr(link) { Image(decorative: qr, scale: 1).interpolation(.none).resizable().scaledToFit().padding().background(.white) }
+            Section("Bien démarrer") {
+                Label("1. Ajoutez vos articles, votre carte ou vos prestations.", systemImage: "square.and.pencil")
+                Label("2. Enregistrez vos ventes ou rendez-vous sur l’iPhone.", systemImage: "checklist")
+                Label("3. Confirmez les paiements lorsque l’argent est réellement reçu en caisse.",
+                      systemImage: "checkmark.shield")
             }
-            if actor == shop.ownerID {
-                Button(link == nil ? "Publier la vitrine" : "Actualiser la publication") { pending = true }
-                if link != nil { Button("Retirer la publication", role: .destructive) { pending = false } }
+            Section("Votre activité") {
+                switch kind {
+                case .boutique:
+                    Text("Utilisez Stock pour créer les produits et suivre les arrivages, puis Vendre pour encaisser.")
+                case .restaurant:
+                    Text("Configurez les tables et les menus. Le personnel envoie les plats en cuisine et confirme l’addition en caisse.")
+                case .salon:
+                    Text("Ajoutez d’abord votre équipe et vos prestations depuis Plus, puis créez les fiches clients et les rendez-vous.")
+                }
             }
-            if !message.isEmpty { Text(message) }
-        }.disabled(busy).navigationTitle("Vitrine publique")
-        .task(id: shop.id) {
-            guard let token = session.accessToken, actor == shop.ownerID else { return }
-            do {
-                let data = try await SystemAPI.call(endpoint + "?select=id&shop_id=eq." + shop.id.uuidString, method: "GET", token: token)
-                if let row = try JSONDecoder().decode([Row].self, from: data).first { link = try publicURL(row.id) }
-            } catch { message = "État de publication indisponible." }
+            Section("Paiements") {
+                Text("COVI ne retire aucun argent des comptes clients. Espèces et Mobile Money sont enregistrés uniquement après confirmation humaine.")
+                Text("Le service est gratuit : aucun abonnement ni achat intégré.")
+            }
+            Section("Confidentialité") {
+                Label("Données locales enregistrées avec SwiftData.", systemImage: "iphone")
+                Label("Identité locale enregistrée dans le trousseau sécurisé iOS.", systemImage: "lock")
+                Label("Le compte Apple utilise AuthenticationServices.", systemImage: "person.crop.circle")
+                Text("Le répertoire des établissements et certains événements de gestion peuvent être synchronisés dans le CloudKit privé de votre compte iCloud. Les stocks, fiches clients et commandes ne sont pas encore synchronisés.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
         }
-        .sheet(isPresented: Binding(get: { pending != nil }, set: { if !$0 { pending = nil } })) {
-            PINEntryView(pinManager: pin, scope: .master(ownerID: shop.ownerID)) { ok in
-                let choice = pending; pending = nil
-                if ok, let choice { busy = true; Task { await publish(choice) } }
+        .navigationTitle("Aide et confidentialité")
+        .scrollContentBackground(.hidden).background(COVITheme.cream)
+    }
+}
+
+struct CommerceReceiptHistory: View {
+    let shop: Establishment
+    @Query private var orders: [CommerceOrder]
+
+    init(shop: Establishment) {
+        self.shop = shop
+        let id = shop.id
+        _orders = Query(filter: #Predicate<CommerceOrder> { $0.establishmentID == id },
+                        sort: \.createdAt, order: .reverse)
+    }
+
+    var body: some View {
+        let completed = orders.filter { $0.state == .completed && $0.totalMinor > 0 }
+        List {
+            if completed.isEmpty {
+                ContentUnavailableView("Aucun reçu", systemImage: "receipt",
+                                       description: Text("Les ventes confirmées en caisse apparaîtront ici."))
+            }
+            ForEach(completed) { order in
+                NavigationLink {
+                    ReceiptDetail(order: order, shop: shop)
+                } label: {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(order.createdAt.formatted(date: .abbreviated, time: .shortened))
+                            .font(.headline)
+                        Text("\(order.totalMinor) \(shop.currencyCode) · " +
+                             String(order.id.uuidString.prefix(8)))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
             }
         }
+        .navigationTitle("Historique des reçus")
+        .scrollContentBackground(.hidden)
+        .background(COVITheme.cream)
     }
-    func publish(_ enable: Bool) async {
-        defer { busy = false }
-        guard session.accountID == shop.ownerID, !shop.archived, let token = session.accessToken else { return }
-        do {
-            if enable {
-                _ = try publicURL(shop.id)
-                let body = ["shop_id":shop.id.uuidString,"name":shop.name,"city":shop.city,"kind":shop.kind.rawValue,"currency":shop.currencyCode]
-                let data = try await SystemAPI.call(endpoint + "?on_conflict=owner_id,shop_id&select=id", method: "POST", token: token, body: body, prefer: "resolution=merge-duplicates,return=representation")
-                guard let row = try JSONDecoder().decode([Row].self, from: data).first else { throw URLError(.cannotParseResponse) }
-                link = try publicURL(row.id)
-            } else {
-                _ = try await SystemAPI.call(endpoint + "?shop_id=eq." + shop.id.uuidString, method: "DELETE", token: token)
-                link = nil
+}
+
+/// Carte de visite hors ligne, partageable sans publication de données sur un serveur.
+struct LocalShopCard: View {
+    let shop: Establishment
+    private var details: String {
+        let label: String
+        switch shop.kind {
+        case .boutique: label = "Boutique"
+        case .restaurant: label = "Restaurant"
+        case .salon: label = "Salon de coiffure"
+        }
+        return "\(shop.name)\n\(label) · \(shop.city)\nFiche créée avec COVI"
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                Image(systemName: shop.kind == .restaurant ? "fork.knife" :
+                    shop.kind == .salon ? "scissors" : "bag")
+                    .font(.system(size: 44))
+                    .foregroundStyle(COVITheme.navy)
+                    .accessibilityHidden(true)
+                Text(shop.name).font(.largeTitle.bold()).multilineTextAlignment(.center)
+                Label(shop.city, systemImage: "mappin.and.ellipse")
+                    .font(.headline)
+                Text("Cette fiche est accessible hors ligne. Le QR code partage uniquement le nom, l’activité et la ville.")
+                    .font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                if let qr = qrImage {
+                    Image(decorative: qr, scale: 1)
+                        .interpolation(.none).resizable().scaledToFit()
+                        .frame(maxWidth: 240).padding(22)
+                        .background(.white, in: RoundedRectangle(cornerRadius: 24))
+                        .accessibilityLabel("QR code de la fiche \(shop.name)")
+                }
+                ShareLink(item: details) {
+                    Label("Partager la fiche", systemImage: "square.and.arrow.up")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(COVITheme.navy)
             }
-            let action = enable ? "Vitrine publiée" : "Publication retirée"
-            db.insert(MaintenanceEntry(action, actor: actor, shop: shop.id))
-            try db.save(); message = action
-        } catch { message = "Vérifiez le serveur et l’état de publication." }
+            .padding(24)
+            .frame(maxWidth: 520)
+            .frame(maxWidth: .infinity)
+        }
+        .background(COVITheme.cream)
+        .navigationTitle("Fiche établissement")
     }
-    func qr(_ url: URL) -> CGImage? {
+
+    private var qrImage: CGImage? {
         let filter = CIFilter.qrCodeGenerator()
-        filter.message = Data(url.absoluteString.utf8)
+        filter.message = Data(details.utf8)
+        filter.correctionLevel = "M"
         guard let image = filter.outputImage else { return nil }
         return CIContext().createCGImage(image, from: image.extent)
     }

@@ -11,17 +11,9 @@ struct SystemSettings: View {
     @Environment(\.modelContext) private var db
     @Query private var entries: [MaintenanceEntry]
     @State private var cloud = "Vérification en cours"
-    @State private var devices: [Device] = []
     @State private var currency = "XAF"
     @State private var currencyPIN = false
-    @State private var revoke = false
     @State private var message = ""
-    struct Device: Decodable, Identifiable {
-        let id: UUID
-        let agent: String
-        let seen: String?
-        let current_device: Bool
-    }
     init(shop: Establishment, actor: UUID, pin: PINManager) {
         self.shop = shop; self.actor = actor; self.pin = pin
         let id = shop.id, user = actor
@@ -32,15 +24,16 @@ struct SystemSettings: View {
             Section("CloudKit") {
                 LabeledContent("Compte iCloud", value: cloud)
                 Button("Vérifier la connexion") { Task { await refresh() } }
+                Text("La connexion iCloud est gérée par iOS. COVI ne dépend d’aucune base de données web.")
+                    .font(.footnote).foregroundStyle(.secondary)
             }
-            Section("Sessions du compte") {
-                ForEach(devices) { d in
-                    VStack(alignment: .leading) {
-                        Text(d.current_device ? "Session actuelle" : d.agent)
-                        if let seen = d.seen { Text(seen).font(.caption) }
-                    }
+            Section("Identité") {
+                LabeledContent("Mode", value: session.usesAppleAccount ? "Connexion Apple" : "Sur cet appareil")
+                if !session.displayName.isEmpty {
+                    LabeledContent("Compte", value: session.displayName)
                 }
-                Button("Déconnecter les autres sessions", role: .destructive) { revoke = true }
+                Text("La déconnexion à distance d'autres appareils n'est pas disponible sans service de gestion de sessions.")
+                    .font(.footnote).foregroundStyle(.secondary)
             }
             Section("Devise de l’établissement") {
                 Text("Devise actuelle · " + shop.currencyCode)
@@ -56,9 +49,6 @@ struct SystemSettings: View {
             }
             if !message.isEmpty { Text(message) }
         }.navigationTitle("Paramètres système").task { currency = shop.currencyCode; await refresh() }
-        .confirmationDialog("Déconnecter tous les autres appareils de ce compte ?", isPresented: $revoke) {
-            Button("Déconnecter", role: .destructive) { Task { await disconnect() } }
-        }
         .sheet(isPresented: $currencyPIN) {
             PINEntryView(pinManager: pin, scope: .master(ownerID: shop.ownerID)) { ok in
                 currencyPIN = false
@@ -71,6 +61,7 @@ struct SystemSettings: View {
                         message = "Le catalogue ou les ventes utilisent déjà la devise actuelle."; return
                     }
                     shop.currencyCode = currency
+                    shop.updatedAt = .now
                     db.insert(MaintenanceEntry("Devise configurée · " + currency, actor: actor, shop: id))
                     try db.save(); message = "Devise enregistrée."
                 } catch { db.rollback(); message = "Échec de l’enregistrement." }
@@ -86,19 +77,5 @@ struct SystemSettings: View {
             default: cloud = "Indisponible"
             }
         } catch { cloud = "Vérification impossible" }
-        guard let token = session.accessToken else { return }
-        do {
-            let data = try await SystemAPI.call("/rest/v1/rpc/covi_my_devices", method: "POST", token: token, body: [:])
-            devices = try JSONDecoder().decode([Device].self, from: data)
-        } catch { devices = []; message = "Liste des sessions indisponible." }
-    }
-    func disconnect() async {
-        guard let token = session.accessToken else { return }
-        do {
-            _ = try await SystemAPI.call("/auth/v1/logout?scope=others", method: "POST", token: token)
-            db.insert(MaintenanceEntry("Autres sessions déconnectées", actor: actor, shop: shop.id))
-            try db.save()
-            await refresh()
-        } catch { message = "Déconnexion ou journalisation impossible." }
     }
 }

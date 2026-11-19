@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A7A000000000000000000001 /* ReceiptBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7F000000000000000000001 /* ReceiptBuilder.swift */; };
+		A7A000000000000000000002 /* ReceiptDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7F000000000000000000002 /* ReceiptDetail.swift */; };
+		A7A000000000000000000003 /* SalonTeamSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7F000000000000000000003 /* SalonTeamSettings.swift */; };
+		A7A000000000000000000004 /* CloudShopDirectory.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7F000000000000000000004 /* CloudShopDirectory.swift */; };
 		05FF9111AACD497D78D9572A /* SalonSpace.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5C401E87E27408777014B77 /* SalonSpace.swift */; };
 		0F6ADE33979525E044DB9DD6 /* BoutiqueSpace.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB884C2A3DEFCF7383B3FAC6 /* BoutiqueSpace.swift */; };
 		1A6FF6B40F9D2BB5AC44EC45 /* COVIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C99D9533387DFCACAAF19D3 /* COVIApp.swift */; };
@@ -37,6 +41,10 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		A7F000000000000000000001 /* ReceiptBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiptBuilder.swift; sourceTree = "<group>"; };
+		A7F000000000000000000002 /* ReceiptDetail.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiptDetail.swift; sourceTree = "<group>"; };
+		A7F000000000000000000003 /* SalonTeamSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SalonTeamSettings.swift; sourceTree = "<group>"; };
+		A7F000000000000000000004 /* CloudShopDirectory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudShopDirectory.swift; sourceTree = "<group>"; };
 		00630B8DEF9E98F8D12D059A /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		0F61E41E1C41338ABE77A2F5 /* SalonCheckout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SalonCheckout.swift; sourceTree = "<group>"; };
 		2C35A47549B7CB09696037AF /* COVIDesignSystemPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = COVIDesignSystemPreview.swift; sourceTree = "<group>"; };
@@ -94,6 +102,7 @@
 			children = (
 				2C35A47549B7CB09696037AF /* COVIDesignSystemPreview.swift */,
 				68DA38AB4CCE591AB72E45B7 /* COVITheme.swift */,
+				A7F000000000000000000002 /* ReceiptDetail.swift */,
 			);
 			path = DesignSystem;
 			sourceTree = "<group>";
@@ -142,6 +151,7 @@
 				0F61E41E1C41338ABE77A2F5 /* SalonCheckout.swift */,
 				49E53FD0C48081BF46C9D639 /* SalonLedger.swift */,
 				B5C401E87E27408777014B77 /* SalonSpace.swift */,
+				A7F000000000000000000003 /* SalonTeamSettings.swift */,
 			);
 			path = Salon;
 			sourceTree = "<group>";
@@ -188,6 +198,7 @@
 			isa = PBXGroup;
 			children = (
 				916D6559713B65D2B863DEC6 /* DomainModels.swift */,
+				A7F000000000000000000001 /* ReceiptBuilder.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -235,6 +246,7 @@
 			isa = PBXGroup;
 			children = (
 				FE326200C749B0CD478CCA65 /* CloudKitAdapter.swift */,
+				A7F000000000000000000004 /* CloudShopDirectory.swift */,
 				FC80872AD77EA66E1C68E508 /* SyncCoordinator.swift */,
 			);
 			path = Sync;
@@ -311,6 +323,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A7A000000000000000000001 /* ReceiptBuilder.swift in Sources */,
+				A7A000000000000000000002 /* ReceiptDetail.swift in Sources */,
+				A7A000000000000000000003 /* SalonTeamSettings.swift in Sources */,
+				A7A000000000000000000004 /* CloudShopDirectory.swift in Sources */,
 				765A65D836BB6773A38A8320 /* AppSession.swift in Sources */,
 				EBA3A1F5E364ED03E831EEC2 /* BoutiqueInventory.swift in Sources */,
 				5B6CE587C76EF105F642D994 /* BoutiqueLedger.swift in Sources */,

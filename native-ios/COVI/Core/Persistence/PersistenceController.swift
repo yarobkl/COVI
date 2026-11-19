@@ -4,7 +4,7 @@ enum PersistenceController {
     static func makeContainer() throws -> ModelContainer {
         let schema = Schema([
             MaintenanceEntry.self,
-            SalonVisit.self, SalonClient.self, SalonSaleLine.self,
+            SalonVisit.self, SalonClient.self, SalonSaleLine.self, SalonStaff.self,
             Bale.self, SyncCheckpoint.self, Account.self, Establishment.self, Membership.self,
             CatalogItem.self, DiningTable.self, CommerceOrder.self,
             Refund.self, OrderLine.self, PaymentRecord.self, StockMovement.self, OutboxEvent.self

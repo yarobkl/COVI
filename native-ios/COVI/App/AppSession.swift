@@ -1,147 +1,204 @@
+import AuthenticationServices
+import CryptoKit
+import Foundation
 import SwiftUI
 
+/// Identité entièrement native : aucune dépendance à une API de comptes externe.
+/// Le mode local fonctionne sans réseau. Un identifiant Apple produit le même UUID COVI sur chaque appareil.
 @MainActor @Observable final class AppSession {
+    private struct Identity: Codable {
+        let accountID: UUID
+        let appleUserID: String?
+        let displayName: String
+        let email: String
+    }
+
+    private let keychain: KeychainStore
+    private let identityKey = "session.native.identity"
+    private let localIdentityKey = "session.native.local"
     private(set) var accountID: UUID?
-    private var generation = UUID()
-    private let store = KeychainStore()
-    @ObservationIgnored private(set) var accessToken: String?
-    enum Failure: Error { case configuration, unauthorized }
+    private(set) var displayName = ""
+    private(set) var email = ""
+    private(set) var usesAppleAccount = false
 
-    private func request(_ path: String, token: String? = nil, form: [String: String]? = nil) async throws -> Data {
-        guard let host = Bundle.main.object(forInfoDictionaryKey: "COVISupabaseURL") as? String,
-              let url = URL(string: host + "/auth/v1/" + path), url.scheme == "https",
-              let key = Bundle.main.object(forInfoDictionaryKey: "COVISupabasePublishableKey") as? String
-        else { throw Failure.configuration }
-        var request = URLRequest(url: url)
-        request.setValue(key, forHTTPHeaderField: "apikey")
-        if let token { request.setValue("Bearer " + token, forHTTPHeaderField: "Authorization") }
-        if let form {
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.httpBody = try JSONEncoder().encode(form)
-        }
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { throw Failure.unauthorized }
-        return data
+    init(keychain: KeychainStore = KeychainStore()) {
+        self.keychain = keychain
     }
 
-    private struct Tokens: Decodable {
-        let access_token: String
-        let refresh_token: String
-        let expires_in: Int
-        let user: User
-        struct User: Decodable { let id: UUID }
-    }
-    @ObservationIgnored private var expiry: Task<Void, Never>?
-    func authenticate(email: String, password: String) async throws {
-        try await exchange("password", ["email": email, "password": password])
-    }
-    func register(email: String, password: String) async throws -> Bool {
-        let attempt = UUID()
-        generation = attempt
-        let data = try await request("signup", form: ["email": email, "password": password])
-        guard generation == attempt else { throw CancellationError() }
-        if let tokens = try? JSONDecoder().decode(Tokens.self, from: data) {
-            try activate(tokens)
-            return true
-        }
-        _ = try JSONDecoder().decode(Tokens.User.self, from: data)
-        return false
-    }
-    func restore() async throws {
-        guard let bytes = try store.data(for: "session.refresh"),
-              let token = String(data: bytes, encoding: .utf8) else { return }
-        try await exchange("refresh_token", ["refresh_token": token])
-    }
-    private func exchange(_ grant: String, _ form: [String: String]) async throws {
-        let attempt = UUID()
-        generation = attempt
-        let data = try await request("token?grant_type=" + grant, form: form)
-        let tokens = try JSONDecoder().decode(Tokens.self, from: data)
-        guard generation == attempt else { throw CancellationError() }
-        try activate(tokens)
-    }
-    private func activate(_ tokens: Tokens) throws {
-        let attempt = UUID()
-        generation = attempt
-        try store.save(Data(tokens.refresh_token.utf8), for: "session.refresh")
-        accountID = tokens.user.id
-        accessToken = tokens.access_token
-        expiry?.cancel()
-        expiry = Task {
-            do { try await Task.sleep(for: .seconds(max(1, tokens.expires_in - 60))) }
-            catch { return }
-            guard generation == attempt else { return }
-            // Keep local navigation stable while Supabase rotates the refresh token.
-            do { try await restore() }
-            catch is CancellationError { return }
-            catch {
-                guard !Task.isCancelled else { return }
-                accessToken = nil
-                accountID = nil
+    enum Failure: LocalizedError {
+        case noLocalAccount, invalidCredential, revokedAppleCredential
+        var errorDescription: String? {
+            switch self {
+            case .noLocalAccount: "Aucun espace local n'a encore été créé sur cet iPhone."
+            case .invalidCredential: "Apple n'a pas pu confirmer votre identité. Réessayez."
+            case .revokedAppleCredential: "La connexion Apple a expiré. Reconnectez-vous pour continuer."
             }
         }
     }
+
+    func createLocalAccount(name: String, email: String = "") throws {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { throw Failure.invalidCredential }
+        let existing = try storedIdentity(for: localIdentityKey)
+        let identity = Identity(accountID: existing?.accountID ?? UUID(), appleUserID: nil,
+                                displayName: trimmed, email: email.trimmingCharacters(in: .whitespacesAndNewlines))
+        try save(identity, for: localIdentityKey)
+        try activate(identity)
+    }
+
+    func continueLocally() throws {
+        guard let identity = try storedIdentity(for: localIdentityKey) else { throw Failure.noLocalAccount }
+        try activate(identity)
+    }
+
+    func signInWithApple(_ credential: ASAuthorizationAppleIDCredential) throws {
+        guard !credential.user.isEmpty else { throw Failure.invalidCredential }
+        let existing = try storedIdentity(for: identityKey)
+        let providedName = credential.fullName.map { PersonNameComponentsFormatter().string(from: $0) }
+            .flatMap { $0.isEmpty ? nil : $0 }
+        let name = providedName ??
+            (existing?.appleUserID == credential.user ? existing?.displayName : nil) ?? "Mon espace COVI"
+        let email = credential.email ?? (existing?.appleUserID == credential.user ? existing?.email : nil) ?? ""
+        let identity = Identity(accountID: Self.accountIdentifier(for: credential.user),
+                                appleUserID: credential.user, displayName: name, email: email)
+        try activate(identity)
+    }
+
+    func restore() async throws {
+        guard let identity = try storedIdentity(for: identityKey) else { return }
+        if let appleID = identity.appleUserID {
+            let state = try await withCheckedThrowingContinuation {
+                (continuation: CheckedContinuation<ASAuthorizationAppleIDProvider.CredentialState, Error>) in
+                ASAuthorizationAppleIDProvider().getCredentialState(forUserID: appleID) { state, error in
+                    if let error { continuation.resume(throwing: error) }
+                    else { continuation.resume(returning: state) }
+                }
+            }
+            guard state == .authorized else { throw Failure.revokedAppleCredential }
+        }
+        apply(identity)
+    }
+
     func signOut() throws {
-        generation = UUID()
-        expiry?.cancel()
-        try store.delete("session.refresh")
+        try keychain.delete(identityKey)
         accountID = nil
-        accessToken = nil
+        displayName = ""
+        email = ""
+        usesAppleAccount = false
+    }
+
+    private func activate(_ identity: Identity) throws {
+        try save(identity, for: identityKey)
+        apply(identity)
+    }
+
+    private func apply(_ identity: Identity) {
+        accountID = identity.accountID
+        displayName = identity.displayName
+        email = identity.email
+        usesAppleAccount = identity.appleUserID != nil
+    }
+
+    private func storedIdentity(for key: String) throws -> Identity? {
+        guard let bytes = try keychain.data(for: key) else { return nil }
+        return try JSONDecoder().decode(Identity.self, from: bytes)
+    }
+
+    private func save(_ identity: Identity, for key: String) throws {
+        try keychain.save(JSONEncoder().encode(identity), for: key)
+    }
+
+    static func accountIdentifier(for appleUserID: String) -> UUID {
+        var bytes = Array(SHA256.hash(data: Data("COVI.apple.\(appleUserID)".utf8)).prefix(16))
+        bytes[6] = (bytes[6] & 0x0f) | 0x50
+        bytes[8] = (bytes[8] & 0x3f) | 0x80
+        return UUID(uuid: (bytes[0], bytes[1], bytes[2], bytes[3],
+                           bytes[4], bytes[5], bytes[6], bytes[7],
+                           bytes[8], bytes[9], bytes[10], bytes[11],
+                           bytes[12], bytes[13], bytes[14], bytes[15]))
+    }
+}
+
+struct NativeAppleSignIn: View {
+    @Environment(AppSession.self) private var session
+    @State private var message = ""
+
+    var body: some View {
+        VStack(spacing: 12) {
+            SignInWithAppleButton(.signIn) { request in
+                request.requestedScopes = [.fullName, .email]
+            } onCompletion: { result in
+                switch result {
+                case .success(let authorization):
+                    guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else {
+                        message = AppSession.Failure.invalidCredential.localizedDescription
+                        return
+                    }
+                    do { try session.signInWithApple(credential); HapticService.confirm() }
+                    catch { message = error.localizedDescription }
+                case .failure(let error):
+                    if (error as? ASAuthorizationError)?.code != .canceled {
+                        message = "Connexion Apple indisponible. Réessayez dans un instant."
+                    }
+                }
+            }
+            .signInWithAppleButtonStyle(.black)
+            .frame(height: 52)
+            .accessibilityLabel("Se connecter avec Apple")
+            if !message.isEmpty { Text(message).font(.footnote).foregroundStyle(.red) }
+        }
     }
 }
 
 struct AccountLogin: View {
     @Environment(AppSession.self) private var session
-    @State private var email = ""
-    @State private var password = ""
-    @State private var busy = false
     @State private var message = ""
     var body: some View {
         Form {
-            TextField("Adresse e-mail", text: $email).textInputAutocapitalization(.never).keyboardType(.emailAddress)
-            SecureField("Mot de passe", text: $password)
-            COVIButton("Se connecter") {
-                busy = true
-                Task {
-                    defer { busy = false; password = "" }
-                    do { try await session.authenticate(email: email, password: password) }
-                    catch { message = "Connexion impossible. Vérifiez votre connexion et vos identifiants." }
+            Section {
+                NativeAppleSignIn()
+                Text("Retrouvez votre identité sur vos appareils connectés au même identifiant Apple.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+            Section("Cet iPhone") {
+                Button("Reprendre mon espace local") {
+                    do { try session.continueLocally() }
+                    catch { message = error.localizedDescription }
                 }
-            }.disabled(busy)
-            if !message.isEmpty { Text(message) }
+                Text("Le mode local fonctionne sans compte ni connexion Internet.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+            if !message.isEmpty { Text(message).foregroundStyle(.red) }
         }
+        .navigationTitle("Se connecter")
     }
 }
 
 struct RegistrationView: View {
     @Environment(AppSession.self) private var session
+    @State private var name = ""
     @State private var email = ""
-    @State private var password = ""
-    @State private var confirmation = ""
-    @State private var busy = false
     @State private var message = ""
-
     var body: some View {
         Form {
-            TextField("Adresse e-mail", text: $email)
-                .textContentType(.emailAddress).keyboardType(.emailAddress)
-                .textInputAutocapitalization(.never).autocorrectionDisabled()
-            SecureField("Mot de passe", text: $password).textContentType(.newPassword)
-            SecureField("Confirmer le mot de passe", text: $confirmation).textContentType(.newPassword)
-            COVIButton("Créer un compte") {
-                busy = true
-                Task {
-                    defer { busy = false }
-                    do {
-                        let connected = try await session.register(email: email.trimmingCharacters(in: .whitespacesAndNewlines), password: password)
-                        if !connected { message = "Consultez votre messagerie pour confirmer votre adresse, puis connectez-vous." }
-                        password = ""
-                        confirmation = ""
-                    } catch { message = "Inscription impossible. Vérifiez vos informations et votre connexion." }
-                }
-            }.disabled(busy || email.isEmpty || password.isEmpty || password != confirmation)
-            if !message.isEmpty { Text(message) }
+            Section("Votre espace gratuit") {
+                TextField("Votre nom", text: $name).textContentType(.name)
+                TextField("Adresse e-mail (facultative)", text: $email)
+                    .textContentType(.emailAddress).keyboardType(.emailAddress)
+                    .textInputAutocapitalization(.never).autocorrectionDisabled()
+                COVIButton("Créer mon espace") {
+                    do { try session.createLocalAccount(name: name, email: email); HapticService.confirm() }
+                    catch { message = error.localizedDescription }
+                }.disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                Text("Gratuit, sans abonnement. Vos données restent sur votre appareil.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+            Section("Identité Apple") {
+                NativeAppleSignIn()
+                Text("Connexion Apple sécurisée, sans mot de passe COVI.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+            if !message.isEmpty { Text(message).foregroundStyle(.red) }
         }
         .navigationTitle("Créer un compte")
     }

@@ -1,0 +1,64 @@
+import Foundation
+import XCTest
+@testable import COVI
+
+@MainActor
+final class NativeSessionTests: XCTestCase {
+    private var store: KeychainStore!
+
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+        store = KeychainStore(service: "com.covi.app.session-tests.\(UUID().uuidString)")
+    }
+
+    override func tearDownWithError() throws {
+        try store.delete("session.native.identity")
+        try store.delete("session.native.local")
+        store = nil
+        try super.tearDownWithError()
+    }
+
+    func testLocalIdentityPersistsAcrossAppSessions() throws {
+        let first = AppSession(keychain: store)
+        try first.createLocalAccount(name: "  Rodrin  ", email: "rodrin@example.test")
+        let identifier = try XCTUnwrap(first.accountID)
+        XCTAssertEqual(first.displayName, "Rodrin")
+        XCTAssertFalse(first.usesAppleAccount)
+        try first.signOut()
+        XCTAssertNil(first.accountID)
+
+        let second = AppSession(keychain: store)
+        try second.continueLocally()
+        XCTAssertEqual(second.accountID, identifier)
+        XCTAssertEqual(second.email, "rodrin@example.test")
+    }
+
+    func testLocalModeRestoresWithoutNetwork() async throws {
+        let original = AppSession(keychain: store)
+        try original.createLocalAccount(name: "Commerçant")
+        let restored = AppSession(keychain: store)
+        try await restored.restore()
+        XCTAssertEqual(restored.accountID, original.accountID)
+        XCTAssertFalse(restored.usesAppleAccount)
+    }
+
+    func testNoLocalAccountFailsWithoutCreatingPhantomIdentity() throws {
+        let session = AppSession(keychain: store)
+        XCTAssertThrowsError(try session.continueLocally())
+        XCTAssertNil(session.accountID)
+    }
+
+    func testEmptyLocalNameIsRejected() throws {
+        let session = AppSession(keychain: store)
+        XCTAssertThrowsError(try session.createLocalAccount(name: "  "))
+        XCTAssertNil(session.accountID)
+    }
+
+    func testAppleIdentifierStableAndDifferentForDifferentUsers() {
+        let first = AppSession.accountIdentifier(for: "apple-user-1")
+        let again = AppSession.accountIdentifier(for: "apple-user-1")
+        let second = AppSession.accountIdentifier(for: "apple-user-2")
+        XCTAssertEqual(first, again)
+        XCTAssertNotEqual(first, second)
+    }
+}

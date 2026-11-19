@@ -1,7 +1,16 @@
 import Foundation
 import SwiftData
 
-enum SalonTeam: String, CaseIterable { case chloe = "Chloé", brice = "Brice", sarah = "Sarah" }
+@Model final class SalonStaff {
+    @Attribute(.unique) var id: UUID
+    var shop: UUID
+    var name: String
+    var active: Bool
+    init(shop: UUID, name: String) {
+        id = UUID(); self.shop = shop
+        self.name = name; active = true
+    }
+}
 
 @Model final class SalonClient {
     @Attribute(.unique) var id: UUID
@@ -65,11 +74,13 @@ enum SalonFault: String, LocalizedError {
     static func save(_ db: ModelContext) throws {
         do { try db.save() } catch { db.rollback(); throw error }
     }
-    static func book(shop: UUID, client: SalonClient, item: CatalogItem, team: SalonTeam, start: Date,
+    static func book(shop: UUID, client: SalonClient, item: CatalogItem, team: SalonStaff, start: Date,
                      minutes: Int, walkIn: Bool, db: ModelContext) throws {
-        guard item.establishmentID == shop, item.isService, client.shop == shop, (5...720).contains(minutes) else { throw SalonFault.invalid }
+        guard item.establishmentID == shop, item.isService, client.shop == shop,
+              team.shop == shop, team.active, !team.name.isEmpty,
+              (5...720).contains(minutes) else { throw SalonFault.invalid }
         let end = start.addingTimeInterval(Double(minutes * 60))
-        let person = team.rawValue, cid = client.id
+        let person = team.name, cid = client.id
         let matches = FetchDescriptor<SalonVisit>(predicate: #Predicate {
             $0.shop == shop && !$0.cancelled && ($0.stylist == person || $0.client == cid) && $0.start < end && $0.end > start
         })
@@ -77,13 +88,18 @@ enum SalonFault: String, LocalizedError {
         db.insert(SalonVisit(shop: shop, client: cid, service: item.id, stylist: person, start: start, end: end, walkIn: walkIn))
         try save(db)
     }
-    static func pay(shop: Establishment, actor: UUID, pin: PINManager, client: SalonClient, team: SalonTeam,
-                    visit: SalonVisit?, basket: [UUID:Int], menu: [CatalogItem], tender: Tender, db: ModelContext) throws {
-        guard !shop.archived, pin.isUnlocked, pin.unlockedStaffID == actor else { throw SalonFault.access }
-        guard client.shop == shop.id, !basket.isEmpty else { throw SalonFault.invalid }
+    @discardableResult static func pay(shop: Establishment, actor: UUID, pin: PINManager, client: SalonClient, team: String,
+                    visit: SalonVisit?, basket: [UUID:Int], menu: [CatalogItem], tender: Tender, db: ModelContext) throws -> CommerceOrder {
+        guard !shop.archived, pin.mayOperate(shop: shop, actor: actor) else { throw SalonFault.access }
+        guard client.shop == shop.id, !basket.isEmpty, !team.isEmpty else { throw SalonFault.invalid }
+        let shopID = shop.id, person = team
+        let workers = try db.fetch(FetchDescriptor<SalonStaff>(predicate: #Predicate {
+            $0.shop == shopID && $0.name == person
+        }))
+        guard workers.count == 1, workers[0].active || visit != nil else { throw SalonFault.invalid }
         if let visit {
             guard visit.shop == shop.id, visit.receipt == nil, !visit.cancelled, visit.client == client.id,
-                  visit.stylist == team.rawValue, basket[visit.service] == 1 else { throw SalonFault.stale }
+                  visit.stylist == team, basket[visit.service] == 1 else { throw SalonFault.stale }
         }
         let order = CommerceOrder(establishmentID: shop.id, createdByID: actor)
         var validated: [(CatalogItem, Int, Int64)] = []
@@ -103,7 +119,7 @@ enum SalonFault: String, LocalizedError {
         order.state = .completed; order.customerID = client.id; db.insert(order)
         for (item, qty, gross) in validated {
             db.insert(OrderLine(orderID: order.id, catalogItemID: item.id, quantity: qty, unitPriceMinor: item.priceMinor))
-            db.insert(SalonSaleLine(order: order, client: client.id, stylist: team.rawValue, item: item, units: qty, gross: gross))
+            db.insert(SalonSaleLine(order: order, client: client.id, stylist: team, item: item, units: qty, gross: gross))
             if !item.isService {
                 item.stockOnHand -= qty; item.updatedAt = .now
                 db.insert(StockMovement(establishmentID: shop.id, itemID: item.id, delta: -qty, reason: "Vente salon · " + order.id.uuidString, actorID: actor))
@@ -116,6 +132,7 @@ enum SalonFault: String, LocalizedError {
                 entityID: order.id, actorID: actor, relatedIDs: visit.map { [$0.id] } ?? [], in: db)
             try save(db)
             pin.touch()
+            return order
         } catch { db.rollback(); throw error }
     }
 }

@@ -49,4 +49,12 @@ final class MonetaryTests: XCTestCase {
         XCTAssertThrowsError(try BoutiqueLedger.total(lines, discount: 1_000))
         XCTAssertThrowsError(try BoutiqueLedger.total(lines, discount: 1_001))
     }
+
+    func testDuplicateProductLinesCannotOversellStock() {
+        let item = product(1_000)
+        XCTAssertThrowsError(try BoutiqueLedger.total([
+            BoutiqueLedger.Line(product: item, units: 2),
+            BoutiqueLedger.Line(product: item, units: 2)
+        ], discount: 0))
+    }
 }
