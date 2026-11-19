@@ -73,4 +73,26 @@ final class CloudReceiptArchiveTests: XCTestCase {
         XCTAssertEqual(decoded, archive)
         XCTAssertEqual(decoded.totalMinor, 4_000)
     }
+
+    func testArchivedReceiptDetectsChangedCashierConfirmation() throws {
+        let (shop, archive) = try paidReceipt()
+        let db = try memory()
+        db.insert(shop)
+        try archive.importIfNeeded(shop: shop, context: db)
+        try db.save()
+        let payment = try XCTUnwrap(db.fetch(FetchDescriptor<PaymentRecord>()).first)
+        payment.cashReceived = 7_000
+        XCTAssertThrowsError(try archive.importIfNeeded(shop: shop, context: db))
+    }
+
+    func testArchivedReceiptDetectsChangedProductDescription() throws {
+        let (shop, archive) = try paidReceipt()
+        let db = try memory()
+        db.insert(shop)
+        try archive.importIfNeeded(shop: shop, context: db)
+        try db.save()
+        let article = try XCTUnwrap(db.fetch(FetchDescriptor<OrderLine>()).first)
+        article.dishName = "Article modifié"
+        XCTAssertThrowsError(try archive.importIfNeeded(shop: shop, context: db))
+    }
 }

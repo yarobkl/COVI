@@ -88,17 +88,24 @@ enum RestaurantFault: LocalizedError {
             try save()
         } catch { db.rollback(); throw error }
     }
-    func finish(_ table: DiningTable, order: CommerceOrder, paid: Bool) throws {
+    func finish(_ table: DiningTable, order: CommerceOrder, paid: Bool,
+                tender: Tender? = nil, received: Int64? = nil, confirmed: Bool = false) throws {
         try authorize()
         try check(table, order)
         guard table.billRequested == paid else { throw RestaurantFault.stale }
         if paid {
+            guard let tender, order.totalMinor > 0,
+                  (tender == .cash ? (received ?? -1) >= order.totalMinor : confirmed)
+            else { throw RestaurantFault.invalid }
             let oid = order.id
             let lines = try db.fetch(FetchDescriptor<OrderLine>(predicate: #Predicate { $0.orderID == oid }))
-            guard lines.allSatisfy({ $0.preparation == Prep.served.rawValue }) else { throw RestaurantFault.stale }
-            if order.totalMinor > 0 {
-                db.insert(PaymentRecord(orderID: oid, establishmentID: shop.id, method: "Externe confirmé", amountMinor: order.totalMinor, confirmedByID: actor))
-            }
+            let payments = try db.fetch(FetchDescriptor<PaymentRecord>(predicate: #Predicate { $0.orderID == oid }))
+            guard !lines.isEmpty, lines.allSatisfy({ $0.preparation == Prep.served.rawValue }),
+                  payments.isEmpty else { throw RestaurantFault.stale }
+            let payment = PaymentRecord(orderID: oid, establishmentID: shop.id, method: tender.rawValue,
+                                        amountMinor: order.totalMinor, confirmedByID: actor)
+            payment.cashReceived = tender == .cash ? received : nil
+            db.insert(payment)
             order.state = .completed
             table.activeSessionID = nil
             table.isOccupied = false

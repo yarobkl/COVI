@@ -32,7 +32,7 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 | Boutique : reçus / historique | 28 % | 73 % | Export PDF natif, impression, tests UI |
 | Restaurant : salle et tables | 66 % | 73 % | Réservations, flux multi-serveurs, tests |
 | Restaurant : commandes et cuisine | 64 % | 72 % | Annulation / corrections, calculs avancés, tests |
-| Restaurant : règlement en caisse | 66 % | 73 % | Reçu imprimable, tests concurrence et double paiement |
+| Restaurant : règlement en caisse | 66 % | 81 % | Reçu imprimable, tests concurrence et double paiement sur appareil |
 | Salon : équipe réelle | 5 % | 79 % | Historique des affectations, rôles, tests UI |
 | Salon : agenda / rendez-vous | 61 % | 75 % | Gestion annulations, plages horaires, rappels |
 | Salon : catalogue / encaissement | 66 % | 73 % | Retour client, modifications, tests de flux |
@@ -43,8 +43,8 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 | Aide et accessibilité | 25 % | 30 % | Guide initial, Dynamic Type, VoiceOver, états erreur/vides |
 | Conformité aux 46 maquettes | Non vérifiée | Non vérifiée | Maquettes et comparaison sur iPhone indispensables |
 | Journal des événements métier local | 30 % | 82 % | Protocole de réplication effectif, purge sécurisée et résolutions de conflits |
-| Tests unitaires iOS | 25 % | 55 % | Compilation et exécution réelles de toute la suite |
-| Build et tests globaux iOS | 0 % | 0 % | Compilation macOS Xcode sans déclencher TestFlight |
+| Tests unitaires iOS | 25 % | 60 % | Exécution réelle de toute la suite sur simulateur |
+| Build et tests globaux iOS | 0 % | 45 % | Compilation macOS réussie ; XCTest en cours, tests visuels indisponibles |
 | Livraison TestFlight | En pause | En pause | Aucune action autorisée dans ce lot |
 
 ## Changements réellement effectués dans ce lot
@@ -93,6 +93,25 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 42. Persister la fiche de profil locale SwiftData lors de la connexion native.
 43. Remplacer les identifiants UUID affichés au personnel par des noms lisibles.
 44. Permettre le changement du nom de profil sans connexion réseau et le tester.
+45. Déplacer la déconnexion dans les réglages du compte, pour ne pas encombrer l'écran principal.
+46. Ajouter une confirmation explicite avant toute déconnexion.
+47. Garder l'état de synchronisation discret et compatible avec les petits écrans.
+48. Permettre le choix du moyen de paiement réel à la caisse du restaurant.
+49. Exiger le montant d'espèces reçu, avec calcul de la monnaie à rendre.
+50. Exiger une confirmation humaine explicite pour chaque règlement Mobile Money au restaurant.
+51. Refuser le règlement d'une addition vide et toute tentative de deuxième encaissement.
+52. Écrire le moyen de règlement effectif et le montant reçu sur le paiement du restaurant.
+53. Ajouter des tests pour les espèces insuffisantes, les paiements mobiles non confirmés et les additions vides.
+54. Vérifier les détails immuables des reçus iCloud lors de leur réconciliation (libellés, acteurs, périodes, sommes encaissées).
+55. Ajouter des tests de divergence entre reçus locaux et reçus déjà archivés.
+
+## Vérification macOS sans signature (branche de diagnostic uniquement)
+
+Le workflow GitHub Actions `COVI Native iOS Diagnostics` s'exécute sur la branche
+`wip/covi-native-20261119-no-testflight`, distincte de la branche Xcode Cloud.
+Le second lancement a **compilé l'app et ses tests avec succès** (`build-for-testing`, étape 6) ;
+les tests XCTest sur simulateur étaient encore en cours au dernier contrôle.
+Ce contrôle ne crée **ni archive de distribution ni provisioning**, et ne valide pas les maquettes.
 
 ## Limites bloquantes
 

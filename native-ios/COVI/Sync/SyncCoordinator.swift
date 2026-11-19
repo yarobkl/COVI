@@ -125,7 +125,14 @@ struct ShopSyncStatus: View {
     @Environment(\.scenePhase) private var phase
     @State private var status = "Synchronisation en attente"
     var body: some View {
-        Text(status).font(.caption).task(id: "\(shop.id)-\(phase)") {
+        Text(status)
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .padding(.horizontal, 12)
+            .accessibilityLabel("Synchronisation : " + status)
+            .task(id: "\(shop.id)-\(phase)") {
             guard phase == .active else { return }
             guard session.usesAppleAccount else {
                 status = "Enregistré sur cet iPhone · iCloud non activé"

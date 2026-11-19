@@ -88,6 +88,9 @@ struct RestaurantTable: View {
     let service: RestaurantService
     @State private var ordering = false
     @State private var closing = false
+    @State private var tender = Tender.cash
+    @State private var received = ""
+    @State private var confirmed = false
     @State private var qr = false
     @State private var message = ""
     var body: some View {
@@ -117,8 +120,42 @@ struct RestaurantTable: View {
             } else { Text("Session à réconcilier.") }
             if !message.isEmpty { Text(message) }
         }.navigationTitle(table.label)
-        .confirmationDialog("Le règlement externe a-t-il été reçu ?", isPresented: $closing) {
-            Button("Règlement confirmé") { if let order { run { try service.finish(table, order: order, paid: true) } } }
+        .sheet(isPresented: $closing) {
+            if let order {
+                NavigationStack {
+                    Form {
+                        Section("Paiement confirmé en caisse") {
+                            LabeledContent("Addition", value: "\(order.totalMinor) FCFA")
+                            Picker("Moyen de paiement", selection: $tender) {
+                                ForEach(Tender.allCases, id: \.self) { option in
+                                    Text(option.rawValue).tag(option)
+                                }
+                            }
+                            if tender == .cash {
+                                TextField("Montant reçu en FCFA", text: $received)
+                                    .keyboardType(.numberPad)
+                                if let amount = Int64(received), amount >= order.totalMinor {
+                                    LabeledContent("Monnaie à rendre", value: "\(amount - order.totalMinor) FCFA")
+                                }
+                            } else {
+                                Toggle("J’ai vérifié la réception de ce paiement", isOn: $confirmed)
+                            }
+                        }
+                        Section {
+                            Button("Confirmer et libérer la table") {
+                                run { try service.finish(table, order: order, paid: true, tender: tender,
+                                                         received: Int64(received), confirmed: confirmed) }
+                                if message.isEmpty { closing = false; received = ""; confirmed = false }
+                            }
+                            .disabled(tender == .cash ? (Int64(received) ?? -1) < order.totalMinor : !confirmed)
+                        }
+                        if !message.isEmpty { Text(message).foregroundStyle(.red) }
+                    }
+                    .navigationTitle("Règlement de la table")
+                    .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Annuler") { closing = false } } }
+                }
+                .presentationDetents([.medium, .large])
+            }
         }
         .sheet(isPresented: $ordering) { if let order { RestaurantComposer(menu: menu, table: table, order: order, service: service) } }
         .sheet(isPresented: $qr) {

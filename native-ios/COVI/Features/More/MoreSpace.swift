@@ -20,6 +20,9 @@ struct MoreSpace: View {
     let actor: UUID
     let role: StaffRole
     let pin: PINManager
+    @Environment(AppSession.self) private var session
+    @State private var confirmingSignOut = false
+    @State private var signOutFailed = false
 
     var body: some View {
         List {
@@ -46,10 +49,28 @@ struct MoreSpace: View {
                 Text("Les données du commerce sont gérées sur iPhone, sans base de données web.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
+            Section("Compte") {
+                Button(role: .destructive) { confirmingSignOut = true } label: {
+                    Label("Se déconnecter", systemImage: "rectangle.portrait.and.arrow.right")
+                }
+            }
         }
         .navigationTitle("Plus")
         .scrollContentBackground(.hidden)
         .background(COVITheme.cream)
+        .confirmationDialog("Se déconnecter de COVI ?", isPresented: $confirmingSignOut) {
+            Button("Se déconnecter", role: .destructive) {
+                do { try session.signOut() }
+                catch { signOutFailed = true }
+            }
+        } message: {
+            Text("Vos établissements et vos opérations enregistrées restent sur cet iPhone.")
+        }
+        .alert("Déconnexion impossible", isPresented: $signOutFailed) {
+            Button("OK") {}
+        } message: {
+            Text("Le trousseau iOS n'a pas permis d'effacer la session active.")
+        }
     }
 }
 

@@ -145,14 +145,63 @@ final class CommerceFlowTests: XCTestCase {
         try service.advance(line, from: .ready, table: table, order: order)
         try service.finish(table, order: order, paid: false)
         XCTAssertTrue(table.billRequested)
-        try service.finish(table, order: order, paid: true)
+        XCTAssertThrowsError(try service.finish(table, order: order, paid: true))
+        try service.finish(table, order: order, paid: true, tender: .mtn, confirmed: true)
         XCTAssertFalse(table.isOccupied)
         XCTAssertEqual(order.state, .completed)
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<PaymentRecord>()), 1)
+        XCTAssertEqual(try db.fetch(FetchDescriptor<PaymentRecord>()).first?.method, Tender.mtn.rawValue)
 
-        XCTAssertThrowsError(try service.finish(table, order: order, paid: true))
+        XCTAssertThrowsError(try service.finish(table, order: order, paid: true,
+                                               tender: .mtn, confirmed: true))
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<PaymentRecord>()), 1)
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 6)
+    }
+
+    func testRestaurantRejectsUnconfirmedMobilePaymentAndInsufficientCash() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Restaurant", kind: .restaurant, city: "Libreville")
+        let table = DiningTable(establishmentID: shop.id, label: "T2", capacity: 2)
+        let dish = CatalogItem(establishmentID: shop.id, title: "Plat", priceMinor: 4_000)
+        dish.menuCategory = MenuGroup.food.rawValue
+        db.insert(shop); db.insert(table); db.insert(dish); try db.save()
+        let service = RestaurantService(shop: shop, actor: owner, role: .owner,
+                                        pin: ownerPIN(), db: db)
+        try service.open(table)
+        let order = try XCTUnwrap(db.fetch(FetchDescriptor<CommerceOrder>()).first)
+        try service.send([dish.id: 1], menu: [dish], table: table, order: order)
+        let line = try XCTUnwrap(db.fetch(FetchDescriptor<OrderLine>()).first)
+        try service.advance(line, from: .cooking, table: table, order: order)
+        try service.advance(line, from: .ready, table: table, order: order)
+        try service.finish(table, order: order, paid: false)
+
+        XCTAssertThrowsError(try service.finish(table, order: order, paid: true,
+                                               tender: .airtel, confirmed: false))
+        XCTAssertThrowsError(try service.finish(table, order: order, paid: true,
+                                               tender: .cash, received: 3_500))
+        XCTAssertTrue(table.isOccupied)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<PaymentRecord>()), 0)
+
+        try service.finish(table, order: order, paid: true, tender: .cash, received: 5_000)
+        let payment = try XCTUnwrap(db.fetch(FetchDescriptor<PaymentRecord>()).first)
+        XCTAssertEqual(payment.method, Tender.cash.rawValue)
+        XCTAssertEqual(payment.cashReceived, 5_000)
+    }
+
+    func testRestaurantCannotRecordPaymentForEmptyTable() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Restaurant", kind: .restaurant, city: "Douala")
+        let table = DiningTable(establishmentID: shop.id, label: "T3", capacity: 2)
+        db.insert(shop); db.insert(table); try db.save()
+        let service = RestaurantService(shop: shop, actor: owner, role: .owner,
+                                        pin: ownerPIN(), db: db)
+        try service.open(table)
+        let order = try XCTUnwrap(db.fetch(FetchDescriptor<CommerceOrder>()).first)
+        try service.finish(table, order: order, paid: false)
+        XCTAssertThrowsError(try service.finish(table, order: order, paid: true,
+                                               tender: .cash, received: 1_000))
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<PaymentRecord>()), 0)
+        XCTAssertTrue(table.isOccupied)
     }
 
     func testSalonBookingWritesBusinessJournalAndDoesNotDoubleBook() throws {

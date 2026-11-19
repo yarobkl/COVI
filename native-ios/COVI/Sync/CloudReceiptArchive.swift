@@ -69,7 +69,10 @@ struct ArchivedReceipt: Codable, Equatable {
         if let existing = try context.fetch(FetchDescriptor<CommerceOrder>(
             predicate: #Predicate { $0.id == id })).first {
             guard existing.establishmentID == shop.id, existing.state == .completed,
-                  existing.totalMinor == totalMinor, existing.discountMinor == discountMinor
+                  existing.totalMinor == totalMinor, existing.discountMinor == discountMinor,
+                  existing.tableID == tableID, existing.customerID == customerID,
+                  existing.createdByID == createdByID,
+                  abs(existing.createdAt.timeIntervalSince(createdAt)) < 1
             else { throw SyncFault.journalChanged }
             let localLines = try context.fetch(FetchDescriptor<OrderLine>(
                 predicate: #Predicate { $0.orderID == id }))
@@ -82,7 +85,8 @@ struct ArchivedReceipt: Codable, Equatable {
                 guard let local = localLines.first(where: { $0.id == article.id }),
                       local.catalogItemID == article.catalogItemID,
                       local.quantity == article.quantity,
-                      local.unitPriceMinor == article.unitPriceMinor else {
+                      local.unitPriceMinor == article.unitPriceMinor,
+                      local.dishName == article.name else {
                     throw SyncFault.journalChanged
                 }
             }
@@ -90,7 +94,9 @@ struct ArchivedReceipt: Codable, Equatable {
                 guard let local = localPayments.first(where: { $0.id == confirmation.id }),
                       local.method == confirmation.method,
                       local.amountMinor == confirmation.amountMinor,
-                      local.confirmedByID == confirmation.confirmedByID else {
+                      local.confirmedByID == confirmation.confirmedByID,
+                      local.cashReceived == confirmation.cashReceived,
+                      abs(local.confirmedAt.timeIntervalSince(confirmation.confirmedAt)) < 1 else {
                     throw SyncFault.journalChanged
                 }
             }

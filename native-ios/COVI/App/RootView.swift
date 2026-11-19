@@ -17,7 +17,6 @@ struct RootView: View {
     }
     @State private var pinManager = PINManager()
     @State private var restoring = true
-    @State private var logoutError = false
     @State private var importingDirectory = false
     @State private var directoryError = ""
 
@@ -67,10 +66,6 @@ struct RootView: View {
                         }
                         EstablishmentSetup(account: account) { selectShop($0, for: account) }.id(account)
                     }
-                    Button("Se déconnecter") {
-                        pinManager.lock()
-                        do { try session.signOut() } catch { logoutError = true }
-                    }
                 }
                 .sheet(isPresented: $addingShop) {
                     EstablishmentSetup(account: account) { id in
@@ -88,7 +83,6 @@ struct RootView: View {
         }
         .onChange(of: phase) { _, phase in if phase != .active { pinManager.lock() } }
         .onChange(of: session.accountID) { _, _ in pinManager.lock(); selectedID = nil; addingShop = false }
-        .alert("Effacement de la session locale impossible", isPresented: $logoutError) { Button("OK") {} }
     }
 
     private func importDirectory(_ account: UUID) async {
