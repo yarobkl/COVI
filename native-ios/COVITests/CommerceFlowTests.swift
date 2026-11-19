@@ -179,6 +179,56 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertEqual(summary.availableUnits, .zero)
     }
 
+    func testStockCSVExportsOnlyOwnShopWithSuspendedStatus() {
+        let shop = UUID()
+        let item = CatalogItem(establishmentID: shop, title: "Riz, local", priceMinor: 1_500)
+        item.stockOnHand = 12
+        item.stockReserved = 2
+        item.soldOut = true
+        let foreign = CatalogItem(establishmentID: UUID(), title: "Privé", priceMinor: 1_000)
+        let csv = BoutiqueStockOverview.export([item, foreign], shopID: shop)
+        XCTAssertTrue(csv.contains("\"Riz, local\""))
+        XCTAssertTrue(csv.contains("\"12\",\"2\",\"10\",\"Vente suspendue\""))
+        XCTAssertFalse(csv.contains("Privé"))
+    }
+
+    func testCSVEncodingEscapesQuotesLinesAndSpreadsheetFormulas() {
+        let csv = COVICSV.encode(headers: ["Article", "Montant"], rows: [
+            [.text("=CONCAT(\"secret\")\nAutre"), .number("-1200")],
+            [.text("  @HYPERLINK()"), .number("0")]
+        ])
+        XCTAssertTrue(csv.contains("\"'=CONCAT(\"\"secret\"\")\nAutre\""))
+        XCTAssertTrue(csv.contains("\"'  @HYPERLINK()\""))
+        XCTAssertTrue(csv.contains("\"-1200\""))
+        XCTAssertEqual(csv.components(separatedBy: "\r\n").filter { !$0.isEmpty }.count, 3)
+    }
+
+    func testExpenseCSVPreservesCancelledEntryAndGuardsFreeformNote() {
+        let shop = UUID(), owner = UUID()
+        let active = ExpenseEntry(establishmentID: shop, actorID: owner, category: "Transport",
+                                  amountMinor: 7_000, spentAt: .now, note: "Taxi")
+        let cancelled = ExpenseEntry(establishmentID: shop, actorID: owner, category: "Autre",
+                                     amountMinor: 1_500, spentAt: .now, note: "=1+1")
+        cancelled.voidedAt = .now
+        let csv = ExpenseSpace.export([active, cancelled])
+        XCTAssertTrue(csv.contains("\"Transport\",\"7000\",\"Active\",\"Taxi\""))
+        XCTAssertTrue(csv.contains("\"Autre\",\"1500\",\"Annulée\",\"'=1+1\""))
+        XCTAssertEqual(csv.components(separatedBy: "\r\n").filter { !$0.isEmpty }.count, 3)
+    }
+
+    func testFinanceCSVSeparatesConfirmedIncomeRefundsAndExpenses() {
+        let snapshot = FinanceSnapshot(collected: Decimal(10_000), refunded: Decimal(1_000),
+            expenses: Decimal(3_000), paymentCount: 2,
+            byMethod: [("Espèces", Decimal(7_000)), ("MTN MoMo", Decimal(3_000))],
+            byExpense: [("Transport", Decimal(3_000))])
+        let csv = FinanceOverview.export(snapshot: snapshot, month: .now, currency: "XAF")
+        XCTAssertTrue(csv.contains("\"Encaissements\",\"Confirmés\",\"10000\""))
+        XCTAssertTrue(csv.contains("\"Remboursements\",\"Remis\",\"1000\""))
+        XCTAssertTrue(csv.contains("\"Solde des flux\",\"Ni bénéfice ni solde bancaire\",\"6000\""))
+        XCTAssertTrue(csv.contains("\"XAF\""))
+        XCTAssertTrue(csv.contains("\"MTN MoMo\",\"3000\""))
+    }
+
     func testSalonBookingRequiresRealActiveCollaborator() throws {
         let db = try database(), owner = UUID()
         let shop = Establishment(ownerID: owner, name: "Salon", kind: .salon, city: "Libreville")

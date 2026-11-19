@@ -35,6 +35,8 @@ struct StockSnapshot {
 struct BoutiqueStockOverview: View {
     let shop: Establishment
     let goods: [CatalogItem]
+    @State private var exporting = false
+    @State private var exportError = ""
 
     var body: some View {
         let summary = StockSnapshot.make(items: goods, shopID: shop.id)
@@ -61,9 +63,35 @@ struct BoutiqueStockOverview: View {
                     ForEach(summary.invalidItems) { Text($0.title).foregroundStyle(.orange) }
                 }
             }
+            Section("Sauvegarde de l'inventaire") {
+                Button("Exporter le stock CSV", systemImage: "square.and.arrow.up") { exporting = true }
+                Text("Export de cet établissement uniquement. Les articles en pause et les réservations sont conservés dans le fichier.")
+                    .font(.footnote).foregroundStyle(.secondary)
+                if !exportError.isEmpty { Text(exportError).foregroundStyle(.red) }
+            }
         }
         .navigationTitle("État des stocks")
         .scrollContentBackground(.hidden).background(COVITheme.cream)
+        .fileExporter(isPresented: $exporting,
+            document: COVICSVDocument(Self.export(goods, shopID: shop.id)),
+            contentType: .commaSeparatedText, defaultFilename: "COVI-inventaire") { result in
+                if case .failure(let fault) = result { exportError = fault.localizedDescription }
+            }
+    }
+
+    static func export(_ goods: [CatalogItem], shopID: UUID) -> String {
+        let rows: [[COVICSV.Cell]] = goods
+            .filter { $0.establishmentID == shopID && !$0.isService }
+            .sorted { $0.title < $1.title }
+            .map { item in
+                [.text(item.id.uuidString), .text(item.title),
+                 .number(String(item.priceMinor)), .number(String(item.stockOnHand)),
+                 .number(String(item.stockReserved)),
+                 .number(String(item.stockOnHand - item.stockReserved)),
+                 .text(item.soldOut ? "Vente suspendue" : "Disponible")]
+            }
+        return COVICSV.encode(headers: ["Identifiant", "Article", "Prix", "Stock physique",
+                                       "Réservé", "Disponible", "Vente"], rows: rows)
     }
 }
 

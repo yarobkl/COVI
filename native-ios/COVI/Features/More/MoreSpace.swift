@@ -1,6 +1,57 @@
 import SwiftUI
 import SwiftData
 import CoreImage.CIFilterBuiltins
+import UniformTypeIdentifiers
+
+enum COVICSV {
+    enum Cell {
+        case text(String)
+        case number(String)
+        static func money(_ amount: Decimal) -> Cell {
+            .number(NSDecimalNumber(decimal: amount).stringValue)
+        }
+    }
+
+    static func encode(headers: [String], rows: [[Cell]]) -> String {
+        func escaped(_ cell: Cell) -> String {
+            let value: String
+            switch cell {
+            case .text(let content):
+                // A CSV quote alone does not prevent spreadsheet formula execution.
+                let first = content.drop(while: { $0.isWhitespace }).first
+                let sanitized = first.map { "=+-@".contains($0) } == true ? "'" + content : content
+                value = sanitized
+            case .number(let numeric):
+                value = numeric
+            }
+            return "\"" + value.replacingOccurrences(of: "\"", with: "\"\"") + "\""
+        }
+        let titleRow = headers.map { escaped(.text($0)) }.joined(separator: ",")
+        let content = rows.filter { $0.count == headers.count }.map {
+            $0.map(escaped).joined(separator: ",")
+        }
+        return ([titleRow] + content).joined(separator: "\r\n") + "\r\n"
+    }
+}
+
+struct COVICSVDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.commaSeparatedText] }
+    var content: String
+
+    init(_ content: String) { self.content = content }
+
+    init(configuration: ReadConfiguration) throws {
+        guard let bytes = configuration.file.regularFileContents,
+              let string = String(data: bytes, encoding: .utf8) else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        content = string
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: Data(content.utf8))
+    }
+}
 
 @Model final class MaintenanceEntry {
     var actor: UUID
@@ -124,6 +175,8 @@ struct FinanceOverview: View {
     @Query private var refunds: [Refund]
     @Query private var expenses: [ExpenseEntry]
     @State private var month = Date()
+    @State private var exporting = false
+    @State private var exportError = ""
 
     init(shop: Establishment) {
         self.shop = shop
@@ -139,6 +192,7 @@ struct FinanceOverview: View {
         List {
             Section("Période") {
                 DatePicker("Mois", selection: $month, displayedComponents: .date)
+                Button("Exporter le bilan CSV", systemImage: "square.and.arrow.up") { exporting = true }
             }
             Section("Flux enregistrés") {
                 LabeledContent("Encaissements confirmés", value: "\(summary.collected.formatted()) \(shop.currencyCode)")
@@ -164,9 +218,30 @@ struct FinanceOverview: View {
                     LabeledContent(row.0, value: "\(row.1.formatted()) \(shop.currencyCode)")
                 }
             }
+            if !exportError.isEmpty { Text(exportError).foregroundStyle(.red) }
         }
         .navigationTitle("Bilan de trésorerie")
         .scrollContentBackground(.hidden).background(COVITheme.cream)
+        .fileExporter(isPresented: $exporting,
+            document: COVICSVDocument(Self.export(snapshot: summary, month: month, currency: shop.currencyCode)),
+            contentType: .commaSeparatedText, defaultFilename: "COVI-bilan-mensuel") { result in
+                if case .failure(let fault) = result { exportError = fault.localizedDescription }
+            }
+    }
+
+    static func export(snapshot: FinanceSnapshot, month: Date, currency: String) -> String {
+        let parts = Calendar.current.dateComponents([.year, .month], from: month)
+        let period = String(format: "%04d-%02d", parts.year ?? 0, parts.month ?? 0)
+        var rows: [[COVICSV.Cell]] = [
+            [.text("Encaissements"), .text("Confirmés"), .money(snapshot.collected)],
+            [.text("Remboursements"), .text("Remis"), .money(snapshot.refunded)],
+            [.text("Dépenses"), .text("Actives"), .money(snapshot.expenses)],
+            [.text("Solde des flux"), .text("Ni bénéfice ni solde bancaire"), .money(snapshot.balance)]
+        ]
+        rows += snapshot.byMethod.map { [.text("Paiement"), .text($0.0), .money($0.1)] }
+        rows += snapshot.byExpense.map { [.text("Dépense"), .text($0.0), .money($0.1)] }
+        let tabular: [[COVICSV.Cell]] = rows.map { [.text(period), .text(currency)] + $0 }
+        return COVICSV.encode(headers: ["Période", "Devise", "Type", "Libellé", "Montant"], rows: tabular)
     }
 }
 
@@ -178,6 +253,7 @@ struct ExpenseSpace: View {
     @Query private var expenses: [ExpenseEntry]
     @State private var month = Date()
     @State private var showingAdd = false
+    @State private var exporting = false
     @State private var cancelling: UUID?
     @State private var error = ""
 
@@ -197,6 +273,9 @@ struct ExpenseSpace: View {
                 DatePicker("Mois", selection: $month, displayedComponents: .date)
                 LabeledContent("Dépenses confirmées", value: "\(total.formatted()) \(shop.currencyCode)")
                     .font(.headline)
+                Button("Exporter le journal CSV", systemImage: "square.and.arrow.up") { exporting = true }
+                Text("Le fichier peut contenir vos notes privées. Ne le partagez qu’avec une personne de confiance.")
+                    .font(.footnote).foregroundStyle(.secondary)
             }
             Section("Journal des dépenses") {
                 if monthRows.isEmpty {
@@ -230,6 +309,10 @@ struct ExpenseSpace: View {
         .navigationTitle("Dépenses")
         .toolbar { Button("Ajouter", systemImage: "plus") { showingAdd = true } }
         .sheet(isPresented: $showingAdd) { ExpenseForm(shop: shop, actor: actor) }
+        .fileExporter(isPresented: $exporting, document: COVICSVDocument(Self.export(monthRows)),
+            contentType: .commaSeparatedText, defaultFilename: "COVI-depenses") { result in
+                if case .failure(let fault) = result { error = fault.localizedDescription }
+            }
         .confirmationDialog("Annuler cette dépense ?", isPresented: Binding(
             get: { cancelling != nil }, set: { if !$0 { cancelling = nil } }
         )) {
@@ -244,6 +327,15 @@ struct ExpenseSpace: View {
         }
         .scrollContentBackground(.hidden)
         .background(COVITheme.cream)
+    }
+
+    static func export(_ expenses: [ExpenseEntry]) -> String {
+        let rows: [[COVICSV.Cell]] = expenses.map { entry in
+            [.text(entry.spentAt.formatted(.iso8601)), .text(entry.category),
+             .number(String(entry.amountMinor)),
+             .text(entry.voidedAt == nil ? "Active" : "Annulée"), .text(entry.note)]
+        }
+        return COVICSV.encode(headers: ["Date", "Catégorie", "Montant", "État", "Note"], rows: rows)
     }
 }
 

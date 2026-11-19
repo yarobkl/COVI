@@ -27,7 +27,7 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 | Multi-appareils propriétaire | 15 % | 52 % | Validation Apple/iCloud, inventaires, activités actives, séparation de comptes |
 | Multi-personnel / rôles | 25 % | 30 % | Invitations, identité stable du personnel, permissions |
 | Boutique : catalogue | 65 % | 81 % | Catégories, tests d'usage sur iPhone, synchronisation catalogue |
-| Boutique : stock / balles / inventaire | 64 % | 82 % | Historique complet, coût de revient, tests de stock concurrents |
+| Boutique : stock / balles / inventaire | 64 % | 83 % | Historique complet, coût de revient, tests de stock concurrents |
 | Boutique : caisse / confirmation manuelle | 75 % | 80 % | Tests physiques, coupure réseau, remboursement partiel |
 | Boutique : reçus / historique | 28 % | 84 % | Impression système et tests UI sur iPhone |
 | Restaurant : salle et tables | 66 % | 78 % | Réservations, flux multi-serveurs, tests iPhone |
@@ -38,8 +38,8 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 | Salon : catalogue / encaissement | 66 % | 73 % | Retour client, modifications, tests de flux |
 | Salon : clients / fiches | 65 % | 79 % | Consentements, export, suppression, tests iPhone |
 | Salon : rapports / commissions | 55 % | 65 % | Périodes, réconciliation financière, tests |
-| Dépenses (trois métiers) | 0 % | 80 % | Tests réels multi-iPhone, exports et rapports de marge à ajouter |
-| Trésorerie mensuelle multi-métier | 0 % | 76 % | Recoupement sur appareils, tests UI, export mensuel |
+| Dépenses (trois métiers) | 0 % | 82 % | Tests réels multi-iPhone, confidentialité des exports et rapports de marge à ajouter |
+| Trésorerie mensuelle multi-métier | 0 % | 79 % | Recoupement sur appareils, tests UI, contrôle des fichiers CSV exportés |
 | Paiements externes manuels (sans SDK de paiement) | 65 % | 78 % | Traçabilité du moyen de paiement et reçus réels |
 | Sécurité PIN et accès caisse simplifié | 52 % | 76 % | Tests exécutés, parcours d'enrôlement simplifié |
 | Aide et accessibilité | 25 % | 30 % | Guide initial, Dynamic Type, VoiceOver, états erreur/vides |
@@ -213,6 +213,20 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 160. Rendre visibles les références suspendues à l'inventaire mais les masquer de la caisse.
 161. Journaliser et tester la suspension, la réactivation et l'idempotence des changements d'état.
 162. Vérifier que les alertes de stock faible ignorent les références volontairement suspendues.
+163. Concevoir un export CSV local iOS ouvrable dans Fichiers, sans service distant.
+164. Sérialiser de façon déterministe les colonnes et les lignes de CSV en UTF-8.
+165. Échapper correctement les virgules, guillemets et retours à la ligne du contenu.
+166. Réduire les risques d'injection de formules dans les tableurs lors d'un export des libellés saisis.
+167. Exporter le stock de la seule boutique active, avec ses identifiants et libellés.
+168. Inclure le stock physique, les réservations, les disponibilités et les articles suspendus.
+169. Exporter le journal mensuel des dépenses avec notes et événements annulés conservés.
+170. Ajouter une mise en garde explicite avant la sauvegarde d'un journal pouvant contenir des notes privées.
+171. Exporter le bilan financier mensuel dans un tableau CSV cohérent et lisible.
+172. Séparer les encaissements, les remboursements, les dépenses et le solde net des flux.
+173. Inclure les ventilations par moyen de paiement et catégorie de dépense.
+174. Ajouter des tests CSV pour les citations, injections de formules et montants négatifs.
+175. Tester l'isolation inter-boutiques lors de l'export des stocks.
+176. Tester les exports des dépenses annulées et les agrégats de trésorerie.
 
 ## Vérification macOS sans signature (branche de diagnostic uniquement)
 
@@ -234,7 +248,7 @@ Le cinquième lancement (`eebf54c`, action `44475555009`) a **compilé et exécu
 68 XCTest sans aucun échec**. Le lancement ultérieur (`32a49d`, action `44489621987`,
 job `135441631979`) a **compilé et exécuté 78 XCTest sans aucun échec**, y compris
 le journal CloudKit des dépenses. Les changements de rendez-vous, la suspension boutique
-et leurs tests nécessitent encore un lancement de diagnostic distinct.
+et leurs tests, ainsi que les exports CSV, nécessitent encore un lancement de diagnostic distinct.
 Ce contrôle ne crée **ni archive de distribution ni provisioning**, et ne valide pas les maquettes.
 
 ## Limites bloquantes
