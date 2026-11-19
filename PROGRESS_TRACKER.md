@@ -297,6 +297,11 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 243. Intégrer les nouveaux états opérationnels dans la persistance locale SwiftData.
 244. Lancer les cycles métiers dans le statut de synchronisation propriétaire sans polling serré.
 245. Ajouter des tests de réimportation, inventaires, conflits concurrents et cycle restaurant multi-appareils.
+246. Empêcher toute modification rétroactive des mouvements de stock, des balles et des commissions importés.
+247. Tester la réplication des annulations de rendez-vous en conservant l'identifiant et l'historique.
+248. Tester le refus de deux rendez-vous concurrents pour un même collaborateur.
+249. Tester le refus d'une sortie de stock qui ferait passer l'inventaire total sous zéro.
+250. Réduire les lectures SwiftData de lignes de cuisine aux seules commandes ouvertes de l'établissement.
 
 ## Vérification macOS sans signature (branche de diagnostic uniquement)
 

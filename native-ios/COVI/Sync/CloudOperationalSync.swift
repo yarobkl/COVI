@@ -18,6 +18,10 @@ struct OperationalCloudRow: Codable, Equatable {
             case .stockMovement, .salonSale: 4
             }
         }
+
+        var immutable: Bool {
+            self == .bale || self == .stockMovement || self == .salonSale
+        }
     }
 
     let version: Int
@@ -330,14 +334,16 @@ struct OperationalCloudAdapter {
         let activeOrders = try context.fetch(FetchDescriptor<CommerceOrder>(predicate: #Predicate {
             $0.establishmentID == id && $0.stateRaw != "completed" && $0.stateRaw != "cancelled"
         }))
-        let activeIDs = Set(activeOrders.map(\.id))
         for order in activeOrders {
             rows.append(try make(OperationalOrder(order), kind: .activeOrder,
                                  id: order.id, shop: shop))
-        }
-        for line in try context.fetch(FetchDescriptor<OrderLine>()) where activeIDs.contains(line.orderID) {
-            rows.append(try make(OperationalKitchenLine(line), kind: .kitchenLine,
-                                 id: line.id, shop: shop))
+            let oid = order.id
+            for line in try context.fetch(FetchDescriptor<OrderLine>(predicate: #Predicate {
+                $0.orderID == oid
+            })) {
+                rows.append(try make(OperationalKitchenLine(line), kind: .kitchenLine,
+                                     id: line.id, shop: shop))
+            }
         }
         for sale in try context.fetch(FetchDescriptor<SalonSaleLine>(predicate: #Predicate { $0.shop == id })) {
             rows.append(try make(OperationalSalonSale(sale), kind: .salonSale,
@@ -606,22 +612,24 @@ struct OperationalCloudAdapter {
             let key = row.key
             let oldPayload = markers[key]?.payload
             let localPayload = try current[key]?.bytes()
+            let protectedByReceipt = try supersededByReceipt(row, context: context)
             if let oldPayload {
                 if oldPayload != bytes {
-                    guard localPayload != nil || try supersededByReceipt(row, context: context) else {
+                    guard !row.kind.immutable else { throw SyncFault.journalChanged }
+                    guard localPayload != nil || protectedByReceipt else {
                         throw SyncFault.journalChanged
                     }
                     guard localPayload == oldPayload || localPayload == bytes ||
-                          try supersededByReceipt(row, context: context) else {
+                          protectedByReceipt else {
                         throw SyncFault.journalChanged
                     }
                 }
             } else if let localPayload, localPayload != bytes,
-                      try !supersededByReceipt(row, context: context) {
+                      !protectedByReceipt {
                 throw SyncFault.journalChanged
             }
             if oldPayload != bytes && localPayload != bytes &&
-               !(try supersededByReceipt(row, context: context)) {
+               !protectedByReceipt {
                 try apply(row, shop: shop, context: context)
             }
             if let marker = markers[key] {
@@ -710,6 +718,7 @@ struct OperationalCloudAdapter {
             let bytes = try row.bytes()
             let marker = byKey[row.key]
             guard marker?.payload != bytes else { continue }
+            guard marker == nil || !row.kind.immutable else { throw SyncFault.journalChanged }
             try await cloud.save(key: row.key, payload: bytes, replacing: marker?.payload)
             try Task.checkCancellation()
             if let marker { marker.payload = bytes }

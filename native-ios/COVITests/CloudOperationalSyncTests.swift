@@ -86,6 +86,64 @@ final class CloudOperationalSyncTests: XCTestCase {
         XCTAssertEqual(try target.fetch(FetchDescriptor<SalonVisit>()).first?.service, service.id)
     }
 
+    func testSalonCancellationReplicatesWithoutDeletingBookingHistory() throws {
+        let source = try memory(), target = try memory(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Salon", kind: .salon, city: "Brazzaville")
+        let copy = clone(shop)
+        let client = SalonClient(shop: shop.id, name: "Cliente")
+        let stylist = SalonStaff(shop: shop.id, name: "Coiffeur")
+        let service = CatalogItem(establishmentID: shop.id, title: "Coupe", priceMinor: 3_000,
+                                  isService: true)
+        let start = Date.now.addingTimeInterval(7_200)
+        let visit = SalonVisit(shop: shop.id, client: client.id, service: service.id,
+            stylist: stylist.name, start: start, end: start.addingTimeInterval(1_800), walkIn: false)
+        source.insert(shop); source.insert(client); source.insert(stylist)
+        source.insert(service); source.insert(visit); try source.save()
+        target.insert(copy); try target.save()
+        try CloudOperationalSync.merge(try export(source, shop: shop), shop: copy,
+            cloudUserID: "iCloud-A", context: target)
+        try target.save()
+
+        visit.cancelled = true; try source.save()
+        try CloudOperationalSync.merge(try export(source, shop: shop), shop: copy,
+            cloudUserID: "iCloud-A", context: target)
+        try target.save()
+        let copied = try XCTUnwrap(target.fetch(FetchDescriptor<SalonVisit>()).first)
+        XCTAssertEqual(copied.id, visit.id)
+        XCTAssertTrue(copied.cancelled)
+        XCTAssertEqual(try target.fetchCount(FetchDescriptor<SalonVisit>()), 1)
+    }
+
+    func testTwoDevicesCannotSilentlyDoubleBookSameStylist() throws {
+        let source = try memory(), target = try memory(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Salon", kind: .salon, city: "Pointe-Noire")
+        let copy = clone(shop)
+        let first = SalonClient(shop: shop.id, name: "Cliente A")
+        let second = SalonClient(shop: shop.id, name: "Cliente B")
+        let service = CatalogItem(establishmentID: shop.id, title: "Coupe",
+            priceMinor: 4_000, isService: true)
+        let stylist = SalonStaff(shop: shop.id, name: "Coiffeur")
+        let start = Date.now.addingTimeInterval(7_200)
+        let firstVisit = SalonVisit(shop: shop.id, client: first.id, service: service.id,
+            stylist: stylist.name, start: start, end: start.addingTimeInterval(3_600), walkIn: false)
+        source.insert(shop); source.insert(first); source.insert(second)
+        source.insert(service); source.insert(stylist); source.insert(firstVisit)
+        try source.save()
+        target.insert(copy); try target.save()
+        try CloudOperationalSync.merge(try export(source, shop: shop), shop: copy,
+            cloudUserID: "iCloud-A", context: target)
+        try target.save()
+
+        let competing = SalonVisit(shop: shop.id, client: second.id, service: service.id,
+            stylist: stylist.name, start: start.addingTimeInterval(300),
+            end: start.addingTimeInterval(1_800), walkIn: false)
+        source.insert(competing); try source.save()
+        XCTAssertThrowsError(try CloudOperationalSync.merge(try export(source, shop: shop),
+            shop: copy, cloudUserID: "iCloud-A", context: target))
+        target.rollback()
+        XCTAssertEqual(try target.fetchCount(FetchDescriptor<SalonVisit>()), 1)
+    }
+
     func testRemoteCatalogEditUpdatesUnmodifiedDeviceButNotDivergedLocalEdits() throws {
         let source = try memory(), target = try memory(), owner = UUID()
         let shop = Establishment(ownerID: owner, name: "Boutique", kind: .boutique, city: "Libreville")
@@ -163,6 +221,47 @@ final class CloudOperationalSyncTests: XCTestCase {
         XCTAssertNoThrow(try CloudOperationalSync.validateStock(shop: shop, context: db))
         product.stockOnHand = 8
         XCTAssertThrowsError(try CloudOperationalSync.validateStock(shop: shop, context: db))
+    }
+
+    func testCloudStockRejectsConcurrentOversellingInsteadOfGoingNegative() throws {
+        let source = try memory(), target = try memory(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Boutique", kind: .boutique, city: "Brazzaville")
+        let copy = clone(shop)
+        let item = CatalogItem(establishmentID: shop.id, title: "Riz", priceMinor: 1_500)
+        item.stockOnHand = 1
+        let incoming = StockMovement(establishmentID: shop.id, itemID: item.id,
+            delta: 1, reason: "Inventaire", actorID: owner)
+        source.insert(shop); source.insert(item); source.insert(incoming); try source.save()
+        target.insert(copy); try target.save()
+        try CloudOperationalSync.merge(try export(source, shop: shop), shop: copy,
+            cloudUserID: "iCloud-A", context: target)
+        try target.save()
+        let sale = StockMovement(establishmentID: shop.id, itemID: item.id,
+            delta: -2, reason: "Vente concurrente", actorID: owner)
+        source.insert(sale); try source.save()
+        XCTAssertThrowsError(try CloudOperationalSync.merge(try export(source, shop: shop),
+            shop: copy, cloudUserID: "iCloud-A", context: target))
+        target.rollback()
+        XCTAssertEqual(try target.fetch(FetchDescriptor<CatalogItem>()).first?.stockOnHand, 1)
+    }
+
+    func testStockHistoryIsImmutableAfterFirstCloudImport() throws {
+        let source = try memory(), target = try memory(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Boutique", kind: .boutique, city: "Brazzaville")
+        let copy = clone(shop)
+        let item = CatalogItem(establishmentID: shop.id, title: "Farine", priceMinor: 2_000)
+        item.stockOnHand = 5
+        let movement = StockMovement(establishmentID: shop.id, itemID: item.id,
+            delta: 5, reason: "Arrivage", actorID: owner)
+        source.insert(shop); source.insert(item); source.insert(movement); try source.save()
+        target.insert(copy); try target.save()
+        try CloudOperationalSync.merge(try export(source, shop: shop), shop: copy,
+            cloudUserID: "iCloud-A", context: target)
+        try target.save()
+        movement.reason = "Historique réécrit"
+        XCTAssertThrowsError(try CloudOperationalSync.merge(try export(source, shop: shop),
+            shop: copy, cloudUserID: "iCloud-A", context: target))
+        XCTAssertEqual(try target.fetch(FetchDescriptor<StockMovement>()).first?.reason, "Arrivage")
     }
 
     func testRestaurantOpenSessionThenVerifiedReceiptCompletesWithoutDuplicatePayments() throws {
