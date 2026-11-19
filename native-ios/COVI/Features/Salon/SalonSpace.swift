@@ -124,7 +124,12 @@ struct SalonBooking: View {
                     Text("Choisir").tag(nil as UUID?)
                     ForEach(team) { person in Text(person.name).tag(Optional(person.id)) }
                 }
-                if !walk { DatePicker("Début", selection: $day) }
+                if !walk {
+                    DatePicker("Début", selection: $day,
+                               in: Date.now...Date.now.addingTimeInterval(366 * 24 * 3_600))
+                }
+                Text("Créneaux possibles jusqu'à un an à l'avance.")
+                    .font(.footnote).foregroundStyle(.secondary)
                 Stepper("\(minutes) minutes", value: $minutes, in: 5...720, step: 5)
                 COVIButton("Confirmer") {
                     guard let c = clients.first(where: { $0.id == client }),
@@ -137,6 +142,11 @@ struct SalonBooking: View {
                 }
                 Text(message)
             }.navigationTitle("Nouveau rendez-vous").toolbar { Button("Fermer") { dismiss() } }
+                .onAppear {
+                    if day < Date.now.addingTimeInterval(5 * 60) {
+                        day = Date.now.addingTimeInterval(15 * 60)
+                    }
+                }
         }
     }
 }

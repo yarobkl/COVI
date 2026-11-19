@@ -93,7 +93,7 @@ final class CommerceFlowTests: XCTestCase {
         for item in [first, second] { db.insert(item) }
         db.insert(shop); db.insert(service); db.insert(collaborator)
         try db.save()
-        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        let start = Date.now.addingTimeInterval(2 * 3_600)
 
         try SalonLedger.book(shop: shop.id, client: first, item: service, team: collaborator,
                              start: start, minutes: 60, walkIn: false, db: db)
@@ -101,5 +101,23 @@ final class CommerceFlowTests: XCTestCase {
             item: service, team: collaborator, start: start.addingTimeInterval(30 * 60),
             minutes: 30, walkIn: false, db: db))
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<SalonVisit>()), 1)
+    }
+
+    func testSalonRejectsPastAndFarFutureAppointments() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Salon", kind: .salon, city: "Brazzaville")
+        let client = SalonClient(shop: shop.id, name: "Client")
+        let service = CatalogItem(establishmentID: shop.id, title: "Coiffure", priceMinor: 2_000,
+                                  isService: true)
+        let stylist = SalonStaff(shop: shop.id, name: "Coiffeur")
+        db.insert(shop); db.insert(client); db.insert(service); db.insert(stylist)
+        try db.save()
+        for date in [Date.now.addingTimeInterval(-3_600),
+                     Date.now.addingTimeInterval(2 * 366 * 24 * 3_600)] {
+            XCTAssertThrowsError(try SalonLedger.book(shop: shop.id, client: client,
+                item: service, team: stylist, start: date, minutes: 30,
+                walkIn: false, db: db))
+        }
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<SalonVisit>()), 0)
     }
 }

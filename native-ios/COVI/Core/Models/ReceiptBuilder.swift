@@ -61,6 +61,8 @@ enum ReceiptBuilder {
         guard !paid.isEmpty, paid.allSatisfy({ $0.amountMinor > 0 }) else { throw Fault.noPayment }
         let orderLines = lines.filter { $0.orderID == order.id }
         guard !orderLines.isEmpty else { throw Fault.invalidOrder }
+        guard Set(orderLines.map(\.id)).count == orderLines.count,
+              Set(paid.map(\.id)).count == paid.count else { throw Fault.mismatchedTotal }
 
         var subtotal: Int64 = 0
         let rows = try orderLines.map { line -> ReceiptSummary.Line in

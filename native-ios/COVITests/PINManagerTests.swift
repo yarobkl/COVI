@@ -144,4 +144,19 @@ final class PINManagerTests: XCTestCase {
         manager.lock()
         XCTAssertFalse(manager.mayOperate(shop: shop, actor: owner))
     }
+
+    func testCashierPINRejectsNonAsciiCharactersAndIncorrectLengths() throws {
+        let manager = makeManager(), staff = UUID(), shop = UUID()
+        for invalid in ["1", "12345", "12ab", "١٢٣٤"] {
+            XCTAssertThrowsError(try manager.configureCashierPIN(invalid, for: staff, shopID: shop))
+        }
+    }
+
+    func testVerificationRejectsUnicodeNumerals() throws {
+        let staff = UUID(), shop = UUID()
+        let manager = makeManager()
+        try configure(manager, staff: staff, shop: shop)
+        XCTAssertFalse(manager.verify("١٢٣٤", scope: .cashier(staffID: staff, shopID: shop)))
+        XCTAssertEqual(manager.lastError, .malformed)
+    }
 }

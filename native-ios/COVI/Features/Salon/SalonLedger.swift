@@ -78,7 +78,11 @@ enum SalonFault: String, LocalizedError {
                      minutes: Int, walkIn: Bool, db: ModelContext) throws {
         guard item.establishmentID == shop, item.isService, client.shop == shop,
               team.shop == shop, team.active, !team.name.isEmpty,
-              (5...720).contains(minutes) else { throw SalonFault.invalid }
+              (5...720).contains(minutes),
+              start >= Date.now.addingTimeInterval(-60),
+              start <= Date.now.addingTimeInterval(366 * 24 * 3_600) else {
+            throw SalonFault.invalid
+        }
         let end = start.addingTimeInterval(Double(minutes * 60))
         let person = team.name, cid = client.id
         let matches = FetchDescriptor<SalonVisit>(predicate: #Predicate {
