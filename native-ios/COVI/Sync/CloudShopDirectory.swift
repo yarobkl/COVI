@@ -98,7 +98,7 @@ import SwiftData
             do {
                 record = try await database.record(for: key)
             } catch let error as CKError where error.code == .unknownItem {
-                record = CKRecord(recordType: "COVIAccountIndex", recordID: key)
+                record = CKRecord(recordType: CloudKitSchemaContract.accountIndex, recordID: key)
             }
             let remote = try decode(record, owner: owner)
             let shopList = try context.fetch(FetchDescriptor<Establishment>(
@@ -131,7 +131,7 @@ import SwiftData
 
             if combined == remote.shops.sorted(by: { $0.id.uuidString < $1.id.uuidString }) { return }
             let updated = Document(version: 1, ownerID: owner, shops: combined)
-            record["payload"] = try JSONEncoder().encode(updated) as NSData
+            record[CloudKitSchemaContract.payloadField] = try JSONEncoder().encode(updated) as NSData
             do {
                 _ = try await database.save(record)
                 return
@@ -143,7 +143,7 @@ import SwiftData
     }
 
     private static func decode(_ record: CKRecord, owner: UUID) throws -> Document {
-        guard let bytes = record["payload"] as? Data else {
+        guard let bytes = record[CloudKitSchemaContract.payloadField] as? Data else {
             return Document(version: 1, ownerID: owner, shops: [])
         }
         guard let data = try? JSONDecoder().decode(Document.self, from: bytes),

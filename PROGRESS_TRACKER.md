@@ -26,8 +26,8 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 | Persistance SwiftData locale | 62 % | 70 % | Migration de schéma, tests de corruption/restauration |
 | Répertoire d'établissements iCloud privé | 0 % | 65 % | Tests multi-iPhone, collisions et hors-ligne prolongé |
 | Journal CloudKit des renommages / remboursements | 40 % | 48 % | Tests de rejeu et résolution des conflits |
-| Synchronisation CloudKit **des données métier** | 5 % | 68 % | Réplication privée des états métiers compilée et 12 XCTest spécifiques réussis ; tests CloudKit réels à deux iPhone et partage inter-comptes à concevoir |
-| Multi-appareils propriétaire | 15 % | 70 % | Vérifier reprises réseau, conflits hors ligne et réception iCloud sur deux iPhone ; pas de synchronisation d'employés entre Apple ID distincts |
+| Synchronisation CloudKit **des données métier** | 5 % | 72 % | Schéma préparé en développement dans la console Apple ; pas déployé en production, tests physiques et partage inter-comptes encore nécessaires |
+| Multi-appareils propriétaire | 15 % | 74 % | XCTest supplémentaires de convergence et conflits indépendants ; CloudKit réel sur deux iPhone non testé |
 | Multi-personnel / rôles | 25 % | 30 % | Invitations, identité stable du personnel, permissions |
 | Boutique : catalogue | 65 % | 81 % | Catégories, tests d'usage sur iPhone, synchronisation catalogue |
 | Boutique : stock / balles / inventaire | 64 % | 83 % | Historique complet, coût de revient, tests de stock concurrents |
@@ -308,6 +308,14 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 252. Empêcher qu'un ancien état de table rouvre une addition déjà réglée par un reçu vérifié.
 253. Tester l'arrivée du reçu avant un ancien état de salle dans le simulateur.
 254. Documenter la réplication CloudKit explicite, les comptes Apple et l'absence de partage du personnel entre identifiants.
+255. Auditer les types CloudKit réellement présents dans le conteneur Apple `iCloud.com.covi.app`.
+256. Créer les trois types `COVIAccountIndex`, `COVIEvent` et `COVIOperationalState` dans le schéma de développement Apple.
+257. Ajouter à chacun un champ `payload` de type `Bytes`, sans toucher aux données métier ni aux profils Apple.
+258. Vérifier que le schéma de production est vide et inspecter la prévisualisation de déploiement, sans déployer.
+259. Centraliser les noms des record types et du champ `payload` pour éviter des divergences entre le code et CloudKit.
+260. Tester deux stocks locaux indépendants avec ventes concurrentes valides et refus de survente du dernier article.
+261. Tester les rendez-vous salon concurrents sur deux copies distinctes d'un établissement.
+262. Documenter les tests physiques restants et la limite d'ACL de `CKShare` avant toute invitation d'employés.
 
 ## Vérification macOS sans signature (branche de diagnostic uniquement)
 
@@ -346,6 +354,14 @@ macOS et le test de table réglée ont ensuite réussi : révision distante
 **build-for-testing réussi et 109/109 XCTest réussis, 0 échec**.
 Cette validation couvre la fusion SwiftData en mémoire ; elle ne prouve pas
 la disponibilité du CloudKit privé de production ou le partage entre comptes Apple.
+
+L'audit suivant a ouvert **le véritable conteneur Apple** `iCloud.com.covi.app` :
+les trois types COVI et leurs champs `payload: Bytes` ont été créés dans le
+schéma **Development**. Le schéma **Production** ne comportait aucun type.
+La prévisualisation du déploiement annonce trois nouveaux types et des
+modifications aux rôles système ; le déploiement a été annulé avant toute
+action sur la production. Le protocole détaillé de validation physique et de
+partage inter-comptes est dans `native-ios/CLOUDKIT_VALIDATION.md`.
 
 ## Limites bloquantes
 

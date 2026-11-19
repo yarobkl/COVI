@@ -255,8 +255,10 @@ struct OperationalCloudAdapter {
         guard response.deletions.isEmpty else { throw SyncFault.journalChanged }
         let rows = try response.modificationResultsByID.map { id, result -> (String, Data) in
             let record = try result.get().record
-            guard record.recordType == "COVIOperationalState",
-                  let bytes = record["payload"] as? Data else { throw SyncFault.invalidEvent }
+            guard record.recordType == CloudKitSchemaContract.operational,
+                  let bytes = record[CloudKitSchemaContract.payloadField] as? Data else {
+                throw SyncFault.invalidEvent
+            }
             return (id.recordName, bytes)
         }
         return (rows, try NSKeyedArchiver.archivedData(withRootObject: response.changeToken,
@@ -268,15 +270,17 @@ struct OperationalCloudAdapter {
         let record: CKRecord
         do {
             let existing = try await bridge.database.record(for: id)
-            guard let original = existing["payload"] as? Data else { throw SyncFault.invalidEvent }
+            guard let original = existing[CloudKitSchemaContract.payloadField] as? Data else {
+                throw SyncFault.invalidEvent
+            }
             if original == payload { return }
             guard original == expected else { throw SyncFault.journalChanged }
             record = existing
         } catch let error as CKError where error.code == .unknownItem {
             guard expected == nil else { throw SyncFault.journalChanged }
-            record = CKRecord(recordType: "COVIOperationalState", recordID: id)
+            record = CKRecord(recordType: CloudKitSchemaContract.operational, recordID: id)
         }
-        record["payload"] = payload as NSData
+        record[CloudKitSchemaContract.payloadField] = payload as NSData
         do {
             let outcome = try await bridge.database.modifyRecords(
                 saving: [record], deleting: [], savePolicy: .ifServerRecordUnchanged,
@@ -286,7 +290,7 @@ struct OperationalCloudAdapter {
         } catch {
             let original = error
             guard let existing = try? await bridge.database.record(for: id),
-                  existing["payload"] as? Data == payload else { throw original }
+                  existing[CloudKitSchemaContract.payloadField] as? Data == payload else { throw original }
         }
     }
 }

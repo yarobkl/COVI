@@ -5,6 +5,13 @@ import XCTest
 
 @MainActor
 final class CloudOperationalSyncTests: XCTestCase {
+    func testProductionSchemaNamesMatchPreparedCloudKitDevelopmentTypes() {
+        XCTAssertEqual(CloudKitSchemaContract.container, "iCloud.com.covi.app")
+        XCTAssertEqual(CloudKitSchemaContract.recordTypes,
+            ["COVIAccountIndex", "COVIEvent", "COVIOperationalState"])
+        XCTAssertEqual(CloudKitSchemaContract.payloadField, "payload")
+    }
+
     private func memory() throws -> ModelContext {
         let schema = Schema([
             Establishment.self, CatalogItem.self, Bale.self, StockMovement.self,
@@ -335,5 +342,102 @@ final class CloudOperationalSyncTests: XCTestCase {
         XCTAssertNil(syncedTable.activeSessionID)
         XCTAssertEqual(try target.fetch(FetchDescriptor<CommerceOrder>()).first?.state, .completed)
         XCTAssertEqual(try target.fetchCount(FetchDescriptor<PaymentRecord>()), 1)
+    }
+
+    func testTwoOfflinePhonesSellSeparateUnitsAndConvergeWithoutDoubleCounting() throws {
+        let first = try memory(), second = try memory(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Boutique", kind: .boutique, city: "Brazzaville")
+        let other = clone(shop)
+        let item = CatalogItem(establishmentID: shop.id, title: "Pain", priceMinor: 500)
+        item.stockOnHand = 2
+        let arrival = StockMovement(establishmentID: shop.id, itemID: item.id,
+            delta: 2, reason: "Arrivage", actorID: owner)
+        first.insert(shop); first.insert(item); first.insert(arrival); try first.save()
+        second.insert(other); try second.save()
+        let baseline = try export(first, shop: shop)
+        try CloudOperationalSync.merge(baseline, shop: shop, cloudUserID: "same-iCloud", context: first)
+        try CloudOperationalSync.merge(baseline, shop: other, cloudUserID: "same-iCloud", context: second)
+        try first.save(); try second.save()
+
+        item.stockOnHand -= 1
+        first.insert(StockMovement(establishmentID: shop.id, itemID: item.id,
+            delta: -1, reason: "Vente appareil 1", actorID: owner))
+        let secondItem = try XCTUnwrap(second.fetch(FetchDescriptor<CatalogItem>()).first)
+        secondItem.stockOnHand -= 1
+        second.insert(StockMovement(establishmentID: shop.id, itemID: item.id,
+            delta: -1, reason: "Vente appareil 2", actorID: owner))
+        try first.save(); try second.save()
+
+        try CloudOperationalSync.merge(try export(first, shop: shop), shop: other,
+            cloudUserID: "same-iCloud", context: second)
+        try CloudOperationalSync.validateStock(shop: other, context: second)
+        try second.save()
+        try CloudOperationalSync.merge(try export(second, shop: other), shop: shop,
+            cloudUserID: "same-iCloud", context: first)
+        try CloudOperationalSync.validateStock(shop: shop, context: first)
+        try first.save()
+        XCTAssertEqual(item.stockOnHand, 0)
+        XCTAssertEqual(secondItem.stockOnHand, 0)
+        XCTAssertEqual(try first.fetchCount(FetchDescriptor<StockMovement>()), 3)
+        XCTAssertEqual(try second.fetchCount(FetchDescriptor<StockMovement>()), 3)
+    }
+
+    func testTwoOfflinePhonesCannotBothSellTheLastUnit() throws {
+        let first = try memory(), second = try memory(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Boutique", kind: .boutique, city: "Douala")
+        let other = clone(shop)
+        let item = CatalogItem(establishmentID: shop.id, title: "Savon", priceMinor: 800)
+        item.stockOnHand = 1
+        first.insert(shop); first.insert(item)
+        first.insert(StockMovement(establishmentID: shop.id, itemID: item.id,
+            delta: 1, reason: "Stock initial", actorID: owner))
+        second.insert(other); try first.save(); try second.save()
+        let baseline = try export(first, shop: shop)
+        try CloudOperationalSync.merge(baseline, shop: shop, cloudUserID: "same-iCloud", context: first)
+        try CloudOperationalSync.merge(baseline, shop: other, cloudUserID: "same-iCloud", context: second)
+        try first.save(); try second.save()
+        let localItem = try XCTUnwrap(second.fetch(FetchDescriptor<CatalogItem>()).first)
+
+        item.stockOnHand = 0; localItem.stockOnHand = 0
+        first.insert(StockMovement(establishmentID: shop.id, itemID: item.id,
+            delta: -1, reason: "Vente A", actorID: owner))
+        second.insert(StockMovement(establishmentID: shop.id, itemID: item.id,
+            delta: -1, reason: "Vente B", actorID: owner))
+        try first.save(); try second.save()
+        XCTAssertThrowsError(try CloudOperationalSync.merge(try export(first, shop: shop),
+            shop: other, cloudUserID: "same-iCloud", context: second))
+        second.rollback()
+        XCTAssertEqual(localItem.stockOnHand, 0)
+        XCTAssertEqual(try second.fetchCount(FetchDescriptor<StockMovement>()), 2)
+    }
+
+    func testTwoOfflinePhonesWithIndependentSalonBookingsRefuseOverlappingTime() throws {
+        let first = try memory(), second = try memory(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Salon", kind: .salon, city: "Pointe-Noire")
+        let other = clone(shop)
+        let a = SalonClient(shop: shop.id, name: "Cliente A")
+        let b = SalonClient(shop: shop.id, name: "Cliente B")
+        let service = CatalogItem(establishmentID: shop.id, title: "Coupe", priceMinor: 2_000,
+            isService: true)
+        let stylist = SalonStaff(shop: shop.id, name: "Coiffeur")
+        first.insert(shop); first.insert(a); first.insert(b)
+        first.insert(service); first.insert(stylist); try first.save()
+        second.insert(other); try second.save()
+        let baseline = try export(first, shop: shop)
+        try CloudOperationalSync.merge(baseline, shop: shop, cloudUserID: "same-iCloud", context: first)
+        try CloudOperationalSync.merge(baseline, shop: other, cloudUserID: "same-iCloud", context: second)
+        try first.save(); try second.save()
+
+        let start = Date.now.addingTimeInterval(4_000)
+        first.insert(SalonVisit(shop: shop.id, client: a.id, service: service.id,
+            stylist: stylist.name, start: start, end: start.addingTimeInterval(1_800), walkIn: false))
+        second.insert(SalonVisit(shop: shop.id, client: b.id, service: service.id,
+            stylist: stylist.name, start: start.addingTimeInterval(200),
+            end: start.addingTimeInterval(1_200), walkIn: false))
+        try first.save(); try second.save()
+        XCTAssertThrowsError(try CloudOperationalSync.merge(try export(first, shop: shop),
+            shop: other, cloudUserID: "same-iCloud", context: second))
+        second.rollback()
+        XCTAssertEqual(try second.fetchCount(FetchDescriptor<SalonVisit>()), 1)
     }
 }
