@@ -147,6 +147,7 @@ struct ShopSyncStatus: View {
                     try await SyncCoordinator.cycle(shop: shop, context: context)
                     try await CloudReceiptArchive.cycle(shop: shop, context: context)
                     try await CloudExpenseLedger.cycle(shop: shop, context: context)
+                    try await CloudOperationalSync.cycle(shop: shop, context: context)
                     let conflict = try SyncCoordinator.history(shop.id, context).contains { $0.state == .conflict }
                     let shopID = shop.id
                     let waiting = try context.fetchCount(FetchDescriptor<PendingExpenseVoid>(predicate: #Predicate {
@@ -154,9 +155,16 @@ struct ShopSyncStatus: View {
                     }))
                     status = conflict ? "Remboursement à vérifier" :
                         waiting > 0 ? "Dépenses iCloud en attente de consolidation" :
-                        "Établissement, reçus et dépenses iCloud à jour · stock local"
+                        "Boutique, restaurant, salon et archives iCloud à jour"
                     delay = 2
                 } catch is CancellationError { return }
+                catch SyncFault.journalChanged {
+                    status = "Conflit iCloud : vérifiez les modifications sur vos appareils"
+                    wait = 60
+                } catch SyncFault.accountChanged {
+                    status = "Compte iCloud différent : synchronisation bloquée"
+                    wait = 60
+                }
                 catch {
                     status = "Synchronisation suspendue · données conservées"
                     wait = max(delay, (error as? CKError)?.retryAfterSeconds ?? 0)

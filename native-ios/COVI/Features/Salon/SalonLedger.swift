@@ -59,6 +59,15 @@ import SwiftData
         let rate = Int64(item.salonPercent)
         commission = (gross / 100) * rate + ((gross % 100) * rate) / 100
     }
+
+    init(id: UUID, shop: UUID, order: UUID, client: UUID, stylist: String,
+         title: String, service: Bool, units: Int, gross: Int64, percent: Int,
+         commission: Int64, date: Date) {
+        self.id = id; self.shop = shop; self.order = order; self.client = client
+        self.stylist = stylist; self.title = title; self.service = service
+        self.units = units; self.gross = gross; self.percent = percent
+        self.commission = commission; self.date = date
+    }
 }
 
 enum SalonFault: String, LocalizedError {

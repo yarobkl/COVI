@@ -8,6 +8,7 @@ enum PersistenceController {
             Bale.self, SyncCheckpoint.self, CloudAccountBinding.self,
             ReceiptCloudCheckpoint.self, ReceiptCloudMarker.self,
             ExpenseCloudCheckpoint.self, ExpenseCloudMarker.self, PendingExpenseVoid.self,
+            OperationalCloudCheckpoint.self, OperationalCloudMarker.self,
             Account.self, Establishment.self, Membership.self, ExpenseEntry.self,
             CatalogItem.self, DiningTable.self, CommerceOrder.self,
             Refund.self, OrderLine.self, PaymentRecord.self, StockMovement.self, OutboxEvent.self

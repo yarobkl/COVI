@@ -24,8 +24,8 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 | Persistance SwiftData locale | 62 % | 70 % | Migration de schéma, tests de corruption/restauration |
 | Répertoire d'établissements iCloud privé | 0 % | 65 % | Tests multi-iPhone, collisions et hors-ligne prolongé |
 | Journal CloudKit des renommages / remboursements | 40 % | 48 % | Tests de rejeu et résolution des conflits |
-| Synchronisation CloudKit **des données métier** | 5 % | 34 % | Reçus et dépenses archivés ; produits, stock, commandes actives, réservations, clients, personnel non synchronisés |
-| Multi-appareils propriétaire | 15 % | 52 % | Validation Apple/iCloud, inventaires, activités actives, séparation de comptes |
+| Synchronisation CloudKit **des données métier** | 5 % | 56 % | Réplication privée des états métiers codée, diagnostic macOS et vrais tests à deux iPhone encore nécessaires ; partage inter-comptes à concevoir |
+| Multi-appareils propriétaire | 15 % | 62 % | Vérifier reprises réseau, conflits hors ligne, réception iCloud sur deux iPhone et partage multi-personnel |
 | Multi-personnel / rôles | 25 % | 30 % | Invitations, identité stable du personnel, permissions |
 | Boutique : catalogue | 65 % | 81 % | Catégories, tests d'usage sur iPhone, synchronisation catalogue |
 | Boutique : stock / balles / inventaire | 64 % | 83 % | Historique complet, coût de revient, tests de stock concurrents |
@@ -277,6 +277,26 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 223. Limiter les collaborateurs affichés dans le rapport salon à la période effectivement sélectionnée.
 224. Afficher un état vide explicite lorsqu'un salon n'a ni rendez-vous ni vente dans la période.
 225. Préciser que le chiffre après commissions ne déduit pas encore les charges de l'établissement.
+226. Définir un format privé CloudKit versionné pour chaque donnée opérationnelle, sans dépendance web.
+227. Modéliser les états synchronisables du catalogue, des arrivages et des mouvements de stock immuables.
+228. Modéliser les fiches clients, collaborateurs, disponibilités et réservations salon.
+229. Modéliser les tables, commandes ouvertes et lignes de préparation du restaurant.
+230. Modéliser les historiques de commissions salon et les droits d'accès des responsables.
+231. Maintenir les paiements et remboursements dans leurs journaux vérifiés existants plutôt que les déduire d'un état distant.
+232. Ajouter un contrôle compare-and-swap CloudKit refusant d'écraser une mise à jour concurrente.
+233. Enregistrer localement la dernière version iCloud connue de chaque entité.
+234. Refuser une mise à jour distante qui écraserait un changement hors ligne non envoyé.
+235. Appliquer les articles et dépendances avant les mouvements, ventes et réservations.
+236. Appliquer les entrées de stock une seule fois, sans recopier le compteur physique comme une vérité distante.
+237. Vérifier que chaque compteur de stock correspond à la somme de son historique d'entrées et de sorties.
+238. Empêcher qu'une quantité incohérente ou concurrente devienne négative après synchronisation.
+239. Détecter les rendez-vous en concurrence sur le même créneau, client ou collaborateur.
+240. Permettre à un reçu confirmé de terminer une commande restaurant ouverte reçue d'un autre appareil.
+241. Refuser le passage de payé à non payé lorsqu'une ancienne commande ouverte arrive en différé.
+242. Séparer les synchronisations propres à chaque établissement et à chaque identité iCloud.
+243. Intégrer les nouveaux états opérationnels dans la persistance locale SwiftData.
+244. Lancer les cycles métiers dans le statut de synchronisation propriétaire sans polling serré.
+245. Ajouter des tests de réimportation, inventaires, conflits concurrents et cycle restaurant multi-appareils.
 
 ## Vérification macOS sans signature (branche de diagnostic uniquement)
 
@@ -310,7 +330,8 @@ Ce contrôle ne crée **ni archive de distribution ni provisioning**, et ne vali
 ## Limites bloquantes
 
 - Une connexion Apple et un compte iCloud ne prouvent **pas** à eux seuls la synchronisation complète :
-  les données métiers restent locales tant qu'un protocole de réplication testé n'est pas en place.
+  les nouveaux miroirs CloudKit exigent encore des essais réels sur deux appareils. Le stockage privé
+  du propriétaire ne partage pas automatiquement les données avec le compte Apple d'un employé.
 - Les anciens utilisateurs Supabase/Capacitor nécessitent un protocole de migration explicite.
 - Les sources des 46 maquettes approuvées ne figurent pas dans ce checkout.
 - Aucune archive iOS, aucun fichier de signature ni aucun profil de provisioning n'a été créé ou modifié.

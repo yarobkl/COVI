@@ -66,11 +66,33 @@ struct ArchivedReceipt: Codable, Equatable {
     func importIfNeeded(shop: Establishment, context: ModelContext) throws {
         guard version == 1, establishmentID == shop.id, ownerID == shop.ownerID,
               !articles.isEmpty, !confirmations.isEmpty else { throw SyncFault.invalidEvent }
+        let verifier = CommerceOrder(establishmentID: shop.id, createdByID: createdByID, tableID: tableID)
+        verifier.id = orderID; verifier.customerID = customerID; verifier.createdAt = createdAt
+        verifier.state = .completed; verifier.totalMinor = totalMinor; verifier.discountMinor = discountMinor
+        let verifierLines = articles.map { article -> OrderLine in
+            let line = OrderLine(orderID: orderID, catalogItemID: article.catalogItemID,
+                quantity: article.quantity, unitPriceMinor: article.unitPriceMinor)
+            line.id = article.id; line.dishName = article.name
+            return line
+        }
+        let verifierPayments = confirmations.map { confirmation -> PaymentRecord in
+            let payment = PaymentRecord(orderID: orderID, establishmentID: shop.id,
+                method: confirmation.method, amountMinor: confirmation.amountMinor,
+                confirmedByID: confirmation.confirmedByID)
+            payment.id = confirmation.id; payment.confirmedAt = confirmation.confirmedAt
+            payment.cashReceived = confirmation.cashReceived
+            return payment
+        }
+        guard Set(articles.map(\.id)).count == articles.count,
+              Set(confirmations.map(\.id)).count == confirmations.count else { throw SyncFault.invalidEvent }
+        do {
+            _ = try ReceiptBuilder.create(order: verifier, shop: shop, lines: verifierLines,
+                                          products: [], payments: verifierPayments)
+        } catch { throw SyncFault.invalidEvent }
         let id = orderID
         if let existing = try context.fetch(FetchDescriptor<CommerceOrder>(
             predicate: #Predicate { $0.id == id })).first {
-            guard existing.establishmentID == shop.id, existing.state == .completed,
-                  existing.totalMinor == totalMinor, existing.discountMinor == discountMinor,
+            guard existing.establishmentID == shop.id,
                   existing.tableID == tableID, existing.customerID == customerID,
                   existing.createdByID == createdByID,
                   abs(existing.createdAt.timeIntervalSince(createdAt)) < 1
@@ -79,11 +101,11 @@ struct ArchivedReceipt: Codable, Equatable {
                 predicate: #Predicate { $0.orderID == id }))
             let localPayments = try context.fetch(FetchDescriptor<PaymentRecord>(
                 predicate: #Predicate { $0.orderID == id }))
-            guard localLines.count == articles.count, localPayments.count == confirmations.count else {
+            guard localLines.count <= articles.count, localPayments.count <= confirmations.count else {
                 throw SyncFault.journalChanged
             }
-            for article in articles {
-                guard let local = localLines.first(where: { $0.id == article.id }),
+            for local in localLines {
+                guard let article = articles.first(where: { $0.id == local.id }),
                       local.catalogItemID == article.catalogItemID,
                       local.quantity == article.quantity,
                       local.unitPriceMinor == article.unitPriceMinor,
@@ -91,14 +113,53 @@ struct ArchivedReceipt: Codable, Equatable {
                     throw SyncFault.journalChanged
                 }
             }
-            for confirmation in confirmations {
-                guard let local = localPayments.first(where: { $0.id == confirmation.id }),
+            for local in localPayments {
+                guard let confirmation = confirmations.first(where: { $0.id == local.id }),
                       local.method == confirmation.method,
                       local.amountMinor == confirmation.amountMinor,
                       local.confirmedByID == confirmation.confirmedByID,
                       local.cashReceived == confirmation.cashReceived,
                       abs(local.confirmedAt.timeIntervalSince(confirmation.confirmedAt)) < 1 else {
                     throw SyncFault.journalChanged
+                }
+            }
+            if existing.state == .completed {
+                guard existing.totalMinor == totalMinor,
+                      existing.discountMinor == discountMinor,
+                      localLines.count == articles.count,
+                      localPayments.count == confirmations.count else { throw SyncFault.journalChanged }
+                return
+            }
+            guard existing.state == .accepted || existing.state == .served ||
+                  existing.state == .ready || existing.state == .preparing,
+                  localPayments.isEmpty else { throw SyncFault.journalChanged }
+
+            // An open restaurant order can have been mirrored before its
+            // payment. Only a verified receipt is allowed to close it.
+            for article in articles where !localLines.contains(where: { $0.id == article.id }) {
+                let line = OrderLine(orderID: id, catalogItemID: article.catalogItemID,
+                    quantity: article.quantity, unitPriceMinor: article.unitPriceMinor)
+                line.id = article.id; line.dishName = article.name
+                context.insert(line)
+            }
+            for confirmation in confirmations {
+                let payment = PaymentRecord(orderID: id, establishmentID: shop.id,
+                    method: confirmation.method, amountMinor: confirmation.amountMinor,
+                    confirmedByID: confirmation.confirmedByID)
+                payment.id = confirmation.id; payment.confirmedAt = confirmation.confirmedAt
+                payment.cashReceived = confirmation.cashReceived
+                context.insert(payment)
+            }
+            existing.totalMinor = totalMinor
+            existing.discountMinor = discountMinor
+            existing.state = .completed
+            if let tableID {
+                let tables = try context.fetch(FetchDescriptor<DiningTable>(predicate: #Predicate {
+                    $0.id == tableID
+                }))
+                if let table = tables.first, table.activeSessionID == id {
+                    table.activeSessionID = nil; table.isOccupied = false
+                    table.billRequested = false
                 }
             }
             return
