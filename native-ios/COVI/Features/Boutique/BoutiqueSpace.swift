@@ -53,7 +53,7 @@ struct BoutiqueSpace: View {
                     TextField("Rechercher un article", text: $search)
                     ForEach(filtered) { item in
                         if tab == .stock {
-                            NavigationLink { ProductDetail(item: item, actor: actor) } label: {
+                            NavigationLink { ProductDetail(shop: shop, item: item, actor: actor) } label: {
                                 LabeledContent(item.title, value: "\(item.stockOnHand) unités")
                             }
                         } else {

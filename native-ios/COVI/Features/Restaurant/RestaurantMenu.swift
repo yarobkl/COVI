@@ -72,6 +72,17 @@ struct RestaurantSetup: View {
                         return ("restaurant.table.created", table.id)
                     } }
                 }
+                Section("Tables configurées") {
+                    if tables.isEmpty {
+                        Text("Ajoutez une table pour commencer le service.")
+                            .foregroundStyle(.secondary)
+                    }
+                    ForEach(tables) { table in
+                        NavigationLink("\(table.label) · \(table.capacity) places") {
+                            RestaurantTableEditor(table: table, service: service)
+                        }
+                    }
+                }
                 Section("Carte du restaurant") {
                     TextField("Nom de l’article", text: $dish)
                     TextField("Prix en FCFA", text: $price).keyboardType(.numberPad)
@@ -95,6 +106,9 @@ struct RestaurantSetup: View {
                                 return ("restaurant.menu.availability-changed", item.id)
                             }
                         }))
+                        NavigationLink("Modifier · " + item.title) {
+                            RestaurantMenuEditor(item: item, service: service)
+                        }
                     }
                 }
                 if !message.isEmpty { Text(message) }
@@ -114,5 +128,68 @@ struct RestaurantSetup: View {
             service.db.rollback()
             message = error.localizedDescription
         }
+    }
+}
+
+private struct RestaurantMenuEditor: View {
+    let item: CatalogItem
+    let service: RestaurantService
+    @Environment(\.dismiss) private var dismiss
+    @State private var title = ""
+    @State private var price = ""
+    @State private var category = MenuGroup.food
+    @State private var error = ""
+
+    var body: some View {
+        Form {
+            TextField("Nom de l’article", text: $title)
+            TextField("Prix en FCFA", text: $price).keyboardType(.numberPad)
+            Picker("Catégorie", selection: $category) {
+                ForEach(MenuGroup.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+            }
+            Button("Enregistrer la carte") {
+                do {
+                    try service.editMenu(item, title: title, price: Int64(price) ?? 0, category: category)
+                    dismiss()
+                } catch { error = error.localizedDescription }
+            }
+            if !error.isEmpty { Text(error).foregroundStyle(.red) }
+            Text("Les commandes déjà envoyées conservent leur prix et leur libellé d’origine.")
+                .font(.footnote).foregroundStyle(.secondary)
+        }
+        .navigationTitle("Modifier le menu")
+        .onAppear {
+            title = item.title
+            price = String(item.priceMinor)
+            category = MenuGroup(rawValue: item.menuCategory ?? "") ?? .food
+        }
+    }
+}
+
+private struct RestaurantTableEditor: View {
+    let table: DiningTable
+    let service: RestaurantService
+    @Environment(\.dismiss) private var dismiss
+    @State private var label = ""
+    @State private var seats = 2
+    @State private var error = ""
+
+    var body: some View {
+        Form {
+            TextField("Nom de la table", text: $label)
+            Stepper("\(seats) places", value: $seats, in: 1...100)
+            Button("Enregistrer la table") {
+                do { try service.editTable(table, label: label, capacity: seats); dismiss() }
+                catch { error = error.localizedDescription }
+            }
+            .disabled(table.isOccupied)
+            if table.isOccupied {
+                Text("Libérez la table après le règlement avant de modifier sa configuration.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+            if !error.isEmpty { Text(error).foregroundStyle(.red) }
+        }
+        .navigationTitle("Modifier la table")
+        .onAppear { label = table.label; seats = table.capacity }
     }
 }

@@ -99,10 +99,21 @@ enum SalonFault: String, LocalizedError {
             try save(db)
         } catch { db.rollback(); throw error }
     }
+
+    static func cancel(shop: UUID, actor: UUID, visit: SalonVisit, db: ModelContext) throws {
+        guard visit.shop == shop, !visit.cancelled, visit.receipt == nil else { throw SalonFault.stale }
+        visit.cancelled = true
+        do {
+            try BusinessOutbox.enqueue(kind: "salon.appointment.cancelled", establishmentID: shop,
+                entityID: visit.id, actorID: actor, in: db)
+            try save(db)
+        } catch { db.rollback(); throw error }
+    }
     @discardableResult static func pay(shop: Establishment, actor: UUID, pin: PINManager, client: SalonClient, team: String,
-                    visit: SalonVisit?, basket: [UUID:Int], menu: [CatalogItem], tender: Tender, db: ModelContext) throws -> CommerceOrder {
+                    visit: SalonVisit?, basket: [UUID:Int], menu: [CatalogItem],
+                    tender: Tender, confirmed: Bool, db: ModelContext) throws -> CommerceOrder {
         guard !shop.archived, pin.mayOperate(shop: shop, actor: actor) else { throw SalonFault.access }
-        guard client.shop == shop.id, !basket.isEmpty, !team.isEmpty else { throw SalonFault.invalid }
+        guard confirmed, client.shop == shop.id, !basket.isEmpty, !team.isEmpty else { throw SalonFault.invalid }
         let shopID = shop.id, person = team
         let workers = try db.fetch(FetchDescriptor<SalonStaff>(predicate: #Predicate {
             $0.shop == shopID && $0.name == person

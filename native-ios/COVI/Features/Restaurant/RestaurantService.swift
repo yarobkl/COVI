@@ -30,6 +30,54 @@ enum RestaurantFault: LocalizedError {
     func save() throws {
         do { try db.save() } catch { db.rollback(); throw error }
     }
+    func editMenu(_ item: CatalogItem, title: String, price: Int64, category: MenuGroup) throws {
+        try authorize()
+        guard admin, item.establishmentID == shop.id,
+              item.menuCategory != nil, price > 0 else { throw RestaurantFault.invalid }
+        let cleaned = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleaned.isEmpty else { throw RestaurantFault.invalid }
+        let sid = shop.id
+        let peers = try db.fetch(FetchDescriptor<CatalogItem>(predicate: #Predicate {
+            $0.establishmentID == sid
+        }))
+        guard !peers.contains(where: {
+            $0.id != item.id && $0.menuCategory != nil &&
+            $0.title.caseInsensitiveCompare(cleaned) == .orderedSame
+        }) else { throw RestaurantFault.invalid }
+        guard item.title != cleaned || item.priceMinor != price ||
+              item.menuCategory != category.rawValue else { return }
+        item.title = cleaned
+        item.priceMinor = price
+        item.menuCategory = category.rawValue
+        item.updatedAt = .now
+        do {
+            try BusinessOutbox.enqueue(kind: "restaurant.menu.edited", establishmentID: shop.id,
+                entityID: item.id, actorID: actor, in: db)
+            try save()
+        } catch { db.rollback(); throw error }
+    }
+    func editTable(_ table: DiningTable, label: String, capacity: Int) throws {
+        try authorize()
+        guard admin, table.establishmentID == shop.id, !table.isOccupied,
+              table.activeSessionID == nil, (1...100).contains(capacity) else { throw RestaurantFault.stale }
+        let cleaned = label.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleaned.isEmpty else { throw RestaurantFault.invalid }
+        let sid = shop.id
+        let peers = try db.fetch(FetchDescriptor<DiningTable>(predicate: #Predicate {
+            $0.establishmentID == sid
+        }))
+        guard !peers.contains(where: {
+            $0.id != table.id && $0.label.caseInsensitiveCompare(cleaned) == .orderedSame
+        }) else { throw RestaurantFault.invalid }
+        guard cleaned != table.label || capacity != table.capacity else { return }
+        table.label = cleaned
+        table.capacity = capacity
+        do {
+            try BusinessOutbox.enqueue(kind: "restaurant.table.edited", establishmentID: shop.id,
+                entityID: table.id, actorID: actor, in: db)
+            try save()
+        } catch { db.rollback(); throw error }
+    }
     func open(_ table: DiningTable) throws {
         try authorize()
         guard table.establishmentID == shop.id, table.activeSessionID == nil, !table.isOccupied else { throw RestaurantFault.stale }

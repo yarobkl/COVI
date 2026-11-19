@@ -1,6 +1,63 @@
 import SwiftUI
 import SwiftData
 
+@MainActor enum BoutiqueInventoryService {
+    enum Fault: LocalizedError {
+        case invalid, duplicate, wrongShop
+        var errorDescription: String? {
+            switch self {
+            case .invalid: "Saisissez un nom et un prix FCFA strictement positif."
+            case .duplicate: "Un article portant ce nom existe déjà dans cette boutique."
+            case .wrongShop: "Cet article n'appartient pas à cette boutique."
+            }
+        }
+    }
+
+    private static func validated(_ name: String, _ price: Int64, shopID: UUID,
+                                  excluding: UUID?, context: ModelContext) throws -> String {
+        let cleaned = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleaned.isEmpty, price > 0 else { throw Fault.invalid }
+        let items = try context.fetch(FetchDescriptor<CatalogItem>(predicate: #Predicate {
+            $0.establishmentID == shopID && !$0.isService
+        }))
+        guard !items.contains(where: {
+            $0.id != excluding && $0.title.caseInsensitiveCompare(cleaned) == .orderedSame
+        }) else { throw Fault.duplicate }
+        return cleaned
+    }
+
+    @discardableResult
+    static func create(shop: Establishment, name: String, price: Int64,
+                       actor: UUID, context: ModelContext) throws -> CatalogItem {
+        guard shop.kind == .boutique, !shop.archived else { throw Fault.wrongShop }
+        let cleaned = try validated(name, price, shopID: shop.id, excluding: nil, context: context)
+        let item = CatalogItem(establishmentID: shop.id, title: cleaned, priceMinor: price)
+        context.insert(item)
+        do {
+            try BusinessOutbox.enqueue(kind: "boutique.product.created", establishmentID: shop.id,
+                entityID: item.id, actorID: actor, in: context)
+            try context.save()
+            return item
+        } catch { context.rollback(); throw error }
+    }
+
+    static func edit(_ item: CatalogItem, in shop: Establishment, name: String, price: Int64,
+                     actor: UUID, context: ModelContext) throws {
+        guard shop.kind == .boutique, !shop.archived,
+              item.establishmentID == shop.id, !item.isService else { throw Fault.wrongShop }
+        let cleaned = try validated(name, price, shopID: shop.id, excluding: item.id, context: context)
+        guard cleaned != item.title || price != item.priceMinor else { return }
+        item.title = cleaned
+        item.priceMinor = price
+        item.updatedAt = .now
+        do {
+            try BusinessOutbox.enqueue(kind: "boutique.product.edited", establishmentID: shop.id,
+                entityID: item.id, actorID: actor, in: context)
+            try context.save()
+        } catch { context.rollback(); throw error }
+    }
+}
+
 struct NewProduct: View {
     let shop: Establishment
     let actor: UUID
@@ -14,17 +71,11 @@ struct NewProduct: View {
             TextField("Nom", text: $title)
             TextField("Prix en FCFA", text: $price).keyboardType(.numberPad)
             Button("Créer l’article") {
-                let cleaned = title.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard let price = Int64(price), price > 0, !cleaned.isEmpty else {
-                    error = "Nom et prix positif requis."; return
-                }
-                let item = CatalogItem(establishmentID: shop.id, title: cleaned, priceMinor: price)
-                context.insert(item)
                 do {
-                    try BusinessOutbox.enqueue(kind: "boutique.product.created",
-                        establishmentID: shop.id, entityID: item.id, actorID: actor, in: context)
-                    try context.save(); dismiss()
-                } catch { context.rollback(); self.error = error.localizedDescription }
+                    try BoutiqueInventoryService.create(shop: shop, name: title,
+                        price: Int64(price) ?? 0, actor: actor, context: context)
+                    dismiss()
+                } catch { self.error = error.localizedDescription }
             }
             Text(error)
         }.navigationTitle("Nouvel article")
@@ -32,6 +83,7 @@ struct NewProduct: View {
 }
 
 struct ProductDetail: View {
+    let shop: Establishment
     let item: CatalogItem
     let actor: UUID
     @Environment(\.modelContext) private var context
@@ -40,8 +92,10 @@ struct ProductDetail: View {
     @State private var reason = ""
     @State private var operation = "Entrée"
     @State private var message = ""
-    init(item: CatalogItem, actor: UUID) {
-        self.item = item; self.actor = actor
+    @State private var editedName = ""
+    @State private var editedPrice = ""
+    init(shop: Establishment, item: CatalogItem, actor: UUID) {
+        self.shop = shop; self.item = item; self.actor = actor
         let id = item.id
         _logs = Query(filter: #Predicate<StockMovement> { $0.itemID == id }, sort: \.createdAt, order: .reverse)
     }
@@ -50,6 +104,17 @@ struct ProductDetail: View {
             Section(item.title) {
                 Text("\(item.priceMinor) FCFA")
                 LabeledContent("Stock · réservé", value: "\(item.stockOnHand) · \(item.stockReserved)")
+            }
+            Section("Modifier l’article") {
+                TextField("Nom de l’article", text: $editedName)
+                TextField("Prix FCFA", text: $editedPrice).keyboardType(.numberPad)
+                Button("Enregistrer les modifications") {
+                    do {
+                        try BoutiqueInventoryService.edit(item, in: shop, name: editedName,
+                            price: Int64(editedPrice) ?? 0, actor: actor, context: context)
+                        message = "Fiche mise à jour. Les anciens reçus restent inchangés."
+                    } catch { message = error.localizedDescription }
+                }
             }
             Section("Ajustement rapide du stock") {
                 Picker("Type", selection: $operation) { ForEach(["Entrée", "Perte", "Inventaire", "Retour"], id: \.self) { Text($0) } }
@@ -84,6 +149,7 @@ struct ProductDetail: View {
                 }
             }
         }.navigationTitle("Fiche produit").scrollContentBackground(.hidden).background(COVITheme.cream)
+            .onAppear { editedName = item.title; editedPrice = String(item.priceMinor) }
     }
 }
 

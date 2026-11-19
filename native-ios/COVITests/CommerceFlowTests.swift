@@ -52,6 +52,45 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<PaymentRecord>()), 0)
     }
 
+    func testBoutiqueProductEditsKeepOriginalReceiptAmountsAndNames() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Épicerie", kind: .boutique, city: "Libreville")
+        db.insert(shop)
+        let item = try BoutiqueInventoryService.create(shop: shop, name: "Beignets", price: 250,
+                                                        actor: owner, context: db)
+        item.stockOnHand = 5
+        try db.save()
+        let sale = try BoutiqueLedger.sell([.init(product: item, units: 2)], discount: 0, quote: 500,
+            tender: .cash, received: 1_000, confirmed: false, shop: shop,
+            actor: owner, pin: ownerPIN(), context: db)
+        try BoutiqueInventoryService.edit(item, in: shop, name: "Beignets maison", price: 300,
+                                          actor: owner, context: db)
+        XCTAssertEqual(item.title, "Beignets maison")
+        XCTAssertEqual(item.priceMinor, 300)
+        let lines = try db.fetch(FetchDescriptor<OrderLine>())
+        let payments = try db.fetch(FetchDescriptor<PaymentRecord>())
+        let receipt = try ReceiptBuilder.create(order: sale, shop: shop, lines: lines,
+                                                products: [item], payments: payments)
+        XCTAssertEqual(receipt.lines.first?.name, "Beignets")
+        XCTAssertEqual(receipt.lines.first?.unitPriceMinor, 250)
+        XCTAssertEqual(receipt.totalMinor, 500)
+    }
+
+    func testBoutiqueRejectsDuplicateProductNamesAndUnrelatedShopEdits() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Épicerie", kind: .boutique, city: "Douala")
+        let foreign = Establishment(ownerID: UUID(), name: "Autre", kind: .boutique, city: "Douala")
+        db.insert(shop); db.insert(foreign)
+        let product = try BoutiqueInventoryService.create(shop: shop, name: "Café", price: 500,
+                                                           actor: owner, context: db)
+        XCTAssertThrowsError(try BoutiqueInventoryService.create(shop: shop, name: "  CAFÉ ",
+            price: 600, actor: owner, context: db))
+        XCTAssertThrowsError(try BoutiqueInventoryService.edit(product, in: foreign,
+            name: "Nouveau", price: 700, actor: owner, context: db))
+        XCTAssertEqual(product.title, "Café")
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<CatalogItem>()), 1)
+    }
+
     func testStockCannotBeOversoldEvenWhenEachLineLooksValid() throws {
         let db = try database(), owner = UUID()
         let shop = Establishment(ownerID: owner, name: "Marché", kind: .boutique, city: "Brazzaville")
@@ -82,6 +121,27 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<SalonVisit>()), 0)
     }
 
+    func testSalonNeverRecordsUnconfirmedMobilePayment() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Salon", kind: .salon, city: "Libreville")
+        let client = SalonClient(shop: shop.id, name: "Cliente")
+        let stylist = SalonStaff(shop: shop.id, name: "Coiffeuse")
+        let item = CatalogItem(establishmentID: shop.id, title: "Shampooing", priceMinor: 1_500)
+        item.stockOnHand = 5
+        db.insert(shop); db.insert(client); db.insert(stylist); db.insert(item)
+        try db.save()
+        XCTAssertThrowsError(try SalonLedger.pay(shop: shop, actor: owner, pin: ownerPIN(),
+            client: client, team: stylist.name, visit: nil, basket: [item.id: 2],
+            menu: [item], tender: .orange, confirmed: false, db: db))
+        XCTAssertEqual(item.stockOnHand, 5)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<PaymentRecord>()), 0)
+        _ = try SalonLedger.pay(shop: shop, actor: owner, pin: ownerPIN(),
+            client: client, team: stylist.name, visit: nil, basket: [item.id: 2],
+            menu: [item], tender: .orange, confirmed: true, db: db)
+        XCTAssertEqual(item.stockOnHand, 3)
+        XCTAssertEqual(try db.fetch(FetchDescriptor<PaymentRecord>()).first?.method, Tender.orange.rawValue)
+    }
+
     func testSameStylistCannotReceiveOverlappingAppointments() throws {
         let db = try database(), owner = UUID()
         let shop = Establishment(ownerID: owner, name: "Salon", kind: .salon, city: "Brazzaville")
@@ -101,6 +161,44 @@ final class CommerceFlowTests: XCTestCase {
             item: service, team: collaborator, start: start.addingTimeInterval(30 * 60),
             minutes: 30, walkIn: false, db: db))
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<SalonVisit>()), 1)
+    }
+
+    func testCancellingAppointmentFreesTimeSlotAndWritesJournal() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Salon", kind: .salon, city: "Yaoundé")
+        let first = SalonClient(shop: shop.id, name: "Cliente 1")
+        let second = SalonClient(shop: shop.id, name: "Cliente 2")
+        let service = CatalogItem(establishmentID: shop.id, title: "Coupe", priceMinor: 3_000,
+                                  isService: true)
+        let stylist = SalonStaff(shop: shop.id, name: "Coiffeuse")
+        db.insert(shop); db.insert(first); db.insert(second); db.insert(service); db.insert(stylist)
+        try db.save()
+        let start = Date.now.addingTimeInterval(7_200)
+        try SalonLedger.book(shop: shop.id, actor: owner, client: first, item: service,
+            team: stylist, start: start, minutes: 60, walkIn: false, db: db)
+        let visit = try XCTUnwrap(db.fetch(FetchDescriptor<SalonVisit>()).first)
+        try SalonLedger.cancel(shop: shop.id, actor: owner, visit: visit, db: db)
+        XCTAssertTrue(visit.cancelled)
+        XCTAssertThrowsError(try SalonLedger.cancel(shop: shop.id, actor: owner, visit: visit, db: db))
+        try SalonLedger.book(shop: shop.id, actor: owner, client: second, item: service,
+            team: stylist, start: start, minutes: 60, walkIn: false, db: db)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<SalonVisit>()), 2)
+        let events = try db.fetch(FetchDescriptor<OutboxEvent>())
+        XCTAssertEqual(events.count, 3)
+        XCTAssertTrue(try events.contains {
+            try JSONDecoder().decode(BusinessEventPayload.self, from: $0.payloadJSON).kind ==
+                "salon.appointment.cancelled"
+        })
+    }
+
+    func testPaidSalonAppointmentCannotBeCancelled() throws {
+        let db = try database(), owner = UUID()
+        let visit = SalonVisit(shop: UUID(), client: UUID(), service: UUID(),
+            stylist: "Coiffeuse", start: .now, end: .now.addingTimeInterval(1_800), walkIn: false)
+        visit.receipt = UUID()
+        db.insert(visit); try db.save()
+        XCTAssertThrowsError(try SalonLedger.cancel(shop: visit.shop, actor: owner, visit: visit, db: db))
+        XCTAssertFalse(visit.cancelled)
     }
 
     func testSalonRejectsPastAndFarFutureAppointments() throws {
@@ -202,6 +300,89 @@ final class CommerceFlowTests: XCTestCase {
                                                tender: .cash, received: 1_000))
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<PaymentRecord>()), 0)
         XCTAssertTrue(table.isOccupied)
+    }
+
+    func testRestaurantMenuEditPreservesAlreadySentKitchenTicket() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Restaurant", kind: .restaurant, city: "Douala")
+        let table = DiningTable(establishmentID: shop.id, label: "T1", capacity: 4)
+        let item = CatalogItem(establishmentID: shop.id, title: "Poulet", priceMinor: 4_000)
+        item.menuCategory = MenuGroup.food.rawValue
+        db.insert(shop); db.insert(table); db.insert(item); try db.save()
+        let service = RestaurantService(shop: shop, actor: owner, role: .owner,
+                                        pin: ownerPIN(), db: db)
+        try service.open(table)
+        let order = try XCTUnwrap(db.fetch(FetchDescriptor<CommerceOrder>()).first)
+        try service.send([item.id: 1], menu: [item], table: table, order: order)
+        try service.editMenu(item, title: "Poulet rôti", price: 5_000, category: .food)
+        let line = try XCTUnwrap(db.fetch(FetchDescriptor<OrderLine>()).first)
+        XCTAssertEqual(line.dishName, "Poulet")
+        XCTAssertEqual(line.unitPriceMinor, 4_000)
+        XCTAssertEqual(order.totalMinor, 4_000)
+        XCTAssertEqual(item.title, "Poulet rôti")
+        XCTAssertEqual(item.priceMinor, 5_000)
+        XCTAssertThrowsError(try service.editMenu(item, title: "  ", price: 1_000, category: .food))
+    }
+
+    func testRestaurantTableCanBeRenamedOnlyWhenEmpty() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Restaurant", kind: .restaurant, city: "Douala")
+        let table = DiningTable(establishmentID: shop.id, label: "Terrasse", capacity: 2)
+        let other = DiningTable(establishmentID: shop.id, label: "Salle", capacity: 4)
+        db.insert(shop); db.insert(table); db.insert(other); try db.save()
+        let service = RestaurantService(shop: shop, actor: owner, role: .owner,
+                                        pin: ownerPIN(), db: db)
+        XCTAssertThrowsError(try service.editTable(table, label: "Salle", capacity: 4))
+        try service.editTable(table, label: "Grande terrasse", capacity: 6)
+        XCTAssertEqual(table.label, "Grande terrasse")
+        XCTAssertEqual(table.capacity, 6)
+        try service.open(table)
+        XCTAssertThrowsError(try service.editTable(table, label: "Terrasse modifiée", capacity: 3))
+        XCTAssertEqual(table.label, "Grande terrasse")
+    }
+
+    func testRestaurantPaymentWaitsUntilEveryDishIsServed() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Restaurant", kind: .restaurant, city: "Libreville")
+        let table = DiningTable(establishmentID: shop.id, label: "T4", capacity: 4)
+        let dish = CatalogItem(establishmentID: shop.id, title: "Riz", priceMinor: 2_500)
+        dish.menuCategory = MenuGroup.food.rawValue
+        db.insert(shop); db.insert(table); db.insert(dish); try db.save()
+        let service = RestaurantService(shop: shop, actor: owner, role: .owner,
+                                        pin: ownerPIN(), db: db)
+        try service.open(table)
+        let order = try XCTUnwrap(db.fetch(FetchDescriptor<CommerceOrder>()).first)
+        try service.send([dish.id: 1], menu: [dish], table: table, order: order)
+        try service.finish(table, order: order, paid: false)
+        XCTAssertThrowsError(try service.finish(table, order: order, paid: true,
+                                               tender: .cash, received: 3_000))
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<PaymentRecord>()), 0)
+        let line = try XCTUnwrap(db.fetch(FetchDescriptor<OrderLine>()).first)
+        try service.advance(line, from: .cooking, table: table, order: order)
+        try service.advance(line, from: .ready, table: table, order: order)
+        try service.finish(table, order: order, paid: true, tender: .cash, received: 3_000)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<PaymentRecord>()), 1)
+    }
+
+    func testRestaurantRefusesSoldOutDishesAndLateAdditionsAfterBill() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Restaurant", kind: .restaurant, city: "Brazzaville")
+        let table = DiningTable(establishmentID: shop.id, label: "T5", capacity: 4)
+        let dish = CatalogItem(establishmentID: shop.id, title: "Poisson", priceMinor: 3_500)
+        dish.menuCategory = MenuGroup.food.rawValue
+        dish.soldOut = true
+        db.insert(shop); db.insert(table); db.insert(dish); try db.save()
+        let service = RestaurantService(shop: shop, actor: owner, role: .owner,
+                                        pin: ownerPIN(), db: db)
+        try service.open(table)
+        let order = try XCTUnwrap(db.fetch(FetchDescriptor<CommerceOrder>()).first)
+        XCTAssertThrowsError(try service.send([dish.id: 1], menu: [dish], table: table, order: order))
+        dish.soldOut = false
+        try service.send([dish.id: 1], menu: [dish], table: table, order: order)
+        try service.finish(table, order: order, paid: false)
+        XCTAssertThrowsError(try service.send([dish.id: 1], menu: [dish], table: table, order: order))
+        XCTAssertEqual(order.totalMinor, 3_500)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<OrderLine>()), 1)
     }
 
     func testSalonBookingWritesBusinessJournalAndDoesNotDoubleBook() throws {

@@ -7,9 +7,10 @@ struct ReceiptDetail: View {
     @Query private var lines: [OrderLine]
     @Query private var payments: [PaymentRecord]
     @Query private var items: [CatalogItem]
+    @Query private var refunds: [Refund]
     private var receipt: Result<ReceiptSummary, Error> {
         Result { try ReceiptBuilder.create(order: order, shop: shop, lines: lines,
-                                          products: items, payments: payments) }
+                                          products: items, payments: payments, refunds: refunds) }
     }
 
     init(order: CommerceOrder, shop: Establishment) {
@@ -19,6 +20,7 @@ struct ReceiptDetail: View {
         _lines = Query(filter: #Predicate<OrderLine> { $0.orderID == orderID })
         _payments = Query(filter: #Predicate<PaymentRecord> { $0.orderID == orderID })
         _items = Query(filter: #Predicate<CatalogItem> { $0.establishmentID == shopID })
+        _refunds = Query(filter: #Predicate<Refund> { $0.establishmentID == shopID })
     }
 
     var body: some View {
@@ -52,6 +54,16 @@ struct ReceiptDetail: View {
                         LabeledContent("Règlement", value: model.method)
                         LabeledContent("Confirmé le", value: model.confirmedAt.formatted(date: .abbreviated,
                                                                                         time: .shortened))
+                    }
+                    if model.refundedMinor > 0 {
+                        Section("Remboursement enregistré") {
+                            Label("Montant rendu au client", systemImage: "arrow.uturn.backward.circle.fill")
+                                .foregroundStyle(.orange)
+                            LabeledContent("Remboursé", value: "\(model.refundedMinor) \(model.currencyCode)")
+                            if let date = model.refundedAt {
+                                LabeledContent("Le", value: date.formatted(date: .abbreviated, time: .shortened))
+                            }
+                        }
                     }
                     Section {
                         ShareLink(item: model.shareText) {

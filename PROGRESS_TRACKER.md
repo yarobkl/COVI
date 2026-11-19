@@ -26,25 +26,25 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 | Synchronisation CloudKit **des données métier** | 5 % | 23 % | Reçus confirmés archivés ; produits, stock, commandes actives, réservations, clients, personnel non synchronisés |
 | Multi-appareils propriétaire | 15 % | 52 % | Validation Apple/iCloud, inventaires, activités actives, séparation de comptes |
 | Multi-personnel / rôles | 25 % | 30 % | Invitations, identité stable du personnel, permissions |
-| Boutique : catalogue | 65 % | 70 % | Édition, catégories, suppression contrôlée, tests |
+| Boutique : catalogue | 65 % | 78 % | Catégories, désactivation sûre, tests de parcours iPhone |
 | Boutique : stock / balles / inventaire | 64 % | 73 % | Historique complet, valorisation, tests stock concurrents |
 | Boutique : caisse / confirmation manuelle | 75 % | 80 % | Tests physiques, coupure réseau, remboursement partiel |
-| Boutique : reçus / historique | 28 % | 73 % | Export PDF natif, impression, tests UI |
-| Restaurant : salle et tables | 66 % | 73 % | Réservations, flux multi-serveurs, tests |
-| Restaurant : commandes et cuisine | 64 % | 72 % | Annulation / corrections, calculs avancés, tests |
+| Boutique : reçus / historique | 28 % | 78 % | Export PDF natif, impression, tests UI |
+| Restaurant : salle et tables | 66 % | 78 % | Réservations, flux multi-serveurs, tests iPhone |
+| Restaurant : commandes et cuisine | 64 % | 76 % | Annulation / corrections, calculs avancés, tests |
 | Restaurant : règlement en caisse | 66 % | 81 % | Reçu imprimable, tests concurrence et double paiement sur appareil |
 | Salon : équipe réelle | 5 % | 79 % | Historique des affectations, rôles, tests UI |
-| Salon : agenda / rendez-vous | 61 % | 75 % | Gestion annulations, plages horaires, rappels |
+| Salon : agenda / rendez-vous | 61 % | 79 % | Plages horaires avancées, rappels et tests iPhone |
 | Salon : catalogue / encaissement | 66 % | 73 % | Retour client, modifications, tests de flux |
-| Salon : clients / fiches | 65 % | 69 % | Recherche, consentements, export, suppression |
+| Salon : clients / fiches | 65 % | 74 % | Consentements, export, suppression, tests iPhone |
 | Salon : rapports / commissions | 55 % | 65 % | Périodes, réconciliation financière, tests |
 | Paiements externes manuels (sans SDK de paiement) | 65 % | 78 % | Traçabilité du moyen de paiement et reçus réels |
 | Sécurité PIN et accès caisse simplifié | 52 % | 76 % | Tests exécutés, parcours d'enrôlement simplifié |
 | Aide et accessibilité | 25 % | 30 % | Guide initial, Dynamic Type, VoiceOver, états erreur/vides |
 | Conformité aux 46 maquettes | Non vérifiée | Non vérifiée | Maquettes et comparaison sur iPhone indispensables |
 | Journal des événements métier local | 30 % | 82 % | Protocole de réplication effectif, purge sécurisée et résolutions de conflits |
-| Tests unitaires iOS | 25 % | 60 % | Première exécution réelle : 18/46 tests réussis ; reprise après injection du stockage de test |
-| Build et tests globaux iOS | 0 % | 45 % | Compilation macOS réussie ; suite XCTest à relancer après correctifs, tests visuels indisponibles |
+| Tests unitaires iOS | 25 % | 78 % | 53/53 XCTest réussis sur la révision de référence ; tests ajoutés ensuite à exécuter |
+| Build et tests globaux iOS | 0 % | 70 % | Compilation + 53 XCTest réussis sur macOS ; dernières modifications à revérifier ; tests visuels indisponibles |
 | Livraison TestFlight | En pause | En pause | Aucune action autorisée dans ce lot |
 
 ## Changements réellement effectués dans ce lot
@@ -115,6 +115,32 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 64. Maintenir la vérification du code maître lorsqu'il a été volontairement configuré.
 65. Refuser toute modification sensible lorsque la lecture du stockage sécurisé est indisponible.
 66. Distinguer la confirmation d'un remboursement réellement remis de tout paiement automatisé.
+67. Ajouter l'édition native des noms et des prix des produits boutique.
+68. Refuser les articles dupliqués dans un même établissement (casse et espaces ignorés).
+69. Interdire la modification d'un article appartenant à une autre boutique.
+70. Conserver les libellés et prix historiques sur les tickets déjà encaissés après modification du catalogue.
+71. Journaliser les mises à jour de catalogue de manière transactionnelle.
+72. Ajouter des tests pour les changements de prix, les doublons et le cloisonnement des établissements.
+73. Afficher les remboursements manuellement confirmés sur les reçus natifs.
+74. Conserver l'encaissement d'origine visible même si un remboursement intégral est enregistré.
+75. Ajouter la mention de remboursement aux reçus partagés par le système iOS.
+76. Vérifier le rattachement du remboursement au bon paiement, propriétaire et établissement.
+77. Ajouter des tests de reçu remboursé et de remboursement provenant d'un autre propriétaire.
+78. Exiger la confirmation humaine au niveau du service métier salon avant tout encaissement.
+79. Tester qu'un paiement salon non confirmé ne touche ni le stock ni les enregistrements de caisse.
+80. Ajouter la recherche native de clients salon par nom et téléphone.
+81. Afficher des états vides explicites lorsque le salon n'a aucun client ou aucune correspondance.
+82. Demander confirmation avant d'annuler un rendez-vous, en conservant son historique.
+83. Tester la libération du créneau après annulation et interdire l'annulation d'un rendez-vous encaissé.
+84. Ajouter l'édition native des plats, boissons, catégories et prix du restaurant.
+85. Protéger les tickets déjà envoyés en cuisine lorsque les prix de la carte changent.
+86. Ajouter un test restaurant de mise à jour de menu et de conservation du ticket historique.
+87. Ajouter l'édition du nom et de la capacité des tables de restaurant lorsqu'elles sont libres.
+88. Bloquer la modification des tables occupées et empêcher les noms de table dupliqués.
+89. Vérifier par XCTest que le restaurant interdit le règlement tant que les plats ne sont pas servis.
+90. Vérifier par XCTest qu'un plat en rupture ne peut pas être envoyé et qu'aucun ajout n'est possible après l'addition.
+91. Obtenir une compilation iOS native sans signature réussie sur un hôte macOS Xcode.
+92. Obtenir une exécution complète de 53 XCTest sur simulateur avec zéro échec, zéro code de distribution.
 
 ## Vérification macOS sans signature (branche de diagnostic uniquement)
 
@@ -125,7 +151,10 @@ Il a ensuite exécuté 46 XCTest : 18 réussis, 28 en échec, **dont les erreurs
 l'accès Keychain non signé** (`OSStatus -34018`, ou refus de caisse qui en découle).
 La signature étant volontairement interdite, le stockage sécurisé a été rendu injectable,
 avec Keychain inchangé en production et un stockage isolé en mémoire dans les XCTest.
-Ce correctif doit encore être validé par le lancement suivant ; aucun test non exécuté n'est prétendu réussi.
+Le troisième lancement de référence (`765f157`, action `44473901012`) a ensuite
+**réussi la compilation et les 53 XCTest** sans aucune erreur. Les modifications
+des lots Boutique / Salon / Restaurant ajoutées après cette révision nécessitent
+un nouveau lancement : leurs tests ne sont pas encore comptés comme exécutés.
 Ce contrôle ne crée **ni archive de distribution ni provisioning**, et ne valide pas les maquettes.
 
 ## Limites bloquantes

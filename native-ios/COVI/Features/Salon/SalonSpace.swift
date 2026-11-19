@@ -17,6 +17,8 @@ struct SalonSpace: View {
     @State private var filter: String?
     @State private var booking = false
     @State private var newClient = ""
+    @State private var clientSearch = ""
+    @State private var cancellingVisit: UUID?
     @State private var message = ""
     init(shop: Establishment, tab: BusinessTab, actor: UUID, role: StaffRole, pin: PINManager) {
         self.shop = shop; self.tab = tab; self.actor = actor; self.role = role; self.pin = pin
@@ -58,15 +60,9 @@ struct SalonSpace: View {
                                 Text((clients.first { $0.id == v.client }?.name ?? "Client") + " · " + (menu.first { $0.id == v.service }?.title ?? "Prestation"))
                                 Text(v.receipt != nil ? "Encaissé" : v.walkIn ? "Passage spontané" : "Confirmé").font(.caption)
                             }.swipeActions {
-                                if v.receipt == nil { Button("Annuler", role: .destructive) {
-                                    v.cancelled = true
-                                    do {
-                                        try BusinessOutbox.enqueue(kind: "salon.appointment.cancelled",
-                                            establishmentID: shop.id, entityID: v.id,
-                                            actorID: actor, in: db)
-                                        try SalonLedger.save(db)
-                                    } catch { db.rollback(); message = error.localizedDescription }
-                                } }
+                                if v.receipt == nil {
+                                    Button("Annuler", role: .destructive) { cancellingVisit = v.id }
+                                }
                             }
                         }
                     } else if tab == .clients {
@@ -85,7 +81,17 @@ struct SalonSpace: View {
                                 } catch { db.rollback(); message = error.localizedDescription }
                             }
                         }
-                        ForEach(clients) { c in NavigationLink(c.name) {
+                        let matching = clients.filter {
+                            clientSearch.isEmpty || $0.name.localizedCaseInsensitiveContains(clientSearch) ||
+                            $0.phone.localizedCaseInsensitiveContains(clientSearch)
+                        }
+                        if matching.isEmpty {
+                            ContentUnavailableView(clients.isEmpty ? "Aucun client" : "Aucun résultat",
+                                systemImage: "person.crop.circle.badge.questionmark",
+                                description: Text(clients.isEmpty ? "Créez une fiche client pour réserver et encaisser." :
+                                    "Essayez un autre nom ou numéro de téléphone."))
+                        }
+                        ForEach(matching) { c in NavigationLink(c.name) {
                             SalonProfile(client: c, actor: actor,
                                          history: sales.filter { $0.client == c.id && $0.service })
                         } }
@@ -97,6 +103,7 @@ struct SalonSpace: View {
                     } else { Text("Salon · " + shop.name) }
                     if !message.isEmpty { Text(message) }
                 }
+                .modifier(SalonClientSearch(enabled: tab == .clients, text: $clientSearch))
             }
         }.navigationTitle(tab.title).scrollContentBackground(.hidden).background(COVITheme.cream)
         .sheet(isPresented: $booking) {
@@ -105,6 +112,27 @@ struct SalonSpace: View {
                          day: tab == .today ? .now : day,
                          personID: team.first(where: { $0.name == filter && $0.active })?.id)
         }
+        .confirmationDialog("Annuler le rendez-vous ?", isPresented: Binding(
+            get: { cancellingVisit != nil }, set: { if !$0 { cancellingVisit = nil } }
+        )) {
+            Button("Confirmer l’annulation", role: .destructive) {
+                guard let id = cancellingVisit, let visit = visits.first(where: { $0.id == id }) else { return }
+                do { try SalonLedger.cancel(shop: shop.id, actor: actor, visit: visit, db: db) }
+                catch { message = error.localizedDescription }
+                cancellingVisit = nil
+            }
+        } message: {
+            Text("Cette action conserve l’historique mais libère le créneau dans l’agenda.")
+        }
+    }
+}
+
+private struct SalonClientSearch: ViewModifier {
+    let enabled: Bool
+    @Binding var text: String
+    @ViewBuilder func body(content: Content) -> some View {
+        if enabled { content.searchable(text: $text, prompt: "Rechercher un client") }
+        else { content }
     }
 }
 

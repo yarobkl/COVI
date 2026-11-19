@@ -60,4 +60,21 @@ final class ReceiptBuilderTests: XCTestCase {
         XCTAssertThrowsError(try ReceiptBuilder.create(order: fixture.order, shop: fixture.shop,
             lines: fixture.lines, products: [fixture.item], payments: [fixture.payment]))
     }
+
+    func testRefundAppearsInSharedReceiptWithoutRemovingOriginalPayment() throws {
+        let fixture = fixture()
+        let refund = Refund(payment: fixture.payment, ownerID: owner)
+        let summary = try ReceiptBuilder.create(order: fixture.order, shop: fixture.shop,
+            lines: fixture.lines, products: [fixture.item], payments: [fixture.payment], refunds: [refund])
+        XCTAssertEqual(summary.totalMinor, 3_500)
+        XCTAssertEqual(summary.refundedMinor, 3_500)
+        XCTAssertTrue(summary.shareText.contains("REMBOURSEMENT CONFIRMÉ"))
+    }
+
+    func testRefundFromWrongOwnerIsRejected() {
+        let fixture = fixture()
+        let refund = Refund(payment: fixture.payment, ownerID: UUID())
+        XCTAssertThrowsError(try ReceiptBuilder.create(order: fixture.order, shop: fixture.shop,
+            lines: fixture.lines, products: [fixture.item], payments: [fixture.payment], refunds: [refund]))
+    }
 }

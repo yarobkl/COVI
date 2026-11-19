@@ -158,7 +158,7 @@ private struct BoutiqueOrderDetail: View {
         List {
             Section("Articles") {
                 ForEach(lines) { line in
-                    let title = items.first { $0.id == line.catalogItemID }?.title ?? "Article retiré"
+                    let title = line.dishName ?? items.first { $0.id == line.catalogItemID }?.title ?? "Article retiré"
                     LabeledContent(title, value: "\(line.quantity) × \(line.unitPriceMinor) \(shop.currencyCode)")
                 }
             }

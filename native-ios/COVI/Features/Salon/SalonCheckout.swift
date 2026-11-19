@@ -68,13 +68,13 @@ struct SalonCheckout: View {
             }
             Text(message)
         }.confirmationDialog("Confirmer la réception de \(total.formatted()) FCFA ?", isPresented: $confirm) {
-            Button("Paiement reçu · " + tender.rawValue) {
+            Button("Je confirme avoir reçu · " + tender.rawValue) {
                 guard let client = clients.first(where: { $0.id == clientID }) else { return }
                 let visit = visits.first { $0.id == visitID }
                 guard visitID == nil || visit != nil else { message = SalonFault.stale.localizedDescription; return }
                 do {
                     receipt = try SalonLedger.pay(shop: shop, actor: actor, pin: pin, client: client, team: stylist, visit: visit,
-                                        basket: basket, menu: menu, tender: tender, db: db)
+                                        basket: basket, menu: menu, tender: tender, confirmed: true, db: db)
                     visitID = nil; basket = [:]; message = "Paiement enregistré."; HapticService.confirm()
                 } catch { message = error.localizedDescription }
             }

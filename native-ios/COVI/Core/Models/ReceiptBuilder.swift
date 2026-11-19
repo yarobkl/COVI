@@ -20,6 +20,8 @@ struct ReceiptSummary {
     let totalMinor: Int64
     let method: String
     let confirmedAt: Date
+    let refundedMinor: Int64
+    let refundedAt: Date?
 
     var shareText: String {
         var output = [
@@ -37,6 +39,13 @@ struct ReceiptSummary {
             "Règlement : " + method,
             "Paiement confirmé en caisse le " + confirmedAt.formatted(date: .abbreviated, time: .shortened)
         ]
+        if refundedMinor > 0 {
+            output += ["", "REMBOURSEMENT CONFIRMÉ : \(refundedMinor) \(currencyCode)",
+                       "Le remboursement a été enregistré manuellement par le commerçant."]
+            if let refundedAt {
+                output.append("Remboursé le " + refundedAt.formatted(date: .abbreviated, time: .shortened))
+            }
+        }
         return output.joined(separator: "\n")
     }
 }
@@ -54,7 +63,8 @@ enum ReceiptBuilder {
     }
 
     static func create(order: CommerceOrder, shop: Establishment, lines: [OrderLine],
-                       products: [CatalogItem], payments: [PaymentRecord]) throws -> ReceiptSummary {
+                       products: [CatalogItem], payments: [PaymentRecord],
+                       refunds: [Refund] = []) throws -> ReceiptSummary {
         guard order.establishmentID == shop.id, order.state == .completed,
               order.totalMinor > 0, order.discountMinor >= 0 else { throw Fault.invalidOrder }
         let paid = payments.filter { $0.orderID == order.id && $0.establishmentID == shop.id }
@@ -84,11 +94,23 @@ enum ReceiptBuilder {
             paidTotal = next
         }
         guard paidTotal == order.totalMinor else { throw Fault.mismatchedTotal }
+        let paymentIDs = Set(paid.map(\.id))
+        let applicableRefunds = refunds.filter { paymentIDs.contains($0.paymentID) }
+        var refunded: Int64 = 0
+        for refund in applicableRefunds {
+            guard let payment = paid.first(where: { $0.id == refund.paymentID }),
+                  refund.establishmentID == shop.id, refund.ownerID == shop.ownerID,
+                  refund.amountMinor == payment.amountMinor else { throw Fault.mismatchedTotal }
+            let (next, overflow) = refunded.addingReportingOverflow(refund.amountMinor)
+            guard !overflow, next <= paidTotal else { throw Fault.mismatchedTotal }
+            refunded = next
+        }
         let methods = Array(Set(paid.map(\.method))).sorted().joined(separator: " + ")
         return ReceiptSummary(orderID: order.id, shopName: shop.name, city: shop.city,
                               currencyCode: shop.currencyCode, date: order.createdAt,
                               lines: rows, subtotalMinor: subtotal,
                               discountMinor: order.discountMinor, totalMinor: order.totalMinor,
-                              method: methods, confirmedAt: paid.map(\.confirmedAt).max() ?? order.createdAt)
+                              method: methods, confirmedAt: paid.map(\.confirmedAt).max() ?? order.createdAt,
+                              refundedMinor: refunded, refundedAt: applicableRefunds.map(\.date).max())
     }
 }
