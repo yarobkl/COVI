@@ -42,7 +42,7 @@ enum EstablishmentPolicy {
 
 /// Ces devises sont saisies en unités entières dans COVI ; aucune conversion automatique.
 enum SupportedCurrency {
-    struct Option: Identifiable {
+    struct Option: Identifiable, Sendable {
         let code: String
         let label: String
         var id: String { code }

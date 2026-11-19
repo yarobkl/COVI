@@ -237,20 +237,26 @@ struct SalonReport: View {
     func includes(_ d: Date) -> Bool { Calendar.current.isDate(d, equalTo: date, toGranularity: monthly ? .month : .day) }
     var body: some View {
         let rows = sales.filter { includes($0.date) }
+        let periodVisits = visits.filter { includes($0.start) }
         let gross = rows.reduce(Decimal.zero) { $0 + Decimal($1.gross) }
         let commissions = rows.reduce(Decimal.zero) { $0 + Decimal($1.commission) }
+        let people = Array(Set(rows.map(\.stylist) + periodVisits.map(\.stylist))).sorted()
         Form {
             Picker("Période", selection: $monthly) { Text("Jour").tag(false); Text("Mois").tag(true) }.pickerStyle(.segmented)
             DatePicker("Date", selection: $date, displayedComponents: .date)
             Section("Encaissements bruts") {
                 LabeledContent("CA encaissé", value: "\(gross.formatted()) \(currency)")
                 LabeledContent("Commissions équipe", value: "\(commissions.formatted()) \(currency)")
-                LabeledContent("Part salon", value: "\((gross - commissions).formatted()) \(currency)")
+                LabeledContent("Après commissions · hors charges", value: "\((gross - commissions).formatted()) \(currency)")
             }
-            ForEach(Array(Set(rows.map(\.stylist) + visits.map(\.stylist))).sorted(), id: \.self) { person in
+            if people.isEmpty {
+                ContentUnavailableView("Aucune activité sur cette période", systemImage: "chart.bar.xaxis",
+                    description: Text("Choisissez un autre jour ou mois, ou enregistrez votre première prestation."))
+            }
+            ForEach(people, id: \.self) { person in
                 let activity = rows.filter { $0.stylist == person }
                 Section(person) {
-                    LabeledContent("RDV hors annulations", value: "\(visits.filter { !$0.cancelled && $0.stylist == person && includes($0.start) }.count)")
+                    LabeledContent("RDV hors annulations", value: "\(periodVisits.filter { !$0.cancelled && $0.stylist == person }.count)")
                     LabeledContent("Tickets encaissés", value: "\(Set(activity.map(\.order)).count)")
                     LabeledContent("CA", value: "\(activity.reduce(Decimal.zero) { $0 + Decimal($1.gross) }.formatted()) \(currency)")
                     LabeledContent("Commission", value: "\(activity.reduce(Decimal.zero) { $0 + Decimal($1.commission) }.formatted()) \(currency)")

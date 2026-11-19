@@ -45,8 +45,8 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 | Aide et accessibilité | 25 % | 30 % | Guide initial, Dynamic Type, VoiceOver, états erreur/vides |
 | Conformité aux 46 maquettes | Non vérifiée | Non vérifiée | Maquettes et comparaison sur iPhone indispensables |
 | Journal des événements métier local | 30 % | 82 % | Protocole de réplication effectif, purge sécurisée et résolutions de conflits |
-| Tests unitaires iOS | 25 % | 85 % | 78/78 XCTest réussis sur `32a49d` ; nouveaux tests de modification de rendez-vous et de suspension boutique à exécuter |
-| Build et tests globaux iOS | 0 % | 78 % | Compilation + 78 XCTest réussis sur macOS ; dernière révision à revérifier ; tests visuels indisponibles |
+| Tests unitaires iOS | 25 % | 87 % | 92/92 XCTest réussis sur `2b02e7d` ; validations des devises et corrections finales à exécuter |
+| Build et tests globaux iOS | 0 % | 80 % | Compilation + 92 XCTest réussis sur macOS ; dernière révision à revérifier ; tests visuels indisponibles |
 | Livraison TestFlight | En pause | En pause | Aucune action autorisée dans ce lot |
 
 ## Changements réellement effectués dans ce lot
@@ -271,6 +271,11 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 218. Afficher la devise exacte lors de la saisie des dépenses communes aux trois métiers.
 219. Ajouter un XCTest de reçu CDF pour vérifier l'absence de conversion ou d'étiquette FCFA erronée.
 220. Tester le verrouillage du changement de devise après création d'une dépense ou d'un article, avec isolation inter-commerces.
+221. Inclure les arrivages de balles dans le schéma isolé des tests de protection des devises.
+222. Vérifier qu'un premier arrivage bloque les changements de devise comme toute autre opération financière.
+223. Limiter les collaborateurs affichés dans le rapport salon à la période effectivement sélectionnée.
+224. Afficher un état vide explicite lorsqu'un salon n'a ni rendez-vous ni vente dans la période.
+225. Préciser que le chiffre après commissions ne déduit pas encore les charges de l'établissement.
 
 ## Vérification macOS sans signature (branche de diagnostic uniquement)
 
@@ -293,6 +298,11 @@ Le cinquième lancement (`eebf54c`, action `44475555009`) a **compilé et exécu
 job `135441631979`) a **compilé et exécuté 78 XCTest sans aucun échec**, y compris
 le journal CloudKit des dépenses. Les changements de rendez-vous, la suspension boutique
 et leurs tests, ainsi que les exports CSV, nécessitent encore un lancement de diagnostic distinct.
+Depuis, les deux lancements suivants ont également réussi : `3ffe8d4` avec **84/84**
+XCTest et `1a6c74e` avec **88/88** XCTest. Le lancement `2b02e7d` a réussi
+**92/92 XCTest**, validant le catalogue salon, ses commissions et les blocages
+de vente. Le lot de devises d'Afrique centrale et les corrections ajoutées
+ensuite sont en cours de vérification macOS.
 Ce contrôle ne crée **ni archive de distribution ni provisioning**, et ne valide pas les maquettes.
 
 ## Limites bloquantes

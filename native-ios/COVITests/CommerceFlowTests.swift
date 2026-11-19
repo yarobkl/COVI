@@ -8,7 +8,7 @@ final class CommerceFlowTests: XCTestCase {
     private func database() throws -> ModelContext {
         let schema = Schema([
             Establishment.self, Membership.self, CatalogItem.self, DiningTable.self, CommerceOrder.self,
-            OrderLine.self, PaymentRecord.self, StockMovement.self, OutboxEvent.self,
+            OrderLine.self, PaymentRecord.self, StockMovement.self, Bale.self, OutboxEvent.self,
             SalonClient.self, SalonStaff.self, SalonVisit.self, SalonSaleLine.self,
             ExpenseEntry.self
         ])
@@ -260,6 +260,18 @@ final class CommerceFlowTests: XCTestCase {
         db.insert(shop); db.insert(other); db.insert(product); try db.save()
         XCTAssertFalse(try SupportedCurrency.mayChange(shop, to: "CDF", db: db))
         XCTAssertTrue(try SupportedCurrency.mayChange(other, to: "CDF", db: db))
+    }
+
+    func testCurrencyChangeIsBlockedByBaleAndArchivedShop() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Dépôt", kind: .boutique, city: "Goma")
+        db.insert(shop); try db.save()
+        XCTAssertTrue(try SupportedCurrency.mayChange(shop, to: "CDF", db: db))
+        db.insert(Bale(shop: shop.id, label: "Stock initial", cost: 50_000))
+        try db.save()
+        XCTAssertFalse(try SupportedCurrency.mayChange(shop, to: "CDF", db: db))
+        shop.archived = true
+        XCTAssertFalse(try SupportedCurrency.mayChange(shop, to: "CDF", db: db))
     }
 
     func testSalonBookingRequiresRealActiveCollaborator() throws {
