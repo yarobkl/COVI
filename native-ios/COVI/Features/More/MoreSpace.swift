@@ -2,6 +2,19 @@ import SwiftUI
 import SwiftData
 import CoreImage.CIFilterBuiltins
 
+@Model final class MaintenanceEntry {
+    var actor: UUID
+    var shop: UUID
+    var action: String
+    var date: Date
+    init(_ action: String, actor: UUID, shop: UUID) {
+        self.action = action
+        self.actor = actor
+        self.shop = shop
+        date = .now
+    }
+}
+
 struct MoreSpace: View {
     let shop: Establishment
     let actor: UUID
