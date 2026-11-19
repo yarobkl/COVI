@@ -50,7 +50,7 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 | Journal des événements métier local | 30 % | 82 % | Protocole de réplication effectif, purge sécurisée et résolutions de conflits |
 | Tests unitaires iOS | 25 % | 90 % | 113/113 XCTest réussis sur `4f037fe` ; parcours physiques et validations CloudKit multi-appareils encore nécessaires |
 | Build et tests globaux iOS | 0 % | 86 % | Compilation + 113 XCTest réussis sur macOS sans signature ; tests visuels indisponibles |
-| Livraison TestFlight | En pause | En pause | Aucune action autorisée dans ce lot |
+| Livraison TestFlight native | En pause | 45 % | Autorisation reçue pour préparer une version interne. Workflow SwiftUI natif corrigé et contrôles de signature ajoutés ; profil existant, archive signée, schéma CloudKit Production et traitement Apple encore non validés |
 
 ## Changements réellement effectués dans ce lot
 
@@ -316,6 +316,7 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 260. Tester deux stocks locaux indépendants avec ventes concurrentes valides et refus de survente du dernier article.
 261. Tester les rendez-vous salon concurrents sur deux copies distinctes d'un établissement.
 262. Documenter les tests physiques restants et la limite d'ACL de `CKShare` avant toute invitation d'employés.
+263. Remplacer la cible hybride de l'ancien workflow TestFlight manuel par le projet SwiftUI/XcodeGen natif, avec préflight XCTest, contrôle du profil CloudKit Production et de Sign in with Apple, version supérieure à 1.0.7 et envoi soumis au drapeau explicite `uploadToTestFlight`. Aucun certificat ni profil Apple n'est créé ou modifié.
 
 ## Vérification macOS sans signature (branche de diagnostic uniquement)
 
@@ -367,6 +368,27 @@ Le lancement de diagnostic suivant, **`4f037fe`**, action GitHub
 **exécuté 113/113 XCTest, 0 échec**. Les nouveaux tests valident les deux
 bases SwiftData de téléphones simulés, y compris les ventes concurrentes et
 l'agenda hors-ligne ; les deux vrais iPhone demeurent nécessaires.
+
+Après l'autorisation de préparer un TestFlight interne, le workflow manuel
+`.github/workflows/ios-testflight.yml` a été redirigé vers le projet **natif**
+`native-ios/COVI.xcodeproj` (schéma `COVI`). Le mode sans envoi vérifie les
+secrets existants, les entitlements du profil de distribution, le projet
+généré et les XCTest. Le mode signé est conditionné à une sélection explicite
+et contrôle le Bundle ID `com.covi.app`, la version, la signature et l'accès
+au CloudKit Production avant transmission. La syntaxe YAML et des 11 scripts
+Bash a été vérifiée localement ; **le workflow n'a pas encore été exécuté sur
+macOS**, le profil de signature n'est pas encore certifié compatible, et
+aucune archive n'a été transmise à Apple.
+
+L'inspection du diff **avant** déploiement CloudKit Production a montré que
+les trois nouveaux record types recevraient en base **publique** les droits
+`GRANT READ TO "_world"`, `GRANT CREATE TO "_icloud"` et
+`GRANT WRITE TO "_creator"`. Les zones privées actuellement utilisées par
+COVI ne dépendent pas de ces droits publics, mais une publication telle quelle
+permettrait de lire les éventuels enregistrements publics de ces types sans
+authentification. **Déploiement suspendu** en attendant la confirmation précise
+du retrait des droits publics de ces trois types ; le type `Users` préexistant
+doit rester inchangé.
 
 ## Limites bloquantes
 
