@@ -51,7 +51,13 @@ struct SystemSettings: View {
             Section("Devise de l’établissement") {
                 Text("Devise actuelle · " + shop.currencyCode)
                 if actor == shop.ownerID {
-                    Picker("Franc CFA", selection: $currency) { Text("CEMAC · XAF").tag("XAF"); Text("UEMOA · XOF").tag("XOF") }
+                    Picker("Devise", selection: $currency) {
+                        ForEach(SupportedCurrency.options) { option in
+                            Text(option.label + " · " + option.code).tag(option.code)
+                        }
+                    }
+                    Text("La devise ne peut plus être modifiée une fois le catalogue ou une vente créé. Les montants ne sont jamais convertis.")
+                        .font(.footnote).foregroundStyle(.secondary)
                     Button("Appliquer") { currencyPIN = true }.disabled(currency == shop.currencyCode)
                 }
             }
@@ -69,13 +75,12 @@ struct SystemSettings: View {
         .sheet(isPresented: $currencyPIN) {
             PINEntryView(pinManager: pin, scope: .master(ownerID: shop.ownerID)) { ok in
                 currencyPIN = false
-                guard ok, session.accountID == shop.ownerID, !shop.archived else { return }
+                guard ok, session.accountID == shop.ownerID, !shop.archived,
+                      SupportedCurrency.allows(currency) else { return }
                 do {
                     let id = shop.id
-                    let orders = FetchDescriptor<CommerceOrder>(predicate: #Predicate { $0.establishmentID == id })
-                    let items = FetchDescriptor<CatalogItem>(predicate: #Predicate { $0.establishmentID == id })
-                    guard try db.fetchCount(orders) == 0, try db.fetchCount(items) == 0 else {
-                        message = "Le catalogue ou les ventes utilisent déjà la devise actuelle."; return
+                    guard try SupportedCurrency.mayChange(shop, to: currency, db: db) else {
+                        message = "Des produits, ventes, arrivages ou dépenses utilisent déjà cette devise. Aucun montant historique ne sera reconverti."; return
                     }
                     shop.currencyCode = currency
                     shop.updatedAt = .now

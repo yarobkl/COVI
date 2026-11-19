@@ -225,9 +225,12 @@ private struct EstablishmentSetup: View {
                     TextField("Nom de l’établissement", text: $name)
                     TextField("Ville", text: $city)
                     Picker("Devise", selection: $currency) {
-                        Text("XAF").tag("XAF")
-                        Text("XOF").tag("XOF")
+                        ForEach(SupportedCurrency.options) { option in
+                            Text(option.label + " · " + option.code).tag(option.code)
+                        }
                     }
+                    Text("Les montants seront saisis dans cette devise, sans conversion automatique.")
+                        .font(.footnote).foregroundStyle(.secondary)
                 }
                 COVIButton("Créer mon espace") { create() }
                     .disabled(saved || clean(name).isEmpty || clean(city).isEmpty)
@@ -244,7 +247,8 @@ private struct EstablishmentSetup: View {
     }
 
     @MainActor private func create() {
-        guard !saved, session.accountID == account, !clean(name).isEmpty, !clean(city).isEmpty else { return }
+        guard !saved, session.accountID == account, !clean(name).isEmpty,
+              !clean(city).isEmpty, SupportedCurrency.allows(currency) else { return }
         do {
             let owner = account
             let count = try context.fetchCount(FetchDescriptor<Establishment>(predicate: #Predicate {

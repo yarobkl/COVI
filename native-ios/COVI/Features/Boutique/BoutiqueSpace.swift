@@ -37,14 +37,14 @@ struct BoutiqueSpace: View {
             if tab == .home {
                 let today = sales.filter { $0.state == .completed && Calendar.current.isDateInToday($0.createdAt) }
                 Section("Ventes du jour") {
-                    Text("\(today.reduce(Decimal.zero) { $0 + Decimal($1.totalMinor) }.formatted()) FCFA").font(.title.bold())
+                    Text("\(today.reduce(Decimal.zero) { $0 + Decimal($1.totalMinor) }.formatted()) \(shop.currencyCode)").font(.title.bold())
                     Text("\(today.count) ventes")
                     COVIButton("Vendre") { startSale() }
                 }
                 Section("À suivre") { Text("\(goods.filter { !$0.soldOut && $0.stockOnHand - $0.stockReserved <= 2 }.count) articles à stock faible") }
                 Section("Dernières ventes") {
                     ForEach(sales.filter { $0.state == .completed }.prefix(5)) { sale in
-                        LabeledContent(sale.createdAt.formatted(date: .abbreviated, time: .shortened), value: "\(sale.totalMinor) FCFA")
+                        LabeledContent(sale.createdAt.formatted(date: .abbreviated, time: .shortened), value: "\(sale.totalMinor) \(shop.currencyCode)")
                     }
                 }
             } else {
@@ -69,7 +69,7 @@ struct BoutiqueSpace: View {
                                     value: item.soldOut ? "En pause · \(item.stockOnHand)" : "\(item.stockOnHand) unités")
                             }
                         } else {
-                            Button { add(item) } label: { LabeledContent(item.title, value: "\(item.priceMinor) FCFA  ＋") }
+                            Button { add(item) } label: { LabeledContent(item.title, value: "\(item.priceMinor) \(shop.currencyCode)  ＋") }
                         }
                     }
                 }
@@ -80,9 +80,9 @@ struct BoutiqueSpace: View {
                                 basket[line.product.id] = line.units == 1 ? nil : line.units - 1
                             })
                         }
-                        TextField("Remise en FCFA", text: $discount).keyboardType(.numberPad)
+                        TextField("Remise en " + shop.currencyCode, text: $discount).keyboardType(.numberPad)
                         if let total {
-                            COVIButton("Encaisser \(total) FCFA") { quote = Quote(due: total) }
+                            COVIButton("Encaisser \(total) \(shop.currencyCode)") { quote = Quote(due: total) }
                         } else if !lines.isEmpty { Text("Vérifiez la remise et le total à encaisser.") }
                     }
                 }
@@ -101,7 +101,9 @@ struct BoutiqueSpace: View {
     }
     private func add(_ item: CatalogItem) {
         let units = basket[item.id] ?? 0
-        guard !item.soldOut, units < item.stockOnHand - item.stockReserved else {
+        guard !item.soldOut, item.stockReserved >= 0,
+              item.stockOnHand >= item.stockReserved,
+              units < item.stockOnHand - item.stockReserved else {
             message = "Article indisponible ou stock épuisé."; return
         }
         basket[item.id] = units + 1
@@ -122,13 +124,13 @@ private struct Checkout: View {
     var body: some View {
         NavigationStack {
             Form {
-                Text("\(due) FCFA").font(.largeTitle.bold())
+                Text("\(due) \(shop.currencyCode)").font(.largeTitle.bold())
                 Picker("Moyen de paiement", selection: $tender) {
                     ForEach(Tender.allCases, id: \.self) { Text($0.rawValue).tag($0) }
                 }.pickerStyle(.inline).onChange(of: tender) { _, _ in confirmed = false }
                 if tender == .cash {
                     TextField("Montant reçu", text: $received).keyboardType(.numberPad)
-                    if let cash = Int64(received), cash >= due { LabeledContent("Monnaie à rendre", value: "\(cash - due) FCFA") }
+                    if let cash = Int64(received), cash >= due { LabeledContent("Monnaie à rendre", value: "\(cash - due) \(shop.currencyCode)") }
                 } else { Toggle("Paiement reçu et vérifié sur \(tender.rawValue)", isOn: $confirmed) }
                 if !error.isEmpty { Text(error).foregroundStyle(.red) }
                 if let receipt {

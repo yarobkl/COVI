@@ -84,10 +84,11 @@ struct BoutiqueStockOverview: View {
             .filter { $0.establishmentID == shopID && !$0.isService }
             .sorted { $0.title < $1.title }
             .map { item in
-                [.text(item.id.uuidString), .text(item.title),
+                let (available, overflow) = item.stockOnHand.subtractingReportingOverflow(item.stockReserved)
+                return [.text(item.id.uuidString), .text(item.title),
                  .number(String(item.priceMinor)), .number(String(item.stockOnHand)),
                  .number(String(item.stockReserved)),
-                 .number(String(item.stockOnHand - item.stockReserved)),
+                 overflow ? .text("Incohérent") : .number(String(available)),
                  .text(item.soldOut ? "Vente suspendue" : "Disponible")]
             }
         return COVICSV.encode(headers: ["Identifiant", "Article", "Prix", "Stock physique",
@@ -100,7 +101,7 @@ struct BoutiqueStockOverview: View {
         case invalid, duplicate, wrongShop
         var errorDescription: String? {
             switch self {
-            case .invalid: "Saisissez un nom et un prix FCFA strictement positif."
+            case .invalid: "Saisissez un nom et un prix strictement positif."
             case .duplicate: "Un article portant ce nom existe déjà dans cette boutique."
             case .wrongShop: "Cet article n'appartient pas à cette boutique."
             }
@@ -178,7 +179,7 @@ struct NewProduct: View {
     var body: some View {
         Form {
             TextField("Nom", text: $title)
-            TextField("Prix en FCFA", text: $price).keyboardType(.numberPad)
+            TextField("Prix en " + shop.currencyCode, text: $price).keyboardType(.numberPad)
             Button("Créer l’article") {
                 do {
                     try BoutiqueInventoryService.create(shop: shop, name: title,
@@ -212,7 +213,7 @@ struct ProductDetail: View {
     var body: some View {
         List {
             Section(item.title) {
-                Text("\(item.priceMinor) FCFA")
+                Text("\(item.priceMinor) \(shop.currencyCode)")
                 LabeledContent("Stock · réservé", value: "\(item.stockOnHand) · \(item.stockReserved)")
                 Label(item.soldOut ? "Vente suspendue" : "Disponible à la vente",
                       systemImage: item.soldOut ? "pause.circle" : "checkmark.circle")
@@ -222,7 +223,7 @@ struct ProductDetail: View {
             }
             Section("Modifier l’article") {
                 TextField("Nom de l’article", text: $editedName)
-                TextField("Prix FCFA", text: $editedPrice).keyboardType(.numberPad)
+                TextField("Prix " + shop.currencyCode, text: $editedPrice).keyboardType(.numberPad)
                 Button("Enregistrer les modifications") {
                     do {
                         try BoutiqueInventoryService.edit(item, in: shop, name: editedName,
@@ -296,7 +297,7 @@ struct BaleList: View {
         List {
             Section("Nouvelle balle") {
                 TextField("Référence du lot", text: $label)
-                TextField("Coût du lot en FCFA", text: $cost).keyboardType(.numberPad)
+                TextField("Coût du lot en " + shop.currencyCode, text: $cost).keyboardType(.numberPad)
                 Button("Réceptionner la balle") {
                     let ref = label.trimmingCharacters(in: .whitespacesAndNewlines)
                     guard !ref.isEmpty, let value = Int64(cost), value >= 0,
@@ -314,7 +315,7 @@ struct BaleList: View {
             ForEach(bales.filter { $0.shop == shop.id }.sorted { $0.received > $1.received }) { bale in
                 NavigationLink(bale.label) {
                     Form {
-                        LabeledContent("Coût du lot", value: "\(bale.cost) FCFA")
+                        LabeledContent("Coût du lot", value: "\(bale.cost) \(shop.currencyCode)")
                         Picker("Article découvert", selection: $picked) {
                             Text("Choisir").tag(nil as UUID?)
                             ForEach(goods) { Text($0.title).tag(Optional($0.id)) }

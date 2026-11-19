@@ -29,11 +29,11 @@ struct RestaurantComposer: View {
                         basket[item.id] = n > 1 ? n - 1 : nil
                     }) {
                         Text("\(basket[item.id] ?? 0) × \(item.title)")
-                        Text(item.soldOut ? "Rupture" : "\(item.priceMinor) FCFA").font(.caption)
+                        Text(item.soldOut ? "Rupture" : "\(item.priceMinor) \(service.shop.currencyCode)").font(.caption)
                     }.disabled(item.soldOut && basket[item.id] == nil)
                 }
                 let total = menu.reduce(Decimal.zero) { $0 + Decimal($1.priceMinor) * Decimal(basket[$1.id] ?? 0) }
-                COVIButton("Envoyer en cuisine · \(total.formatted()) FCFA") {
+                COVIButton("Envoyer en cuisine · \(total.formatted()) \(service.shop.currencyCode)") {
                     guard !sent else { return }
                     do {
                         try service.send(basket, menu: menu, table: table, order: order)
@@ -89,7 +89,7 @@ struct RestaurantSetup: View {
                 }
                 Section("Carte du restaurant") {
                     TextField("Nom de l’article", text: $dish)
-                    TextField("Prix en FCFA", text: $price).keyboardType(.numberPad)
+                    TextField("Prix en " + service.shop.currencyCode, text: $price).keyboardType(.numberPad)
                     Picker("Catégorie", selection: $category) {
                         ForEach(MenuGroup.allCases, id: \.self) { Text($0.rawValue).tag($0) }
                     }
@@ -147,7 +147,7 @@ private struct RestaurantMenuEditor: View {
     var body: some View {
         Form {
             TextField("Nom de l’article", text: $title)
-            TextField("Prix en FCFA", text: $price).keyboardType(.numberPad)
+            TextField("Prix en " + service.shop.currencyCode, text: $price).keyboardType(.numberPad)
             Picker("Catégorie", selection: $category) {
                 ForEach(MenuGroup.allCases, id: \.self) { Text($0.rawValue).tag($0) }
             }

@@ -40,6 +40,35 @@ enum EstablishmentPolicy {
     }
 }
 
+/// Ces devises sont saisies en unités entières dans COVI ; aucune conversion automatique.
+enum SupportedCurrency {
+    struct Option: Identifiable {
+        let code: String
+        let label: String
+        var id: String { code }
+    }
+    static let options: [Option] = [
+        Option(code: "XAF", label: "Franc CFA · Afrique centrale"),
+        Option(code: "XOF", label: "Franc CFA · Afrique de l'Ouest"),
+        Option(code: "CDF", label: "Franc congolais · RDC"),
+        Option(code: "RWF", label: "Franc rwandais"),
+        Option(code: "BIF", label: "Franc burundais")
+    ]
+    static func allows(_ code: String) -> Bool { options.contains { $0.code == code } }
+
+    @MainActor static func mayChange(_ shop: Establishment, to code: String,
+                                     db: ModelContext) throws -> Bool {
+        guard !shop.archived, allows(code), code != shop.currencyCode else { return false }
+        let id = shop.id
+        let orders = FetchDescriptor<CommerceOrder>(predicate: #Predicate { $0.establishmentID == id })
+        let items = FetchDescriptor<CatalogItem>(predicate: #Predicate { $0.establishmentID == id })
+        let expenses = FetchDescriptor<ExpenseEntry>(predicate: #Predicate { $0.establishmentID == id })
+        let bales = FetchDescriptor<Bale>(predicate: #Predicate { $0.shop == id })
+        return try db.fetchCount(orders) == 0 && db.fetchCount(items) == 0 &&
+                   db.fetchCount(expenses) == 0 && db.fetchCount(bales) == 0
+    }
+}
+
 @Model final class Membership {
     @Attribute(.unique) var id: UUID
     var accountID: UUID

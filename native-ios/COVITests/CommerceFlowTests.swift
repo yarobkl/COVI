@@ -192,6 +192,16 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertFalse(csv.contains("Privé"))
     }
 
+    func testStockCSVCanExportCorruptQuantityWithoutIntegerOverflow() {
+        let shop = UUID()
+        let broken = CatalogItem(establishmentID: shop, title: "À contrôler", priceMinor: 500)
+        broken.stockOnHand = Int.max
+        broken.stockReserved = -1
+        let csv = BoutiqueStockOverview.export([broken], shopID: shop)
+        XCTAssertTrue(csv.contains("\"Incohérent\""))
+        XCTAssertTrue(csv.contains("À contrôler"))
+    }
+
     func testCSVEncodingEscapesQuotesLinesAndSpreadsheetFormulas() {
         let csv = COVICSV.encode(headers: ["Article", "Montant"], rows: [
             [.text("=CONCAT(\"secret\")\nAutre"), .number("-1200")],
@@ -227,6 +237,29 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertTrue(csv.contains("\"Solde des flux\",\"Ni bénéfice ni solde bancaire\",\"6000\""))
         XCTAssertTrue(csv.contains("\"XAF\""))
         XCTAssertTrue(csv.contains("\"MTN MoMo\",\"3000\""))
+    }
+
+    func testCurrencyCanChangeBeforeAnyOperationButNotAfterAnExpense() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Salon", kind: .salon, city: "Kinshasa")
+        db.insert(shop); try db.save()
+        XCTAssertTrue(try SupportedCurrency.mayChange(shop, to: "CDF", db: db))
+        XCTAssertFalse(try SupportedCurrency.mayChange(shop, to: "USD", db: db))
+        XCTAssertFalse(try SupportedCurrency.mayChange(shop, to: "XAF", db: db))
+        let cost = ExpenseEntry(establishmentID: shop.id, actorID: owner, category: "Loyer",
+                                amountMinor: 50_000, spentAt: .now, note: "")
+        db.insert(cost); try db.save()
+        XCTAssertFalse(try SupportedCurrency.mayChange(shop, to: "CDF", db: db))
+    }
+
+    func testCurrencyChangeIsLockedByProductAndIgnoresOtherShops() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Boutique", kind: .boutique, city: "Goma")
+        let other = Establishment(ownerID: owner, name: "Boutique 2", kind: .boutique, city: "Douala")
+        let product = CatalogItem(establishmentID: shop.id, title: "Riz", priceMinor: 1_000)
+        db.insert(shop); db.insert(other); db.insert(product); try db.save()
+        XCTAssertFalse(try SupportedCurrency.mayChange(shop, to: "CDF", db: db))
+        XCTAssertTrue(try SupportedCurrency.mayChange(other, to: "CDF", db: db))
     }
 
     func testSalonBookingRequiresRealActiveCollaborator() throws {

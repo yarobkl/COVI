@@ -90,4 +90,19 @@ final class ReceiptBuilderTests: XCTestCase {
         XCTAssertTrue(document.string?.contains("Boutique COVI") == true)
         XCTAssertTrue(document.string?.contains("3500") == true)
     }
+
+    func testCentralAfricanCurrenciesAreExplicitAndReceiptKeepsShopCurrency() throws {
+        XCTAssertTrue(SupportedCurrency.allows("XAF"))
+        XCTAssertTrue(SupportedCurrency.allows("CDF"))
+        XCTAssertTrue(SupportedCurrency.allows("RWF"))
+        XCTAssertTrue(SupportedCurrency.allows("BIF"))
+        XCTAssertFalse(SupportedCurrency.allows("USD"))
+        let fixture = fixture()
+        fixture.shop.currencyCode = "CDF"
+        let receipt = try ReceiptBuilder.create(order: fixture.order, shop: fixture.shop,
+            lines: fixture.lines, products: [fixture.item], payments: [fixture.payment])
+        XCTAssertEqual(receipt.currencyCode, "CDF")
+        XCTAssertTrue(receipt.shareText.contains("CDF"))
+        XCTAssertFalse(receipt.shareText.contains("FCFA"))
+    }
 }

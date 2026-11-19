@@ -60,13 +60,13 @@ struct SalonCheckout: View {
                         (!$0.soldOut || (visitID != nil && visits.first(where: { $0.id == visitID })?.service == $0.id)) }) { item in
                         Stepper(value: Binding(get: { basket[item.id] ?? 0 }, set: { basket[item.id] = $0 == 0 ? nil : $0 }), in: 0...999) {
                             Text("\(basket[item.id] ?? 0) × \(item.title)")
-                            Text("\(item.priceMinor) FCFA").font(.caption)
+                            Text("\(item.priceMinor) \(shop.currencyCode)").font(.caption)
                         }
                     }
                 }
             }
             Picker("Règlement externe", selection: $tender) { ForEach(Tender.allCases, id: \.self) { Text($0.rawValue) } }
-            COVIButton("Encaisser \(total.formatted()) FCFA") { confirm = true }
+            COVIButton("Encaisser \(total.formatted()) \(shop.currencyCode)") { confirm = true }
                 .disabled(clientID == nil || basket.isEmpty || stylist.isEmpty || menu.isEmpty)
             if let receipt {
                 NavigationLink {
@@ -76,7 +76,7 @@ struct SalonCheckout: View {
                 }
             }
             Text(message)
-        }.confirmationDialog("Confirmer la réception de \(total.formatted()) FCFA ?", isPresented: $confirm) {
+        }.confirmationDialog("Confirmer la réception de \(total.formatted()) \(shop.currencyCode) ?", isPresented: $confirm) {
             Button("Je confirme avoir reçu · " + tender.rawValue) {
                 guard let client = clients.first(where: { $0.id == clientID }) else { return }
                 let visit = visits.first { $0.id == visitID }
@@ -110,7 +110,7 @@ struct SalonCatalog: View {
             Section("Nouvelle référence") {
                 Picker("Type", selection: $service) { Text("Prestation").tag(true); Text("Produit").tag(false) }.pickerStyle(.segmented)
                 TextField("Libellé", text: $name)
-                TextField("Prix FCFA", text: $price).keyboardType(.numberPad)
+                TextField("Prix " + shop.currencyCode, text: $price).keyboardType(.numberPad)
                 if !service { TextField("Stock initial", text: $qty).keyboardType(.numberPad) }
                 Stepper("Commission : \(percent) %", value: $percent, in: 0...100)
                 Button("Ajouter au catalogue") {
@@ -134,7 +134,7 @@ struct SalonCatalog: View {
                     } label: {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(item.title).font(.headline)
-                            Text("\(item.priceMinor) FCFA · \(item.salonPercent) %" +
+                            Text("\(item.priceMinor) \(shop.currencyCode) · \(item.salonPercent) %" +
                                  (item.soldOut ? " · Suspendu" : ""))
                                 .font(.caption).foregroundStyle(.secondary)
                         }
@@ -171,7 +171,7 @@ private struct SalonCatalogEditor: View {
         Form {
             Section(item.isService ? "Prestation" : "Produit de soin") {
                 TextField("Libellé", text: $title)
-                TextField("Prix FCFA", text: $price).keyboardType(.numberPad)
+                TextField("Prix " + shop.currencyCode, text: $price).keyboardType(.numberPad)
                 Stepper("Commission : \(percent) %", value: $percent, in: 0...100)
                 Button("Enregistrer les modifications") {
                     do {
@@ -231,6 +231,7 @@ private struct SalonCatalogEditor: View {
 struct SalonReport: View {
     let sales: [SalonSaleLine]
     let visits: [SalonVisit]
+    let currency: String
     @State private var date = Date()
     @State private var monthly = true
     func includes(_ d: Date) -> Bool { Calendar.current.isDate(d, equalTo: date, toGranularity: monthly ? .month : .day) }
@@ -242,17 +243,17 @@ struct SalonReport: View {
             Picker("Période", selection: $monthly) { Text("Jour").tag(false); Text("Mois").tag(true) }.pickerStyle(.segmented)
             DatePicker("Date", selection: $date, displayedComponents: .date)
             Section("Encaissements bruts") {
-                LabeledContent("CA encaissé", value: "\(gross.formatted()) FCFA")
-                LabeledContent("Commissions équipe", value: "\(commissions.formatted()) FCFA")
-                LabeledContent("Part salon", value: "\((gross - commissions).formatted()) FCFA")
+                LabeledContent("CA encaissé", value: "\(gross.formatted()) \(currency)")
+                LabeledContent("Commissions équipe", value: "\(commissions.formatted()) \(currency)")
+                LabeledContent("Part salon", value: "\((gross - commissions).formatted()) \(currency)")
             }
             ForEach(Array(Set(rows.map(\.stylist) + visits.map(\.stylist))).sorted(), id: \.self) { person in
                 let activity = rows.filter { $0.stylist == person }
                 Section(person) {
                     LabeledContent("RDV hors annulations", value: "\(visits.filter { !$0.cancelled && $0.stylist == person && includes($0.start) }.count)")
                     LabeledContent("Tickets encaissés", value: "\(Set(activity.map(\.order)).count)")
-                    LabeledContent("CA", value: "\(activity.reduce(Decimal.zero) { $0 + Decimal($1.gross) }.formatted()) FCFA")
-                    LabeledContent("Commission", value: "\(activity.reduce(Decimal.zero) { $0 + Decimal($1.commission) }.formatted()) FCFA")
+                    LabeledContent("CA", value: "\(activity.reduce(Decimal.zero) { $0 + Decimal($1.gross) }.formatted()) \(currency)")
+                    LabeledContent("Commission", value: "\(activity.reduce(Decimal.zero) { $0 + Decimal($1.commission) }.formatted()) \(currency)")
                 }
             }
         }.navigationTitle("Rapports salon")

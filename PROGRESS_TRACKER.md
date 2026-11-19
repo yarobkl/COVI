@@ -17,7 +17,7 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 | Module | Initial distant | Actuel, estimé | Ce qui reste avant 90 % |
 | --- | ---: | ---: | --- |
 | Coque iOS SwiftUI / navigation | 65 % | 72 % | Validation visuelle iPhone/iPad, tests VoiceOver |
-| Accueil et parcours de première ouverture | 55 % | 68 % | Comparaison des 46 écrans approuvés, animations |
+| Accueil et parcours de première ouverture | 55 % | 70 % | Comparaison des 46 écrans approuvés, animations |
 | Identité locale sans mot de passe | 0 % | 81 % | Tests XCTest exécutés, récupération/export de compte |
 | Connexion native Apple | 0 % | 68 % | Validation réelle Sign in with Apple et profil déjà provisionné |
 | Persistance SwiftData locale | 62 % | 70 % | Migration de schéma, tests de corruption/restauration |
@@ -28,14 +28,14 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 | Multi-personnel / rôles | 25 % | 30 % | Invitations, identité stable du personnel, permissions |
 | Boutique : catalogue | 65 % | 81 % | Catégories, tests d'usage sur iPhone, synchronisation catalogue |
 | Boutique : stock / balles / inventaire | 64 % | 83 % | Historique complet, coût de revient, tests de stock concurrents |
-| Boutique : caisse / confirmation manuelle | 75 % | 80 % | Tests physiques, coupure réseau, remboursement partiel |
+| Boutique : caisse / confirmation manuelle | 75 % | 81 % | Tests physiques, coupure réseau, remboursement partiel |
 | Boutique : reçus / historique | 28 % | 84 % | Impression système et tests UI sur iPhone |
 | Restaurant : salle et tables | 66 % | 78 % | Réservations, flux multi-serveurs, tests iPhone |
 | Restaurant : commandes et cuisine | 64 % | 76 % | Annulation / corrections, calculs avancés, tests |
-| Restaurant : règlement en caisse | 66 % | 81 % | Reçu imprimable, tests concurrence et double paiement sur appareil |
+| Restaurant : règlement en caisse | 66 % | 82 % | Reçu imprimable, tests concurrence et double paiement sur appareil |
 | Salon : équipe réelle | 5 % | 79 % | Historique des affectations, rôles, tests UI |
 | Salon : agenda / rendez-vous | 61 % | 83 % | Plages horaires avancées, rappels et tests iPhone |
-| Salon : catalogue / encaissement | 66 % | 82 % | Corrections et retours avancés, tests multi-iPhone et synchronisation catalogue |
+| Salon : catalogue / encaissement | 66 % | 83 % | Corrections et retours avancés, tests multi-iPhone et synchronisation catalogue |
 | Salon : clients / fiches | 65 % | 79 % | Consentements, export, suppression, tests iPhone |
 | Salon : rapports / commissions | 55 % | 65 % | Périodes, réconciliation financière, tests |
 | Dépenses (trois métiers) | 0 % | 82 % | Tests réels multi-iPhone, confidentialité des exports et rapports de marge à ajouter |
@@ -251,6 +251,26 @@ Ce tableau repart donc de l'état **vérifié du code distant**, pas des anciens
 198. Ajouter des tests d'invalidité de catalogue, doublons, limites de taux et isolation inter-salons.
 199. Ajouter des tests de prix et commissions historiques ainsi que d'inventaire du salon.
 200. Tester le cycle suspension → refus de réservation / vente directe → encaissement d'ancien RDV → réactivation.
+201. Éviter le calcul d'un stock négatif ou incohérent lors de l'ajout boutique au panier.
+202. Détecter les débordements d'entiers dans l'export CSV d'un inventaire corrompu.
+203. Tester l'export d'un inventaire contenant des quantités impossibles sans plantage.
+204. Ajouter le franc congolais CDF, le franc rwandais RWF et le franc burundais BIF aux devises initiales.
+205. Expliciter la devise de chaque commerce plutôt que de supposer que toute l'Afrique utilise le FCFA.
+206. Permettre le choix de la devise dès la création de l'établissement.
+207. Empêcher la création dans une devise non prise en charge par les montants entiers.
+208. Afficher les devises disponibles dans les réglages propriétaires iOS.
+209. Exiger le contrôle du code maître avant une modification de devise existante.
+210. Interdire une modification de devise après l'enregistrement de produits, ventes, dépenses ou arrivages.
+211. Remplacer les libellés FCFA fixes des prix, remises et reçus boutique par la devise du commerce.
+212. Calculer et afficher la monnaie à rendre dans la même devise que l'encaissement boutique.
+213. Corriger la devise des coûts de balles, des valorisations et de la saisie de prix.
+214. Utiliser la devise de l'établissement pour les prix, additions et montants reçus du restaurant.
+215. Utiliser la même devise pour les tickets envoyés en cuisine et les modifications de la carte.
+216. Corriger la devise des rendez-vous, encaissements et articles du salon.
+217. Corriger la devise du rapport de commissions et des fiches clients salon.
+218. Afficher la devise exacte lors de la saisie des dépenses communes aux trois métiers.
+219. Ajouter un XCTest de reçu CDF pour vérifier l'absence de conversion ou d'étiquette FCFA erronée.
+220. Tester le verrouillage du changement de devise après création d'une dépense ou d'un article, avec isolation inter-commerces.
 
 ## Vérification macOS sans signature (branche de diagnostic uniquement)
 

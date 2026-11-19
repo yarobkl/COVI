@@ -356,7 +356,7 @@ private struct ExpenseForm: View {
                 Picker("Catégorie", selection: $category) {
                     ForEach(ExpenseCategory.all, id: \.self) { Text($0) }
                 }
-                TextField("Montant en FCFA", text: $amount).keyboardType(.numberPad)
+                TextField("Montant en " + shop.currencyCode, text: $amount).keyboardType(.numberPad)
                 DatePicker("Date de la dépense", selection: $date, in: ...Date.now,
                            displayedComponents: .date)
                 TextField("Note facultative", text: $note, axis: .vertical)

@@ -103,14 +103,14 @@ struct RestaurantTable: View {
                     ForEach(lines) { line in
                         VStack(alignment: .leading) {
                             Text("\(line.quantity) × \(line.dishName ?? "Article")")
-                            Text("\(line.unitPriceMinor) FCFA / unité · \(line.preparation ?? "")").font(.caption)
+                            Text("\(line.unitPriceMinor) \(service.shop.currencyCode) / unité · \(line.preparation ?? "")").font(.caption)
                             if line.preparation == Prep.ready.rawValue {
                                 Button("Marquer servi") { run { try service.advance(line, from: .ready, table: table, order: order) } }
                             }
                         }
                     }
                 }
-                LabeledContent("Addition", value: "\(order.totalMinor) FCFA")
+                LabeledContent("Addition", value: "\(order.totalMinor) \(service.shop.currencyCode)")
                 if table.billRequested {
                     Button("Confirmer le règlement et libérer") { closing = true }
                 } else {
@@ -127,17 +127,17 @@ struct RestaurantTable: View {
                 NavigationStack {
                     Form {
                         Section("Paiement confirmé en caisse") {
-                            LabeledContent("Addition", value: "\(order.totalMinor) FCFA")
+                            LabeledContent("Addition", value: "\(order.totalMinor) \(service.shop.currencyCode)")
                             Picker("Moyen de paiement", selection: $tender) {
                                 ForEach(Tender.allCases, id: \.self) { option in
                                     Text(option.rawValue).tag(option)
                                 }
                             }
                             if tender == .cash {
-                                TextField("Montant reçu en FCFA", text: $received)
+                                TextField("Montant reçu en " + service.shop.currencyCode, text: $received)
                                     .keyboardType(.numberPad)
                                 if let amount = Int64(received), amount >= order.totalMinor {
-                                    LabeledContent("Monnaie à rendre", value: "\(amount - order.totalMinor) FCFA")
+                                    LabeledContent("Monnaie à rendre", value: "\(amount - order.totalMinor) \(service.shop.currencyCode)")
                                 }
                             } else {
                                 Toggle("J’ai vérifié la réception de ce paiement", isOn: $confirmed)

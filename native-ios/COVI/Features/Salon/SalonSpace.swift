@@ -99,10 +99,12 @@ struct SalonSpace: View {
                         }
                         ForEach(matching) { c in NavigationLink(c.name) {
                             SalonProfile(client: c, actor: actor,
-                                         history: sales.filter { $0.client == c.id && $0.service })
+                                         history: sales.filter { $0.client == c.id && $0.service },
+                                         currency: shop.currencyCode)
                         } }
                     } else if admin {
-                        NavigationLink("Rapports du salon") { SalonReport(sales: sales, visits: visits) }
+                        NavigationLink("Rapports du salon") { SalonReport(sales: sales, visits: visits,
+                                                                              currency: shop.currencyCode) }
                         NavigationLink("Catalogue du salon") { SalonCatalog(shop: shop, menu: menu, actor: actor) }
                         NavigationLink("Équipe du salon") { SalonTeamSettings(shop: shop, actor: actor) }
                         if role == .owner { NavigationLink("Paramètres propriétaire") { OwnerSettings(shop: shop, pinManager: pin) } }
@@ -287,6 +289,7 @@ private struct SalonProfile: View {
     let client: SalonClient
     let actor: UUID
     let history: [SalonSaleLine]
+    let currency: String
     @Environment(\.modelContext) private var db
     @State private var notes = ""
     @State private var name = ""
@@ -309,7 +312,7 @@ private struct SalonProfile: View {
             Section("Trois dernières prestations") {
                 ForEach(history.prefix(3)) { row in
                     Text(row.title + " · " + row.stylist)
-                    Text(row.date.formatted() + " · \(row.gross) FCFA").font(.caption)
+                    Text(row.date.formatted() + " · \(row.gross) \(currency)").font(.caption)
                 }
             }
             Text(message)
