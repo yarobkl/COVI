@@ -22,7 +22,22 @@ struct SystemSettings: View {
     }
     var body: some View {
         Form {
-            Section("CloudKit") {
+            Section("Sécurité de caisse partagée") {
+                LabeledContent {
+                    Text("Après 2 min")
+                } label: {
+                    Label("Verrouillage automatique (PIN)", systemImage: "lock")
+                }
+                if actor == shop.ownerID {
+                    NavigationLink { OwnerSettings(shop: shop, pinManager: pin) } label: {
+                        Label("Codes PIN et accès", systemImage: "circle.grid.3x3")
+                    }
+                }
+                Label("Le PIN est vérifié pour les opérations de caisse et les actions protégées.",
+                      systemImage: "shield.checkered")
+                    .font(.footnote).foregroundStyle(COVITheme.secondaryText)
+            }
+            Section("Stockage local & Sauvegarde iCloud") {
                 LabeledContent("Compte iCloud", value: cloud)
                 Button("Vérifier la connexion") { Task { await refresh() } }
                 Text("La connexion iCloud est gérée par iOS. COVI ne dépend d’aucune base de données web.")
@@ -48,7 +63,8 @@ struct SystemSettings: View {
                 Text("La déconnexion à distance d'autres appareils n'est pas disponible sans service de gestion de sessions.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
-            Section("Devise de l’établissement") {
+            Section("Établissement actif (\(shop.name))") {
+                LabeledContent("Ville", value: shop.city)
                 Text("Devise actuelle · " + shop.currencyCode)
                 if actor == shop.ownerID {
                     Picker("Devise", selection: $currency) {
@@ -68,9 +84,9 @@ struct SystemSettings: View {
             }
             if !message.isEmpty { Text(message) }
         }
-        .navigationTitle("Paramètres système")
+        .navigationTitle("Paramètres")
         .scrollContentBackground(.hidden)
-        .background(COVITheme.cream)
+        .background(COVIBackdrop())
         .task { currency = shop.currencyCode; profileName = session.displayName; await refresh() }
         .sheet(isPresented: $currencyPIN) {
             PINEntryView(pinManager: pin, scope: .master(ownerID: shop.ownerID)) { ok in

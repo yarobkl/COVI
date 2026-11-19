@@ -6,6 +6,12 @@ struct PINEntryView: View {
     let scope: PINScope
     let onCompletion: (Bool) -> Void
     @State private var entered = ""
+    @State private var clock = Date.now
+
+    private var locked: Bool {
+        _ = clock // Le déverrouillage doit redevenir possible dès la fin du délai de protection.
+        return pinManager.remainingLockout > 0
+    }
 
     private let keys: [[String]] = [
         ["1", "2", "3"], ["4", "5", "6"], ["7", "8", "9"], ["", "0", "delete.left"]
@@ -67,7 +73,7 @@ struct PINEntryView: View {
                                             .shadow(color: COVITheme.navy.opacity(0.09), radius: 9, y: 4)
                                         }
                                         .buttonStyle(.plain)
-                                        .disabled(pinManager.remainingLockout > 0)
+                                        .disabled(locked)
                                         .accessibilityLabel(key == "delete.left" ? "Effacer le dernier chiffre" : key)
                                     }
                                 }
@@ -87,6 +93,12 @@ struct PINEntryView: View {
         }
         .background(COVIBackdrop())
         .onAppear { HapticService.prepare() }
+        .task {
+            while !Task.isCancelled {
+                do { try await Task.sleep(for: .seconds(1)) } catch { return }
+                clock = .now
+            }
+        }
     }
 
     private var prompt: String {
@@ -96,7 +108,7 @@ struct PINEntryView: View {
         }
     }
     private func press(_ key: String) {
-        guard pinManager.remainingLockout <= 0 else { return }
+        guard !locked else { return }
         if key == "delete.left" {
             if !entered.isEmpty { entered.removeLast(); HapticService.keyPress() }
         } else if entered.count < 4 {
@@ -106,7 +118,7 @@ struct PINEntryView: View {
         }
     }
     private func verify() {
-        guard entered.count == 4, pinManager.remainingLockout <= 0 else { return }
+        guard entered.count == 4, !locked else { return }
         if pinManager.verify(entered, scope: scope) {
             HapticService.confirm(); onCompletion(true)
         } else {

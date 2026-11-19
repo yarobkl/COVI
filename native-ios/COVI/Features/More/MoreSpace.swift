@@ -73,9 +73,14 @@ struct MoreSpace: View {
     let pin: PINManager
     let onSwitchShop: () -> Void
     @Environment(AppSession.self) private var session
+    @Environment(\.modelContext) private var db
     @Query private var salonMenu: [CatalogItem]
     @Query private var salonSales: [SalonSaleLine]
     @Query private var salonVisits: [SalonVisit]
+    @Query private var restaurantTables: [DiningTable]
+    @Query private var restaurantOrders: [CommerceOrder]
+    @Query private var restaurantPayments: [PaymentRecord]
+    @Query private var restaurantRefunds: [Refund]
     @State private var confirmingSignOut = false
     @State private var signOutFailed = false
 
@@ -87,6 +92,10 @@ struct MoreSpace: View {
         _salonMenu = Query(filter: #Predicate<CatalogItem> { $0.establishmentID == id }, sort: \.title)
         _salonSales = Query(filter: #Predicate<SalonSaleLine> { $0.shop == id }, sort: \.date, order: .reverse)
         _salonVisits = Query(filter: #Predicate<SalonVisit> { $0.shop == id }, sort: \.start, order: .reverse)
+        _restaurantTables = Query(filter: #Predicate<DiningTable> { $0.establishmentID == id }, sort: \.label)
+        _restaurantOrders = Query(filter: #Predicate<CommerceOrder> { $0.establishmentID == id }, sort: \.createdAt, order: .reverse)
+        _restaurantPayments = Query(filter: #Predicate<PaymentRecord> { $0.establishmentID == id })
+        _restaurantRefunds = Query(filter: #Predicate<Refund> { $0.establishmentID == id })
     }
 
     var body: some View {
@@ -130,6 +139,31 @@ struct MoreSpace: View {
                             Divider()
                             NavigationLink { SalonTeamSettings(shop: shop, actor: actor) } label: {
                                 COVIIconRow(symbol: "person.3", title: "Équipe, Rôles & Codes PIN", detail: nil)
+                            }
+                        }
+                    }
+                }
+
+                if shop.kind == .restaurant && (role == .owner || role == .manager) {
+                    COVISectionTitle("Gestion du restaurant")
+                    COVICard {
+                        VStack(spacing: 11) {
+                            NavigationLink {
+                                RestaurantSetup(service: RestaurantService(shop: shop, actor: actor,
+                                    role: role, pin: pin, db: db), menu: salonMenu, tables: restaurantTables)
+                            } label: {
+                                COVIIconRow(symbol: "fork.knife", title: "Gestion de la carte & tables", detail: nil)
+                            }
+                            Divider()
+                            NavigationLink {
+                                RestaurantFinanceReport(shop: shop, orders: restaurantOrders,
+                                    payments: restaurantPayments, refunds: restaurantRefunds)
+                            } label: {
+                                COVIIconRow(symbol: "chart.bar", title: "Rapports service", detail: nil)
+                            }
+                            Divider()
+                            NavigationLink { OwnerSettings(shop: shop, pinManager: pin) } label: {
+                                COVIIconRow(symbol: "person.3", title: "Équipe & Accès", detail: nil)
                             }
                         }
                     }
@@ -323,6 +357,107 @@ private struct COVISyncCentre: View {
             result = "Synchronisation suspendue : \(error.localizedDescription). Vos données restent sur cet appareil."
             HapticService.error()
         }
+    }
+}
+
+private struct RestaurantFinanceReport: View {
+    let shop: Establishment
+    let orders: [CommerceOrder]
+    let payments: [PaymentRecord]
+    let refunds: [Refund]
+    @State private var month = Date.now
+    @State private var exporting = false
+    @State private var exportError = ""
+
+    private var receipts: [PaymentRecord] {
+        payments.filter { Calendar.current.isDate($0.confirmedAt, equalTo: month, toGranularity: .month) }
+    }
+    private var returned: [Refund] {
+        refunds.filter { Calendar.current.isDate($0.date, equalTo: month, toGranularity: .month) }
+    }
+    private var gross: Int64 { receipts.reduce(0) { $0 + $1.amountMinor } }
+    private var refunded: Int64 { returned.reduce(0) { $0 + $1.amountMinor } }
+    private var cash: Int64 { receipts.filter { $0.method == Tender.cash.rawValue }.reduce(0) { $0 + $1.amountMinor } }
+    private var mobile: Int64 { receipts.filter { $0.method != Tender.cash.rawValue }.reduce(0) { $0 + $1.amountMinor } }
+    private var tableOrders: [CommerceOrder] {
+        let paid = Set(receipts.map(\.orderID))
+        return orders.filter { $0.tableID != nil && $0.state == .completed && paid.contains($0.id) }
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 22) {
+                DatePicker("Mois", selection: $month, displayedComponents: .date)
+                    .tint(COVITheme.navy)
+
+                VStack(alignment: .leading, spacing: 18) {
+                    HStack(spacing: 13) {
+                        Image(systemName: "chart.bar.fill")
+                            .font(.largeTitle).foregroundStyle(COVITheme.sand)
+                            .frame(width: 66, height: 66)
+                            .background(.white.opacity(0.13), in: Circle())
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text("Encaissements nets :").font(.headline)
+                            Text(COVIMoney.text(gross - refunded, currency: shop.currencyCode))
+                                .font(.system(size: 29, weight: .bold))
+                                .minimumScaleFactor(0.7).lineLimit(1)
+                        }
+                    }
+                    Rectangle().fill(.white.opacity(0.5)).frame(height: 1)
+                    HStack {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Encaissements bruts").font(.caption)
+                            Text(COVIMoney.text(gross, currency: shop.currencyCode)).font(.headline)
+                        }
+                        Spacer()
+                        VStack(alignment: .trailing, spacing: 6) {
+                            Text("Remboursements").font(.caption)
+                            Text("−" + COVIMoney.text(refunded, currency: shop.currencyCode)).font(.headline)
+                        }
+                    }
+                }
+                .foregroundStyle(.white)
+                .padding(18)
+                .background(COVITheme.navy, in: RoundedRectangle(cornerRadius: 20))
+
+                COVISectionTitle("Répartition & Activité")
+                COVICard {
+                    VStack(spacing: 15) {
+                        COVIIconRow(symbol: "circle.stack", title: "Espèces encaissées",
+                            detail: COVIMoney.text(cash, currency: shop.currencyCode), accessory: nil)
+                        Divider()
+                        COVIIconRow(symbol: "iphone", title: "Mobile Money & autres moyens",
+                            detail: COVIMoney.text(mobile, currency: shop.currencyCode), accessory: nil)
+                        Divider()
+                        let average = tableOrders.isEmpty ? Int64(0) :
+                            tableOrders.reduce(Int64(0)) { $0 + $1.totalMinor } / Int64(tableOrders.count)
+                        COVIIconRow(symbol: "table.furniture", title: "Tables servies & Ticket moyen",
+                            detail: "\(tableOrders.count) tables · \(COVIMoney.text(average, currency: shop.currencyCode))", accessory: nil)
+                    }
+                }
+                Text("Les incidents et encaissements partiels ne sont pas encore suivis dans ce rapport. Les sommes affichées proviennent des règlements réellement confirmés.")
+                    .font(.footnote).foregroundStyle(COVITheme.secondaryText)
+                COVIButton("Exporter le journal de caisse", systemImage: "square.and.arrow.down") {
+                    exporting = true
+                }
+                if !exportError.isEmpty { Text(exportError).foregroundStyle(.red) }
+            }
+            .foregroundStyle(COVITheme.navy)
+            .padding(18)
+        }
+        .background(COVIBackdrop())
+        .navigationTitle("Rapports service")
+        .fileExporter(isPresented: $exporting,
+            document: COVICSVDocument(COVICSV.encode(
+                headers: ["Date", "Méthode", "Montant", "Devise"],
+                rows: receipts.map { payment in
+                    [.text(payment.confirmedAt.formatted(.iso8601)), .text(payment.method),
+                     .number(String(payment.amountMinor)), .text(shop.currencyCode)]
+                })),
+            contentType: .commaSeparatedText,
+            defaultFilename: "COVI-journal-service") { result in
+                if case .failure(let error) = result { exportError = error.localizedDescription }
+            }
     }
 }
 

@@ -18,6 +18,7 @@ struct SalonSpace: View {
     @State private var booking = false
     @State private var bookingClientID: UUID?
     @State private var newClient = ""
+    @State private var addingClient = false
     @State private var clientSearch = ""
     @State private var cancellingVisit: UUID?
     @State private var message = ""
@@ -82,38 +83,31 @@ struct SalonSpace: View {
                         let date = tab == .today ? Date.now : day
                         let rows = visits.filter { Calendar.current.isDate($0.start, inSameDayAs: date) && (filter == nil || $0.stylist == filter) && !$0.cancelled }
                         if rows.isEmpty { Text("Aucun rendez-vous sur cette journée.") }
-                        ForEach(rows) { v in
-                            Group {
-                                if v.receipt == nil {
-                                    NavigationLink {
-                                        SalonAppointmentEditor(visit: v, shop: shop.id, actor: actor,
-                                            clients: clients, menu: menu, team: team)
-                                    } label: { appointmentSummary(v) }
-                                } else { appointmentSummary(v) }
-                            }.swipeActions {
-                                if v.receipt == nil {
-                                    Button("Annuler", role: .destructive) { cancellingVisit = v.id }
+                        if tab == .agenda && !team.filter(\.active).isEmpty {
+                            SalonAgendaTimeline(day: day,
+                                team: team.filter { $0.active && (filter == nil || $0.name == filter) },
+                                visits: visits, clients: clients, menu: menu,
+                                shop: shop.id, actor: actor)
+                                .listRowInsets(EdgeInsets())
+                        } else {
+                            ForEach(rows) { v in
+                                Group {
+                                    if v.receipt == nil {
+                                        NavigationLink {
+                                            SalonAppointmentEditor(visit: v, shop: shop.id, actor: actor,
+                                                clients: clients, menu: menu, team: team)
+                                        } label: { appointmentSummary(v) }
+                                    } else { appointmentSummary(v) }
+                                }.swipeActions {
+                                    if v.receipt == nil {
+                                        Button("Annuler", role: .destructive) { cancellingVisit = v.id }
+                                    }
                                 }
                             }
                         }
                     } else if tab == .clients {
-                        Section("Nouveau client") {
-                            TextField("Nom du client", text: $newClient)
-                            Button("Créer la fiche") {
-                                let name = newClient.trimmingCharacters(in: .whitespacesAndNewlines)
-                                guard (2...120).contains(name.count) else {
-                                    message = "Le nom doit comporter entre 2 et 120 caractères."
-                                    return
-                                }
-                                let client = SalonClient(shop: shop.id, name: name)
-                                db.insert(client)
-                                do {
-                                    try BusinessOutbox.enqueue(kind: "salon.client.created",
-                                        establishmentID: shop.id, entityID: client.id,
-                                        actorID: actor, in: db)
-                                    try SalonLedger.save(db); newClient = ""
-                                } catch { db.rollback(); message = error.localizedDescription }
-                            }
+                        Section {
+                            COVISectionTitle("Clients (\(clients.count))")
                         }
                         let matching = clients.filter {
                             clientSearch.isEmpty || $0.name.localizedCaseInsensitiveContains(clientSearch) ||
@@ -151,6 +145,28 @@ struct SalonSpace: View {
                 .listStyle(.plain)
             }
         }.navigationTitle(tab.title).scrollContentBackground(.hidden).background(COVIBackdrop())
+        .toolbar {
+            if tab == .clients {
+                Button("Client", systemImage: "plus") { addingClient = true }
+            }
+        }
+        .sheet(isPresented: $addingClient) {
+            NavigationStack {
+                Form {
+                    Section("Nouveau client") {
+                        TextField("Nom du client", text: $newClient)
+                            .textContentType(.name)
+                        COVIButton("Créer la fiche") { createClient() }
+                            .disabled(newClient.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        if !message.isEmpty { Text(message).foregroundStyle(.red) }
+                    }
+                }
+                .scrollContentBackground(.hidden)
+                .background(COVIBackdrop())
+                .navigationTitle("Ajouter un client")
+                .toolbar { Button("Fermer") { addingClient = false } }
+            }
+        }
         .sheet(isPresented: $booking) {
             SalonBooking(shop: shop.id, actor: actor, clients: clients, menu: menu,
                          team: team.filter(\.active),
@@ -183,16 +199,149 @@ struct SalonSpace: View {
         .buttonStyle(.plain)
     }
 
-    private func appointmentSummary(_ visit: SalonVisit) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(visit.start.formatted(date: .omitted, time: .shortened) + " – " +
-                 visit.end.formatted(date: .omitted, time: .shortened) + " · " + visit.stylist)
-                .font(.headline)
-            Text((clients.first { $0.id == visit.client }?.name ?? "Client") + " · " +
-                 (menu.first { $0.id == visit.service }?.title ?? "Prestation"))
-            Text(visit.receipt != nil ? "Encaissé" : visit.walkIn ? "Passage spontané" : "Confirmé")
-                .font(.caption).foregroundStyle(.secondary)
+    private func createClient() {
+        let name = newClient.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard (2...120).contains(name.count) else {
+            message = "Le nom doit comporter entre 2 et 120 caractères."
+            return
         }
+        let client = SalonClient(shop: shop.id, name: name)
+        db.insert(client)
+        do {
+            try BusinessOutbox.enqueue(kind: "salon.client.created",
+                establishmentID: shop.id, entityID: client.id,
+                actorID: actor, in: db)
+            try SalonLedger.save(db)
+            newClient = ""; message = ""; addingClient = false
+            HapticService.confirm()
+        } catch {
+            db.rollback()
+            message = error.localizedDescription
+        }
+    }
+
+    private func appointmentSummary(_ visit: SalonVisit) -> some View {
+        COVICard {
+            HStack(spacing: 12) {
+                Image(systemName: "scissors")
+                    .font(.title3).foregroundStyle(COVITheme.navy)
+                    .frame(width: 50, height: 55)
+                    .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 13))
+                VStack(alignment: .leading, spacing: 6) {
+                    Text((clients.first { $0.id == visit.client }?.name ?? "Client") + " · " +
+                         (menu.first { $0.id == visit.service }?.title ?? "Prestation"))
+                        .font(.subheadline.weight(.bold))
+                    Text("\(visit.stylist) · " + visit.start.formatted(date: .omitted, time: .shortened) +
+                         " – " + visit.end.formatted(date: .omitted, time: .shortened))
+                        .font(.caption).foregroundStyle(COVITheme.secondaryText)
+                }
+                Spacer(minLength: 2)
+                COVIBadge(title: visit.receipt != nil ? "Encaissé" : visit.walkIn ? "Arrivé" : "Confirmé",
+                    tint: visit.receipt != nil ? COVITheme.successTint : visit.walkIn ? COVITheme.champagne : COVITheme.warningTint)
+            }
+            .foregroundStyle(COVITheme.navy)
+        }
+    }
+}
+
+private struct SalonAgendaTimeline: View {
+    let day: Date
+    let team: [SalonStaff]
+    let visits: [SalonVisit]
+    let clients: [SalonClient]
+    let menu: [CatalogItem]
+    let shop: UUID
+    let actor: UUID
+    private let firstHour = 8
+    private let lastHour = 21
+    private let halfHourHeight: CGFloat = 47
+    private var slots: Int { (lastHour - firstHour) * 2 }
+
+    var body: some View {
+        ScrollView([.horizontal, .vertical]) {
+            HStack(alignment: .top, spacing: 8) {
+                VStack(spacing: 0) {
+                    Text("Heure")
+                        .font(.caption).frame(height: 56)
+                    ForEach(0..<slots, id: \.self) { step in
+                        Text(String(format: "%02d:%02d", firstHour + step / 2, step.isMultiple(of: 2) ? 0 : 30))
+                            .font(.caption2).foregroundStyle(COVITheme.secondaryText)
+                            .frame(width: 52, height: halfHourHeight, alignment: .top)
+                    }
+                }
+                ForEach(team) { person in
+                    VStack(spacing: 0) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "scissors")
+                            Text(person.name).font(.headline).lineLimit(1)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 15))
+                        ZStack(alignment: .topLeading) {
+                            VStack(spacing: 0) {
+                                ForEach(0..<slots, id: \.self) { _ in
+                                    Rectangle().fill(.clear)
+                                        .frame(height: halfHourHeight)
+                                        .overlay(alignment: .bottom) {
+                                            Rectangle().fill(COVITheme.separator).frame(height: 1)
+                                        }
+                                }
+                            }
+                            ForEach(visits.filter {
+                                !$0.cancelled && $0.stylist == person.name &&
+                                Calendar.current.isDate($0.start, inSameDayAs: day)
+                            }) { visit in
+                                if visit.receipt == nil {
+                                    NavigationLink {
+                                        SalonAppointmentEditor(visit: visit, shop: shop, actor: actor,
+                                            clients: clients, menu: menu, team: team)
+                                    } label: { appointmentTile(visit) }
+                                        .buttonStyle(.plain)
+                                        .offset(y: position(visit.start))
+                                } else {
+                                    appointmentTile(visit).offset(y: position(visit.start))
+                                }
+                            }
+                        }
+                        .frame(width: 162, height: CGFloat(slots) * halfHourHeight, alignment: .top)
+                        .background(.white.opacity(0.5))
+                    }
+                    .frame(width: 162)
+                }
+            }
+            .foregroundStyle(COVITheme.navy)
+            .padding(12)
+        }
+        .frame(height: 600)
+        .background(.white.opacity(0.6), in: RoundedRectangle(cornerRadius: 18))
+    }
+
+    private func position(_ date: Date) -> CGFloat {
+        let units = Calendar.current.dateComponents([.hour, .minute], from: date)
+        let minutes = (units.hour ?? 0) * 60 + (units.minute ?? 0) - firstHour * 60
+        return max(0, CGFloat(minutes) / 30 * halfHourHeight)
+    }
+
+    private func appointmentTile(_ visit: SalonVisit) -> some View {
+        let duration = visit.end.timeIntervalSince(visit.start)
+        let color = visit.receipt != nil ? COVITheme.successTint : visit.walkIn ? COVITheme.champagne : Color(red: 0.82, green: 0.90, blue: 1)
+        return VStack(alignment: .leading, spacing: 5) {
+            Text(visit.start.formatted(date: .omitted, time: .shortened) + " – " +
+                 visit.end.formatted(date: .omitted, time: .shortened))
+                .font(.caption.bold())
+            Text(clients.first(where: { $0.id == visit.client })?.name ?? "Client")
+                .font(.subheadline.bold()).lineLimit(1)
+            Text(menu.first(where: { $0.id == visit.service })?.title ?? "Prestation")
+                .font(.caption).lineLimit(2)
+            Text(visit.receipt != nil ? "Encaissé" : visit.walkIn ? "Arrivé" : "Confirmé")
+                .font(.caption2.weight(.semibold))
+        }
+        .frame(width: 140, height: max(70, CGFloat(duration / 1_800) * halfHourHeight - 8), alignment: .topLeading)
+        .padding(8)
+        .background(color, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(COVITheme.navy.opacity(0.12)))
+        .padding(.horizontal, 3)
     }
 }
 
