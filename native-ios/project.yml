@@ -20,6 +20,11 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Config/COVI.entitlements
         INFOPLIST_FILE: Config/Info.plist
         TARGETED_DEVICE_FAMILY: "1,2"
+      configs:
+        Debug:
+          COVI_CLOUD_ENVIRONMENT: Development
+        Release:
+          COVI_CLOUD_ENVIRONMENT: Production
   COVITests:
     type: bundle.unit-test
     platform: iOS

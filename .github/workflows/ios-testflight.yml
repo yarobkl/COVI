@@ -5,13 +5,13 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Native TestFlight version (1.0.8 or newer)'
+        description: 'Native TestFlight version (newer than current 1.0.10)'
         required: true
-        default: '1.0.8'
+        default: '1.0.11'
       buildNumber:
         description: 'Minimum App Store Connect build number'
         required: true
-        default: '42'
+        default: '10042'
       uploadToTestFlight:
         description: 'Explicitly archive, sign and upload the native iOS app'
         type: boolean
@@ -46,8 +46,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "$GITHUB_REF_NAME" != 'wip/covi-native-20261119-no-testflight' ]]; then
-            echo '::error::Only the reviewed native COVI branch can be distributed.'
+          if [[ "$GITHUB_REF_NAME" != 'feature/covi-native-swiftui-cloud' ]]; then
+            echo '::error::Only the approved SwiftUI COVI branch can be distributed.'
             exit 1
           fi
           test -f native-ios/project.yml
@@ -130,8 +130,8 @@ jobs:
           [[ "$MARKETING_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
           [[ "$REQUESTED_BUILD_NUMBER" =~ ^[1-9][0-9]*$ ]] || exit 1
           IFS='.' read -r MAJOR MINOR PATCH <<< "$MARKETING_VERSION"
-          if (( 10#$MAJOR < 1 || (10#$MAJOR == 1 && 10#$MINOR == 0 && 10#$PATCH < 8) )); then
-            echo '::error::Version must supersede the previously installed 1.0.7.'
+          if (( 10#$MAJOR < 1 || (10#$MAJOR == 1 && 10#$MINOR == 0 && 10#$PATCH < 11) )); then
+            echo '::error::Version must supersede the latest visible TestFlight 1.0.10.'
             exit 1
           fi
           AUTOMATIC_BUILD_NUMBER=$((10000 + GITHUB_RUN_NUMBER))
@@ -213,6 +213,8 @@ jobs:
               entitlements = plistlib.load(f)
           if sys.argv[2] not in entitlements.get('com.apple.developer.icloud-container-identifiers', []):
               sys.exit('Archive lacks COVI CloudKit container entitlement.')
+          if 'CloudKit' not in entitlements.get('com.apple.developer.icloud-services', []):
+              sys.exit('Archive lacks the CloudKit service entitlement.')
           if 'Default' not in entitlements.get('com.apple.developer.applesignin', []):
               sys.exit('Archive lacks Sign in with Apple entitlement.')
           if entitlements.get('com.apple.developer.icloud-container-environment') != 'Production':
