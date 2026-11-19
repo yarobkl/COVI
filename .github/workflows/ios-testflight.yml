@@ -81,12 +81,20 @@ jobs:
           with open(path, 'rb') as f:
               profile = plistlib.load(f)
           entitlements = profile.get('Entitlements', {})
+          # Apple profile entitlements are an allowlist, not the values signed into the app.
+          # New profiles may authorize CloudKit with '*' and both iCloud environments.
+          services = entitlements.get('com.apple.developer.icloud-services', [])
+          if isinstance(services, str):
+              services = [services]
+          environments = entitlements.get('com.apple.developer.icloud-container-environment', [])
+          if isinstance(environments, str):
+              environments = [environments]
           checks = {
               'App Store bundle ID': entitlements.get('application-identifier') == f'{team}.{bundle}',
               'Apple team': team in profile.get('TeamIdentifier', []),
               'CloudKit container': container in entitlements.get('com.apple.developer.icloud-container-identifiers', []),
-              'CloudKit service': 'CloudKit' in entitlements.get('com.apple.developer.icloud-services', []),
-              'Production CloudKit': entitlements.get('com.apple.developer.icloud-container-environment') == 'Production',
+              'CloudKit service': 'CloudKit' in services or '*' in services,
+              'Production CloudKit': 'Production' in environments,
               'Sign in with Apple': 'Default' in entitlements.get('com.apple.developer.applesignin', []),
               'App Store distribution': not entitlements.get('get-task-allow', True) and 'ProvisionedDevices' not in profile,
               'Profile not expired': profile.get('ExpirationDate', datetime.datetime.min) > datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None),
