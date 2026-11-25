@@ -429,7 +429,6 @@ private struct Checkout: View {
                         }
                     }
 
-                    if !error.isEmpty { Text(error).foregroundStyle(.red) }
                     if let receipt {
                         COVICard {
                             Label("Paiement confirmé en caisse", systemImage: "checkmark.seal.fill")
@@ -437,15 +436,27 @@ private struct Checkout: View {
                         }
                         NavigationLink("Voir et partager le reçu") { ReceiptDetail(order: receipt, shop: shop) }
                         COVIButton("Terminer") { dismiss() }
-                    } else {
-                        COVIButton("Confirmer la vente & voir le reçu") {
-                            do { receipt = try commit(tender, Int64(received), confirmed); HapticService.confirm() }
-                            catch { self.error = error.localizedDescription; HapticService.error() }
-                        }.disabled(tender == .cash ? (Int64(received) ?? -1) < due : !confirmed)
                     }
                 }
                 .foregroundStyle(COVITheme.navy)
                 .padding(20)
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if receipt == nil {
+                    VStack(alignment: .leading, spacing: 8) {
+                        if !error.isEmpty {
+                            Text(error).font(.footnote).foregroundStyle(.red)
+                        }
+                        COVIButton("Confirmer la vente & voir le reçu") {
+                            do { receipt = try commit(tender, Int64(received), confirmed); HapticService.confirm() }
+                            catch { self.error = error.localizedDescription; HapticService.error() }
+                        }
+                        .disabled(tender == .cash ? (Int64(received) ?? -1) < due : !confirmed)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                    .background(COVITheme.cream)
+                }
             }
             .background(COVIBackdrop())
             .toolbar { Button("Fermer") { dismiss() } }

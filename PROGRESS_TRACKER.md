@@ -64,8 +64,16 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   de navigation a été retiré.
 - Révision [`4fb3a77`](https://github.com/yarobkl/COVI/commit/4fb3a77589e324c97f2fc37e39cf5c704dbdb66b),
   [compilation et étape XCTest réussies](https://github.com/yarobkl/COVI/actions/runs/45715459342).
-  Capturer Vendre avec un panier de test avant sa validation visuelle.
   Les photos du catalogue et le raccourci scan suivent leur lot métier.
+- Les captures de `87232c4` ont été comparées à la planche `9BF220F7`
+  ([images GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45722744021/artifacts/15073282735)).
+  Vendre affiche le panier sous la recherche et le total fixe de 35 000 FCFA.
+  En espèces, la feuille affiche un montant reçu de 40 000 FCFA et une monnaie de
+  5 000 FCFA. La commande de confirmation était sous la zone visible.
+- La confirmation reste maintenant visible au bas de la feuille pendant le
+  défilement. Une nouvelle capture doit confirmer le rendu. L’en-tête de
+  l’établissement est hors cadrage des captures isolées. La couverture
+  iPad, grandes tailles de texte et iPhone physique reste à vérifier.
 
 - Le commit `87232c4` regroupe les cartes du panier et de l’encaissement
   et ajoute des scénarios de capture avec des données synthétiques en mémoire.
