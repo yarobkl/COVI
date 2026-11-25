@@ -1,7 +1,8 @@
+import Foundation
 import SwiftData
 
 enum PersistenceController {
-    static func makeContainer() throws -> ModelContainer {
+    static func makeContainer(storeURL: URL? = nil) throws -> ModelContainer {
         let schema = Schema([
             MaintenanceEntry.self,
             SalonVisit.self, SalonClient.self, SalonSaleLine.self, SalonStaff.self,
@@ -17,8 +18,12 @@ enum PersistenceController {
         // journaux et miroirs CloudKit explicites, vérifiés et isolés par boutique.
         // Ne pas activer la réplication SwiftData automatique en parallèle :
         // elle court-circuiterait la validation des reçus et conflits de stock.
-        return try ModelContainer(for: schema, configurations: [
-            ModelConfiguration(schema: schema, isStoredInMemoryOnly: false, cloudKitDatabase: .none)
-        ])
+        let configuration: ModelConfiguration
+        if let storeURL {
+            configuration = ModelConfiguration(schema: schema, url: storeURL, cloudKitDatabase: .none)
+        } else {
+            configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false, cloudKitDatabase: .none)
+        }
+        return try ModelContainer(for: schema, configurations: [configuration])
     }
 }
