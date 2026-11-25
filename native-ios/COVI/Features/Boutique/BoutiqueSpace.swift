@@ -9,6 +9,9 @@ struct BoutiqueSpace: View {
     let pin: PINManager
     let startSale: () -> Void
     @Environment(\.modelContext) private var context
+    #if DEBUG && targetEnvironment(simulator)
+    @Environment(\.coviSimulatorDiagnostics) private var diagnostics
+    #endif
     @Query private var goods: [CatalogItem]
     @Query private var sales: [CommerceOrder]
     @Query private var payments: [PaymentRecord]
@@ -62,6 +65,16 @@ struct BoutiqueSpace: View {
         .alert("Boutique", isPresented: Binding(get: { !message.isEmpty }, set: { if !$0 { message = "" } })) {
             Button("OK") {}
         } message: { Text(message) }
+        #if DEBUG && targetEnvironment(simulator)
+        .task {
+            guard let diagnostics, diagnostics.shop.id == shop.id,
+                  context.container === diagnostics.container, tab == .sell else { return }
+            basket = diagnostics.basket
+            if diagnostics.scenario == .checkout {
+                quote = Quote(due: diagnostics.due)
+            }
+        }
+        #endif
     }
 
     private var homeScreen: some View {
@@ -121,17 +134,19 @@ struct BoutiqueSpace: View {
                 VStack(alignment: .leading, spacing: 12) {
                     COVISectionTitle("Dernières ventes")
                     COVICard {
-                        let completed = sales.filter { $0.state == .completed }
-                        if completed.isEmpty {
-                            Text("Aucune vente pour le moment.")
-                                .foregroundStyle(COVITheme.secondaryText)
-                        }
-                        ForEach(Array(completed.prefix(4))) { sale in
-                            if sale.id != completed.first?.id { Divider() }
-                            NavigationLink { ReceiptDetail(order: sale, shop: shop) } label: {
-                                COVIIconRow(symbol: "bag",
-                                    title: "#V-\(sale.id.uuidString.prefix(4).uppercased()) · \(COVIMoney.text(sale.totalMinor, currency: shop.currencyCode))",
-                                    detail: sale.createdAt.formatted(date: .abbreviated, time: .shortened))
+                        VStack(alignment: .leading, spacing: 12) {
+                            let completed = sales.filter { $0.state == .completed }
+                            if completed.isEmpty {
+                                Text("Aucune vente pour le moment.")
+                                    .foregroundStyle(COVITheme.secondaryText)
+                            }
+                            ForEach(Array(completed.prefix(4))) { sale in
+                                if sale.id != completed.first?.id { Divider() }
+                                NavigationLink { ReceiptDetail(order: sale, shop: shop) } label: {
+                                    COVIIconRow(symbol: "bag",
+                                        title: "#V-\(sale.id.uuidString.prefix(4).uppercased()) · \(COVIMoney.text(sale.totalMinor, currency: shop.currencyCode))",
+                                        detail: sale.createdAt.formatted(date: .abbreviated, time: .shortened))
+                                }
                             }
                         }
                     }
@@ -165,39 +180,46 @@ struct BoutiqueSpace: View {
                 .background(COVITheme.navy.opacity(0.07), in: RoundedRectangle(cornerRadius: 15))
 
                 COVICard {
-                    COVISectionTitle("Panier en cours (\(lines.reduce(0) { $0 + $1.units }) articles)")
-                    Divider()
-                    if lines.isEmpty {
-                        Text("Touchez un produit pour l’ajouter au panier.")
-                            .foregroundStyle(COVITheme.secondaryText)
-                    }
-                    ForEach(lines, id: \.product.id) { line in
-                        HStack(spacing: 10) {
-                            VStack(alignment: .leading, spacing: 5) {
-                                Text(line.product.title).font(.subheadline.weight(.semibold))
-                                Text(COVIMoney.text(line.product.priceMinor * Int64(line.units), currency: shop.currencyCode))
-                                    .font(.subheadline).foregroundStyle(COVITheme.secondaryText)
-                            }
-                            Spacer()
-                            HStack(spacing: 12) {
-                                Button { basket[line.product.id] = line.units == 1 ? nil : line.units - 1 } label: {
-                                    Image(systemName: "minus").frame(width: 24, height: 36)
-                                }.accessibilityLabel("Retirer une unité de \(line.product.title)")
-                                Text("\(line.units)").fontWeight(.semibold).frame(minWidth: 15)
-                                Button { add(line.product) } label: {
-                                    Image(systemName: "plus").frame(width: 24, height: 36)
-                                }.accessibilityLabel("Ajouter une unité de \(line.product.title)")
-                            }
-                            .foregroundStyle(COVITheme.navy)
-                            .buttonStyle(.borderless)
-                        }
+                    VStack(alignment: .leading, spacing: 14) {
+                        COVISectionTitle("Panier en cours (\(lines.reduce(0) { $0 + $1.units }) articles)")
                         Divider()
-                    }
-                    HStack {
-                        Text("Remise (\(shop.currencyCode))")
-                        TextField("0", text: $discount).keyboardType(.numberPad)
-                            .multilineTextAlignment(.trailing)
-                            .accessibilityLabel("Montant de la remise")
+                        if lines.isEmpty {
+                            Text("Touchez un produit pour l’ajouter au panier.")
+                                .foregroundStyle(COVITheme.secondaryText)
+                        }
+                        ForEach(lines, id: \.product.id) { line in
+                            HStack(spacing: 10) {
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text(line.product.title).font(.subheadline.weight(.semibold))
+                                    Text(COVIMoney.text(line.product.priceMinor * Int64(line.units), currency: shop.currencyCode))
+                                        .font(.subheadline).foregroundStyle(COVITheme.secondaryText)
+                                }
+                                Spacer()
+                                HStack(spacing: 0) {
+                                    Button { basket[line.product.id] = line.units == 1 ? nil : line.units - 1 } label: {
+                                        Image(systemName: "minus").frame(width: 44, height: 44).contentShape(Rectangle())
+                                    }.accessibilityLabel("Retirer une unité de \(line.product.title)")
+                                    Text("\(line.units)").fontWeight(.semibold).frame(minWidth: 15)
+                                    Button { add(line.product) } label: {
+                                        Image(systemName: "plus").frame(width: 44, height: 44).contentShape(Rectangle())
+                                    }.accessibilityLabel("Ajouter une unité de \(line.product.title)")
+                                }
+                                .foregroundStyle(COVITheme.navy)
+                                .buttonStyle(.borderless)
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .stroke(COVITheme.navy.opacity(0.28), lineWidth: 1)
+                                        .allowsHitTesting(false)
+                                }
+                            }
+                            Divider()
+                        }
+                        HStack {
+                            Text("Remise (\(shop.currencyCode))")
+                            TextField("0", text: $discount).keyboardType(.numberPad)
+                                .multilineTextAlignment(.trailing)
+                                .accessibilityLabel("Montant de la remise")
+                        }
                     }
                 }
                 if !lines.isEmpty && total == nil {
@@ -238,14 +260,16 @@ struct BoutiqueSpace: View {
         }
         .safeAreaInset(edge: .bottom) {
             if let total {
-                VStack(spacing: 10) {
-                    HStack {
-                        Text("Total :").font(.headline)
-                        Spacer()
-                        Text(COVIMoney.text(total, currency: shop.currencyCode)).font(.title3.bold())
-                    }
-                    COVIButton("Encaisser \(COVIMoney.text(total, currency: shop.currencyCode))") {
-                        quote = Quote(due: total)
+                COVICard {
+                    VStack(spacing: 16) {
+                        HStack {
+                            Text("Total :").font(.headline)
+                            Spacer()
+                            Text(COVIMoney.text(total, currency: shop.currencyCode)).font(.title3.bold())
+                        }
+                        COVIButton("Encaisser \(COVIMoney.text(total, currency: shop.currencyCode))") {
+                            quote = Quote(due: total)
+                        }
                     }
                 }
                 .foregroundStyle(COVITheme.navy)
@@ -298,6 +322,10 @@ private struct Checkout: View {
     let shop: Establishment
     let commit: (Tender, Int64?, Bool) throws -> CommerceOrder
     @Environment(\.dismiss) private var dismiss
+    #if DEBUG && targetEnvironment(simulator)
+    @Environment(\.modelContext) private var context
+    @Environment(\.coviSimulatorDiagnostics) private var diagnostics
+    #endif
     @State private var tender = Tender.cash
     @State private var received = ""
     @State private var confirmed = false
@@ -335,17 +363,40 @@ private struct Checkout: View {
                         }
                     }
 
+                    Label {
+                        Text("Confirmation manuelle de réception. Paiement effectué hors de COVI.")
+                            .font(.subheadline)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } icon: {
+                        Image(systemName: "info.circle")
+                            .font(.title2)
+                            .foregroundStyle(COVITheme.warning)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(16)
+                    .background(COVITheme.warningTint, in: RoundedRectangle(cornerRadius: 16))
+
                     if tender == .cash {
                         COVICard {
                             VStack(spacing: 15) {
                                 HStack {
                                     Text("Montant reçu").font(.headline)
                                     Spacer()
-                                    TextField("0", text: $received)
-                                        .keyboardType(.numberPad)
-                                        .multilineTextAlignment(.trailing)
-                                        .frame(maxWidth: 140)
-                                    Text(shop.currencyCode)
+                                    HStack(spacing: 6) {
+                                        TextField("0", text: $received)
+                                            .keyboardType(.numberPad)
+                                            .multilineTextAlignment(.trailing)
+                                            .accessibilityLabel("Montant reçu")
+                                        Text(shop.currencyCode == "XAF" ? "FCFA" : shop.currencyCode)
+                                    }
+                                    .font(.headline)
+                                    .padding(.horizontal, 12).padding(.vertical, 10)
+                                    .frame(maxWidth: 190)
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .stroke(COVITheme.navy.opacity(0.28), lineWidth: 1)
+                                            .allowsHitTesting(false)
+                                    }
                                 }
                                 if let cash = Int64(received), cash >= due {
                                     HStack {
@@ -363,8 +414,6 @@ private struct Checkout: View {
                     } else {
                         COVICard {
                             VStack(alignment: .leading, spacing: 14) {
-                                Label("Confirmation manuelle de réception", systemImage: "info.circle")
-                                    .font(.subheadline)
                                 Text("Le paiement a lieu hors de COVI. Vérifiez-le directement sur le compte \(tender.rawValue) du commerce.")
                                     .font(.caption).foregroundStyle(COVITheme.secondaryText)
                                 Toggle("J’ai vérifié la réception du paiement", isOn: $confirmed)
@@ -394,5 +443,14 @@ private struct Checkout: View {
             .background(COVIBackdrop())
             .toolbar { Button("Fermer") { dismiss() } }
         }
+        #if DEBUG && targetEnvironment(simulator)
+        .task {
+            guard let diagnostics, diagnostics.scenario == .checkout,
+                  diagnostics.shop.id == shop.id, diagnostics.due == due,
+                  context.container === diagnostics.container else { return }
+            received = String(diagnostics.cashReceived)
+        }
+        #endif
     }
 }
+

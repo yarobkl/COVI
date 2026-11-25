@@ -35,7 +35,12 @@ jobs:
           DEVICE_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; data=json.load(sys.stdin); devices=[d for group in data["devices"].values() for d in group if d["isAvailable"] and "iPhone" in d["name"]]; print(devices[0]["udid"] if devices else "")')
           if [ -z "$DEVICE_ID" ]; then echo "No available iPhone simulator"; exit 1; fi
           xcodebuild test -project COVI.xcodeproj -scheme COVI -configuration Debug -destination "platform=iOS Simulator,id=$DEVICE_ID" CODE_SIGNING_ALLOWED=NO
-      - name: Capture actual iPhone welcome screen
+      - name: Compile Release for simulator without signing
+        working-directory: native-ios
+        run: |
+          set -o pipefail
+          xcodebuild build -project COVI.xcodeproj -scheme COVI -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
+      - name: Capture real iPhone components with isolated fixtures
         working-directory: native-ios
         run: |
           set -euo pipefail
@@ -44,15 +49,40 @@ jobs:
           xcrun simctl boot "$DEVICE_ID" 2>/dev/null || true
           xcrun simctl bootstatus "$DEVICE_ID" -b
           APP_PATH=$(find "$HOME/Library/Developer/Xcode/DerivedData" -path '*/Build/Products/Debug-iphonesimulator/COVI.app' -type d -print -quit)
-          if [ -z "$APP_PATH" ]; then echo "COVI simulator app not found"; exit 1; fi
+          if [ -z "$APP_PATH" ]; then echo "COVI Debug simulator app not found"; exit 1; fi
           xcrun simctl install "$DEVICE_ID" "$APP_PATH"
-          xcrun simctl launch --terminate-running-process "$DEVICE_ID" com.covi.app
-          sleep 4
-          xcrun simctl io "$DEVICE_ID" screenshot "$RUNNER_TEMP/COVI-welcome.png"
+          APP_DATA=$(xcrun simctl get_app_container "$DEVICE_ID" com.covi.app data)
+          CAPTURE_DIR="$RUNNER_TEMP/COVI-visual-diagnostics"
+          mkdir -p "$CAPTURE_DIR"
+          xcrun simctl status_bar "$DEVICE_ID" override --time "9:41" --batteryState charged --batteryLevel 100
+          trap 'xcrun simctl status_bar "$DEVICE_ID" clear' EXIT
+          for SCENARIO in welcome boutique-sale boutique-checkout; do
+            MARKER="$APP_DATA/tmp/covi-diagnostic-$SCENARIO.ready"
+            rm -f "$MARKER"
+            xcrun simctl launch --terminate-running-process "$DEVICE_ID" com.covi.app --covi-diagnostic-scenario "$SCENARIO"
+            for ATTEMPT in {1..20}; do
+              if [ -f "$MARKER" ]; then break; fi
+              sleep 1
+            done
+            if [ ! -f "$MARKER" ] || [ "$(cat "$MARKER")" != "$SCENARIO" ]; then
+              echo "Diagnostic scenario did not become ready: $SCENARIO"
+              exit 1
+            fi
+            xcrun simctl io "$DEVICE_ID" screenshot "$CAPTURE_DIR/$SCENARIO.png"
+          done
+          printf '%s\n' \
+            "Debug iPhone simulator; synthetic data stored in memory only; no network or TestFlight upload." \
+            "welcome: actual RootView with an empty in-memory session." \
+            "boutique-sale/checkout: actual DynamicTabView, BoutiqueSpace and Checkout." \
+            "The RootView account header and ShopSyncStatus are not included in the Boutique captures." \
+            "Basket: 18,000 + 17,000 XAF; cash received: 40,000 XAF; change: 5,000 XAF." \
+            "These captures do not validate physical devices, iPad, accessibility sizes or cross-account sync." \
+            > "$CAPTURE_DIR/capture-notes.txt"
       - name: Save iPhone visual proof
         uses: actions/upload-artifact@v4
         with:
-          name: COVI-welcome-iPhone
-          path: ${{ runner.temp }}/COVI-welcome.png
+          name: COVI-visual-diagnostics-iPhone
+          path: ${{ runner.temp }}/COVI-visual-diagnostics/
           if-no-files-found: error
           retention-days: 14
+

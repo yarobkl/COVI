@@ -3,16 +3,47 @@ import SwiftData
 
 @MainActor
 @main struct COVIApp: App {
-    @State private var session = AppSession()
+    @State private var session: AppSession
     private let container: ModelContainer?
+#if DEBUG && targetEnvironment(simulator)
+    private let diagnostics: COVISimulatorDiagnostics?
+#endif
+
     init() {
+#if DEBUG && targetEnvironment(simulator)
+        // La demande de capture est traitée avant toute ouverture du stockage réel.
+        // Une erreur de fixture ne doit jamais revenir au compte ou au disque réels.
+        if ProcessInfo.processInfo.arguments.contains(COVISimulatorDiagnostics.argument) {
+            let fixture = try? COVISimulatorDiagnostics(arguments: ProcessInfo.processInfo.arguments)
+            diagnostics = fixture
+            container = fixture?.container
+            _session = State(initialValue: fixture?.session ??
+                AppSession(keychain: COVISimulatorMemoryStore()))
+            return
+        }
+        diagnostics = nil
+#endif
+        _session = State(initialValue: AppSession())
         container = try? PersistenceController.makeContainer()
     }
+
+    @ViewBuilder private var content: some View {
+#if DEBUG && targetEnvironment(simulator)
+        if let diagnostics {
+            COVISimulatorDiagnosticView(fixture: diagnostics)
+        } else {
+            RootView()
+        }
+#else
+        RootView()
+#endif
+    }
+
     var body: some Scene {
         WindowGroup {
             Group {
                 if let container {
-                    RootView()
+                    content
                         .environment(session)
                         .modelContainer(container)
                 } else {
@@ -34,3 +65,4 @@ import SwiftData
         }
     }
 }
+

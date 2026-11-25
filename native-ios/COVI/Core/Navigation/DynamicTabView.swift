@@ -44,6 +44,9 @@ struct DynamicTabView: View {
     @State private var selected: BusinessTab = .home
     @State private var pending: BusinessTab?
     @State private var showingPIN = false
+#if DEBUG && targetEnvironment(simulator)
+    @Environment(\.coviSimulatorDiagnostics) private var diagnostics
+#endif
 
     private var tabs: [BusinessTab] { TabPolicy.tabs(for: establishment.kind).filter { tab in
         switch role {
@@ -107,7 +110,19 @@ struct DynamicTabView: View {
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
-        .onAppear { selected = tabs[0] }
+        .onAppear {
+#if DEBUG && targetEnvironment(simulator)
+            if let diagnostics, diagnostics.scenario != .welcome,
+               diagnostics.shop.id == establishment.id, diagnostics.owner == accountID,
+               role == .owner, pinManager.mayOperate(shop: establishment, actor: accountID) {
+                selected = .sell
+            } else {
+                selected = tabs[0]
+            }
+#else
+            selected = tabs[0]
+#endif
+        }
         .onChange(of: establishment.id) { _, _ in
             pinManager.lock()
             selected = tabs[0]
@@ -176,3 +191,4 @@ private struct BoutiqueOrderDetail: View {
         }.navigationTitle("Détail de la commande")
     }
 }
+
