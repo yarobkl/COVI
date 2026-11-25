@@ -34,14 +34,17 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   resté ouvert après un changement de rôle perd ses anciens droits à l’écriture.
 - Deux tests couvrent la désactivation d’un caissier dont le PIN est déverrouillé
   et le changement de rôle dans le service restaurant. Sur `9933b51`, la
-  compilation de l’application et des tests a réussi. Résultat XCTest à relever
-  dans [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45699387443).
+  compilation de l’application et l’étape XCTest sur simulateur iPhone ont
+  réussi ([GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45699387443)).
 - Le lot reste en cours. La liaison Apple/Google, les invitations, les sessions
   révocables entre appareils et leurs contrôles serveur nécessitent encore une
   autorité côté serveur. Les règles locales s’appliquent dès réception du
   changement de rôle ou de la désactivation sur l’appareil.
 
 ### Suite du lot 1
+
+Le correctif d’annulation CloudKit `0872560` a également passé la compilation
+et l’étape XCTest sur simulateur ([GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45698668245)).
 
 Auditer la migration SwiftData et les conflits de synchronisation selon le contrat
 COVI 2.0, puis ajouter les régressions nécessaires avant les changements d'identité
