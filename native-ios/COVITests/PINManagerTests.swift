@@ -168,6 +168,36 @@ final class PINManagerTests: XCTestCase {
         XCTAssertEqual(manager.lastError, .malformed)
     }
 
+    func testCashierUnlockCannotAuthorizeAnotherEstablishment() throws {
+        let owner = UUID(), staff = UUID()
+        let first = Establishment(ownerID: owner, name: "Premier", kind: .boutique, city: "Brazzaville")
+        let second = Establishment(ownerID: owner, name: "Second", kind: .restaurant, city: "Brazzaville")
+        let manager = makeManager()
+        try configure(manager, staff: staff, shop: first.id)
+        try configure(manager, staff: staff, shop: second.id)
+        XCTAssertTrue(manager.verify(correctPIN, scope: .cashier(staffID: staff, shopID: first.id)))
+        XCTAssertTrue(manager.mayOperate(shop: first, actor: staff))
+        XCTAssertFalse(manager.mayOperate(shop: second, actor: staff))
+        XCTAssertTrue(manager.verify(correctPIN, scope: .cashier(staffID: staff, shopID: second.id)))
+        XCTAssertFalse(manager.mayOperate(shop: first, actor: staff))
+        XCTAssertTrue(manager.mayOperate(shop: second, actor: staff))
+        manager.lock()
+        XCTAssertNil(manager.unlockedShopID)
+        XCTAssertFalse(manager.mayOperate(shop: second, actor: staff))
+    }
+
+    func testOwnerConfiguredPINCannotBeReusedAcrossEstablishments() throws {
+        let owner = UUID()
+        let first = Establishment(ownerID: owner, name: "Premier", kind: .boutique, city: "Brazzaville")
+        let second = Establishment(ownerID: owner, name: "Second", kind: .salon, city: "Brazzaville")
+        let manager = makeManager()
+        try configure(manager, staff: owner, shop: first.id)
+        try configure(manager, staff: owner, shop: second.id)
+        XCTAssertTrue(manager.verify(correctPIN, scope: .cashier(staffID: owner, shopID: first.id)))
+        XCTAssertTrue(manager.mayOperate(shop: first, actor: owner))
+        XCTAssertFalse(manager.mayOperate(shop: second, actor: owner))
+    }
+
     func testActivityRefreshUsesTheSameClockAsTheCashierSession() throws {
         let staff = UUID(), shop = UUID()
         let manager = makeManager()
