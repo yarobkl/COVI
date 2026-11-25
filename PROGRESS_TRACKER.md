@@ -1,5 +1,32 @@
 # COVI — progression iOS native
 
+## Reprise COVI 2.0 — 25 novembre 2026
+
+Branche active de refonte `feature/covi-2-native`, contrat produit dans
+`native-ios/COVI_2_PRODUCT_SPEC.md`. Les chiffres historiques ci-dessous
+décrivent la base native du 19 novembre et ne mesurent pas la réalisation de COVI 2.0.
+
+### Validation du dernier lot
+
+- Révision vérifiée `10e3f27`, publiée le 25 novembre 2026 à 19 h 41 (Europe/Paris).
+- Correction `36ffdeb` limitant le déverrouillage de caisse au collaborateur et à son établissement.
+- Régressions `f2554f1` pour le propriétaire et le caissier entre établissements.
+- Action macOS https://github.com/yarobkl/COVI/actions/runs/45677679183, job `139429474448`.
+- Compilation de l'application et des tests réussie. Journaux XCTest vérifiés :
+  **115 tests exécutés, 0 échec**, dont 13 tests PIN.
+- Capture de l'accueil iPhone produite par le workflow. Comparaison aux maquettes encore à effectuer.
+- Cette exécution sur simulateur ne valide pas les migrations de données existantes,
+  le partage entre comptes Apple ni la synchronisation sur deux appareils physiques.
+
+### Suite du lot 1
+
+Auditer la migration SwiftData et les conflits de synchronisation selon le contrat
+COVI 2.0, puis ajouter les régressions nécessaires avant les changements d'identité
+et d'équipes. Les invitations multi-comptes et le QR restaurant demandent encore
+une décision de backend. La conformité visuelle nécessite les références originales.
+Le passage TestFlight reste soumis aux validations prévues dans le contrat produit.
+
+
 Dernier audit : 19 novembre 2026 — dépôt `yarobkl/COVI`, branche source
 `feature/covi-native-swiftui-cloud` laissée intacte ; travail isolé sur
 `wip/covi-native-20261119-no-testflight` (diagnostic distant).
