@@ -2,6 +2,18 @@
 
 Source de vérité : **les nouvelles captures partagées dans la conversation du 19 novembre 2026**. Ne pas importer les anciennes planches COVI de Figma, les explorations précédentes ou les chiffres de démonstration dans les données métier.
 
+## Reprise du lot visuel COVI 2.0
+
+- Le build TestFlight 1.0.13 (10051), issu du commit `6eb37ed`, valide la
+  chaîne de livraison. Le lot de refonte visuelle reste en cours.
+- La planche `5AD6CB67-3D94-4E19-90A7-FDF8F948CAC6.jpeg` contient le lancement
+  et l’accueil. Le titre, le texte et les deux actions correspondent au
+  texte SwiftUI actuel. La comparaison du rendu sur iPhone reste à faire.
+- La planche `6906CB2C-1753-474A-A3CF-D5121DE79AE7.jpeg` et ses trois copies
+  retrouvées affichent **Connexion et Inscription**. La correspondance
+  Boutique de l’inventaire historique est erronée pour ces fichiers.
+  Identifier la planche Boutique par son contenu avant l’implémentation.
+
 ## Inventaire vérifié
 
 Les pièces jointes accessibles dans ce lot comprennent **16 fichiers JPEG composites, dont 15 différents**. Elles présentent **35 captures d'écran iPhone au total**, avec des variantes de trois vues Restaurant. Le projet mentionne historiquement « 20 lots / 46 écrans » : cette totalité n'est **pas attestée par les fichiers actuellement reçus**.
@@ -12,7 +24,7 @@ Les pièces jointes accessibles dans ce lot comprennent **16 fichiers JPEG compo
 | `17327825` | Votre établissement, Mes espaces | `RootView.swift` | Sélection des activités et espaces branchée aux vraies données ; adresse, pays et téléphone non stockés par le modèle actuel |
 | `5AD6CB67` | Écran de lancement, Présentation COVI | `RootView.swift` | Capture réelle iPhone réalisée, puis recadrage de l’image des trois métiers corrigé pour retirer un texte parasite ; seconde capture à contrôler |
 | `13FF89C0` | Code PIN collaborateur, Synchronisation | `PINEntryView.swift`, `MoreSpace.swift` | Pavé numérique PIN et centre de synchronisation reliés aux services ; changement de collaborateur non câblé |
-| `6906CB2C` | Boutique : Accueil, Vendre, Encaissement | `BoutiqueSpace.swift` | Nouveaux composants reliés au panier, stock et registre de ventes ; visuels produits non disponibles |
+| `6906CB2C` | Connexion et inscription dans les fichiers retrouvés | `RootView.swift` | Planche Boutique à identifier séparément |
 | `2A49F962` | Restaurant : Tables, Table 01, Commander | `RestaurantSpace.swift`, `RestaurantMenu.swift` | Nouvelle grille, détail et commande reliés aux tables et tickets |
 | `A30B3A65` | Variante Restaurant : Tables, Table 01, Commander | mêmes fichiers | Variante présente : **ne pas fusionner silencieusement les deux versions** ; validation du choix final à faire |
 | `058F98E6` | Restaurant : Équipe & Accès, Rapports service | `OwnerSettings.swift`, `MoreSpace.swift` | Fonctions de sécurité/rapports existantes ; apparence à finaliser |
