@@ -18,6 +18,13 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
 - Cette exécution sur simulateur ne valide pas les migrations de données existantes,
   le partage entre comptes Apple ni la synchronisation sur deux appareils physiques.
 
+### Compatibilité SwiftData
+
+- Révision `53ada6e` : compilation et **116 XCTest réussis, 0 échec** sur le simulateur iOS ([GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45696516004)).
+- Le nouveau test vérifie sur disque la conservation de l'établissement, du stock et du mouvement associé après réouverture.
+- La comparaison avec la base native `81dc85a` confirme que les modèles, leur liste dans le schéma et la configuration du stockage par défaut sont identiques.
+- La validation d'une mise à niveau depuis une ancienne version installée nécessite encore une base de cette version. La recette CloudKit sur deux iPhone signés est décrite dans `native-ios/CLOUDKIT_VALIDATION.md`.
+
 ### Suite du lot 1
 
 Auditer la migration SwiftData et les conflits de synchronisation selon le contrat
