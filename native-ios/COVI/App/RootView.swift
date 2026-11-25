@@ -229,6 +229,7 @@ private struct COVILaunch: View {
 }
 
 private struct COVIWelcome: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .largeTitle) private var headingSize: CGFloat = 36
     private enum Route: Hashable { case register, login }
     @State private var path: [Route] = []
@@ -241,7 +242,9 @@ private struct COVIWelcome: View {
                         Image("WelcomeMark").resizable().scaledToFit().frame(width: 144)
                             .accessibilityLabel("COVI, Commerce & Vie")
                             .padding(.bottom, 8)
-                        Text("Le système\nd’exploitation de\nvotre commerce")
+                        Text(dynamicTypeSize.isAccessibilitySize
+                            ? "Le système d’exploitation de votre commerce"
+                            : "Le système\nd’exploitation de\nvotre commerce")
                             .font(.system(size: headingSize, weight: .bold))
                             .fixedSize(horizontal: false, vertical: true)
                             .accessibilityAddTraits(.isHeader)
@@ -260,7 +263,7 @@ private struct COVIWelcome: View {
             .frame(maxWidth: .infinity)
             .safeAreaInset(edge: .bottom) {
                 VStack(spacing: 12) {
-                    COVIButton("Commencer →") { path.append(.register) }
+                    COVIButton("Commencer", systemImage: "arrow.right") { path.append(.register) }
                     COVIButton("Se connecter", role: .secondary) { path.append(.login) }
                 }
                 .padding(.horizontal, 18)
