@@ -164,6 +164,7 @@ struct NativeAppleSignIn: View {
 }
 
 struct AccountLogin: View {
+    @ScaledMetric(relativeTo: .largeTitle) private var headingSize: CGFloat = 37
     @Environment(AppSession.self) private var session
     @State private var message = ""
     var body: some View {
@@ -175,7 +176,8 @@ struct AccountLogin: View {
                     .padding(.top, 20)
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Se connecter")
-                        .font(.system(size: 37, weight: .bold))
+                        .font(.system(size: headingSize, weight: .bold))
+                        .accessibilityAddTraits(.isHeader)
                         .foregroundStyle(COVITheme.navy)
                     Text("Accédez à votre espace COVI et gérez votre commerce en toute simplicité.")
                         .font(.body).foregroundStyle(COVITheme.secondaryText)
@@ -193,7 +195,8 @@ struct AccountLogin: View {
                     Rectangle().fill(COVITheme.separator).frame(height: 1)
                     Text("ou continuer sur cet iPhone")
                         .font(.subheadline).foregroundStyle(COVITheme.secondaryText)
-                        .fixedSize()
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
                     Rectangle().fill(COVITheme.separator).frame(height: 1)
                 }
                 COVIButton("Reprendre mon espace local", role: .secondary) {
@@ -206,6 +209,8 @@ struct AccountLogin: View {
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 30)
+            .frame(maxWidth: 520)
+            .frame(maxWidth: .infinity)
         }
         .background(COVIBackdrop())
         .navigationBarTitleDisplayMode(.inline)
@@ -213,6 +218,7 @@ struct AccountLogin: View {
 }
 
 struct RegistrationView: View {
+    @ScaledMetric(relativeTo: .largeTitle) private var headingSize: CGFloat = 37
     @Environment(AppSession.self) private var session
     @State private var name = ""
     @State private var email = ""
@@ -226,7 +232,8 @@ struct RegistrationView: View {
                     .padding(.top, 20)
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Créer un compte")
-                        .font(.system(size: 37, weight: .bold)).foregroundStyle(COVITheme.navy)
+                        .font(.system(size: headingSize, weight: .bold))
+                        .accessibilityAddTraits(.isHeader).foregroundStyle(COVITheme.navy)
                     Text("Rejoignez COVI pour gérer votre commerce, votre équipe et vos opérations au quotidien.")
                         .foregroundStyle(COVITheme.secondaryText)
                 }
@@ -276,6 +283,8 @@ struct RegistrationView: View {
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 30)
+            .frame(maxWidth: 520)
+            .frame(maxWidth: .infinity)
         }
         .background(COVIBackdrop())
         .navigationBarTitleDisplayMode(.inline)
