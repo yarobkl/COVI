@@ -53,7 +53,8 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
 - L’accueil, la connexion et la création de compte s’adaptent aux grandes tailles de texte. Les formulaires restent centrés sur iPad et les boutons peuvent grandir quand leur libellé revient à la ligne.
 - Diagnostics iOS réussis sur [`0b5230d`](https://github.com/yarobkl/COVI/actions/runs/45709003559), [`cd553ef`](https://github.com/yarobkl/COVI/actions/runs/45709647192) et [`aaebcf1`](https://github.com/yarobkl/COVI/actions/runs/45709858546).
 - Comparaison de la capture d’accueil d’`aaebcf1` à la planche `5AD6CB67`. Les trois métiers, les titres et les deux actions sont visibles. Les écarts constatés portent sur la flèche placée avant « Commencer », le fond plat et la coupure sous la photo.
-- L’accueil réutilise désormais le fond de marque, place la flèche après « Commencer » et fond le bord inférieur de la photo. Les deux actions restent accessibles sous le contenu défilant. Comparer la nouvelle capture avant validation de l’écran.
+- L’accueil réutilise désormais le fond de marque, place la flèche après « Commencer » et fond le bord inférieur de la photo. Les deux actions restent accessibles sous le contenu défilant. Comparer la nouvelle capture de [`1c40f85`](https://github.com/yarobkl/COVI/actions/runs/45714877928) avant validation de l’écran.
+- Les planches retrouvées ont été relues et leurs intitulés corrigés dans `native-ios/DESIGN_REFERENCE_MAP.md`. La planche Boutique `9BF220F7` montre Accueil, Vendre et Encaissement. Le parcours Vendre doit garder le panier en haut après la recherche et le total avec son action au bas de l’écran.
 
 ### Suite du lot 1
 
