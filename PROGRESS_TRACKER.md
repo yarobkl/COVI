@@ -46,7 +46,7 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
 - Le propriétaire autorise le choix et la mise en place du backend, ainsi que la livraison TestFlight après validation.
 - Supabase Auth et PostgreSQL sont retenus pour la préproduction native. La migration `native-ios/backend/migrations/20261125220000_team_authority.sql` introduit un schéma privé et une résolution serveur des rôles tenant compte des révocations. La migration reste à exécuter et à tester. Le projet historique COVI est inactif.
 - Les flux Apple/Google, invitations et sessions restent à implémenter en préservant les établissements existants.
-- Le dernier contrôle signé a échoué sur les entitlements CloudKit Production du profil ([GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/44516821945)). La livraison passe par la branche native autorisée après intégration et validation du profil.
+- Le profil de distribution corrigé a permis de signer et livrer la bêta technique 1.0.13 (10051), basée sur `6eb37ed` ([exécution signée](https://github.com/yarobkl/COVI/actions/runs/45706005104)). L’envoi de la refonte COVI 2.0 reste soumis à sa validation visuelle et fonctionnelle.
 
 ### Lot 3 — Parcours d’entrée
 
@@ -71,13 +71,13 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   En espèces, la feuille affiche un montant reçu de 40 000 FCFA et une monnaie de
   5 000 FCFA. La commande de confirmation était sous la zone visible.
 - La confirmation reste maintenant visible au bas de la feuille pendant le
-  défilement. Une nouvelle capture doit confirmer le rendu. L’en-tête de
+  défilement. [Diagnostic de `cf61665`](https://github.com/yarobkl/COVI/actions/runs/45724727588). L’en-tête de
   l’établissement est hors cadrage des captures isolées. La couverture
   iPad, grandes tailles de texte et iPhone physique reste à vérifier.
 
 - Le commit `87232c4` regroupe les cartes du panier et de l’encaissement
   et ajoute des scénarios de capture avec des données synthétiques en mémoire.
-  GitHub Actions a validé Debug, les XCTest et Release sur simulateur
+  GitHub Actions a validé Debug, 118 XCTest et Release sur simulateur
   ([diagnostics](https://github.com/yarobkl/COVI/actions/runs/45722744021)).
 - Le panier et la caisse partagent désormais le calcul contrôlé du sous-total.
   Un résultat hors limites affiche « Montant invalide » dans le panier et
