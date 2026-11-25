@@ -97,7 +97,7 @@ struct BoutiqueSpace: View {
                     Rectangle().fill(.white.opacity(0.58)).frame(height: 1)
                     let todaysPayments = payments.filter { Calendar.current.isDateInToday($0.confirmedAt) }
                     HStack {
-                        amountSummary("Espèces", symbol: "circle.stack",
+                        amountSummary("Espèces", symbol: "banknote",
                             amount: todaysPayments.filter { $0.method == Tender.cash.rawValue }
                                 .reduce(Int64(0)) { $0 + $1.amountMinor })
                         Rectangle().fill(.white.opacity(0.45)).frame(width: 1, height: 42)
@@ -338,20 +338,23 @@ private struct Checkout: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
-                    Text("Encaissement")
-                        .font(.title2.weight(.bold)).frame(maxWidth: .infinity)
-                    Text(COVIMoney.text(due, currency: shop.currencyCode))
-                        .font(.system(size: 35, weight: .bold)).frame(maxWidth: .infinity)
+                VStack(alignment: .leading, spacing: 16) {
+                    VStack(spacing: 8) {
+                        Text("Encaissement")
+                            .font(.title2.weight(.bold))
+                        Text(COVIMoney.text(due, currency: shop.currencyCode))
+                            .font(.system(size: 35, weight: .bold))
+                    }
+                    .frame(maxWidth: .infinity)
 
                     COVICard {
-                        VStack(spacing: 4) {
+                        VStack(spacing: 0) {
                             ForEach(Tender.allCases, id: \.self) { option in
                                 Button {
                                     tender = option; confirmed = false
                                 } label: {
                                     HStack(spacing: 13) {
-                                        Image(systemName: option == .cash ? "circle.stack" : "iphone")
+                                        Image(systemName: option == .cash ? "banknote" : "iphone")
                                             .font(.title3).frame(width: 30)
                                             .accessibilityHidden(true)
                                         Text(option.rawValue).font(.headline)
@@ -361,7 +364,8 @@ private struct Checkout: View {
                                             .accessibilityHidden(true)
                                     }
                                     .foregroundStyle(COVITheme.navy)
-                                    .padding(.vertical, 12)
+                                    .padding(.vertical, 6)
+                                    .frame(minHeight: 44)
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityAddTraits(tender == option ? .isSelected : [])
@@ -441,6 +445,7 @@ private struct Checkout: View {
                 .foregroundStyle(COVITheme.navy)
                 .padding(20)
             }
+            .scrollDismissesKeyboard(.interactively)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if receipt == nil {
                     VStack(alignment: .leading, spacing: 8) {
@@ -471,3 +476,4 @@ private struct Checkout: View {
         #endif
     }
 }
+

@@ -59,7 +59,7 @@ jobs:
           for SCENARIO in welcome boutique-sale boutique-checkout; do
             MARKER="$APP_DATA/tmp/covi-diagnostic-$SCENARIO.ready"
             rm -f "$MARKER"
-            xcrun simctl launch --terminate-running-process "$DEVICE_ID" com.covi.app --covi-diagnostic-scenario "$SCENARIO"
+            xcrun simctl launch --terminate-running-process "$DEVICE_ID" com.covi.app --covi-diagnostic-scenario "$SCENARIO" -AppleLanguages '(fr)' -AppleLocale fr_FR
             for ATTEMPT in {1..20}; do
               if [ -f "$MARKER" ]; then break; fi
               sleep 1
