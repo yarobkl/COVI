@@ -56,6 +56,17 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
 - L’accueil réutilise désormais le fond de marque, place la flèche après « Commencer » et fond le bord inférieur de la photo. Les deux actions restent accessibles sous le contenu défilant. Comparer la nouvelle capture de [`1c40f85`](https://github.com/yarobkl/COVI/actions/runs/45714877928) avant validation de l’écran.
 - Les planches retrouvées ont été relues et leurs intitulés corrigés dans `native-ios/DESIGN_REFERENCE_MAP.md`. La planche Boutique `9BF220F7` montre Accueil, Vendre et Encaissement. Le parcours Vendre doit garder le panier en haut après la recherche et le total avec son action au bas de l’écran.
 
+### Lot 3 — Boutique
+
+- La planche `9BF220F7` a été inspectée. Sur Vendre, le panier apparaît dans
+  une carte juste sous la recherche, au-dessus du catalogue. L’action
+  d’encaissement reste au bas de l’écran. Le bandeau qui répétait le titre
+  de navigation a été retiré.
+- Révision [`4fb3a77`](https://github.com/yarobkl/COVI/commit/4fb3a77589e324c97f2fc37e39cf5c704dbdb66b),
+  [diagnostics iOS](https://github.com/yarobkl/COVI/actions/runs/45715459342).
+  Capturer Vendre avec un panier de test avant sa validation visuelle.
+  Les photos du catalogue et le raccourci scan suivent leur lot métier.
+
 ### Suite du lot 1
 
 Le correctif d’annulation CloudKit `0872560` a également passé la compilation
