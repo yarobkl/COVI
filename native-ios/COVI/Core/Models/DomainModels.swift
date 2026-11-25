@@ -82,6 +82,33 @@ enum SupportedCurrency {
     }
 }
 
+@MainActor enum StaffAccess {
+    static func role(for actor: UUID, in shop: Establishment, memberships: [Membership]) -> StaffRole? {
+        guard !shop.archived else { return nil }
+        if actor == shop.ownerID { return .owner }
+        let matches = memberships.filter { $0.accountID == actor && $0.establishmentID == shop.id }
+        guard matches.count == 1, let membership = matches.first, membership.active,
+              let role = StaffRole(rawValue: membership.roleRaw), role != .owner else { return nil }
+        return role
+    }
+
+    static func role(for actor: UUID, in shop: Establishment, context: ModelContext) throws -> StaffRole? {
+        if shop.archived || actor == shop.ownerID {
+            return role(for: actor, in: shop, memberships: [])
+        }
+        let shopID = shop.id
+        let memberships = try context.fetch(FetchDescriptor<Membership>(predicate: #Predicate {
+            $0.accountID == actor && $0.establishmentID == shopID
+        }))
+        return role(for: actor, in: shop, memberships: memberships)
+    }
+
+    static func mayTakePayment(actor: UUID, in shop: Establishment, context: ModelContext) throws -> Bool {
+        let currentRole = try role(for: actor, in: shop, context: context)
+        return currentRole == .owner || currentRole == .manager || currentRole == .cashier
+    }
+}
+
 @Model final class CatalogItem {
     @Attribute(.unique) var id: UUID
     var establishmentID: UUID
@@ -222,12 +249,9 @@ enum ExpenseCategory {
                        amount: Int64, date: Date, note: String,
                        context: ModelContext) throws -> ExpenseEntry {
         if actor != shop.ownerID {
-            let shopID = shop.id, personID = actor
-            let memberships = try context.fetch(FetchDescriptor<Membership>(predicate: #Predicate {
-                $0.accountID == personID && $0.establishmentID == shopID
-            }))
-            guard memberships.count == 1, memberships[0].active,
-                  memberships[0].role == .manager else { throw Fault.unauthorized }
+            guard try StaffAccess.role(for: actor, in: shop, context: context) == .manager else {
+                throw Fault.unauthorized
+            }
         }
         guard !shop.archived, ExpenseCategory.all.contains(category), amount > 0,
               date <= Date.now.addingTimeInterval(24 * 3_600),

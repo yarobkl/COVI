@@ -23,8 +23,10 @@ enum RestaurantFault: LocalizedError {
     let db: ModelContext
     var admin: Bool { role == .owner || role == .manager }
     func authorize(kitchen: Bool = false) throws {
-        guard !shop.archived, shop.kind == .restaurant, pin.mayOperate(shop: shop, actor: actor),
-              admin || role == (kitchen ? .kitchen : .waiter) else { throw RestaurantFault.access }
+        guard shop.kind == .restaurant,
+              try StaffAccess.role(for: actor, in: shop, context: db) == role,
+              admin || role == (kitchen ? .kitchen : .waiter),
+              pin.mayOperate(shop: shop, actor: actor) else { throw RestaurantFault.access }
         pin.touch()
     }
     func save() throws {

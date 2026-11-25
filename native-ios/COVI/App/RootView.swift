@@ -22,12 +22,7 @@ struct RootView: View {
     @State private var directoryError = ""
 
     private func role(_ shop: Establishment, _ account: UUID) -> StaffRole? {
-        guard !shop.archived else { return nil }
-        if shop.ownerID == account { return .owner }
-        let matches = memberships.filter { $0.accountID == account && $0.establishmentID == shop.id }
-        guard matches.count == 1, let membership = matches.first, membership.active,
-              let role = StaffRole(rawValue: membership.roleRaw), role != .owner else { return nil }
-        return role
+        StaffAccess.role(for: account, in: shop, memberships: memberships)
     }
     var body: some View {
         Group {

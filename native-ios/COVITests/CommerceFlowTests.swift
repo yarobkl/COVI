@@ -39,6 +39,62 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertEqual(try db.fetch(FetchDescriptor<OutboxEvent>()).count, 1)
     }
 
+    func testBoutiqueCashierNeedsAnActiveMembershipEvenWithAnUnlockedPIN() throws {
+        let db = try database(), cashier = UUID()
+        let shop = Establishment(ownerID: UUID(), name: "Épicerie", kind: .boutique, city: "Brazzaville")
+        let otherShop = Establishment(ownerID: shop.ownerID, name: "Boutique", kind: .boutique, city: "Brazzaville")
+        let item = CatalogItem(establishmentID: shop.id, title: "Riz", priceMinor: 500)
+        item.stockOnHand = 3
+        let membership = Membership(accountID: cashier, establishmentID: shop.id, role: .cashier)
+        membership.active = false
+        db.insert(shop); db.insert(otherShop); db.insert(item); db.insert(membership)
+        db.insert(Membership(accountID: cashier, establishmentID: otherShop.id, role: .cashier))
+        try db.save()
+
+        let pin = ownerPIN()
+        try pin.configureCashierPIN("1234", for: cashier, shopID: shop.id)
+        XCTAssertTrue(pin.verify("1234", scope: .cashier(staffID: cashier, shopID: shop.id)))
+
+        func sell() throws {
+            try BoutiqueLedger.sell([.init(product: item, units: 1)], discount: 0, quote: 500,
+                tender: .cash, received: 500, confirmed: false, shop: shop, actor: cashier, pin: pin, context: db)
+        }
+
+        XCTAssertThrowsError(try sell())
+        XCTAssertEqual(item.stockOnHand, 3)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<PaymentRecord>()), 0)
+
+        membership.active = true
+        try db.save()
+        try sell()
+        XCTAssertEqual(item.stockOnHand, 2)
+
+        membership.active = false
+        try db.save()
+        XCTAssertThrowsError(try sell())
+        XCTAssertEqual(item.stockOnHand, 2)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<PaymentRecord>()), 1)
+    }
+
+    func testRestaurantRechecksTheStoredRoleWhenOperatingAnOpenService() throws {
+        let db = try database(), waiter = UUID()
+        let shop = Establishment(ownerID: UUID(), name: "Restaurant", kind: .restaurant, city: "Yaoundé")
+        let membership = Membership(accountID: waiter, establishmentID: shop.id, role: .waiter)
+        db.insert(shop); db.insert(membership); try db.save()
+
+        let pin = ownerPIN()
+        try pin.configureCashierPIN("1234", for: waiter, shopID: shop.id)
+        XCTAssertTrue(pin.verify("1234", scope: .cashier(staffID: waiter, shopID: shop.id)))
+        let service = RestaurantService(shop: shop, actor: waiter, role: .waiter, pin: pin, db: db)
+        try service.authorize()
+
+        membership.role = .kitchen
+        try db.save()
+        XCTAssertThrowsError(try service.authorize())
+        try RestaurantService(shop: shop, actor: waiter, role: .kitchen, pin: pin, db: db)
+            .authorize(kitchen: true)
+    }
+
     func testExternalMobilePaymentRequiresCashierConfirmation() throws {
         let db = try database(), owner = UUID()
         let shop = Establishment(ownerID: owner, name: "Épicerie", kind: .boutique, city: "Brazzaville")

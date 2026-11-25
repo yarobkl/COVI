@@ -60,7 +60,8 @@ enum BoutiqueError: LocalizedError {
 
     @discardableResult static func sell(_ lines: [Line], discount: Int64, quote: Int64, tender: Tender, received: Int64?,
                      confirmed: Bool, shop: Establishment, actor: UUID, pin: PINManager, context: ModelContext) throws -> CommerceOrder {
-        guard pin.mayOperate(shop: shop, actor: actor) else { throw BoutiqueError.permission }
+        guard try StaffAccess.mayTakePayment(actor: actor, in: shop, context: context),
+              pin.mayOperate(shop: shop, actor: actor) else { throw BoutiqueError.permission }
         let due = try total(lines, discount: discount)
         guard due == quote else { throw BoutiqueError.changed }
         guard tender == .cash ? (received ?? -1) >= due : confirmed else { throw BoutiqueError.invalid }

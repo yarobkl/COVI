@@ -25,6 +25,21 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
 - La comparaison avec la base native `81dc85a` confirme que les modèles, leur liste dans le schéma et la configuration du stockage par défaut sont identiques.
 - La validation d'une mise à niveau depuis une ancienne version installée nécessite encore une base de cette version. La recette CloudKit sur deux iPhone signés est décrite dans `native-ios/CLOUDKIT_VALIDATION.md`.
 
+### Lot 2 — Contrôle local des droits
+
+- La sélection des établissements et les opérations métier utilisent la même
+  résolution des rôles locaux. Les encaissements boutique et salon exigent une
+  adhésion active pour les collaborateurs, en plus du déverrouillage PIN.
+- Le service restaurant relit le rôle enregistré à chaque opération. Un écran
+  resté ouvert après un changement de rôle perd ses anciens droits à l’écriture.
+- Deux tests couvrent la désactivation d’un caissier dont le PIN est déverrouillé
+  et le changement de rôle dans le service restaurant. Validation XCTest à
+  confirmer sur la révision qui contient ces tests.
+- Le lot reste en cours. La liaison Apple/Google, les invitations, les sessions
+  révocables entre appareils et leurs contrôles serveur nécessitent encore une
+  autorité côté serveur. Les règles locales s’appliquent dès réception du
+  changement de rôle ou de la désactivation sur l’appareil.
+
 ### Suite du lot 1
 
 Auditer la migration SwiftData et les conflits de synchronisation selon le contrat

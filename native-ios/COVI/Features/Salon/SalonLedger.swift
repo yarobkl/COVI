@@ -258,7 +258,8 @@ enum SalonFault: String, LocalizedError {
     @discardableResult static func pay(shop: Establishment, actor: UUID, pin: PINManager, client: SalonClient, team: String,
                     visit: SalonVisit?, basket: [UUID:Int], menu: [CatalogItem],
                     tender: Tender, confirmed: Bool, db: ModelContext) throws -> CommerceOrder {
-        guard !shop.archived, pin.mayOperate(shop: shop, actor: actor) else { throw SalonFault.access }
+        guard try StaffAccess.mayTakePayment(actor: actor, in: shop, context: db),
+              pin.mayOperate(shop: shop, actor: actor) else { throw SalonFault.access }
         guard confirmed, client.shop == shop.id, !basket.isEmpty, !team.isEmpty else { throw SalonFault.invalid }
         let shopID = shop.id, person = team
         let workers = try db.fetch(FetchDescriptor<SalonStaff>(predicate: #Predicate {
