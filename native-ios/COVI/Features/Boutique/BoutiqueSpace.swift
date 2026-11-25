@@ -158,49 +158,15 @@ struct BoutiqueSpace: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 HStack {
-                    COVIBadge(title: "Vendre")
-                    Spacer()
-                    Text("\(goods.filter { !$0.soldOut }.count) articles disponibles")
-                        .font(.caption).foregroundStyle(COVITheme.secondaryText)
-                }
-                HStack {
                     Image(systemName: "magnifyingglass")
                     TextField("Rechercher un produit...", text: $search).autocorrectionDisabled()
                 }
                 .padding(15).foregroundStyle(COVITheme.secondaryText)
                 .background(COVITheme.navy.opacity(0.07), in: RoundedRectangle(cornerRadius: 15))
 
-                COVISectionTitle("Catalogue")
-                if filtered.isEmpty {
-                    ContentUnavailableView(goods.isEmpty ? "Aucun article" : "Aucun résultat",
-                        systemImage: "shippingbox",
-                        description: Text(goods.isEmpty ? "Ajoutez votre premier article dans Stock avant d’encaisser." : "Essayez un autre nom de produit."))
-                }
-                ForEach(filtered) { item in
-                    Button { add(item) } label: {
-                        COVICard {
-                            HStack(spacing: 12) {
-                                Image(systemName: "bag")
-                                    .font(.title2).foregroundStyle(COVITheme.navy)
-                                    .frame(width: 65, height: 70)
-                                    .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 13))
-                                VStack(alignment: .leading, spacing: 7) {
-                                    Text(item.title).font(.headline)
-                                    Text(COVIMoney.text(item.priceMinor, currency: shop.currencyCode))
-                                        .font(.subheadline.weight(.semibold))
-                                    Text("\(item.stockOnHand - item.stockReserved) disponibles")
-                                        .font(.caption).foregroundStyle(COVITheme.secondaryText)
-                                }
-                                Spacer(minLength: 4)
-                                Image(systemName: "plus.circle.fill").font(.title2)
-                            }
-                            .foregroundStyle(COVITheme.navy)
-                        }
-                    }.buttonStyle(.plain)
-                }
-
-                COVISectionTitle("Panier en cours (\(lines.reduce(0) { $0 + $1.units }) articles)")
                 COVICard {
+                    COVISectionTitle("Panier en cours (\(lines.reduce(0) { $0 + $1.units }) articles)")
+                    Divider()
                     if lines.isEmpty {
                         Text("Touchez un produit pour l’ajouter au panier.")
                             .foregroundStyle(COVITheme.secondaryText)
@@ -236,6 +202,35 @@ struct BoutiqueSpace: View {
                 }
                 if !lines.isEmpty && total == nil {
                     Text("Vérifiez la remise et le total à encaisser.").foregroundStyle(.red)
+                }
+
+                COVISectionTitle("Catalogue")
+                if filtered.isEmpty {
+                    ContentUnavailableView(goods.isEmpty ? "Aucun article" : "Aucun résultat",
+                        systemImage: "shippingbox",
+                        description: Text(goods.isEmpty ? "Ajoutez votre premier article dans Stock avant d’encaisser." : "Essayez un autre nom de produit."))
+                }
+                ForEach(filtered) { item in
+                    Button { add(item) } label: {
+                        COVICard {
+                            HStack(spacing: 12) {
+                                Image(systemName: "bag")
+                                    .font(.title2).foregroundStyle(COVITheme.navy)
+                                    .frame(width: 65, height: 70)
+                                    .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 13))
+                                VStack(alignment: .leading, spacing: 7) {
+                                    Text(item.title).font(.headline)
+                                    Text(COVIMoney.text(item.priceMinor, currency: shop.currencyCode))
+                                        .font(.subheadline.weight(.semibold))
+                                    Text("\(item.stockOnHand - item.stockReserved) disponibles")
+                                        .font(.caption).foregroundStyle(COVITheme.secondaryText)
+                                }
+                                Spacer(minLength: 4)
+                                Image(systemName: "plus.circle.fill").font(.title2)
+                            }
+                            .foregroundStyle(COVITheme.navy)
+                        }
+                    }.buttonStyle(.plain)
                 }
             }
             .foregroundStyle(COVITheme.navy)
