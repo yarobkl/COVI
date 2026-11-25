@@ -41,6 +41,13 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   autorité côté serveur. Les règles locales s’appliquent dès réception du
   changement de rôle ou de la désactivation sur l’appareil.
 
+### Backend du lot 2 et TestFlight
+
+- Le propriétaire autorise le choix et la mise en place du backend, ainsi que la livraison TestFlight après validation.
+- Supabase Auth et PostgreSQL sont retenus pour la préproduction native. La migration `native-ios/backend/migrations/20261125220000_team_authority.sql` introduit un schéma privé et une résolution serveur des rôles tenant compte des révocations. La migration reste à exécuter et à tester. Le projet historique COVI est inactif.
+- Les flux Apple/Google, invitations et sessions restent à implémenter en préservant les établissements existants.
+- Le dernier contrôle signé a échoué sur les entitlements CloudKit Production du profil ([GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/44516821945)). La livraison passe par la branche native autorisée après intégration et validation du profil.
+
 ### Suite du lot 1
 
 Le correctif d’annulation CloudKit `0872560` a également passé la compilation
