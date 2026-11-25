@@ -693,6 +693,7 @@ struct OperationalCloudAdapter {
         guard !shop.archived else { return }
         let cloud = OperationalCloudAdapter(owner: shop.ownerID, shop: shop.id)
         let identity = try await cloud.bridge.container.userRecordID().recordName
+        try Task.checkCancellation()
         let sid = shop.id
         let checkpoints = try context.fetch(FetchDescriptor<OperationalCloudCheckpoint>(predicate: #Predicate {
             $0.shopID == sid
@@ -719,6 +720,7 @@ struct OperationalCloudAdapter {
                 lastToken = nil
             }
         }
+        try Task.checkCancellation()
         do {
             try merge(changes, shop: shop, cloudUserID: identity, context: context)
             try validateStock(shop: shop, context: context)
