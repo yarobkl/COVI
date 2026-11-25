@@ -20,6 +20,7 @@ enum PINScope: Sendable {
 
 @MainActor @Observable final class PINManager {
     private(set) var unlockedStaffID: UUID?
+    private(set) var unlockedShopID: UUID?
     private(set) var failedAttempts = 0
     private(set) var lockedUntil: Date?
     private(set) var lastError: PINError?
@@ -55,7 +56,7 @@ enum PINScope: Sendable {
     }
 
     var isUnlocked: Bool {
-        guard unlockedStaffID != nil else { return false }
+        guard unlockedStaffID != nil, unlockedShopID != nil else { return false }
         return now().timeIntervalSince(lastActivity) < inactivityTimeout
     }
 
@@ -91,7 +92,7 @@ enum PINScope: Sendable {
                 }
             } catch { return false }
         }
-        return isUnlocked && unlockedStaffID == actor
+        return isUnlocked && unlockedStaffID == actor && unlockedShopID == shop.id
     }
 
     private func attemptKey(for scope: PINScope) -> String {
@@ -154,11 +155,19 @@ enum PINScope: Sendable {
         }
         do { try saveAttempts(PINAttemptState(), for: scope) }
         catch { lastError = .storageFailure; return false }
-        if case .cashier(let staffID, _) = scope { unlockedStaffID = staffID; lastActivity = now() }
+        if case .cashier(let staffID, let shopID) = scope {
+            unlockedStaffID = staffID
+            unlockedShopID = shopID
+            lastActivity = now()
+        }
         return true
     }
 
-    func lock() { unlockedStaffID = nil; lastActivity = .distantPast }
+    func lock() {
+        unlockedStaffID = nil
+        unlockedShopID = nil
+        lastActivity = .distantPast
+    }
     func touch() { if isUnlocked { lastActivity = now() } else { lock() } }
 
     private func verifier(for scope: PINScope) throws -> PINVerifier? {
