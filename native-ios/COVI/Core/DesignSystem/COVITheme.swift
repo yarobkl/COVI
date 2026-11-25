@@ -140,12 +140,16 @@ enum COVIButtonRole {
 struct COVIButton: View {
     private let title: LocalizedStringKey
     private let systemImage: String?
+    private let trailingSystemImage: String?
     private let role: COVIButtonRole
     private let action: () -> Void
 
-    init(_ title: LocalizedStringKey, systemImage: String? = nil, role: COVIButtonRole = .primary, action: @escaping () -> Void) {
+    init(_ title: LocalizedStringKey, systemImage: String? = nil,
+         trailingSystemImage: String? = nil, role: COVIButtonRole = .primary,
+         action: @escaping () -> Void) {
         self.title = title
         self.systemImage = systemImage
+        self.trailingSystemImage = trailingSystemImage
         self.role = role
         self.action = action
     }
@@ -153,7 +157,12 @@ struct COVIButton: View {
     var body: some View {
         Button(action: action) {
             Group {
-                if let systemImage {
+                if let trailingSystemImage {
+                    HStack(spacing: 10) {
+                        Text(title)
+                        Image(systemName: trailingSystemImage).accessibilityHidden(true)
+                    }
+                } else if let systemImage {
                     Label(title, systemImage: systemImage)
                 } else {
                     Text(title)

@@ -236,42 +236,45 @@ private struct COVIWelcome: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    VStack(alignment: .leading, spacing: 14) {
-                        Image("WelcomeMark").resizable().scaledToFit().frame(width: 144)
-                            .accessibilityLabel("COVI, Commerce & Vie")
-                            .padding(.bottom, 8)
-                        Text(dynamicTypeSize.isAccessibilitySize
-                            ? "Le système d’exploitation de votre commerce"
-                            : "Le système\nd’exploitation de\nvotre commerce")
-                            .font(.system(size: headingSize, weight: .bold))
-                            .fixedSize(horizontal: false, vertical: true)
-                            .accessibilityAddTraits(.isHeader)
-                        Capsule().fill(COVITheme.sand).frame(width: 62, height: 5)
-                        Text("Gérez vos ventes, votre stock, votre équipe et vos opérations au quotidien, depuis votre iPhone.")
-                            .font(.body)
-                            .frame(maxWidth: 284, alignment: .leading)
+            VStack(spacing: 0) {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 14) {
+                            Image("WelcomeMark").resizable().scaledToFit().frame(width: 144)
+                                .accessibilityLabel("COVI, Commerce & Vie")
+                                .padding(.bottom, 8)
+                            Text(dynamicTypeSize.isAccessibilitySize
+                                ? "Le système d’exploitation de votre commerce"
+                                : "Le système\nd’exploitation de\nvotre commerce")
+                                .font(.system(size: headingSize, weight: .bold))
+                                .fixedSize(horizontal: false, vertical: true)
+                                .accessibilityAddTraits(.isHeader)
+                            Capsule().fill(COVITheme.sand).frame(width: 62, height: 5)
+                                .accessibilityHidden(true)
+                            Text("Gérez vos ventes, votre stock, votre équipe et vos opérations au quotidien, depuis votre iPhone.")
+                                .font(.body)
+                                .foregroundStyle(COVITheme.secondaryText)
+                                .frame(maxWidth: 284, alignment: .leading)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 30)
+                        .padding(.top, 12)
+                        WelcomeTradePhoto()
+                            .accessibilityLabel("Boutique, Restaurant, Salon de coiffure")
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 30)
-                    .padding(.top, 12)
-                    WelcomeTradePhoto()
-                        .accessibilityLabel("Boutique, Restaurant, Salon de coiffure")
-                }.frame(maxWidth: 520)
-            }
-            .frame(maxWidth: .infinity)
-            .safeAreaInset(edge: .bottom) {
+                    .frame(maxWidth: 520)
+                    .frame(maxWidth: .infinity)
+                }
                 VStack(spacing: 12) {
-                    COVIButton("Commencer", systemImage: "arrow.right") { path.append(.register) }
+                    COVIButton("Commencer", trailingSystemImage: "arrow.right") { path.append(.register) }
                     COVIButton("Se connecter", role: .secondary) { path.append(.login) }
                 }
                 .padding(.horizontal, 18)
                 .padding(.vertical, 16)
                 .frame(maxWidth: 520)
-                .background(COVITheme.cream)
             }
-            .foregroundStyle(COVITheme.navy).background(COVITheme.cream)
+            .foregroundStyle(COVITheme.navy)
+            .background(COVIBackdrop())
             .navigationDestination(for: Route.self) { route in
                 switch route {
                 case .login: AccountLogin().navigationTitle("Se connecter")
@@ -299,6 +302,13 @@ private struct WelcomeTradePhoto: View {
         }
         .aspectRatio(originalWidth / (originalHeight - topTrim), contentMode: .fit)
         .clipped()
+        .mask {
+            LinearGradient(stops: [
+                .init(color: .black, location: 0),
+                .init(color: .black, location: 0.92),
+                .init(color: .clear, location: 1)
+            ], startPoint: .top, endPoint: .bottom)
+        }
     }
 }
 
