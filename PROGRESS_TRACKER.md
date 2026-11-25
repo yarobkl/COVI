@@ -67,6 +67,15 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   Capturer Vendre avec un panier de test avant sa validation visuelle.
   Les photos du catalogue et le raccourci scan suivent leur lot métier.
 
+- Le commit `87232c4` regroupe les cartes du panier et de l’encaissement
+  et ajoute des scénarios de capture avec des données synthétiques en mémoire.
+  GitHub Actions a validé Debug, les XCTest et Release sur simulateur
+  ([diagnostics](https://github.com/yarobkl/COVI/actions/runs/45722744021)).
+- Le panier et la caisse partagent désormais le calcul contrôlé du sous-total.
+  Un résultat hors limites affiche « Montant invalide » dans le panier et
+  bloque l’encaissement. Le test de dépassement couvre aussi ce calcul.
+  L’état sélectionné du moyen de paiement est annoncé par VoiceOver.
+
 ### Suite du lot 1
 
 Le correctif d’annulation CloudKit `0872560` a également passé la compilation

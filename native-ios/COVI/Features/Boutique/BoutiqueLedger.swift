@@ -41,6 +41,12 @@ enum BoutiqueError: LocalizedError {
     struct Line {
         let product: CatalogItem
         let units: Int
+
+        @MainActor var subtotal: Int64? {
+            guard units > 0, product.priceMinor >= 0 else { return nil }
+            let (amount, overflow) = product.priceMinor.multipliedReportingOverflow(by: Int64(units))
+            return overflow ? nil : amount
+        }
     }
     static func total(_ lines: [Line], discount: Int64) throws -> Int64 {
         guard !lines.isEmpty, discount >= 0 else { throw BoutiqueError.invalid }
@@ -48,10 +54,9 @@ enum BoutiqueError: LocalizedError {
         var unique = Set<UUID>()
         for line in lines {
             guard unique.insert(line.product.id).inserted else { throw BoutiqueError.invalid }
-            guard line.units > 0, line.product.priceMinor >= 0 else { throw BoutiqueError.invalid }
-            let (value, overflow) = line.product.priceMinor.multipliedReportingOverflow(by: Int64(line.units))
+            guard let value = line.subtotal else { throw BoutiqueError.invalid }
             let (next, exceeds) = sum.addingReportingOverflow(value)
-            guard !overflow, !exceeds else { throw BoutiqueError.invalid }
+            guard !exceeds else { throw BoutiqueError.invalid }
             sum = next
         }
         guard discount < sum else { throw BoutiqueError.invalid }

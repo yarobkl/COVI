@@ -18,8 +18,9 @@ final class MonetaryTests: XCTestCase {
     }
 
     func testMultiplicationOverflowIsRejected() {
-        let lines = [BoutiqueLedger.Line(product: product(Int64.max), units: 2)]
-        XCTAssertThrowsError(try BoutiqueLedger.total(lines, discount: 0))
+        let line = BoutiqueLedger.Line(product: product(Int64.max), units: 2)
+        XCTAssertNil(line.subtotal)
+        XCTAssertThrowsError(try BoutiqueLedger.total([line], discount: 0))
     }
 
     func testAdditionOverflowIsRejected() {

@@ -191,8 +191,12 @@ struct BoutiqueSpace: View {
                             HStack(spacing: 10) {
                                 VStack(alignment: .leading, spacing: 5) {
                                     Text(line.product.title).font(.subheadline.weight(.semibold))
-                                    Text(COVIMoney.text(line.product.priceMinor * Int64(line.units), currency: shop.currencyCode))
-                                        .font(.subheadline).foregroundStyle(COVITheme.secondaryText)
+                                    if let subtotal = line.subtotal {
+                                        Text(COVIMoney.text(subtotal, currency: shop.currencyCode))
+                                            .font(.subheadline).foregroundStyle(COVITheme.secondaryText)
+                                    } else {
+                                        Text("Montant invalide").font(.subheadline).foregroundStyle(COVITheme.warning)
+                                    }
                                 }
                                 Spacer()
                                 HStack(spacing: 0) {
@@ -349,15 +353,18 @@ private struct Checkout: View {
                                     HStack(spacing: 13) {
                                         Image(systemName: option == .cash ? "circle.stack" : "iphone")
                                             .font(.title3).frame(width: 30)
+                                            .accessibilityHidden(true)
                                         Text(option.rawValue).font(.headline)
                                         Spacer()
                                         Image(systemName: tender == option ? "checkmark.circle.fill" : "circle")
                                             .font(.title2)
+                                            .accessibilityHidden(true)
                                     }
                                     .foregroundStyle(COVITheme.navy)
                                     .padding(.vertical, 12)
                                 }
                                 .buttonStyle(.plain)
+                                .accessibilityAddTraits(tender == option ? .isSelected : [])
                                 if option != Tender.allCases.last { Divider() }
                             }
                         }
@@ -453,4 +460,3 @@ private struct Checkout: View {
         #endif
     }
 }
-
