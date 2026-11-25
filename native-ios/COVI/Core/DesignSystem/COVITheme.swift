@@ -160,8 +160,11 @@ struct COVIButton: View {
                 }
             }
                 .font(.headline.weight(.semibold))
-                .frame(maxWidth: .infinity)
-                .frame(height: COVITheme.Metrics.buttonHeight)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity, minHeight: COVITheme.Metrics.buttonHeight)
         }
         .buttonStyle(COVIButtonStyle(role: role))
         .accessibilityAddTraits(.isButton)
