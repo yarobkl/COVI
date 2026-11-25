@@ -48,6 +48,11 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
 - Les flux Apple/Google, invitations et sessions restent à implémenter en préservant les établissements existants.
 - Le dernier contrôle signé a échoué sur les entitlements CloudKit Production du profil ([GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/44516821945)). La livraison passe par la branche native autorisée après intégration et validation du profil.
 
+### Lot 3 — Parcours d’entrée
+
+- L’accueil, la connexion et la création de compte s’adaptent aux grandes tailles de texte. Les formulaires restent centrés sur iPad et les boutons peuvent grandir quand leur libellé revient à la ligne.
+- Révisions `0b5230d`, `cd553ef` et `aaebcf1`. Vérifier les résultats des diagnostics iOS et comparer les captures avec les planches avant validation visuelle.
+
 ### Suite du lot 1
 
 Le correctif d’annulation CloudKit `0872560` a également passé la compilation
