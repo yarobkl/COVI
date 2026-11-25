@@ -33,8 +33,9 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
 - Le service restaurant relit le rôle enregistré à chaque opération. Un écran
   resté ouvert après un changement de rôle perd ses anciens droits à l’écriture.
 - Deux tests couvrent la désactivation d’un caissier dont le PIN est déverrouillé
-  et le changement de rôle dans le service restaurant. Validation XCTest à
-  confirmer sur la révision qui contient ces tests.
+  et le changement de rôle dans le service restaurant. Sur `9933b51`, la
+  compilation de l’application et des tests a réussi. Résultat XCTest à relever
+  dans [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45699387443).
 - Le lot reste en cours. La liaison Apple/Google, les invitations, les sessions
   révocables entre appareils et leurs contrôles serveur nécessitent encore une
   autorité côté serveur. Les règles locales s’appliquent dès réception du
