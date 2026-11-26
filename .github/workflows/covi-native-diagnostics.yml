@@ -41,6 +41,7 @@ jobs:
           set -o pipefail
           xcodebuild build -project COVI.xcodeproj -scheme COVI -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
       - name: Capture real iPhone components with isolated fixtures
+        timeout-minutes: 18
         working-directory: native-ios
         run: |
           set -euo pipefail
@@ -69,10 +70,11 @@ jobs:
           mkdir -p "$CAPTURE_DIR"
           xcrun simctl status_bar "$DEVICE_ID" override --time "9:41" --batteryState charged --batteryLevel 100
           trap 'xcrun simctl status_bar "$DEVICE_ID" clear' EXIT
-          for SCENARIO in welcome boutique-home boutique-sale boutique-checkout restaurant-tables restaurant-table restaurant-order salon-today salon-agenda salon-booking salon-booking-conflict salon-clients salon-profile salon-checkout salon-catalog salon-report; do
+          # Give the newest diagnostic an opportunity to render before the regression sweep.
+          for SCENARIO in salon-report salon-checkout salon-catalog welcome boutique-home boutique-sale boutique-checkout restaurant-tables restaurant-table restaurant-order salon-today salon-agenda salon-booking salon-booking-conflict salon-clients salon-profile; do
             MARKER="$APP_DATA/tmp/covi-diagnostic-$SCENARIO.ready"
             rm -f "$MARKER"
-            run_bounded xcrun simctl launch --terminate-running-process "$DEVICE_ID" com.covi.app --covi-diagnostic-scenario "$SCENARIO" -AppleLanguages '(fr)' -AppleLocale fr_FR
+            xcrun simctl launch --terminate-running-process "$DEVICE_ID" com.covi.app --covi-diagnostic-scenario "$SCENARIO" -AppleLanguages '(fr)' -AppleLocale fr_FR
             for ATTEMPT in {1..20}; do
               if [ -f "$MARKER" ]; then break; fi
               sleep 1
@@ -88,7 +90,7 @@ jobs:
           for SCENARIO in salon-checkout salon-catalog; do
             MARKER="$APP_DATA/tmp/covi-diagnostic-$SCENARIO.ready"
             rm -f "$MARKER"
-            run_bounded xcrun simctl launch --terminate-running-process "$DEVICE_ID" com.covi.app --covi-diagnostic-scenario "$SCENARIO" -AppleLanguages '(fr)' -AppleLocale fr_FR
+            xcrun simctl launch --terminate-running-process "$DEVICE_ID" com.covi.app --covi-diagnostic-scenario "$SCENARIO" -AppleLanguages '(fr)' -AppleLocale fr_FR
             for ATTEMPT in {1..20}; do
               if [ -f "$MARKER" ]; then break; fi
               sleep 1
@@ -106,7 +108,7 @@ jobs:
           for SCENARIO in salon-checkout salon-catalog; do
             MARKER="$IPAD_DATA/tmp/covi-diagnostic-$SCENARIO.ready"
             rm -f "$MARKER"
-            run_bounded xcrun simctl launch --terminate-running-process "$IPAD_ID" com.covi.app --covi-diagnostic-scenario "$SCENARIO" -AppleLanguages '(fr)' -AppleLocale fr_FR
+            xcrun simctl launch --terminate-running-process "$IPAD_ID" com.covi.app --covi-diagnostic-scenario "$SCENARIO" -AppleLanguages '(fr)' -AppleLocale fr_FR
             for ATTEMPT in {1..20}; do
               if [ -f "$MARKER" ]; then break; fi
               sleep 1
