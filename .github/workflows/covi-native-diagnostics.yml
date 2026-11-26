@@ -56,7 +56,7 @@ jobs:
           mkdir -p "$CAPTURE_DIR"
           xcrun simctl status_bar "$DEVICE_ID" override --time "9:41" --batteryState charged --batteryLevel 100
           trap 'xcrun simctl status_bar "$DEVICE_ID" clear' EXIT
-          for SCENARIO in welcome boutique-home boutique-sale boutique-checkout restaurant-tables restaurant-table restaurant-order salon-today salon-agenda salon-booking salon-booking-conflict salon-clients salon-profile; do
+          for SCENARIO in welcome boutique-home boutique-sale boutique-checkout restaurant-tables restaurant-table restaurant-order salon-today salon-agenda salon-booking salon-booking-conflict salon-clients salon-profile salon-checkout; do
             MARKER="$APP_DATA/tmp/covi-diagnostic-$SCENARIO.ready"
             rm -f "$MARKER"
             xcrun simctl launch --terminate-running-process "$DEVICE_ID" com.covi.app --covi-diagnostic-scenario "$SCENARIO" -AppleLanguages '(fr)' -AppleLocale fr_FR

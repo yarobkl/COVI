@@ -17,6 +17,7 @@ final class COVISimulatorDiagnostics {
         case restaurantTables = "restaurant-tables"
         case restaurantTable = "restaurant-table"
         case restaurantOrder = "restaurant-order"
+        case salonCheckout = "salon-checkout"
         case salonToday = "salon-today"
         case salonAgenda = "salon-agenda"
         case salonBooking = "salon-booking"
@@ -92,7 +93,7 @@ final class COVISimulatorDiagnostics {
         case .restaurantTables, .restaurantTable, .restaurantOrder:
             kind = .restaurant
             name = "Restaurant de démonstration"
-        case .salonToday, .salonAgenda, .salonBooking, .salonBookingConflict, .salonClients, .salonProfile:
+        case .salonCheckout, .salonToday, .salonAgenda, .salonBooking, .salonBookingConflict, .salonClients, .salonProfile:
             kind = .salon
             name = "Studio Élégance"
         default:
@@ -236,6 +237,12 @@ final class COVISimulatorDiagnostics {
             priceMinor: 15_000, isService: true)
         for item in [braids, haircut, treatment] { context.insert(item) }
 
+        if scenario == .salonCheckout {
+            braids.priceMinor = 25_000
+            let serum = CatalogItem(establishmentID: shop.id, title: "Sérum Karité & Argan", priceMinor: 5_000)
+            serum.stockOnHand = 5
+            context.insert(serum)
+        }
         let appointments: [(name: String, service: CatalogItem, person: SalonStaff,
             startsAfterOpening: Int, duration: Int, walkIn: Bool)] = [
                 ("Yannick M.", haircut, brice, 15, 45, true),

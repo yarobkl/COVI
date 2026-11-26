@@ -379,7 +379,7 @@ final class CommerceFlowTests: XCTestCase {
         let visit = try XCTUnwrap(db.fetch(FetchDescriptor<SalonVisit>()).first)
         let sale = try SalonLedger.pay(shop: shop, actor: owner, pin: ownerPIN(), client: client,
             team: stylist.name, visit: visit, basket: [service.id: 1], menu: [service],
-            tender: .cash, confirmed: true, db: db)
+            tender: .cash, confirmed: true, received: service.priceMinor, db: db)
         try SalonLedger.editCatalog(service, shop: shop, actor: owner,
             title: "Nouvelle coiffure", price: 7_000, percent: 25, db: db)
         XCTAssertEqual(visit.service, service.id)
@@ -412,10 +412,10 @@ final class CommerceFlowTests: XCTestCase {
             minutes: 30, walkIn: false, db: db))
         XCTAssertThrowsError(try SalonLedger.pay(shop: shop, actor: owner, pin: ownerPIN(),
             client: client, team: stylist.name, visit: nil, basket: [service.id: 1],
-            menu: [service], tender: .cash, confirmed: true, db: db))
+            menu: [service], tender: .cash, confirmed: true, received: service.priceMinor, db: db))
         let sale = try SalonLedger.pay(shop: shop, actor: owner, pin: ownerPIN(),
             client: client, team: stylist.name, visit: visit, basket: [service.id: 1],
-            menu: [service], tender: .cash, confirmed: true, db: db)
+            menu: [service], tender: .cash, confirmed: true, received: service.priceMinor, db: db)
         XCTAssertEqual(visit.receipt, sale.id)
         try SalonLedger.setCatalogAvailability(service, shop: shop, actor: owner,
             available: true, db: db)
@@ -443,6 +443,46 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertEqual(movements.count, 2)
         XCTAssertEqual(movements.reduce(0) { $0 + $1.delta }, 10)
         XCTAssertTrue(movements.contains { $0.delta == -5 })
+    }
+
+    func testSalonCashRejectsInsufficientCashAndChangedQuoteWithoutWriting() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Salon", kind: .salon, city: "Brazzaville")
+        let client = SalonClient(shop: shop.id, name: "Cliente")
+        let stylist = SalonStaff(shop: shop.id, name: "Chloé")
+        let item = CatalogItem(establishmentID: shop.id, title: "Sérum", priceMinor: 5_000)
+        item.stockOnHand = 2
+        db.insert(shop); db.insert(client); db.insert(stylist); db.insert(item)
+        try db.save()
+        for cash: Int64? in [nil, 4_999] {
+            XCTAssertThrowsError(try SalonLedger.pay(shop: shop, actor: owner, pin: ownerPIN(),
+                client: client, team: stylist.name, visit: nil, basket: [item.id: 1], menu: [item],
+                tender: .cash, confirmed: true, quote: 5_000, received: cash, db: db))
+        }
+        XCTAssertThrowsError(try SalonLedger.pay(shop: shop, actor: owner, pin: ownerPIN(),
+            client: client, team: stylist.name, visit: nil, basket: [item.id: 1], menu: [item],
+            tender: .cash, confirmed: true, quote: 4_000, received: 10_000, db: db))
+        XCTAssertEqual(item.stockOnHand, 2)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<CommerceOrder>()), 0)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<PaymentRecord>()), 0)
+        let receipt = try SalonLedger.pay(shop: shop, actor: owner, pin: ownerPIN(),
+            client: client, team: stylist.name, visit: nil, basket: [item.id: 1], menu: [item],
+            tender: .cash, confirmed: true, quote: 5_000, received: 10_000, db: db)
+        XCTAssertEqual(receipt.totalMinor, 5_000)
+        XCTAssertEqual(item.stockOnHand, 1)
+        let payment = try XCTUnwrap(db.fetch(FetchDescriptor<PaymentRecord>()).first)
+        XCTAssertEqual(payment.cashReceived, 10_000)
+        XCTAssertEqual(payment.amountMinor, 5_000)
+    }
+
+    func testSalonTotalRejectsOverflowForeignAndMissingArticles() throws {
+        let shop = UUID()
+        let item = CatalogItem(establishmentID: shop, title: "Soin", priceMinor: Int64.max)
+        XCTAssertThrowsError(try SalonLedger.total(basket: [item.id: 2], menu: [item], shop: shop))
+        XCTAssertThrowsError(try SalonLedger.total(basket: [item.id: 1], menu: [item], shop: UUID()))
+        XCTAssertThrowsError(try SalonLedger.total(basket: [UUID(): 1], menu: [item], shop: shop))
+        XCTAssertThrowsError(try SalonLedger.total(basket: [:], menu: [item], shop: shop))
+        XCTAssertEqual(try SalonLedger.total(basket: [item.id: 1], menu: [item], shop: shop), Int64.max)
     }
 
     func testSalonNeverRecordsUnconfirmedMobilePayment() throws {

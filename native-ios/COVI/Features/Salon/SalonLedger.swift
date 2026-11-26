@@ -255,9 +255,24 @@ enum SalonFault: String, LocalizedError {
             try save(db)
         } catch { db.rollback(); throw error }
     }
+    static func total(basket: [UUID: Int], menu: [CatalogItem], shop: UUID) throws -> Int64 {
+        guard !basket.isEmpty else { throw SalonFault.invalid }
+        var sum: Int64 = 0
+        for (id, quantity) in basket {
+            let matches = menu.filter { $0.id == id && $0.establishmentID == shop }
+            guard matches.count == 1, quantity > 0, matches[0].priceMinor > 0 else { throw SalonFault.invalid }
+            let (line, overflow) = matches[0].priceMinor.multipliedReportingOverflow(by: Int64(quantity))
+            let (next, exceeds) = sum.addingReportingOverflow(line)
+            guard !overflow, !exceeds else { throw SalonFault.invalid }
+            sum = next
+        }
+        return sum
+    }
+
     @discardableResult static func pay(shop: Establishment, actor: UUID, pin: PINManager, client: SalonClient, team: String,
                     visit: SalonVisit?, basket: [UUID:Int], menu: [CatalogItem],
-                    tender: Tender, confirmed: Bool, db: ModelContext) throws -> CommerceOrder {
+                    tender: Tender, confirmed: Bool, quote: Int64? = nil, received: Int64? = nil,
+                    db: ModelContext) throws -> CommerceOrder {
         guard try StaffAccess.mayTakePayment(actor: actor, in: shop, context: db),
               pin.mayOperate(shop: shop, actor: actor) else { throw SalonFault.access }
         guard confirmed, client.shop == shop.id, !basket.isEmpty, !team.isEmpty else { throw SalonFault.invalid }
@@ -270,6 +285,9 @@ enum SalonFault: String, LocalizedError {
             guard visit.shop == shop.id, visit.receipt == nil, !visit.cancelled, visit.client == client.id,
                   visit.stylist == team, basket[visit.service] == 1 else { throw SalonFault.stale }
         }
+        let due = try total(basket: basket, menu: menu, shop: shop.id)
+        guard quote == nil || quote == due else { throw BoutiqueError.changed }
+        guard tender != .cash || (received ?? -1) >= due else { throw SalonFault.invalid }
         let order = CommerceOrder(establishmentID: shop.id, createdByID: actor)
         var validated: [(CatalogItem, Int, Int64)] = []
         for (id, qty) in basket {
@@ -300,7 +318,10 @@ enum SalonFault: String, LocalizedError {
                 db.insert(StockMovement(establishmentID: shop.id, itemID: item.id, delta: -qty, reason: "Vente salon · " + order.id.uuidString, actorID: actor))
             }
         }
-        db.insert(PaymentRecord(orderID: order.id, establishmentID: shop.id, method: tender.rawValue, amountMinor: order.totalMinor, confirmedByID: actor))
+        let payment = PaymentRecord(orderID: order.id, establishmentID: shop.id,
+            method: tender.rawValue, amountMinor: order.totalMinor, confirmedByID: actor)
+        payment.cashReceived = tender == .cash ? received : nil
+        db.insert(payment)
         visit?.receipt = order.id
         do {
             try BusinessOutbox.enqueue(kind: "salon.sale.completed", establishmentID: shop.id,

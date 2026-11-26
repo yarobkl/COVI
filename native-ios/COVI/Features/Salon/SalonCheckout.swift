@@ -10,118 +10,213 @@ struct SalonCheckout: View {
     let visits: [SalonVisit]
     let team: [SalonStaff]
     @Environment(\.modelContext) private var db
+#if DEBUG && targetEnvironment(simulator)
+    @Environment(\.coviSimulatorDiagnostics) private var diagnostics
+#endif
     @State private var visitID: UUID?
     @State private var clientID: UUID?
     @State private var stylist = ""
     @State private var basket: [UUID:Int] = [:]
     @State private var tender = Tender.cash
     @State private var confirm = false
+    @State private var importing = false
+    @State private var editing = false
+    @State private var received = ""
+    @State private var verified = false
+    @State private var quoted: Int64?
     @State private var message = ""
     @State private var receipt: CommerceOrder?
-    var total: Decimal { menu.reduce(Decimal.zero) { $0 + Decimal($1.priceMinor) * Decimal(basket[$1.id] ?? 0) } }
+
+    private var total: Int64? { try? SalonLedger.total(basket: basket, menu: menu, shop: shop.id) }
+    private var visit: SalonVisit? { visits.first { $0.id == visitID } }
+    private var client: SalonClient? { clients.first { $0.id == clientID } }
+    private var canPay: Bool {
+        guard let total, client != nil, !stylist.isEmpty else { return false }
+        return tender == .cash ? (Int64(received) ?? -1) >= total : verified
+    }
+    private func importVisit(_ appointment: SalonVisit) {
+        visitID = appointment.id; clientID = appointment.client; stylist = appointment.stylist
+        basket = [appointment.service: 1]; verified = false; received = ""; receipt = nil
+    }
+
     var body: some View {
-        Form {
-            Section {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
                 COVICard {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Label("Ticket en cours", systemImage: "person.crop.circle")
+                    VStack(alignment: .leading, spacing: 14) {
+                        Label("Ticket en cours · " + (client?.name ?? "Vente directe"), systemImage: "person.crop.circle")
                             .font(.title3.bold())
-                        if let visit = visits.first(where: { $0.id == visitID }) {
-                            Text(clients.first(where: { $0.id == visit.client })?.name ?? "Client")
-                                .font(.headline)
+                        if basket.isEmpty {
+                            Text("Importez un rendez-vous ou ajoutez une prestation et ses produits.")
+                                .foregroundStyle(COVITheme.secondaryText)
+                        }
+                        ForEach(menu.filter { basket[$0.id] != nil }) { item in
+                            Divider()
+                            HStack(alignment: .top, spacing: 12) {
+                                Image(systemName: item.isService ? "scissors" : "pump.bottle")
+                                    .font(.title2).frame(width: 42, height: 48)
+                                    .background(COVITheme.sand.opacity(0.3), in: RoundedRectangle(cornerRadius: 12))
+                                    .accessibilityHidden(true)
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text(item.title + " (×\(basket[item.id] ?? 0))").font(.headline)
+                                    Text(item.isService ? "Collaborateur : \(stylist)" : "Stock revente · \(item.stockOnHand - item.stockReserved) disponible(s)")
+                                        .font(.caption).foregroundStyle(COVITheme.secondaryText)
+                                }
+                                Spacer(minLength: 0)
+                                if let subtotal = BoutiqueLedger.Line(product: item, units: basket[item.id] ?? 0).subtotal {
+                                    Text(COVIMoney.text(subtotal, currency: shop.currencyCode)).font(.subheadline.bold())
+                                }
+                            }
+                        }
+                        Button("Modifier le ticket", systemImage: "plus.circle") { editing = true }
+                            .frame(minHeight: 44)
+                    }
+                }
+                COVICard {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Label("Règlement externe", systemImage: "creditcard").font(.title3.bold())
+                        ScrollView(.horizontal) {
+                            HStack(spacing: 8) {
+                                ForEach(Tender.allCases, id: \.self) { option in
+                                    Button {
+                                        tender = option; verified = false
+                                    } label: {
+                                        Text(option.rawValue).font(.subheadline.bold())
+                                            .padding(.horizontal, 16).frame(minHeight: 44)
+                                            .foregroundStyle(tender == option ? .white : COVITheme.navy)
+                                            .background(tender == option ? COVITheme.navy : COVITheme.cream,
+                                                in: RoundedRectangle(cornerRadius: 14))
+                                    }.buttonStyle(.plain)
+                                    .accessibilityAddTraits(tender == option ? .isSelected : [])
+                                }
+                            }
+                        }
+                        Divider()
+                        HStack {
+                            Text("Total à encaisser").font(.headline)
+                            Spacer()
+                            Text(total.map { COVIMoney.text($0, currency: shop.currencyCode) } ?? "Montant invalide")
+                                .font(.title3.bold())
+                        }.padding(12)
+                        .background(COVITheme.sand.opacity(0.3), in: RoundedRectangle(cornerRadius: 12))
+                        if tender == .cash {
+                            HStack {
+                                Text("Montant reçu")
+                                TextField("0", text: $received).keyboardType(.numberPad)
+                                    .multilineTextAlignment(.trailing).accessibilityLabel("Montant reçu")
+                                Text(shop.currencyCode)
+                            }
+                            if let total, let cash = Int64(received), cash >= total {
+                                LabeledContent("Monnaie à rendre", value: COVIMoney.text(cash - total, currency: shop.currencyCode))
+                                    .foregroundStyle(COVITheme.success)
+                            }
                         } else {
-                            Text("Vente directe").foregroundStyle(COVITheme.secondaryText)
+                            Text("Vérifiez la réception sur le compte du commerce avant de confirmer. Une référence seule ne prouve pas le paiement.")
+                                .font(.caption).foregroundStyle(COVITheme.secondaryText)
+                            Toggle("J’ai vérifié la réception du paiement", isOn: $verified)
                         }
                     }
                 }
-            }
-            if clients.isEmpty {
-                Text("Créez d’abord une fiche dans Clients pour encaisser une prestation.")
-                    .font(.footnote).foregroundStyle(.secondary)
-            }
-            if menu.isEmpty {
-                Text("Ajoutez vos prestations ou produits dans Plus → Catalogue du salon.")
-                    .font(.footnote).foregroundStyle(.secondary)
-            }
-            Picker("Ticket", selection: $visitID) {
-                Text("Vente directe").tag(nil as UUID?)
-                ForEach(visits.filter { !$0.cancelled && $0.receipt == nil }) { v in
-                    Text((clients.first { $0.id == v.client }?.name ?? "Client") + " · " + v.start.formatted()).tag(Optional(v.id))
+                if let receipt {
+                    NavigationLink { ReceiptDetail(order: receipt, shop: shop) } label: {
+                        Label("Voir et partager le dernier reçu", systemImage: "receipt")
+                    }.frame(minHeight: 44)
                 }
-            }.onChange(of: visitID) { _, id in
-                basket = [:]
-                if let v = visits.first(where: { $0.id == id }) {
-                    clientID = v.client; stylist = v.stylist; basket[v.service] = 1
-                }
-            }
-            Picker("Client", selection: $clientID) {
-                Text("Choisir").tag(nil as UUID?)
-                ForEach(clients) { Text($0.name).tag(Optional($0.id)) }
-            }.disabled(visitID != nil)
-            Picker("Collaborateur crédité", selection: $stylist) {
-                Text("Choisir").tag("")
-                ForEach(team.filter { $0.active || $0.name == stylist }) { person in
-                    Text(person.name).tag(person.name)
-                }
-            }.disabled(visitID != nil)
-            if team.isEmpty {
-                Text("Ajoutez votre équipe dans Plus avant d’encaisser.")
-                    .font(.footnote).foregroundStyle(.secondary)
-            }
-            ForEach([true,false], id: \.self) { services in
-                Section(services ? "Prestations" : "Produits de soin") {
-                    ForEach(menu.filter { $0.isService == services &&
-                        (!$0.soldOut || (visitID != nil && visits.first(where: { $0.id == visitID })?.service == $0.id)) }) { item in
-                        Stepper(value: Binding(get: { basket[item.id] ?? 0 }, set: { basket[item.id] = $0 == 0 ? nil : $0 }), in: 0...999) {
-                            Text("\(basket[item.id] ?? 0) × \(item.title)")
-                            Text("\(item.priceMinor) \(shop.currencyCode)").font(.caption)
+            }.foregroundStyle(COVITheme.navy).padding(18)
+        }
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: 8) {
+                if !message.isEmpty { Text(message).font(.footnote).foregroundStyle(COVITheme.navy) }
+                COVIButton("Encaisser " + (total.map { COVIMoney.text($0, currency: shop.currencyCode) } ?? "")) {
+                    quoted = total; confirm = true
+                }.disabled(!canPay)
+            }.padding(.horizontal, 18).padding(.vertical, 12).background(COVITheme.cream)
+        }
+        .toolbar {
+            Button("Importer un RDV", systemImage: "calendar.badge.plus") { importing = true }
+        }
+        .sheet(isPresented: $importing) {
+            NavigationStack {
+                List {
+                    Button("Vente directe") {
+                        visitID = nil; basket = [:]; received = ""; verified = false; importing = false
+                    }
+                    ForEach(visits.filter { !$0.cancelled && $0.receipt == nil }) { appointment in
+                        Button {
+                            importVisit(appointment); importing = false
+                        } label: {
+                            VStack(alignment: .leading) {
+                                Text(clients.first { $0.id == appointment.client }?.name ?? "Client")
+                                Text(appointment.start.formatted()).font(.caption)
+                            }
                         }
                     }
-                }
+                }.navigationTitle("Importer un rendez-vous")
+                .toolbar { Button("Fermer") { importing = false } }
             }
-            Section("Règlement externe") {
-                Picker("Moyen de paiement", selection: $tender) {
-                    ForEach(Tender.allCases, id: \.self) { option in
-                        Text(option.rawValue).tag(option)
+        }
+        .sheet(isPresented: $editing) {
+            NavigationStack {
+                Form {
+                    Picker("Client", selection: $clientID) {
+                        Text("Choisir").tag(nil as UUID?)
+                        ForEach(clients) { Text($0.name).tag(Optional($0.id)) }
+                    }.disabled(visitID != nil)
+                    Picker("Collaborateur crédité", selection: $stylist) {
+                        Text("Choisir").tag("")
+                        ForEach(team.filter { $0.active || $0.name == stylist }) { Text($0.name).tag($0.name) }
+                    }.disabled(visitID != nil)
+                    ForEach([true, false], id: \.self) { services in
+                        Section(services ? "Prestations" : "Produits de soin") {
+                            ForEach(menu.filter { $0.isService == services && (!$0.soldOut || visit?.service == $0.id) }) { item in
+                                Stepper(value: Binding(get: { basket[item.id] ?? 0 }, set: {
+                                    basket[item.id] = $0 == 0 ? nil : $0
+                                    verified = false
+                                }), in: 0...999) {
+                                    VStack(alignment: .leading) {
+                                        Text("\(basket[item.id] ?? 0) × \(item.title)")
+                                        Text(COVIMoney.text(item.priceMinor, currency: shop.currencyCode)).font(.caption)
+                                    }
+                                }.disabled(visit?.service == item.id)
+                            }
+                        }
                     }
-                }
-                .pickerStyle(.menu)
-                HStack {
-                    Text("Total à encaisser").font(.headline)
-                    Spacer()
-                    Text("\(total.formatted()) \(shop.currencyCode)")
-                        .font(.headline).foregroundStyle(COVITheme.navy)
-                }
+                    if clients.isEmpty { Text("Créez une fiche dans Clients pour encaisser une prestation.") }
+                    if menu.isEmpty { Text("Ajoutez vos prestations dans Plus → Catalogue du salon.") }
+                    if team.isEmpty { Text("Ajoutez votre équipe dans Plus avant d’encaisser.") }
+                }.navigationTitle("Modifier le ticket")
+                .toolbar { Button("Terminé") { editing = false } }
             }
-            Section {
-                COVIButton("Encaisser \(total.formatted()) \(shop.currencyCode)") { confirm = true }
-                    .disabled(clientID == nil || basket.isEmpty || stylist.isEmpty || menu.isEmpty)
-            }
-            if let receipt {
-                NavigationLink {
-                    ReceiptDetail(order: receipt, shop: shop)
-                } label: {
-                    Label("Voir et partager le dernier reçu", systemImage: "receipt")
-                }
-            }
-            if !message.isEmpty { Text(message).foregroundStyle(COVITheme.navy) }
-        }.confirmationDialog("Confirmer la réception de \(total.formatted()) \(shop.currencyCode) ?", isPresented: $confirm) {
-            Button("Je confirme avoir reçu · " + tender.rawValue) {
-                guard let client = clients.first(where: { $0.id == clientID }) else { return }
-                let visit = visits.first { $0.id == visitID }
-                guard visitID == nil || visit != nil else { message = SalonFault.stale.localizedDescription; return }
-                do {
-                    receipt = try SalonLedger.pay(shop: shop, actor: actor, pin: pin, client: client, team: stylist, visit: visit,
-                                        basket: basket, menu: menu, tender: tender, confirmed: true, db: db)
-                    visitID = nil; basket = [:]; message = "Paiement enregistré."; HapticService.confirm()
-                } catch { message = error.localizedDescription }
-            }
+        }
+        .confirmationDialog("Confirmer la réception de " + (quoted.map { COVIMoney.text($0, currency: shop.currencyCode) } ?? "") + " ?", isPresented: $confirm) {
+            Button("Je confirme avoir reçu · " + tender.rawValue) { pay() }
         }
         .onAppear {
             if stylist.isEmpty { stylist = team.first(where: \.active)?.name ?? "" }
+#if DEBUG && targetEnvironment(simulator)
+            if let diagnostics, diagnostics.scenario == .salonCheckout,
+               db.container === diagnostics.container, let sample = visits.first(where: { appointment in
+                   !appointment.cancelled && appointment.receipt == nil && clients.first(where: { $0.id == appointment.client })?.name == "Mireille K."
+               }) {
+                importVisit(sample)
+                for item in menu where !item.isService { basket[item.id] = 1 }
+                received = "35000"
+            }
+#endif
         }
-        .scrollContentBackground(.hidden)
         .background(COVIBackdrop())
+    }
+
+    private func pay() {
+        guard let client, let quoted else { return }
+        guard visitID == nil || visit != nil else { message = SalonFault.stale.localizedDescription; return }
+        do {
+            receipt = try SalonLedger.pay(shop: shop, actor: actor, pin: pin, client: client,
+                team: stylist, visit: visit, basket: basket, menu: menu, tender: tender,
+                confirmed: tender == .cash || verified, quote: quoted, received: Int64(received), db: db)
+            visitID = nil; basket = [:]; received = ""; verified = false
+            message = "Paiement enregistré."; HapticService.confirm()
+        } catch { message = error.localizedDescription; HapticService.error() }
     }
 }
 
