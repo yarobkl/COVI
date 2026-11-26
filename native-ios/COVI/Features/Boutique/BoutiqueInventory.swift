@@ -433,6 +433,8 @@ struct BaleList: View {
                 TextField("Référence du lot", text: $label)
                 TextField("Coût du lot en " + shop.currencyCode, text: $cost).keyboardType(.numberPad)
                 Button("Réceptionner la balle") {
+                    do { try BoutiqueInventoryService.checkReceive(shop: shop, actor: actor, context: context) }
+                    catch { message = error.localizedDescription; return }
                     let ref = label.trimmingCharacters(in: .whitespacesAndNewlines)
                     guard !ref.isEmpty, let value = Int64(cost), value >= 0,
                           !bales.contains(where: { $0.shop == shop.id && $0.label.caseInsensitiveCompare(ref) == .orderedSame })
@@ -456,6 +458,8 @@ struct BaleList: View {
                         }
                         TextField("Quantité découverte", text: $units).keyboardType(.numberPad)
                         Button("Ajouter les pièces au stock") {
+                            do { try BoutiqueInventoryService.checkReceive(shop: shop, actor: actor, context: context) }
+                            catch { message = error.localizedDescription; return }
                             guard let item = goods.first(where: { $0.id == picked && $0.establishmentID == shop.id }),
                                   let count = Int(units), count > 0 else { message = "Choisissez un article et une quantité."; return }
                             let (next, overflow) = item.stockOnHand.addingReportingOverflow(count)

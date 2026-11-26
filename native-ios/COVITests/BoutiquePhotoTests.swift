@@ -52,6 +52,30 @@ final class BoutiquePhotoTests: XCTestCase {
         XCTAssertNil(BoutiquePhotoStore.data(shopID: shop, itemID: article, root: root))
     }
 
+    func testArrivalAccessIsCheckedAfterRoleChanges() throws {
+        let schema = Schema([Establishment.self, Membership.self])
+        let container = try ModelContainer(for: schema,
+            configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)])
+        let db = ModelContext(container)
+        let manager = UUID()
+        let shop = Establishment(ownerID: UUID(), name: "Boutique", kind: .boutique, city: "Brazzaville")
+        let membership = Membership(accountID: manager, establishmentID: shop.id, role: .manager)
+        db.insert(shop)
+        db.insert(membership)
+        try db.save()
+        XCTAssertNoThrow(try BoutiqueInventoryService.checkReceive(shop: shop, actor: manager, context: db))
+        membership.active = false
+        try db.save()
+        XCTAssertThrowsError(try BoutiqueInventoryService.checkReceive(shop: shop, actor: manager, context: db))
+        membership.active = true
+        membership.roleRaw = StaffRole.cashier.rawValue
+        try db.save()
+        XCTAssertThrowsError(try BoutiqueInventoryService.checkReceive(shop: shop, actor: manager, context: db))
+        shop.archived = true
+        try db.save()
+        XCTAssertThrowsError(try BoutiqueInventoryService.checkReceive(shop: shop, actor: shop.ownerID, context: db))
+    }
+
     func testArrivalConfirmationDoesNotCreateStockTwice() throws {
         let schema = Schema([Establishment.self, Membership.self, CatalogItem.self, StockMovement.self, OutboxEvent.self])
         let container = try ModelContainer(for: schema,
