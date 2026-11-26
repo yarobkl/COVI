@@ -466,8 +466,18 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   figure dans les instantanés et reçus CloudKit. Les anciens payloads
   restent lisibles. La migration depuis une installation physique
   et la synchronisation CloudKit en conditions réelles restent à vérifier.
-- Le diagnostic de Salle avec deux convives pour trois places et le
-  test du service doivent être vérifiés sur GitHub Actions.
+- Sur `cf3b08c`, Debug, Release et **147 XCTest sans échec**. Le
+  test de service confirme les bornes de saisie, le refus après
+  demande d’addition et l’absence de doublon du journal. Le test
+  du miroir et du reçu confirme la conservation du nombre.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45887113085)
+- Les [captures iPhone](https://github.com/yarobkl/COVI/actions/runs/45887113085/artifacts/15150439012)
+  ont été comparées à la planche Salle. Table 3 affiche 2 places
+  occupées sur 3 et une commande de 16 000 FCFA. Table 10 libre
+  affiche 0 sur 10. Le détail d’une ancienne session présente
+  « Convives non renseignés ». Au défilement vers le résumé, le
+  haut du plan reste partiellement masqué. Les captures utilisent
+  des données synthétiques et ne valident pas les appuis sur appareil.
 
 ### Contrôles iOS et limites
 

@@ -29,6 +29,13 @@ sur les [captures de contrôle](https://github.com/yarobkl/COVI/actions/runs/458
 comparées à la planche. À 150 %, le cadre montre une portion du plan.
 Les gestes et les interactions sur appareil restent à essayer.
 
+Les [captures Salle et détail Table](https://github.com/yarobkl/COVI/actions/runs/45887113085/artifacts/15150439012)
+reprennent deux informations distinctes de la planche. La capacité
+vient de la configuration et le nombre de places occupées du décompte
+confirmé. Le résumé Table 10 montre 0 sur 10. Table 3 illustre 2 sur 3.
+La feuille de confirmation et la synchronisation sur appareil restent
+à essayer.
+
 ## Reprise du lot visuel COVI 2.0
 
 - Le build TestFlight 1.0.13 (10051), issu du commit `6eb37ed`, valide la
