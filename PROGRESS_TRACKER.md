@@ -59,8 +59,8 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   `backend/tests/bootstrap.sql` ne doit jamais être appliqué à Supabase.
 - Le 26 novembre, le projet historique COVI `bmbwmwgfzrijglzcgjut` répond
   de nouveau `ACTIVE_HEALTHY`. Son historique contient 82 migrations et
-  ne contient pas `20261125220000_team_authority`. La référence de
-  préproduction `stcsjwxmmxnjwisqkudz` reste inaccessible au connecteur.
+  ne contient pas `20261125220000_team_authority`. Seule la branche Supabase `main` est
+  visible pour ce projet. La référence de préproduction `stcsjwxmmxnjwisqkudz` reste inaccessible au connecteur.
   La vérification a été faite en lecture seule. Apple/Google, invitations
   et synchronisation d’équipe restent à intégrer.
 
@@ -444,9 +444,13 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   ou le menu de zoom. À l’échelle agrandie, la vue se déplace sur les
   deux axes. Le menu rétablit la vue d’ensemble. Les grands caractères
   conservent une liste lisible sur une colonne.
-- Le diagnostic à 150 % et la vue d’ensemble doivent être comparés à
-  la planche Salle. Les gestes réels et les limites du zoom restent
-  à vérifier sur un appareil physique.
+- Sur `ccc1676`, les compilations Debug et Release et les **145 XCTest
+  sans échec** ont réussi, dont le test des bornes du zoom. Les étapes de
+  capture iPhone et iPad ont réussi. La comparaison de la vue à 150 %
+  et du sélecteur avec la planche Salle reste à faire. Les gestes de
+  pincement et de déplacement restent à essayer sur appareil.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45883406937) ·
+  [Captures](https://github.com/yarobkl/COVI/actions/runs/45883406937/artifacts/15149342069)
 
 ### Contrôles iOS et limites
 
