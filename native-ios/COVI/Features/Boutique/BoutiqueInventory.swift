@@ -133,7 +133,7 @@ struct BoutiqueStockOverview: View {
     static func create(shop: Establishment, name: String, price: Int64,
                        actor: UUID, context: ModelContext, initialStock: Int = 0,
                        photo: BoutiquePhotoDraft? = nil, description: String = "",
-                       arrivalID: UUID? = nil) throws -> CatalogItem {
+                       arrivalID: UUID? = nil, baleID: UUID? = nil) throws -> CatalogItem {
         try checkReceive(shop: shop, actor: actor, context: context)
         if let arrivalID {
             let matches = try context.fetch(FetchDescriptor<CatalogItem>(predicate: #Predicate {
@@ -144,6 +144,11 @@ struct BoutiqueStockOverview: View {
                 return existing
             }
             guard photo != nil, initialStock > 0 else { throw Fault.invalid }
+        }
+        if let baleID {
+            guard initialStock > 0 else { throw Fault.invalid }
+            let lots = try context.fetch(FetchDescriptor<Bale>(predicate: #Predicate { $0.id == baleID }))
+            guard lots.count == 1, lots.first?.shop == shop.id else { throw Fault.wrongShop }
         }
         guard initialStock >= 0 else { throw Fault.invalid }
         let cleaned = try validated(name, price, shopID: shop.id, excluding: nil, context: context)
@@ -163,6 +168,7 @@ struct BoutiqueStockOverview: View {
         if initialStock > 0 {
             let movement = StockMovement(establishmentID: shop.id, itemID: item.id,
                 delta: initialStock, reason: "Stock initial", actorID: actor)
+            movement.baleID = baleID
             context.insert(movement); movements.append(movement.id)
         }
         do {
@@ -216,6 +222,8 @@ struct NewProduct: View {
     var onArrivalSaved: (() -> Void)? = nil
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
+    @Query private var bales: [Bale]
+    @State private var selectedBale: UUID?
     @State private var title = ""
     @State private var price = ""
     @State private var quantity = "0"
@@ -257,6 +265,12 @@ struct NewProduct: View {
                 TextField("Nom", text: $title)
                 TextField("Prix en " + shop.currencyCode, text: $price).keyboardType(.numberPad)
                 TextField("Quantité initiale", text: $quantity).keyboardType(.numberPad)
+                Picker("Lot d’achat", selection: $selectedBale) {
+                    Text("Sans lot").tag(nil as UUID?)
+                    ForEach(bales.filter { $0.shop == shop.id }) { bale in
+                        Text(bale.label).tag(Optional(bale.id))
+                    }
+                }
                 if draft != nil {
                     TextField("Description et caractéristiques", text: $description, axis: .vertical)
                 }
@@ -268,7 +282,7 @@ struct NewProduct: View {
                         guard let stock = Int(quantity), stock >= 0 else { throw BoutiqueInventoryService.Fault.invalid }
                         try BoutiqueInventoryService.create(shop: shop, name: title,
                             price: Int64(price) ?? 0, actor: actor, context: context,
-                            initialStock: stock, photo: draft, description: description, arrivalID: arrival?.id)
+                            initialStock: stock, photo: draft, description: description, arrivalID: arrival?.id, baleID: selectedBale)
                         if let arrival {
                             try? arrival.remove()
                             onArrivalSaved?()

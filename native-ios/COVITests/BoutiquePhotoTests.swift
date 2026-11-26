@@ -99,6 +99,26 @@ final class BoutiquePhotoTests: XCTestCase {
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<StockMovement>()), 1)
     }
 
+    func testInitialStockLotMustBelongToShop() throws {
+        let schema = Schema([Establishment.self, Membership.self, Bale.self, CatalogItem.self, StockMovement.self, OutboxEvent.self])
+        let container = try ModelContainer(for: schema, configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)])
+        let db = ModelContext(container)
+        let owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Boutique", kind: .boutique, city: "Brazzaville")
+        let lot = Bale(shop: shop.id, label: "Arrivage", cost: 1000)
+        let foreign = Bale(shop: UUID(), label: "Autre", cost: 2000)
+        db.insert(shop); db.insert(lot); db.insert(foreign)
+        try db.save()
+        XCTAssertThrowsError(try BoutiqueInventoryService.create(shop: shop, name: "Veste", price: 500,
+            actor: owner, context: db, initialStock: 1, baleID: foreign.id))
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<CatalogItem>()), 0)
+        let article = try BoutiqueInventoryService.create(shop: shop, name: "Veste", price: 500,
+            actor: owner, context: db, initialStock: 1, baleID: lot.id)
+        let movement = try XCTUnwrap(db.fetch(FetchDescriptor<StockMovement>()).first)
+        XCTAssertEqual(movement.baleID, lot.id)
+        XCTAssertEqual(movement.itemID, article.id)
+    }
+
     func testInitialStockAndPermission() throws {
         let schema = Schema([Establishment.self, Membership.self, CatalogItem.self, StockMovement.self, OutboxEvent.self])
         let container = try ModelContainer(for: schema, configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)])
