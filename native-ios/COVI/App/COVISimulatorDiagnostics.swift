@@ -20,6 +20,7 @@ final class COVISimulatorDiagnostics {
         case restaurantReport = "restaurant-report"
         case restaurantKitchen = "restaurant-kitchen"
         case restaurantMenu = "restaurant-menu"
+        case restaurantPayment = "restaurant-payment"
         case restaurantDrinks = "restaurant-drinks"
         case restaurantTeam = "restaurant-team"
         case salonCatalog = "salon-catalog"
@@ -107,7 +108,7 @@ final class COVISimulatorDiagnostics {
         let kind: BusinessKind
         let name: String
         switch scenario {
-        case .restaurantTables, .restaurantTable, .restaurantOrder, .restaurantReport, .restaurantTeam, .restaurantKitchen, .restaurantMenu, .restaurantDrinks:
+        case .restaurantTables, .restaurantTable, .restaurantOrder, .restaurantReport, .restaurantTeam, .restaurantKitchen, .restaurantMenu, .restaurantDrinks, .restaurantPayment:
             kind = .restaurant
             name = "Restaurant de démonstration"
         case .salonCatalog, .salonReport, .salonMore, .salonSettings, .salonCheckout, .salonToday, .salonAgenda, .salonBooking, .salonBookingConflict, .salonClients, .salonProfile:
@@ -235,11 +236,14 @@ final class COVISimulatorDiagnostics {
         let activeID = active.id
         let lines = try context.fetch(FetchDescriptor<OrderLine>(
             predicate: #Predicate { $0.orderID == activeID }, sortBy: [SortDescriptor(\.sentAt)]))
-        for line in lines where line.catalogItemID != main.id {
+        for line in lines where line.catalogItemID != main.id || scenario == .restaurantPayment {
             try service.advance(line, from: .cooking, table: occupied, order: active)
             if scenario != .restaurantKitchen || line.catalogItemID == juice.id {
                 try service.advance(line, from: .ready, table: occupied, order: active)
             }
+        }
+        if scenario == .restaurantPayment {
+            try service.finish(occupied, order: active, paid: false)
         }
         let other = try open(secondOccupied)
         try service.send([chicken.id: 8], menu: menu, table: secondOccupied, order: other)
@@ -553,7 +557,8 @@ struct COVISimulatorDiagnosticView: View {
                 NavigationStack {
                     SalonCatalog(shop: fixture.shop, menu: fixture.salonCatalogItems, actor: fixture.owner)
                 }
-            } else if let sample = fixture.restaurantSample, fixture.scenario == .restaurantTable {
+            } else if let sample = fixture.restaurantSample,
+                      fixture.scenario == .restaurantTable || fixture.scenario == .restaurantPayment {
                 NavigationStack {
                     RestaurantTable(table: sample.table, order: sample.order, menu: sample.menu,
                         lines: sample.lines, service: sample.service)
@@ -576,7 +581,8 @@ struct COVISimulatorDiagnosticView: View {
             if fixture.salonBooking == nil && fixture.salonProfileID == nil &&
                 fixture.scenario != .salonReport && fixture.scenario != .salonSettings &&
                 fixture.scenario != .restaurantReport && fixture.scenario != .restaurantTeam &&
-                fixture.scenario != .restaurantMenu && fixture.scenario != .restaurantDrinks {
+                fixture.scenario != .restaurantMenu && fixture.scenario != .restaurantDrinks &&
+                fixture.scenario != .restaurantPayment {
                 await fixture.signalAfterPresentation()
             }
         }

@@ -448,9 +448,13 @@ struct RestaurantCashReportSnapshot {
         mobile = periodReceipts.filter { Tender(rawValue: $0.method)?.isMobileMoney == true }
             .reduce(Decimal.zero) { $0 + Decimal($1.amountMinor) }
 
-        let paid = Set(periodReceipts.map(\.orderID))
+        let paidHere = payments.filter { $0.establishmentID == shop && $0.amountMinor > 0 }
+        let lastPaymentDates = Dictionary(grouping: paidHere, by: \.orderID)
+            .compactMapValues { $0.map(\.confirmedAt).max() }
         let tableOrders = orders.filter {
-            $0.establishmentID == shop && $0.tableID != nil && $0.state == .completed && paid.contains($0.id)
+            guard $0.establishmentID == shop, $0.tableID != nil, $0.state == .completed,
+                  let settledAt = lastPaymentDates[$0.id] else { return false }
+            return calendar.isDate(settledAt, equalTo: month, toGranularity: .month)
         }
         tableCount = tableOrders.count
         let tableTotal = tableOrders.reduce(Decimal.zero) { $0 + Decimal($1.totalMinor) }

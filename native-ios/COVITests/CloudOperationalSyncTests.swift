@@ -308,6 +308,58 @@ final class CloudOperationalSyncTests: XCTestCase {
         XCTAssertEqual(try target.fetch(FetchDescriptor<DiningTable>()).first?.isOccupied, false)
     }
 
+    func testVerifiedRestaurantReceiptPreservesMatchingPartialPaymentsAndRefusesCompetingReceipt() throws {
+        let source = try memory(), target = try memory(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Restaurant", kind: .restaurant, city: "Douala")
+        let copy = clone(shop)
+        let table = DiningTable(establishmentID: shop.id, label: "Table 01", capacity: 4)
+        let order = CommerceOrder(establishmentID: shop.id, createdByID: owner, tableID: table.id)
+        order.state = .accepted
+        order.totalMinor = 4_000
+        table.activeSessionID = order.id
+        table.isOccupied = true
+        table.billRequested = true
+        let line = OrderLine(orderID: order.id, catalogItemID: UUID(), quantity: 1, unitPriceMinor: 4_000)
+        line.dishName = "Poulet"
+        line.preparation = Prep.served.rawValue
+        source.insert(shop); source.insert(table); source.insert(order); source.insert(line)
+        target.insert(copy)
+        try source.save(); try target.save()
+        try CloudOperationalSync.merge(try export(source, shop: shop), shop: copy,
+            cloudUserID: "iCloud-A", context: target)
+        try target.save()
+
+        let partial = PaymentRecord(orderID: order.id, establishmentID: shop.id,
+            method: Tender.cash.rawValue, amountMinor: 1_500, confirmedByID: owner)
+        partial.cashReceived = 1_500
+        target.insert(partial)
+        try target.save()
+
+        order.totalMinor = 4_500
+        XCTAssertThrowsError(try CloudOperationalSync.merge(try export(source, shop: shop), shop: copy,
+            cloudUserID: "iCloud-A", context: target))
+        target.rollback()
+        order.totalMinor = 4_000
+        order.state = .completed
+        let competing = PaymentRecord(orderID: order.id, establishmentID: shop.id,
+            method: Tender.cash.rawValue, amountMinor: 4_000, confirmedByID: owner)
+        let otherReceipt = try ArchivedReceipt(shop: shop, order: order,
+            lines: [line], payments: [competing], catalog: [])
+        XCTAssertThrowsError(try otherReceipt.importIfNeeded(shop: copy, context: target))
+        XCTAssertEqual(try target.fetchCount(FetchDescriptor<PaymentRecord>()), 1)
+
+        let finalPayment = PaymentRecord(orderID: order.id, establishmentID: shop.id,
+            method: Tender.mtn.rawValue, amountMinor: 2_500, confirmedByID: owner)
+        let matching = try ArchivedReceipt(shop: shop, order: order,
+            lines: [line], payments: [partial, finalPayment], catalog: [])
+        try matching.importIfNeeded(shop: copy, context: target)
+        try target.save()
+        try matching.importIfNeeded(shop: copy, context: target)
+        XCTAssertEqual(try target.fetch(FetchDescriptor<CommerceOrder>()).first?.state, .completed)
+        XCTAssertEqual(try target.fetchCount(FetchDescriptor<PaymentRecord>()), 2)
+        XCTAssertEqual(try target.fetch(FetchDescriptor<DiningTable>()).first?.isOccupied, false)
+    }
+
     func testStaleDiningTableSnapshotCannotReopenPaidSession() throws {
         let source = try memory(), target = try memory(), owner = UUID()
         let shop = Establishment(ownerID: owner, name: "Restaurant", kind: .restaurant, city: "Libreville")

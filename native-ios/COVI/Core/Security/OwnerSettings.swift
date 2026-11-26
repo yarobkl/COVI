@@ -50,12 +50,32 @@ struct OwnerSettings: View {
     @State private var operatorID: UUID?
     @State private var cashierPIN = ""
     @Query private var payments: [PaymentRecord]
+    @Query private var closedOrders: [CommerceOrder]
     @Query private var refunds: [Refund]
     @State private var name = ""
     @State private var pin = ""
     @State private var confirmation = ""
     @State private var command: OwnerCommand?
     @State private var message = ""
+    init(shop: Establishment, pinManager: PINManager) {
+        self.shop = shop
+        self.pinManager = pinManager
+        let shopID = shop.id
+        let completed = OrderState.completed.rawValue
+        _closedOrders = Query(filter: #Predicate<CommerceOrder> {
+            $0.establishmentID == shopID && $0.stateRaw == completed
+        })
+    }
+
+    private var refundablePayments: [PaymentRecord] {
+        let closed = Set(closedOrders.map(\.id))
+        let refunded = Set(refunds.map(\.paymentID))
+        return payments.filter {
+            $0.establishmentID == shop.id && $0.amountMinor > 0 && !refunded.contains($0.id) &&
+            (shop.kind != .restaurant || closed.contains($0.orderID))
+        }
+    }
+
     var body: some View {
         Form {
             if !pinManager.hasConfiguredPIN(for: .master(ownerID: shop.ownerID)) {
@@ -94,7 +114,7 @@ struct OwnerSettings: View {
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
             Section("Remboursements intégraux") {
-                ForEach(payments.filter { payment in payment.establishmentID == shop.id && payment.amountMinor > 0 && !refunds.contains { $0.paymentID == payment.id } }) { payment in
+                ForEach(refundablePayments) { payment in
                     Button("Rembourser \(payment.amountMinor) \(shop.currencyCode) · \(String(payment.id.uuidString.prefix(8)))") { command = .refund(payment.id) }
                 }
             }
@@ -150,9 +170,7 @@ struct OwnerSettings: View {
             do { try SyncCoordinator.enqueue(.rename, shop: shop, in: context) }
             catch { context.rollback(); message = "Échec du journal local."; return }
         case .refund(let id):
-            guard let payment = payments.first(where: {
-                $0.id == id && $0.establishmentID == shop.id && $0.amountMinor > 0
-            }), !refunds.contains(where: { $0.paymentID == id }) else {
+            guard let payment = refundablePayments.first(where: { $0.id == id }) else {
                 message = "Paiement indisponible."
                 return
             }

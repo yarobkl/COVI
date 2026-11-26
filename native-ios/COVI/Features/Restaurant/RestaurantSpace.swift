@@ -10,6 +10,7 @@ struct RestaurantSpace: View {
     @Environment(\.modelContext) private var db
     @Query private var tables: [DiningTable]
     @Query private var orders: [CommerceOrder]
+    @Query private var payments: [PaymentRecord]
     @Query private var menu: [CatalogItem]
     @Query(sort: \OrderLine.sentAt) private var lines: [OrderLine]
     @State private var filter = "Toutes"
@@ -20,6 +21,7 @@ struct RestaurantSpace: View {
         let id = shop.id
         _tables = Query(filter: #Predicate<DiningTable> { $0.establishmentID == id }, sort: \.label)
         _orders = Query(filter: #Predicate<CommerceOrder> { $0.establishmentID == id })
+        _payments = Query(filter: #Predicate<PaymentRecord> { $0.establishmentID == id })
         _menu = Query(filter: #Predicate<CatalogItem> { $0.establishmentID == id }, sort: \.title)
     }
     var service: RestaurantService { RestaurantService(shop: shop, actor: actor, role: role, pin: pin, db: db) }
@@ -84,7 +86,9 @@ struct RestaurantSpace: View {
                                             VStack(spacing: 3) {
                                                 Text(t.billRequested ? "Reste dû" : "En cours")
                                                     .font(.caption)
-                                                Text(COVIMoney.text(order.totalMinor, currency: shop.currencyCode))
+                                                Text(RestaurantBill.remaining(order, payments: payments).map {
+                                                    COVIMoney.text($0, currency: shop.currencyCode)
+                                                } ?? "À vérifier")
                                                     .font(.subheadline.bold())
                                             }
                                             .multilineTextAlignment(.center)
@@ -122,10 +126,23 @@ struct RestaurantTable: View {
     let service: RestaurantService
     @State private var ordering = false
     @State private var closing = false
-    @State private var tender = Tender.cash
-    @State private var received = ""
-    @State private var confirmed = false
+    @Query private var payments: [PaymentRecord]
+#if DEBUG && targetEnvironment(simulator)
+    @Environment(\.coviSimulatorDiagnostics) private var diagnostics
+#endif
     @State private var message = ""
+
+    init(table: DiningTable, order: CommerceOrder?, menu: [CatalogItem], lines: [OrderLine],
+         service: RestaurantService) {
+        self.table = table
+        self.order = order
+        self.menu = menu
+        self.lines = lines
+        self.service = service
+        let orderID = order?.id ?? UUID()
+        _payments = Query(filter: #Predicate<PaymentRecord> { $0.orderID == orderID })
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -192,7 +209,9 @@ struct RestaurantTable: View {
                         Image(systemName: "circle.stack").font(.title2)
                         Spacer()
                         Text("Reste à encaisser :").font(.headline)
-                        Text(COVIMoney.text(order.totalMinor, currency: service.shop.currencyCode))
+                        Text(RestaurantBill.remaining(order, payments: payments).map {
+                            COVIMoney.text($0, currency: service.shop.currencyCode)
+                        } ?? "À vérifier")
                             .font(.headline)
                     }
                     .foregroundStyle(COVITheme.navy)
@@ -229,41 +248,16 @@ struct RestaurantTable: View {
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $closing) {
             if let order {
-                NavigationStack {
-                    Form {
-                        Section("Paiement confirmé en caisse") {
-                            LabeledContent("Addition", value: "\(order.totalMinor) \(service.shop.currencyCode)")
-                            Picker("Moyen de paiement", selection: $tender) {
-                                ForEach(Tender.allCases, id: \.self) { option in
-                                    Text(option.rawValue).tag(option)
-                                }
-                            }
-                            if tender == .cash {
-                                TextField("Montant reçu en " + service.shop.currencyCode, text: $received)
-                                    .keyboardType(.numberPad)
-                                if let amount = Int64(received), amount >= order.totalMinor {
-                                    LabeledContent("Monnaie à rendre", value: "\(amount - order.totalMinor) \(service.shop.currencyCode)")
-                                }
-                            } else {
-                                Toggle("J’ai vérifié la réception de ce paiement", isOn: $confirmed)
-                            }
-                        }
-                        Section {
-                            Button("Confirmer et libérer la table") {
-                                run { try service.finish(table, order: order, paid: true, tender: tender,
-                                                         received: Int64(received), confirmed: confirmed) }
-                                if message.isEmpty { closing = false; received = ""; confirmed = false }
-                            }
-                            .disabled(tender == .cash ? (Int64(received) ?? -1) < order.totalMinor : !confirmed)
-                        }
-                        if !message.isEmpty { Text(message).foregroundStyle(.red) }
-                    }
-                    .navigationTitle("Règlement de la table")
-                    .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Annuler") { closing = false } } }
-                }
-                .presentationDetents([.medium, .large])
+                RestaurantCheckout(table: table, order: order, service: service)
+                    .presentationDetents([.fraction(0.77), .large])
+                    .presentationDragIndicator(.visible)
             }
         }
+#if DEBUG && targetEnvironment(simulator)
+        .task {
+            if diagnostics?.scenario == .restaurantPayment { closing = true }
+        }
+#endif
         .sheet(isPresented: $ordering) { if let order { RestaurantComposer(menu: menu, table: table, order: order, service: service) } }
     }
     func run(_ work: () throws -> Void) {

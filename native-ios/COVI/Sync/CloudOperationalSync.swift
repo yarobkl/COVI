@@ -435,6 +435,12 @@ struct OperationalCloudAdapter {
         }
     }
 
+    private static func hasPayment(orderID: UUID, context: ModelContext) throws -> Bool {
+        var request = FetchDescriptor<PaymentRecord>(predicate: #Predicate { $0.orderID == orderID })
+        request.fetchLimit = 1
+        return try context.fetchCount(request) > 0
+    }
+
     static func apply(_ row: OperationalCloudRow, shop: Establishment,
                       context: ModelContext) throws {
         try row.validate(shop: shop)
@@ -526,6 +532,8 @@ struct OperationalCloudAdapter {
             let order = try find(CommerceOrder.self, id: id, context: context) ??
                 CommerceOrder(establishmentID: sid, createdByID: x.actor, tableID: x.table)
             guard order.establishmentID == sid else { throw SyncFault.journalChanged }
+            if shop.kind == .restaurant, OperationalOrder(order) != x,
+               try hasPayment(orderID: id, context: context) { throw SyncFault.journalChanged }
             order.id = id; order.tableID = x.table; order.customerID = x.customer
             order.createdByID = x.actor; order.createdAt = x.created
             order.stateRaw = x.state; order.totalMinor = x.total; order.discountMinor = x.discount
@@ -545,6 +553,10 @@ struct OperationalCloudAdapter {
             // A verified receipt wins over stale room state. If the table is
             // already used for a newer session, do not evict that guest either.
             if paidSession, table.isOccupied, table.activeSessionID != x.session { return }
+            if let currentSession = table.activeSessionID, table.billRequested,
+               currentSession != x.session || !x.billRequested,
+               try find(CommerceOrder.self, id: currentSession, context: context)?.state != .completed,
+               try hasPayment(orderID: currentSession, context: context) { throw SyncFault.journalChanged }
             table.id = id; table.label = x.label; table.capacity = x.capacity
             table.isOccupied = !paidSession && x.occupied
             table.activeSessionID = paidSession ? nil : x.session
@@ -561,6 +573,8 @@ struct OperationalCloudAdapter {
                 OrderLine(orderID: x.order, catalogItemID: x.item,
                           quantity: x.quantity, unitPriceMinor: x.price)
             guard line.orderID == x.order else { throw SyncFault.journalChanged }
+            if shop.kind == .restaurant, OperationalKitchenLine(line) != x,
+               try hasPayment(orderID: x.order, context: context) { throw SyncFault.journalChanged }
             line.id = id; line.catalogItemID = x.item; line.quantity = x.quantity
             line.unitPriceMinor = x.price; line.dishName = x.name
             line.preparation = x.preparation; line.sentAt = x.sentAt; context.insert(line)

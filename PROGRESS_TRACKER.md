@@ -283,6 +283,31 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   à la commande, la déduction au service et la synchronisation sur deux
   appareils restent à tester ou à intégrer. Le lot 3 se poursuit.
 
+### Encaissement partiel du Restaurant
+
+- La planche `A2188A03` a été vérifiée. Le panneau central présente
+  le reste dû, le mode partiel ou complet, les moyens de paiement,
+  le montant encaissé et le nouveau reste. La feuille native est
+  accessible depuis la table après la demande d’addition.
+- Le parcours local enregistre un paiement partiel sur une addition
+  figée dont les articles sont servis. Un changement du reste dû
+  exige une nouvelle validation. Les espèces sont enregistrées,
+  les autres moyens exigent la confirmation de la réception.
+  Le reçu complet n’est disponible qu’au règlement du solde.
+- Le reste dû est affiché sur la table et le plan. Le rapport inscrit
+  chaque encaissement à sa date et compte un ticket à son solde.
+  L’écran de remboursement intégral ne propose que les paiements
+  Restaurant dont la commande est terminée.
+- Une addition partiellement encaissée doit être soldée sur le même
+  appareil. Une modification distante incompatible ou un reçu concurrent
+  sans les mêmes paiements partiels est refusé et les preuves locales
+  sont préservées. La synchronisation des acomptes en cours entre
+  appareils et la libération après départ restent à intégrer.
+- Le diagnostic iPhone ouvre la feuille de Table 01 avec un reste de
+  28 500 FCFA et une saisie de 15 000 FCFA, sans confirmer de paiement.
+  La compilation, les tests de caisse et de conflit, et la comparaison
+  de la capture restent à vérifier.
+
 ### Contrôles iOS et limites
 
 Les premières compilations ont échoué sur une expression SwiftUI ; le découpage

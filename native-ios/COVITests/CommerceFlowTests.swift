@@ -347,6 +347,32 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertEqual(report.averageTicket, (maximum + Decimal(25)) / Decimal(2))
     }
 
+    func testRestaurantReportCountsSplitBillInItsSettlementMonthOnly() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(secondsFromGMT: 0))
+        let november = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 11, day: 29)))
+        let december = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 12, day: 1)))
+        let owner = UUID(), shopID = UUID()
+        let order = CommerceOrder(establishmentID: shopID, createdByID: owner, tableID: UUID())
+        order.state = .completed
+        order.totalMinor = 2_000
+        let partial = PaymentRecord(orderID: order.id, establishmentID: shopID,
+            method: Tender.cash.rawValue, amountMinor: 1_200, confirmedByID: owner)
+        let final = PaymentRecord(orderID: order.id, establishmentID: shopID,
+            method: Tender.mtn.rawValue, amountMinor: 800, confirmedByID: owner)
+        partial.confirmedAt = november
+        final.confirmedAt = december
+        let beforeSettlement = RestaurantCashReportSnapshot(shop: shopID, month: november, orders: [order],
+            payments: [partial, final], refunds: [], calendar: calendar)
+        let afterSettlement = RestaurantCashReportSnapshot(shop: shopID, month: december, orders: [order],
+            payments: [partial, final], refunds: [], calendar: calendar)
+        XCTAssertEqual(beforeSettlement.cash, 1_200)
+        XCTAssertEqual(beforeSettlement.tableCount, 0)
+        XCTAssertEqual(afterSettlement.mobile, 800)
+        XCTAssertEqual(afterSettlement.tableCount, 1)
+        XCTAssertEqual(afterSettlement.averageTicket, 2_000)
+    }
+
     func testCurrencyCanChangeBeforeAnyOperationButNotAfterAnExpense() throws {
         let db = try database(), owner = UUID()
         let shop = Establishment(ownerID: owner, name: "Salon", kind: .salon, city: "Kinshasa")
@@ -854,6 +880,57 @@ final class CommerceFlowTests: XCTestCase {
                                                tender: .mtn, confirmed: true))
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<PaymentRecord>()), 1)
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 6)
+    }
+
+    func testRestaurantPartialPaymentKeepsBillOpenUntilTheVerifiedRemainderIsPaid() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Restaurant", kind: .restaurant, city: "Brazzaville")
+        let table = DiningTable(establishmentID: shop.id, label: "Table 01", capacity: 4)
+        let dish = CatalogItem(establishmentID: shop.id, title: "Poulet", priceMinor: 14_250)
+        dish.menuCategory = MenuGroup.food.rawValue
+        db.insert(shop); db.insert(table); db.insert(dish)
+        try db.save()
+        let service = RestaurantService(shop: shop, actor: owner, role: .owner, pin: ownerPIN(), db: db)
+        try service.open(table)
+        let order = try XCTUnwrap(db.fetch(FetchDescriptor<CommerceOrder>()).first)
+        try service.send([dish.id: 2], menu: [dish], table: table, order: order)
+        let line = try XCTUnwrap(db.fetch(FetchDescriptor<OrderLine>()).first)
+        try service.finish(table, order: order, paid: false)
+        XCTAssertThrowsError(try service.recordPartialPayment(table, order: order, tender: .cash,
+            amount: 15_000, confirmed: false, expectedDue: 28_500))
+        try service.advance(line, from: .cooking, table: table, order: order)
+        try service.advance(line, from: .ready, table: table, order: order)
+        XCTAssertThrowsError(try service.recordPartialPayment(table, order: order, tender: .cash,
+            amount: 28_500, confirmed: false, expectedDue: 28_500))
+        XCTAssertThrowsError(try service.recordPartialPayment(table, order: order, tender: .airtel,
+            amount: 15_000, confirmed: false, expectedDue: 28_500))
+
+        try service.recordPartialPayment(table, order: order, tender: .cash,
+            amount: 15_000, confirmed: false, expectedDue: 28_500)
+        XCTAssertTrue(table.isOccupied)
+        XCTAssertTrue(table.billRequested)
+        XCTAssertEqual(order.state, .accepted)
+        let partials = try db.fetch(FetchDescriptor<PaymentRecord>())
+        XCTAssertEqual(RestaurantBill.remaining(order, payments: partials), 13_500)
+        XCTAssertEqual(partials.first?.cashReceived, 15_000)
+        XCTAssertThrowsError(try ReceiptBuilder.create(order: order, shop: shop, lines: [line],
+            products: [dish], payments: partials))
+        XCTAssertThrowsError(try service.recordPartialPayment(table, order: order, tender: .cash,
+            amount: 1_000, confirmed: false, expectedDue: 28_500))
+        XCTAssertThrowsError(try service.finish(table, order: order, paid: true, tender: .cash,
+            received: 12_000, expectedDue: 13_500))
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<PaymentRecord>()), 1)
+        try service.finish(table, order: order, paid: true, tender: .mtn, confirmed: true, expectedDue: 13_500)
+
+        let payments = try db.fetch(FetchDescriptor<PaymentRecord>())
+        XCTAssertEqual(Set(payments.map(\.amountMinor)), [13_500, 15_000])
+        XCTAssertEqual(RestaurantBill.remaining(order, payments: payments), 0)
+        let receipt = try ReceiptBuilder.create(order: order, shop: shop, lines: [line],
+            products: [dish], payments: payments)
+        XCTAssertEqual(receipt.totalMinor, 28_500)
+        XCTAssertEqual(order.state, .completed)
+        XCTAssertFalse(table.isOccupied)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 7)
     }
 
     func testKitchenAdvancesTicketLinesTogetherAndRejectsStaleOrRepeatedLines() throws {

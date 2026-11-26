@@ -131,8 +131,15 @@ struct ArchivedReceipt: Codable, Equatable {
                 return
             }
             guard existing.state == .accepted || existing.state == .served ||
-                  existing.state == .ready || existing.state == .preparing,
-                  localPayments.isEmpty else { throw SyncFault.journalChanged }
+                  existing.state == .ready || existing.state == .preparing
+            else { throw SyncFault.journalChanged }
+            // Only a restaurant bill can already have a verified partial payment.
+            // Its locked total and articles must match the completed receipt.
+            if !localPayments.isEmpty {
+                guard shop.kind == .restaurant, tableID != nil, existing.totalMinor == totalMinor,
+                      existing.discountMinor == discountMinor, localLines.count == articles.count
+                else { throw SyncFault.journalChanged }
+            }
 
             // An open restaurant order can have been mirrored before its
             // payment. Only a verified receipt is allowed to close it.
@@ -142,7 +149,7 @@ struct ArchivedReceipt: Codable, Equatable {
                 line.id = article.id; line.dishName = article.name
                 context.insert(line)
             }
-            for confirmation in confirmations {
+            for confirmation in confirmations where !localPayments.contains(where: { $0.id == confirmation.id }) {
                 let payment = PaymentRecord(orderID: id, establishmentID: shop.id,
                     method: confirmation.method, amountMinor: confirmation.amountMinor,
                     confirmedByID: confirmation.confirmedByID)

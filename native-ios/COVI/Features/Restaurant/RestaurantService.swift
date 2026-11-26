@@ -4,7 +4,7 @@ import Foundation
 enum Prep: String, CaseIterable { case cooking = "En cuisine", ready = "Prêt", served = "Servi" }
 enum MenuGroup: String, CaseIterable { case food = "Plats", drinks = "Boissons" }
 enum RestaurantFault: LocalizedError {
-    case access, stale, unavailable, invalid, stock
+    case access, stale, unavailable, invalid, stock, balanceChanged
     var errorDescription: String? {
         switch self {
         case .access: "Vérifiez le rôle et déverrouillez la caisse."
@@ -12,6 +12,7 @@ enum RestaurantFault: LocalizedError {
         case .unavailable: "Un article de la commande est en rupture."
         case .invalid: "Vérifiez les quantités et les montants."
         case .stock: "Vérifiez le stock physique et les quantités réservées."
+        case .balanceChanged: "Le reste dû a changé. Vérifiez le montant et confirmez de nouveau."
         }
     }
 }
@@ -26,6 +27,21 @@ enum DrinkStockOperation: String, Identifiable {
         case .restock: "Réassort boisson"
         case .loss: "Casse ou perte boisson"
         }
+    }
+}
+
+enum RestaurantBill {
+    @MainActor
+    static func remaining(_ order: CommerceOrder, payments: [PaymentRecord]) -> Int64? {
+        var due = order.totalMinor
+        guard due >= 0 else { return nil }
+        var recorded = Set<UUID>()
+        for payment in payments where payment.orderID == order.id {
+            guard recorded.insert(payment.id).inserted, payment.establishmentID == order.establishmentID, payment.amountMinor > 0,
+                  payment.amountMinor <= due else { return nil }
+            due -= payment.amountMinor
+        }
+        return due
     }
 }
 
@@ -215,32 +231,72 @@ enum DrinkStockOperation: String, Identifiable {
     }
 
     func finish(_ table: DiningTable, order: CommerceOrder, paid: Bool,
-                tender: Tender? = nil, received: Int64? = nil, confirmed: Bool = false) throws {
+                tender: Tender? = nil, received: Int64? = nil, confirmed: Bool = false,
+                expectedDue: Int64? = nil) throws {
+        if paid {
+            guard let tender else { throw RestaurantFault.invalid }
+            try takePayment(table, order: order, tender: tender, received: received, confirmed: confirmed,
+                partial: nil, expectedDue: expectedDue)
+            return
+        }
         try authorize()
         try check(table, order)
-        guard table.billRequested == paid else { throw RestaurantFault.stale }
-        if paid {
-            guard let tender, order.totalMinor > 0,
-                  (tender == .cash ? (received ?? -1) >= order.totalMinor : confirmed)
+        guard !table.billRequested else { throw RestaurantFault.stale }
+        table.billRequested = true
+        do {
+            try BusinessOutbox.enqueue(kind: "restaurant.bill.requested", establishmentID: shop.id,
+                entityID: order.id, actorID: actor, relatedIDs: [table.id], in: db)
+            try save()
+        } catch { db.rollback(); throw error }
+    }
+
+    func recordPartialPayment(_ table: DiningTable, order: CommerceOrder, tender: Tender,
+                              amount: Int64, confirmed: Bool, expectedDue: Int64) throws {
+        try takePayment(table, order: order, tender: tender, received: tender == .cash ? amount : nil,
+            confirmed: confirmed, partial: amount, expectedDue: expectedDue)
+    }
+
+    private func takePayment(_ table: DiningTable, order: CommerceOrder, tender: Tender,
+                             received: Int64?, confirmed: Bool, partial: Int64?, expectedDue: Int64?) throws {
+        try authorize()
+        try check(table, order)
+        guard table.billRequested else { throw RestaurantFault.stale }
+        let orderID = order.id
+        let lines = try db.fetch(FetchDescriptor<OrderLine>(predicate: #Predicate { $0.orderID == orderID }))
+        let payments = try db.fetch(FetchDescriptor<PaymentRecord>(predicate: #Predicate { $0.orderID == orderID }))
+        guard !lines.isEmpty, lines.allSatisfy({ $0.preparation == Prep.served.rawValue }),
+              order.discountMinor >= 0 else { throw RestaurantFault.stale }
+        var subtotal: Int64 = 0
+        for line in lines {
+            let (value, invalid) = line.unitPriceMinor.multipliedReportingOverflow(by: Int64(line.quantity))
+            let (next, overflow) = subtotal.addingReportingOverflow(value)
+            guard line.quantity > 0, line.unitPriceMinor > 0, !invalid, !overflow
             else { throw RestaurantFault.invalid }
-            let oid = order.id
-            let lines = try db.fetch(FetchDescriptor<OrderLine>(predicate: #Predicate { $0.orderID == oid }))
-            let payments = try db.fetch(FetchDescriptor<PaymentRecord>(predicate: #Predicate { $0.orderID == oid }))
-            guard !lines.isEmpty, lines.allSatisfy({ $0.preparation == Prep.served.rawValue }),
-                  payments.isEmpty else { throw RestaurantFault.stale }
-            let payment = PaymentRecord(orderID: oid, establishmentID: shop.id, method: tender.rawValue,
-                                        amountMinor: order.totalMinor, confirmedByID: actor)
-            payment.cashReceived = tender == .cash ? received : nil
-            db.insert(payment)
+            subtotal = next
+        }
+        guard order.discountMinor <= subtotal, subtotal - order.discountMinor == order.totalMinor
+        else { throw RestaurantFault.balanceChanged }
+        guard let due = RestaurantBill.remaining(order, payments: payments),
+              expectedDue == nil || expectedDue == due else { throw RestaurantFault.balanceChanged }
+        let amount = partial ?? due
+        guard amount > 0, partial == nil || amount < due,
+              (tender == .cash ? (received ?? -1) >= amount : confirmed) else { throw RestaurantFault.invalid }
+
+        let payment = PaymentRecord(orderID: orderID, establishmentID: shop.id, method: tender.rawValue,
+                                    amountMinor: amount, confirmedByID: actor)
+        payment.cashReceived = tender == .cash ? received : nil
+        db.insert(payment)
+        let paid = amount == due
+        if paid {
             order.state = .completed
             table.activeSessionID = nil
             table.isOccupied = false
+            table.billRequested = false
         }
-        table.billRequested = !paid
         do {
-            try BusinessOutbox.enqueue(kind: paid ? "restaurant.order.paid" : "restaurant.bill.requested",
+            try BusinessOutbox.enqueue(kind: paid ? "restaurant.order.paid" : "restaurant.order.partially-paid",
                 establishmentID: shop.id, entityID: order.id, actorID: actor,
-                relatedIDs: [table.id], in: db)
+                relatedIDs: [table.id, payment.id], in: db)
             try save()
         } catch { db.rollback(); throw error }
     }
