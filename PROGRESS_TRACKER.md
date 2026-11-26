@@ -273,9 +273,24 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   un ticket à état unique. Les lignes d’états différents gardent leur
   propre section et leur action. La taille de texte d’accessibilité
   place le bandeau d’état sous le nom de table.
-- Les diagnostics ajoutent une capture Cuisine au plus grand réglage
-  de texte d’accessibilité. La comparaison des nouveaux rendus et le
-  résultat des compilations restent à consigner.
+- Sur `009a495`, Debug, Release et **149 XCTest sans échec**. Le
+  journal `140205304688` confirme aussi 38 captures iPhone/iPad.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45906783529)
+- Les [captures iPhone](https://github.com/yarobkl/COVI/actions/runs/45906783529/artifacts/15159361527)
+  comparées à `A2188A03` et au rendu précédent montrent les trois
+  cartes de la file en entier, avec l’état à droite du nom de table.
+  Le bouton « Marquer servi » reste visible dans Prêts. Au réglage
+  d’accessibilité XXXL, les filtres s’empilent, le nom et le badge sont
+  lisibles et un défilement est nécessaire pour atteindre les actions.
+- L’en-tête global et l’âge depuis la mise en préparation ou à l’état
+  prêt restent à rapprocher de la planche. La capture utilise des
+  tickets à état unique. Les tickets à états mixtes et les
+  interactions VoiceOver et tactiles sur appareil restent à vérifier.
+- Le panneau Incident de la planche prévoit un motif obligatoire et
+  un remboursement par ligne avec plafond journalier. Le contrat
+  produit prévoit des remboursements tracés. Le code gère actuellement
+  le remboursement intégral par paiement. Le plafond affiché sur la
+  maquette est un exemple, à distinguer d’un réglage réel.
 
 ### Gestion de la carte du Restaurant
 
