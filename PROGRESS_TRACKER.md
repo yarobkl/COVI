@@ -243,7 +243,12 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   arrête le simulateur iPhone avant de démarrer l’iPad et réessaie le
   démarrage une fois. Une vérification du script avec des commandes
   simulées a couvert l’échec initial et la production de deux fichiers.
-  Le prochain run macOS doit confirmer le comportement réel.
+- Sur `e0f981f`, les compilations Debug et Release, les **127 XCTest**
+  et les deux étapes de capture ont réussi
+  ([diagnostic macOS](https://github.com/yarobkl/COVI/actions/runs/45824382594)).
+  L’[archive](https://github.com/yarobkl/COVI/actions/runs/45824382594/artifacts/15121030170)
+  contient 26 captures, dont Caisse et Catalogue Salon sur iPad simulé.
+  Le démarrage iPad a réussi au premier essai de cette exécution.
 - Les photos, les sous-catégories et le stock boissons avec réservation,
   réassort et pertes restent à intégrer à leurs données métier.
 
