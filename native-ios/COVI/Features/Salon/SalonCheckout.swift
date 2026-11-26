@@ -472,6 +472,7 @@ struct SalonReport: View {
 
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+                if textSize.isAccessibilitySize { periodButton }
                 summaryCard(services: services, products: products)
                 COVISectionTitle("Activité et commissions de l’équipe")
                 teamCard(salesByPerson: Dictionary(grouping: rows, by: \.stylist),
@@ -492,13 +493,9 @@ struct SalonReport: View {
         .navigationTitle("Rapports salon")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            Button { choosingPeriod = true } label: {
-                Label(periodTitle, systemImage: "chevron.down")
-                    .font(.subheadline.weight(.semibold))
-                    .labelStyle(.titleAndIcon)
+            if !textSize.isAccessibilitySize {
+                ToolbarItem(placement: .topBarTrailing) { periodButton }
             }
-            .accessibilityLabel("Période du rapport")
-            .accessibilityValue(periodTitle)
         }
         .sheet(isPresented: $choosingPeriod) {
             NavigationStack {
@@ -527,6 +524,26 @@ struct SalonReport: View {
             }
         }
 #endif
+    }
+
+    private var periodButton: some View {
+        Button { choosingPeriod = true } label: {
+            HStack(spacing: 4) {
+                Text(periodTitle)
+                    .fixedSize(horizontal: !textSize.isAccessibilitySize, vertical: true)
+                Image(systemName: "chevron.down").accessibilityHidden(true)
+            }
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(COVITheme.navy)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(COVITheme.champagne, in: Capsule())
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Période du rapport")
+        .accessibilityValue(periodTitle)
     }
 
     private var periodTitle: String {
@@ -580,9 +597,10 @@ struct SalonReport: View {
                     let activity = salesByPerson[person] ?? []
                     let visitsCount = visitsByPerson[person]?.count ?? 0
                     let tickets = Set(activity.map(\.order)).count
+                    let ticketLabel = tickets == 1 ? "1 ticket" : "\(tickets) tickets"
                     layout {
                         COVIIconRow(symbol: "person", title: person,
-                            detail: "\(tickets) ticket(s) · \(visitsCount) RDV · \(money(total(activity, by: \.gross)))",
+                            detail: "\(ticketLabel) · \(visitsCount) RDV · \(money(total(activity, by: \.gross)))",
                             accessory: nil)
                         Text("Part · " + money(total(activity, by: \.commission)))
                             .font(.caption.weight(.semibold))

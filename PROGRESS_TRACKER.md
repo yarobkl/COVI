@@ -83,8 +83,15 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   de l’équipe affiche les tickets, les rendez-vous et les commissions
   enregistrés. Les sommes du rapport s’agrègent en décimal exact sans
   modifier les données historiques.
-- Le parcours Plus → Rapports dispose d’un scénario iPhone sur données
-  synthétiques. Compilation, tests et comparaison du rendu à relever.
+- Sur `2873f2c`, Debug, **123 XCTest sans échec**, Release et 20 captures
+  ont réussi ([GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45772162190)).
+  Le parcours Plus → Rapports est visible sur [iPhone simulé](https://github.com/yarobkl/COVI/actions/runs/45772162190/artifacts/15094329691).
+  La comparaison à `57D4B495` confirme le bandeau, les trois collaborateurs
+  et les commissions. Les données synthétiques donnent 268 000 FCFA,
+  dont 224 000 de prestations et 44 000 de revente, ainsi que 89 600 FCFA
+  de commissions. Le bouton natif ne montrait que le chevron. Un correctif
+  rend la date explicite avec une capsule et aligne le libellé des tickets.
+  Sa nouvelle capture reste à contrôler.
 - Le suivi des absences et les demandes publiques représentées par la
   planche restent à intégrer. Leur statut ne peut pas être déduit
   d’un rendez-vous non encaissé.
@@ -95,10 +102,12 @@ Les premières compilations ont échoué sur une expression SwiftUI ; le découp
 a révélé une chaîne `String` passée au bouton attendant `LocalizedStringKey`.
 Le correctif est dans `3dd831c`. Les résultats finaux XCTest, Release et captures
 pour `3dd831c` et `924c8ab` figurent ci-dessus après lecture des journaux.
-Le diagnostic du dernier correctif visuel `060e8ee` est en cours :
-https://github.com/yarobkl/COVI/actions/runs/45770269249.
-Il ne faut pas attribuer les 123 tests antérieurs à ce correctif avant lecture
-finale de ses propres journaux. Aucun échec de compilation n'est présenté comme validé.
+Sur [`060e8ee`](https://github.com/yarobkl/COVI/actions/runs/45770269249),
+Debug, 123 XCTest et Release ont réussi. La capture a échoué au lancement
+de l’accueil après un délai de 120 secondes. Sur [`2873f2c`](https://github.com/yarobkl/COVI/actions/runs/45772162190),
+le lancement direct sous un délai global a livré les 20 captures. Les captures
+XXXL de la Caisse et du Catalogue confirment les lignes verticales et le bouton
+« Encaisser » lisible. Le détail de caisse demande un défilement à cette taille.
 
 Aucun modèle SwiftData existant n'a été modifié. La conservation d'une ancienne
 base installée, les appareils physiques, la synchronisation CloudKit réelle,
