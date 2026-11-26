@@ -398,6 +398,22 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   restent à intégrer. Les interactions sur iPhone et iPad physiques
   restent à vérifier.
 
+### Salles et terrasses du Restaurant
+
+- Le sélecteur de Salle reprend le nom d’espace montré sur la
+  planche récente. Le propriétaire ou le responsable peut ajouter
+  une salle ou une terrasse, la renommer et y déplacer une table.
+  Les compteurs et la sélection suivent l’espace affiché.
+- Les positions historiques restent en « Salle principale ». Une
+  case est propre à son espace. La permutation reste possible dans
+  un même espace. Un déplacement vers un autre espace exige une
+  case libre et ne déplace pas ses autres tables. Les changements
+  sont enregistrés localement par établissement, avec les contrôles
+  de rôle et de PIN.
+- Le scénario Terrasse charge deux tables dans un espace créé en
+  mémoire. La compilation, les tests de reprise des plans locaux
+  et la comparaison de la capture sont à vérifier.
+
 ### Contrôles iOS et limites
 
 Les premières compilations ont échoué sur une expression SwiftUI ; le découpage

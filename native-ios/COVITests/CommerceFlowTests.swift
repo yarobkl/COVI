@@ -349,6 +349,39 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertEqual(layout.placements, saved.placements)
     }
 
+    func testRestaurantFloorRoomsPreserveLegacyPositionsAndRejectOccupiedCrossRoomMoves() throws {
+        struct LegacyPlacement: Encodable {
+            let slot = 5
+            let shape = FloorTableDrawing.Shape.square
+            let rotation = 1
+        }
+        let shop = UUID()
+        let inside = DiningTable(establishmentID: shop, label: "Table 1", capacity: 4)
+        let outside = DiningTable(establishmentID: shop, label: "Table 2", capacity: 6)
+        let tables = [inside, outside]
+        let legacy = try JSONEncoder().encode(["placements": [inside.id: LegacyPlacement()]])
+        var layout = try RestaurantFloorLayout(stored: legacy)
+        XCTAssertNil(layout.resolved(tables: tables)[inside.id]?.roomID)
+        XCTAssertEqual(layout.resolved(tables: tables)[inside.id]?.slot, 5)
+        let terrace = try layout.addRoom(name: " Terrasse ", kind: .outdoor)
+        XCTAssertEqual(terrace.name, "Terrasse")
+        XCTAssertThrowsError(try layout.addRoom(name: "Terrasse", kind: .indoor))
+        XCTAssertThrowsError(try layout.addRoom(name: RestaurantFloorLayout.mainRoomName, kind: .indoor))
+
+        try layout.place(.init(slot: 5, shape: .round, roomID: terrace.id), tableID: outside.id, tables: tables)
+        XCTAssertThrowsError(try layout.place(.init(slot: 5, shape: .square, roomID: terrace.id),
+                                             tableID: inside.id, tables: tables))
+        XCTAssertThrowsError(try layout.place(.init(slot: 0, shape: .square, roomID: UUID()),
+                                             tableID: inside.id, tables: tables))
+        try layout.renameRoom(terrace.id, name: "Terrasse haute")
+        let reopened = try RestaurantFloorLayout(stored: layout.encoded())
+        let resolved = reopened.resolved(tables: tables)
+        XCTAssertEqual(reopened.spaces.first?.name, "Terrasse haute")
+        XCTAssertEqual(reopened.spaces.first?.kind, .outdoor)
+        XCTAssertEqual(resolved[inside.id], .init(slot: 5, shape: .square, rotation: 1))
+        XCTAssertEqual(resolved[outside.id], .init(slot: 5, shape: .round, roomID: terrace.id))
+    }
+
     func testRestaurantFloorUsesRealTableStateBeforeAndAfterBillRequest() {
         let table = DiningTable(establishmentID: UUID(), label: "Table 7", capacity: 4)
         XCTAssertEqual(RestaurantFloorState(table: table, hasOrderLines: false), .available)

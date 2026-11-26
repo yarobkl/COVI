@@ -4,7 +4,7 @@ import Foundation
 enum Prep: String, CaseIterable { case cooking = "En cuisine", ready = "Prêt", served = "Servi" }
 enum MenuGroup: String, CaseIterable { case food = "Plats", drinks = "Boissons" }
 enum RestaurantFault: LocalizedError {
-    case access, stale, unavailable, invalid, stock, balanceChanged
+    case access, stale, unavailable, invalid, stock, balanceChanged, floorSlotOccupied, floorRoomName
     var errorDescription: String? {
         switch self {
         case .access: "Vérifiez le rôle et déverrouillez la caisse."
@@ -13,6 +13,8 @@ enum RestaurantFault: LocalizedError {
         case .invalid: "Vérifiez les quantités et les montants."
         case .stock: "Vérifiez le stock physique et les quantités réservées."
         case .balanceChanged: "Le reste dû a changé. Vérifiez le montant et confirmez de nouveau."
+        case .floorSlotOccupied: "Cette case est occupée dans l’espace de destination. Choisissez une case libre."
+        case .floorRoomName: "Saisissez un nom d’espace unique de 1 à 40 caractères."
         }
     }
 }

@@ -128,6 +128,9 @@ struct RestaurantFloorPlan<Detail: View>: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var selectedID: UUID?
+    @State private var roomID: UUID?
+    @State private var renamingRoom: RestaurantFloorRoom?
+    @State private var showingRoomEditor = false
     @State private var highlightedState: RestaurantFloorState?
     @State private var editingTable: DiningTable?
 #if DEBUG && targetEnvironment(simulator)
@@ -166,9 +169,12 @@ struct RestaurantFloorPlan<Detail: View>: View {
             }
 #if DEBUG && targetEnvironment(simulator)
             .task {
-                if let diagnostics, [.restaurantFloorPlan, .restaurantFloorEdit].contains(diagnostics.scenario),
+                if let diagnostics, [.restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace].contains(diagnostics.scenario),
                    let sample = tables.first(where: { $0.label == "Table 10" }) {
-                    if let staged = try? sampleLayout(table: sample) { diagnosticLayout = staged }
+                    if let staged = try? sampleLayout(table: sample, terrace: diagnostics.scenario == .restaurantFloorTerrace) {
+                        diagnosticLayout = try? staged.encoded()
+                        roomID = staged.spaces.first?.id
+                    }
                     selectedID = sample.id
                     if diagnostics.scenario == .restaurantFloorEdit { editingTable = sample }
                     else { await diagnostics.signalAfterPresentation() }
@@ -179,63 +185,109 @@ struct RestaurantFloorPlan<Detail: View>: View {
         .sheet(item: $editingTable) { table in
             let current = resolvedLayout
             if let placement = current[table.id] {
-                RestaurantFloorEditor(table: table, placement: placement, lastSlot: current.values.map(\.slot).max() ?? 0) {
+                RestaurantFloorEditor(table: table, placement: placement, spaces: configuration.spaces,
+                                      otherPositions: Array(current.filter { $0.key != table.id }.values)) {
                     try savePlacement($0, tableID: table.id)
                 }
             }
         }
+        .sheet(isPresented: $showingRoomEditor) {
+            RestaurantFloorRoomEditor(existing: renamingRoom) { name, kind in
+                let added = try saveLayout { layout -> UUID? in
+                    if let existing = renamingRoom {
+                        try layout.renameRoom(existing.id, name: name)
+                        return nil
+                    }
+                    return try layout.addRoom(name: name, kind: kind).id
+                }
+                if let added { selectRoom(added) }
+            }
+        }
     }
 
-    private var resolvedLayout: [UUID: RestaurantTablePlacement] {
+    private var configuration: RestaurantFloorLayout {
         var stored = layoutData
 #if DEBUG && targetEnvironment(simulator)
         if let diagnosticLayout { stored = diagnosticLayout }
 #endif
-        let configuration = (try? RestaurantFloorLayout(stored: stored)) ?? RestaurantFloorLayout()
-        return configuration.resolved(tables: orderedTables)
+        return (try? RestaurantFloorLayout(stored: stored)) ?? RestaurantFloorLayout()
+    }
+
+    private var resolvedLayout: [UUID: RestaurantTablePlacement] {
+        configuration.resolved(tables: orderedTables)
     }
 
 #if DEBUG && targetEnvironment(simulator)
-    private func sampleLayout(table: DiningTable) throws -> Data {
+    private func sampleLayout(table: DiningTable, terrace: Bool) throws -> RestaurantFloorLayout {
         var layout = RestaurantFloorLayout()
         let tables = orderedTables
         try layout.place(.init(slot: 8, shape: .rectangle), tableID: table.id, tables: tables)
         if let other = tables.first(where: { $0.label == "Table 6" }) {
             try layout.place(.init(slot: 5, shape: .rectangle, rotation: 1), tableID: other.id, tables: tables)
         }
-        return try layout.encoded()
+        if terrace {
+            let outdoor = try layout.addRoom(name: "Terrasse", kind: .outdoor)
+            try layout.place(.init(slot: 2, shape: .rectangle, roomID: outdoor.id), tableID: table.id, tables: tables)
+            if let other = tables.first(where: { $0.label == "Table 2" }) {
+                try layout.place(.init(slot: 0, shape: .oval, roomID: outdoor.id), tableID: other.id, tables: tables)
+            }
+        }
+        return layout
     }
 #endif
 
     private func savePlacement(_ placement: RestaurantTablePlacement, tableID: UUID) throws {
+        try saveLayout { layout in
+            guard orderedTables.contains(where: { $0.id == tableID && $0.establishmentID == service.shop.id })
+            else { throw RestaurantFault.access }
+            try layout.place(placement, tableID: tableID, tables: orderedTables)
+        }
+        if roomID != placement.roomID {
+            roomID = placement.roomID
+            highlightedState = nil
+        }
+    }
+
+    private func saveLayout<Result>(_ update: (inout RestaurantFloorLayout) throws -> Result) throws -> Result {
         try service.authorize()
-        guard service.admin, orderedTables.contains(where: { $0.id == tableID && $0.establishmentID == service.shop.id })
-        else { throw RestaurantFault.access }
-        var configuration = try RestaurantFloorLayout(stored: layoutData)
-        try configuration.place(placement, tableID: tableID, tables: orderedTables)
-        layoutData = try configuration.encoded()
+        guard service.admin else { throw RestaurantFault.access }
+        var current = try RestaurantFloorLayout(stored: layoutData)
+        let result = try update(&current)
+        layoutData = try current.encoded()
+        return result
+    }
+
+    private func selectRoom(_ id: UUID?) {
+        roomID = id
+        highlightedState = nil
+        selectedID = nil
     }
 
     @ViewBuilder private var plan: some View {
+        let config = configuration
+        let positions = config.resolved(tables: orderedTables)
+        let room = config.spaces.first { $0.id == roomID }
+        let displayed = tables.filter { positions[$0.id]?.roomID == room?.id }
         let ordersByID = Dictionary(grouping: orders, by: \.id)
         let ordersWithLines = Set(lines.map(\.orderID))
-        let states = Dictionary(uniqueKeysWithValues: tables.map { table in
+        let states = Dictionary(uniqueKeysWithValues: displayed.map { table in
             let hasLines = table.activeSessionID.map { ordersWithLines.contains($0) } ?? false
             return (table.id, RestaurantFloorState(table: table, hasOrderLines: hasLines))
         })
-        if tables.isEmpty {
-            ContentUnavailableView("Aucune table", systemImage: "table.furniture",
-                description: Text("Ajoutez une table depuis la configuration du restaurant."))
+        roomBar(active: room, spaces: config.spaces)
+        if displayed.isEmpty {
+            ContentUnavailableView("Aucune table dans cet espace", systemImage: "table.furniture",
+                description: Text("Les nouvelles tables apparaissent en salle principale. Déplacez-les depuis leur résumé."))
         } else {
             filters(states)
-            floorGrid(states)
-            .padding(8)
-            .background(COVITheme.champagne.opacity(0.30), in: RoundedRectangle(cornerRadius: 12))
-            .overlay {
-                RoundedRectangle(cornerRadius: 12).strokeBorder(COVITheme.navy.opacity(0.25))
-                    .allowsHitTesting(false)
-            }
-            if let table = tables.first(where: { $0.id == selectedID }), let state = states[table.id] {
+            floorGrid(states, tables: displayed, positions: positions)
+                .padding(8)
+                .background(COVITheme.champagne.opacity(0.30), in: RoundedRectangle(cornerRadius: 12))
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12).strokeBorder(COVITheme.navy.opacity(0.25))
+                        .allowsHitTesting(false)
+                }
+            if let table = displayed.first(where: { $0.id == selectedID }), let state = states[table.id] {
                 let order = table.activeSessionID.flatMap { ordersByID[$0]?.first }
                 selection(table, state: state, order: order)
                     .id("restaurant-table-summary")
@@ -243,8 +295,50 @@ struct RestaurantFloorPlan<Detail: View>: View {
         }
     }
 
-    private func floorGrid(_ states: [UUID: RestaurantFloorState]) -> some View {
-        let positions = resolvedLayout
+    private func roomBar(active: RestaurantFloorRoom?, spaces: [RestaurantFloorRoom]) -> some View {
+        HStack(spacing: 10) {
+            Menu {
+                Button(RestaurantFloorLayout.mainRoomName, systemImage: "door.left.hand.closed") { selectRoom(nil) }
+                ForEach(spaces) { room in
+                    Button(room.name, systemImage: room.kind.symbol) { selectRoom(room.id) }
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Label(active?.name ?? RestaurantFloorLayout.mainRoomName, systemImage: active?.kind.symbol ?? "door.left.hand.closed")
+                    Image(systemName: "chevron.down").font(.caption)
+                }
+                .font(.subheadline.weight(.semibold))
+                .frame(minHeight: 44)
+                .padding(.horizontal, 12)
+                .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 12))
+            }
+            .accessibilityHint("Choisir une salle ou une terrasse")
+            Spacer(minLength: 0)
+            if service.admin {
+                Menu {
+                    Button("Ajouter un espace", systemImage: "plus") {
+                        renamingRoom = nil
+                        showingRoomEditor = true
+                    }
+                    if let active {
+                        Button("Renommer cet espace", systemImage: "pencil") {
+                            renamingRoom = active
+                            showingRoomEditor = true
+                        }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.title3)
+                        .frame(width: 44, height: 44)
+                }
+                .accessibilityLabel("Gérer les espaces")
+            }
+        }
+        .foregroundStyle(COVITheme.navy)
+    }
+
+    private func floorGrid(_ states: [UUID: RestaurantFloorState], tables: [DiningTable],
+                           positions: [UUID: RestaurantTablePlacement]) -> some View {
         let occupants = Dictionary(uniqueKeysWithValues: tables.compactMap { table in
             positions[table.id].map { ($0.slot, table) }
         })

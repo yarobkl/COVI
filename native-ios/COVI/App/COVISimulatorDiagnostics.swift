@@ -17,6 +17,7 @@ final class COVISimulatorDiagnostics {
         case restaurantTables = "restaurant-tables"
         case restaurantFloorPlan = "restaurant-floor-plan"
         case restaurantFloorEdit = "restaurant-floor-edit"
+        case restaurantFloorTerrace = "restaurant-floor-terrace"
         case restaurantTable = "restaurant-table"
         case restaurantOrder = "restaurant-order"
         case restaurantReport = "restaurant-report"
@@ -110,7 +111,7 @@ final class COVISimulatorDiagnostics {
         let kind: BusinessKind
         let name: String
         switch scenario {
-        case .restaurantTables, .restaurantFloorPlan, .restaurantFloorEdit, .restaurantTable, .restaurantOrder, .restaurantReport, .restaurantTeam, .restaurantKitchen, .restaurantMenu, .restaurantDrinks, .restaurantPayment:
+        case .restaurantTables, .restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace, .restaurantTable, .restaurantOrder, .restaurantReport, .restaurantTeam, .restaurantKitchen, .restaurantMenu, .restaurantDrinks, .restaurantPayment:
             kind = .restaurant
             name = "Restaurant de démonstration"
         case .salonCatalog, .salonReport, .salonMore, .salonSettings, .salonCheckout, .salonToday, .salonAgenda, .salonBooking, .salonBookingConflict, .salonClients, .salonProfile:
@@ -131,7 +132,7 @@ final class COVISimulatorDiagnostics {
                 try seedRestaurantReport()
             } else if scenario == .restaurantTeam {
                 try seedRestaurantTeam()
-            } else if scenario == .restaurantFloorPlan || scenario == .restaurantFloorEdit {
+            } else if scenario == .restaurantFloorPlan || scenario == .restaurantFloorEdit || scenario == .restaurantFloorTerrace {
                 try seedRestaurantFloorPlan()
             } else if scenario == .restaurantDrinks {
                 try seedRestaurantDrinks()
@@ -615,7 +616,7 @@ struct COVISimulatorDiagnosticView: View {
                 fixture.scenario != .restaurantReport && fixture.scenario != .restaurantTeam &&
                 fixture.scenario != .restaurantMenu && fixture.scenario != .restaurantDrinks &&
                 fixture.scenario != .restaurantPayment && fixture.scenario != .restaurantFloorPlan &&
-                fixture.scenario != .restaurantFloorEdit {
+                fixture.scenario != .restaurantFloorEdit && fixture.scenario != .restaurantFloorTerrace {
                 await fixture.signalAfterPresentation()
             }
         }
