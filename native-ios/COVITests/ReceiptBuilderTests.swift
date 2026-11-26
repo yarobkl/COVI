@@ -1,5 +1,6 @@
 import XCTest
 import PDFKit
+import UIKit
 @testable import COVI
 
 @MainActor
@@ -77,6 +78,46 @@ final class ReceiptBuilderTests: XCTestCase {
         let refund = Refund(payment: fixture.payment, ownerID: UUID())
         XCTAssertThrowsError(try ReceiptBuilder.create(order: fixture.order, shop: fixture.shop,
             lines: fixture.lines, products: [fixture.item], payments: [fixture.payment], refunds: [refund]))
+    }
+
+    func testNativeReceiptImageIsReadablePNGAndLeavesNoTemporaryPDF() throws {
+        let fixture = fixture()
+        let summary = try ReceiptBuilder.create(order: fixture.order, shop: fixture.shop,
+            lines: fixture.lines, products: [fixture.item], payments: [fixture.payment])
+        let urls = try ReceiptImageExporter.export(summary)
+        defer { for file in urls { try? FileManager.default.removeItem(at: file) } }
+        XCTAssertEqual(urls.count, 1)
+        let file = try XCTUnwrap(urls.first)
+        XCTAssertEqual(file.pathExtension, "png")
+        let image = try XCTUnwrap(UIImage(contentsOfFile: file.path))
+        XCTAssertEqual(image.cgImage?.width, 1_190)
+        XCTAssertEqual(image.cgImage?.height, 1_684)
+        let siblings = try FileManager.default.contentsOfDirectory(atPath: file.deletingLastPathComponent().path)
+        XCTAssertFalse(siblings.contains { $0.hasPrefix("COVI-recu-" + summary.orderID.uuidString) && $0.hasSuffix(".pdf") })
+    }
+
+    func testReceiptImageIncludesEveryPageOfLongReceipt() throws {
+        let fixture = fixture()
+        fixture.order.discountMinor = 0
+        fixture.order.totalMinor = 160_000
+        fixture.payment.amountMinor = 160_000
+        let lines = (0..<80).map { index in
+            let line = OrderLine(orderID: fixture.order.id, catalogItemID: fixture.item.id,
+                quantity: 1, unitPriceMinor: 2_000)
+            line.dishName = "Article \(index + 1)"
+            return line
+        }
+        let summary = try ReceiptBuilder.create(order: fixture.order, shop: fixture.shop,
+            lines: lines, products: [fixture.item], payments: [fixture.payment])
+        let pdf = try ReceiptPDFExporter.export(summary)
+        defer { try? FileManager.default.removeItem(at: pdf) }
+        let expectedPages = try XCTUnwrap(PDFDocument(url: pdf)).pageCount
+        XCTAssertGreaterThan(expectedPages, 1)
+        let images = try ReceiptImageExporter.export(summary)
+        defer { for file in images { try? FileManager.default.removeItem(at: file) } }
+        XCTAssertEqual(images.count, expectedPages)
+        XCTAssertEqual(Set(images).count, expectedPages)
+        for file in images { XCTAssertNotNil(UIImage(contentsOfFile: file.path)) }
     }
 
     func testNativePDFContainsConfirmedReceiptInformation() throws {

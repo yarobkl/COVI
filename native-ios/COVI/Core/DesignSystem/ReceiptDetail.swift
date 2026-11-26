@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import UIKit
+import PDFKit
 
 @MainActor enum ReceiptPDFExporter {
     static func export(_ receipt: ReceiptSummary) throws -> URL {
@@ -41,6 +42,50 @@ import UIKit
     }
 }
 
+/// Rasterizes every PDF page, preserving the exact verified receipt content.
+@MainActor enum ReceiptImageExporter {
+    static func export(_ receipt: ReceiptSummary) throws -> [URL] {
+        let pdfURL = try ReceiptPDFExporter.export(receipt)
+        defer { try? FileManager.default.removeItem(at: pdfURL) }
+        guard let document = PDFDocument(url: pdfURL), document.pageCount > 0 else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        var files: [URL] = []
+        do {
+            for index in 0..<document.pageCount {
+                guard let page = document.page(at: index) else { throw CocoaError(.fileReadCorruptFile) }
+                let bounds = page.bounds(for: .mediaBox)
+                let format = UIGraphicsImageRendererFormat()
+                format.scale = 2; format.opaque = true
+                let image = UIGraphicsImageRenderer(size: bounds.size, format: format).image { context in
+                    UIColor.white.setFill()
+                    context.fill(CGRect(origin: .zero, size: bounds.size))
+                    context.cgContext.translateBy(x: 0, y: bounds.height)
+                    context.cgContext.scaleBy(x: 1, y: -1)
+                    page.draw(with: .mediaBox, to: context.cgContext)
+                }
+                guard let bytes = image.pngData() else { throw CocoaError(.fileWriteUnknown) }
+                let file = FileManager.default.temporaryDirectory.appendingPathComponent(
+                    "COVI-recu-\(receipt.orderID.uuidString)-\(UUID().uuidString)-page-\(index + 1).png")
+                try bytes.write(to: file, options: [.atomic, .completeFileProtection])
+                files.append(file)
+            }
+            return files
+        } catch {
+            for file in files { try? FileManager.default.removeItem(at: file) }
+            throw error
+        }
+    }
+}
+
+private struct ReceiptImageShare: UIViewControllerRepresentable {
+    let files: [URL]
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: files, applicationActivities: nil)
+    }
+    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
+}
+
 struct ReceiptDetail: View {
     let order: CommerceOrder
     let shop: Establishment
@@ -48,6 +93,8 @@ struct ReceiptDetail: View {
     @Query private var payments: [PaymentRecord]
     @Query private var items: [CatalogItem]
     @Query private var refunds: [Refund]
+    @State private var imageURLs: [URL] = []
+    @State private var sharingImages = false
     @State private var pdfURL: URL?
     @State private var pdfError = ""
     private var receipt: Result<ReceiptSummary, Error> {
@@ -108,6 +155,14 @@ struct ReceiptDetail: View {
                         }
                     }
                     Section {
+                        Button {
+                            do {
+                                imageURLs = try ReceiptImageExporter.export(model)
+                                pdfError = ""; sharingImages = true
+                            } catch { pdfError = "Impossible de créer le reçu image : " + error.localizedDescription }
+                        } label: {
+                            Label("Partager le reçu en image", systemImage: "photo.on.rectangle")
+                        }
                         ShareLink(item: model.shareText) {
                             Label("Partager le reçu", systemImage: "square.and.arrow.up")
                         }
@@ -128,6 +183,12 @@ struct ReceiptDetail: View {
                 }
                 .scrollContentBackground(.hidden).background(COVITheme.cream)
             }
+        }
+        .sheet(isPresented: $sharingImages, onDismiss: {
+            for file in imageURLs { try? FileManager.default.removeItem(at: file) }
+            imageURLs = []
+        }) {
+            ReceiptImageShare(files: imageURLs)
         }
         .navigationTitle("Reçu")
     }
