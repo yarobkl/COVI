@@ -12,6 +12,7 @@ final class COVISimulatorDiagnostics {
     enum Scenario: String {
         case welcome
         case boutiqueHome = "boutique-home"
+        case boutiqueArrivals = "boutique-arrivals"
         case sale = "boutique-sale"
         case checkout = "boutique-checkout"
         case restaurantTables = "restaurant-tables"
@@ -586,6 +587,10 @@ struct COVISimulatorDiagnosticView: View {
                 // La session mémoire est vide : RootView affiche le véritable accueil
                 // sans compte restauré et sans démarrer une synchronisation.
                 RootView()
+            } else if fixture.scenario == .boutiqueArrivals {
+                NavigationStack {
+                    BoutiqueArrivals(shop: fixture.shop, actor: fixture.owner, goods: [])
+                }
             } else if fixture.scenario == .salonCatalog {
                 NavigationStack {
                     SalonCatalog(shop: fixture.shop, menu: fixture.salonCatalogItems, actor: fixture.owner)
