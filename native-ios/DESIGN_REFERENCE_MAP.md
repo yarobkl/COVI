@@ -14,6 +14,13 @@ de sélection. Les positions réelles, les actions supplémentaires,
 l’en-tête et la barre de navigation des concepts restent à intégrer ou
 à vérifier.
 
+Les [captures de Salle et de son éditeur](https://github.com/yarobkl/COVI/actions/runs/45863543305/artifacts/15140357118)
+montrent le déplacement de Table 10 dans la grille et l’orientation de
+Table 6. La planche prévoit « Déplacer » dans le panneau contextuel.
+L’écran SwiftUI ouvre depuis ce panneau un formulaire de forme, rotation
+et position enregistré sur l’appareil. Le décor de la salle, le placement
+libre et les commandes annexes de la maquette restent à intégrer.
+
 ## Reprise du lot visuel COVI 2.0
 
 - Le build TestFlight 1.0.13 (10051), issu du commit `6eb37ed`, valide la

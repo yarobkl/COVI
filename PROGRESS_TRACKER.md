@@ -380,11 +380,23 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   tables apparaissent dans l’ordre de la liste tant qu’un plan n’est
   pas enregistré. Les nouvelles occupent une case libre. L’ordre des
   tables ou leur occupation commerciale ne change pas leur emplacement.
-- Le scénario iPhone reprend Salle avec Table 10 déplacée et Table 6
-  tournée, puis ouvre l’éditeur dans une seconde capture. La compilation,
-  les tests de géométrie et la comparaison des captures restent à vérifier.
-  Le placement libre, les salles et terrasses et la synchronisation du
-  plan entre appareils restent à intégrer.
+- Sur `504b176`, les compilations Debug et Release, les **139 XCTest
+  sans échec** et les diagnostics iPhone et iPad ont réussi. Les tests
+  couvrent les permutations, la réouverture du plan stocké, la géométrie
+  des quatre formes pour 1 à 100 places et les états de service. Les
+  captures iPad de cette exécution concernent le Salon.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45863543305)
+- Dans les [captures iPhone](https://github.com/yarobkl/COVI/actions/runs/45863543305/artifacts/15140357118)
+  comparées à la planche Salle, Table 10 est en troisième colonne sur
+  la dernière rangée avec dix chaises. Table 6 est tournée à 90 degrés
+  avec six chaises. Le résumé conserve l’accès au détail et ajoute
+  l’action de déplacement. La seconde capture montre l’éditeur de
+  Table 10 prérempli. Le scénario positionne les tables en mémoire
+  avant la capture et ne vérifie pas le geste ni l’appui sur Enregistrer.
+- Le placement reste aligné sur trois colonnes. Les salles et terrasses,
+  le placement libre et la synchronisation du plan entre appareils
+  restent à intégrer. Les interactions sur iPhone et iPad physiques
+  restent à vérifier.
 
 ### Contrôles iOS et limites
 
