@@ -7,7 +7,12 @@ struct RestaurantComposer: View {
     let order: CommerceOrder
     let service: RestaurantService
     @Environment(\.dismiss) private var dismiss
+    #if DEBUG && targetEnvironment(simulator)
+    @Environment(\.modelContext) private var context
+    @Environment(\.coviSimulatorDiagnostics) private var diagnostics
+    #endif
     @State private var category = MenuGroup.food
+    @State private var search = ""
     @State private var basket: [UUID:Int] = [:]
     @State private var message = ""
     @State private var sent = false
@@ -18,6 +23,10 @@ struct RestaurantComposer: View {
             return exceeds ? Int64.max : next
         }
     }
+    private var categoryItems: [CatalogItem] {
+        menu.filter { $0.menuCategory == category.rawValue }
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -31,46 +40,64 @@ struct RestaurantComposer: View {
                                     .padding(.vertical, 13)
                                     .foregroundStyle(category == option ? .white : COVITheme.navy)
                                     .background(category == option ? COVITheme.navy : .white, in: Capsule())
-                            }.buttonStyle(.plain)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityAddTraits(category == option ? .isSelected : [])
                         }
                     }
-                    if !menu.contains(where: { $0.menuCategory == category.rawValue && !$0.soldOut }) {
-                        ContentUnavailableView("Aucun article disponible", systemImage: "fork.knife",
-                            description: Text("Un responsable peut compléter la carte depuis Configurer."))
-                    }
-                    COVICard {
-                        VStack(spacing: 12) {
-                            ForEach(menu.filter { $0.menuCategory == category.rawValue }) { item in
-                                HStack(spacing: 12) {
-                                    Image(systemName: category == .food ? "fork.knife" : "cup.and.saucer")
-                                        .font(.title2)
-                                        .frame(width: 62, height: 70)
-                                        .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 14))
-                                    VStack(alignment: .leading, spacing: 7) {
-                                        Text(item.title).font(.headline)
-                                        if item.soldOut {
-                                            COVIBadge(title: "Épuisé", tint: COVITheme.dangerTint, foreground: .red)
-                                        }
-                                        Text(COVIMoney.text(item.priceMinor, currency: service.shop.currencyCode))
-                                            .font(.subheadline.weight(.semibold))
-                                    }
-                                    Spacer(minLength: 0)
+                    let query = search.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let visibleItems = categoryItems.filter { query.isEmpty || $0.title.localizedStandardContains(query) }
+                    if visibleItems.isEmpty {
+                        if query.isEmpty {
+                            ContentUnavailableView("Aucun article disponible", systemImage: "fork.knife",
+                                description: Text("Un responsable peut compléter la carte depuis Configurer."))
+                        } else {
+                            ContentUnavailableView.search(text: query)
+                        }
+                    } else {
+                        COVICard {
+                            VStack(spacing: 12) {
+                                ForEach(visibleItems) { item in
+                                    if item.id != visibleItems.first?.id { Divider() }
                                     HStack(spacing: 10) {
-                                        Button {
+                                        Image(systemName: category == .food ? "fork.knife" : "cup.and.saucer")
+                                            .font(.title3)
+                                            .frame(width: 44, height: 52)
+                                            .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 12))
+                                            .accessibilityHidden(true)
+                                        VStack(alignment: .leading, spacing: 6) {
+                                            Text(item.title).font(.headline)
+                                            if item.soldOut {
+                                                COVIBadge(title: "Épuisé", tint: COVITheme.dangerTint, foreground: .red)
+                                            }
+                                            Text(COVIMoney.text(item.priceMinor, currency: service.shop.currencyCode))
+                                                .font(.subheadline.weight(.semibold))
+                                        }
+                                        Spacer(minLength: 0)
+                                        HStack(spacing: 0) {
                                             let count = basket[item.id] ?? 0
-                                            basket[item.id] = count > 1 ? count - 1 : nil
-                                        } label: { Image(systemName: "minus") }
-                                            .disabled((basket[item.id] ?? 0) == 0)
-                                        Text("\(basket[item.id] ?? 0)").frame(minWidth: 15)
-                                        Button {
-                                            if !item.soldOut { basket[item.id] = min(999, (basket[item.id] ?? 0) + 1) }
-                                        } label: { Image(systemName: "plus") }
-                                            .disabled(item.soldOut)
+                                            Button { basket[item.id] = count > 1 ? count - 1 : nil } label: {
+                                                Image(systemName: "minus").frame(width: 44, height: 44).contentShape(Rectangle())
+                                            }
+                                            .accessibilityLabel("Retirer une unité de \(item.title)")
+                                            .disabled(count == 0)
+                                            Text("\(count)").monospacedDigit().frame(minWidth: 14)
+                                                .accessibilityLabel("Quantité : \(count)")
+                                            Button { basket[item.id] = min(999, count + 1) } label: {
+                                                Image(systemName: "plus").frame(width: 44, height: 44).contentShape(Rectangle())
+                                            }
+                                            .accessibilityLabel("Ajouter une unité de \(item.title)")
+                                            .disabled(item.soldOut || count >= 999)
+                                        }
+                                        .buttonStyle(.borderless)
+                                        .overlay {
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(COVITheme.navy.opacity(0.28), lineWidth: 1)
+                                                .allowsHitTesting(false)
+                                        }
                                     }
-                                    .buttonStyle(.borderless)
+                                    .foregroundStyle(COVITheme.navy)
                                 }
-                                .foregroundStyle(COVITheme.navy)
-                                Divider()
                             }
                         }
                     }
@@ -94,8 +121,20 @@ struct RestaurantComposer: View {
                 .background(COVITheme.cream)
             }
             .navigationTitle("Commander · " + table.label)
-            .toolbar { Button("Fermer") { dismiss() } }
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $search, placement: .navigationBarDrawer(displayMode: .automatic),
+                prompt: "Rechercher dans la carte")
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Fermer") { dismiss() } } }
         }
+        #if DEBUG && targetEnvironment(simulator)
+        .task {
+            guard let diagnostics, diagnostics.scenario == .restaurantOrder,
+                  let sample = diagnostics.restaurantSample,
+                  sample.table.id == table.id, sample.order.id == order.id,
+                  context.container === diagnostics.container else { return }
+            basket = sample.draft
+        }
+        #endif
     }
 }
 

@@ -15,6 +15,17 @@ final class COVISimulatorDiagnostics {
         case sale = "boutique-sale"
         case checkout = "boutique-checkout"
         case restaurantTables = "restaurant-tables"
+        case restaurantTable = "restaurant-table"
+        case restaurantOrder = "restaurant-order"
+    }
+
+    struct RestaurantSample {
+        let table: DiningTable
+        let order: CommerceOrder
+        let lines: [OrderLine]
+        let menu: [CatalogItem]
+        let draft: [UUID: Int]
+        let service: RestaurantService
     }
 
     enum Failure: Error { case invalidScenario }
@@ -28,6 +39,7 @@ final class COVISimulatorDiagnostics {
     let basket: [UUID: Int]
     let due: Int64
     let cashReceived: Int64 = 40_000
+    private(set) var restaurantSample: RestaurantSample?
 
     init(arguments: [String]) throws {
         guard let index = arguments.firstIndex(of: Self.argument),
@@ -58,7 +70,7 @@ final class COVISimulatorDiagnostics {
         session = AppSession(keychain: storage)
         pin = PINManager(keychain: storage)
         owner = UUID(uuidString: "00000000-0000-4000-8000-000000000001")!
-        let isRestaurant = scenario == .restaurantTables
+        let isRestaurant = [Scenario.restaurantTables, .restaurantTable, .restaurantOrder].contains(scenario)
         shop = Establishment(
             id: UUID(uuidString: "00000000-0000-4000-8000-000000000002")!,
             ownerID: owner, name: isRestaurant ? "Restaurant de démonstration" : "Boutique de démonstration",
@@ -67,7 +79,7 @@ final class COVISimulatorDiagnostics {
         if isRestaurant {
             basket = [:]
             due = 0
-            try seedRestaurantTables()
+            restaurantSample = try seedRestaurantTables()
             return
         }
 
@@ -110,7 +122,7 @@ final class COVISimulatorDiagnostics {
         }
     }
 
-    private func seedRestaurantTables() throws {
+    private func seedRestaurantTables() throws -> RestaurantSample {
         let context = container.mainContext
         let occupied = DiningTable(establishmentID: shop.id, label: "Table 01", capacity: 4)
         let free = DiningTable(establishmentID: shop.id, label: "Table 02", capacity: 2)
@@ -122,24 +134,48 @@ final class COVISimulatorDiagnostics {
         context.insert(shop)
 
         let main = CatalogItem(establishmentID: shop.id, title: "Capitaine à la braise", priceMinor: 9_500)
-        main.menuCategory = MenuGroup.food.rawValue
-        let chicken = CatalogItem(establishmentID: shop.id, title: "Poulet braisé", priceMinor: 8_000)
-        chicken.menuCategory = MenuGroup.food.rawValue
-        context.insert(main)
-        context.insert(chicken)
+        let chicken = CatalogItem(establishmentID: shop.id, title: "Poulet braisé entier", priceMinor: 8_000)
+        let greens = CatalogItem(establishmentID: shop.id, title: "Saka-Saka et poisson salé", priceMinor: 5_500)
+        let liboke = CatalogItem(establishmentID: shop.id, title: "Liboké de silure", priceMinor: 9_000)
+        let juice = CatalogItem(establishmentID: shop.id, title: "Jus de bissap frais", priceMinor: 1_500)
+        let menu = [chicken, main, greens, liboke, juice]
+        for item in menu {
+            item.menuCategory = item.id == juice.id ? MenuGroup.drinks.rawValue : MenuGroup.food.rawValue
+            context.insert(item)
+        }
+        liboke.soldOut = true
         try context.save()
 
         let service = RestaurantService(shop: shop, actor: owner, role: .owner, pin: pin, db: context)
-        for (table, dish, quantity) in [(occupied, main, 3), (secondOccupied, chicken, 8), (awaitingBill, main, 2)] {
+
+        func open(_ table: DiningTable) throws -> CommerceOrder {
             try service.open(table)
             guard let id = table.activeSessionID,
                   let order = try context.fetch(FetchDescriptor<CommerceOrder>(
                     predicate: #Predicate { $0.id == id })).first else { throw Failure.invalidScenario }
-            try service.send([dish.id: quantity], menu: [dish], table: table, order: order)
-            if table.id == awaitingBill.id {
-                try service.finish(table, order: order, paid: false)
-            }
+            return order
         }
+
+        let active = try open(occupied)
+        let draft = [chicken.id: 2, main.id: 1]
+        for (dish, quantity) in [(chicken, 2), (main, 1), (juice, 2)] {
+            try service.send([dish.id: quantity], menu: menu, table: occupied, order: active)
+        }
+        let activeID = active.id
+        let lines = try context.fetch(FetchDescriptor<OrderLine>(
+            predicate: #Predicate { $0.orderID == activeID }, sortBy: [SortDescriptor(\.sentAt)]))
+        for line in lines where line.catalogItemID != main.id {
+            try service.advance(line, from: .cooking, table: occupied, order: active)
+            try service.advance(line, from: .ready, table: occupied, order: active)
+        }
+        let other = try open(secondOccupied)
+        try service.send([chicken.id: 8], menu: menu, table: secondOccupied, order: other)
+        let bill = try open(awaitingBill)
+        try service.send([main.id: 2], menu: menu, table: awaitingBill, order: bill)
+        try service.finish(awaitingBill, order: bill, paid: false)
+
+        return RestaurantSample(table: occupied, order: active, lines: lines,
+            menu: menu, draft: draft, service: service)
     }
 
     /// Le workflow attend ce signal avant la capture ; aucun détail métier n'y figure.
@@ -178,6 +214,14 @@ struct COVISimulatorDiagnosticView: View {
                 // La session mémoire est vide : RootView affiche le véritable accueil
                 // sans compte restauré et sans démarrer une synchronisation.
                 RootView()
+            } else if let sample = fixture.restaurantSample, fixture.scenario == .restaurantTable {
+                NavigationStack {
+                    RestaurantTable(table: sample.table, order: sample.order, menu: sample.menu,
+                        lines: sample.lines, service: sample.service)
+                }
+            } else if let sample = fixture.restaurantSample, fixture.scenario == .restaurantOrder {
+                RestaurantComposer(menu: sample.menu, table: sample.table, order: sample.order,
+                    service: sample.service)
             } else {
                 // Navigation et onglets réels, avec les contrôles de rôle/PIN normaux.
                 // Le header RootView/ShopSyncStatus est volontairement hors capture :

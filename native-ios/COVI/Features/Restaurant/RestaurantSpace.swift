@@ -167,10 +167,19 @@ struct RestaurantTable: View {
             VStack(alignment: .leading, spacing: 20) {
                 if let order {
                     COVICard {
-                        HStack {
-                            Label(table.label, systemImage: "person")
-                            Spacer()
-                            Text("\(table.capacity) couverts")
+                        ViewThatFits(in: .horizontal) {
+                            HStack {
+                                Label("Ouverte à \(order.createdAt.formatted(date: .omitted, time: .shortened))",
+                                    systemImage: "clock")
+                                Spacer()
+                                Text("\(table.capacity) places")
+                            }
+                            VStack(alignment: .leading, spacing: 6) {
+                                Label("Ouverte à \(order.createdAt.formatted(date: .omitted, time: .shortened))",
+                                    systemImage: "clock")
+                                Text("\(table.capacity) places")
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .font(.subheadline)
                     }
@@ -182,6 +191,7 @@ struct RestaurantTable: View {
                                     .foregroundStyle(COVITheme.secondaryText)
                             }
                             ForEach(lines) { line in
+                                if line.id != lines.first?.id { Divider() }
                                 HStack(alignment: .top, spacing: 12) {
                                     Image(systemName: "fork.knife")
                                         .font(.title3).foregroundStyle(COVITheme.navy)
@@ -189,8 +199,13 @@ struct RestaurantTable: View {
                                         .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 12))
                                     VStack(alignment: .leading, spacing: 7) {
                                         Text("\(line.quantity) × \(line.dishName ?? "Article")").font(.headline)
-                                        Text(COVIMoney.text(line.unitPriceMinor * Int64(line.quantity), currency: service.shop.currencyCode))
-                                            .font(.subheadline.weight(.semibold))
+                                        let (amount, overflow) = line.unitPriceMinor.multipliedReportingOverflow(by: Int64(line.quantity))
+                                        if overflow || line.quantity <= 0 || line.unitPriceMinor < 0 {
+                                            Text("Montant invalide").font(.subheadline).foregroundStyle(.red)
+                                        } else {
+                                            Text(COVIMoney.text(amount, currency: service.shop.currencyCode))
+                                                .font(.subheadline.weight(.semibold))
+                                        }
                                         if line.preparation == Prep.ready.rawValue {
                                             Button("Marquer servi") {
                                                 run { try service.advance(line, from: .ready, table: table, order: order) }
@@ -198,14 +213,14 @@ struct RestaurantTable: View {
                                             .font(.subheadline.weight(.semibold))
                                             .foregroundStyle(COVITheme.blue)
                                         } else {
-                                            COVIBadge(title: line.preparation ?? "Commandé",
-                                                tint: line.preparation == Prep.served.rawValue ? COVITheme.successTint : COVITheme.warningTint,
-                                                foreground: line.preparation == Prep.served.rawValue ? COVITheme.success : COVITheme.warning)
+                                            let status = Prep(rawValue: line.preparation ?? "")
+                                            COVIBadge(title: status?.rawValue ?? "Commandé",
+                                                tint: status == .served ? COVITheme.successTint : COVITheme.blue.opacity(0.1),
+                                                foreground: status == .served ? COVITheme.success : COVITheme.blue)
                                         }
                                     }
                                     Spacer(minLength: 0)
                                 }
-                                Divider()
                             }
                         }
                     }
@@ -247,6 +262,7 @@ struct RestaurantTable: View {
         }
         .background(COVIBackdrop())
         .navigationTitle(table.label)
+        .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $closing) {
             if let order {
                 NavigationStack {

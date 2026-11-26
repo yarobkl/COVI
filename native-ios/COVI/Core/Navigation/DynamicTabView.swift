@@ -118,7 +118,7 @@ struct DynamicTabView: View {
                 switch diagnostics.scenario {
                 case .sale, .checkout: selected = .sell
                 case .restaurantTables: selected = .tables
-                case .welcome, .boutiqueHome: break
+                case .welcome, .boutiqueHome, .restaurantTable, .restaurantOrder: break
                 }
             }
 #else
