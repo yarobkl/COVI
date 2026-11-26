@@ -32,7 +32,9 @@ struct RestaurantCheckout: View {
     }
 
     private var due: Int64? { RestaurantBill.remaining(order, payments: payments) }
-    private var typedAmount: Int64? { Int64(amountText.trimmingCharacters(in: .whitespacesAndNewlines)) }
+    private var typedAmount: Int64? {
+        Int64(amountText.filter { !$0.isWhitespace })
+    }
     private var canSubmit: Bool {
         guard !saved, let due, due > 0 else { return false }
         if mode == .partial {
@@ -43,7 +45,7 @@ struct RestaurantCheckout: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 13) {
+            VStack(alignment: .leading, spacing: 11) {
                 HStack(alignment: .firstTextBaseline, spacing: 12) {
                     Text("Encaissement · \(table.label)")
                         .font(.title3.bold())
@@ -86,20 +88,25 @@ struct RestaurantCheckout: View {
                         .font(.subheadline.weight(.semibold))
                 }
                 if !message.isEmpty { Text(message).foregroundStyle(.red) }
-                COVIButton(mode == .partial ? "Confirmer l’encaissement partiel" : "Confirmer le solde") {
-                    if let due { submit(expectedDue: due) }
-                }
-                .disabled(!canSubmit)
             }
             .foregroundStyle(COVITheme.navy)
             .padding(16)
         }
         .background(COVITheme.cream)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            COVIButton(mode == .partial ? "Confirmer l’encaissement partiel" : "Confirmer le solde") {
+                if let due { submit(expectedDue: due) }
+            }
+            .disabled(!canSubmit)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(COVITheme.cream)
+        }
         .scrollDismissesKeyboard(.interactively)
         .onChange(of: mode) { _, next in
             resetInput()
 #if DEBUG && targetEnvironment(simulator)
-            if diagnostics?.scenario == .restaurantPayment, next == .partial { amountText = "15000" }
+            if diagnostics?.scenario == .restaurantPayment, next == .partial { amountText = "15 000" }
 #endif
         }
         .onChange(of: tender) { _, _ in
@@ -125,7 +132,7 @@ struct RestaurantCheckout: View {
 
     private var balance: some View {
         let title = due.map { "Reste dû : " + money($0) } ?? "Reste dû à vérifier"
-        return Label(title, systemImage: "circle.stack")
+        return Label(title, systemImage: "cylinder")
             .font(.headline)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
@@ -177,14 +184,17 @@ struct RestaurantCheckout: View {
             AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 8))
         return COVICard {
             layout {
-                Label(title, systemImage: "circle.stack").font(.subheadline.weight(.semibold))
-                TextField(service.shop.currencyCode == "XAF" ? "FCFA" : service.shop.currencyCode, text: $amountText)
-                    .keyboardType(.numberPad)
-                    .font(.subheadline.weight(.semibold))
-                    .multilineTextAlignment(.trailing)
-                    .padding(8)
-                    .background(COVITheme.navy.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
-                    .accessibilityLabel(title)
+                Label(title, systemImage: "cylinder").font(.subheadline.weight(.semibold))
+                HStack(spacing: 6) {
+                    TextField("0", text: $amountText)
+                        .keyboardType(.numberPad)
+                        .multilineTextAlignment(.trailing)
+                        .accessibilityLabel(title)
+                    Text(service.shop.currencyCode == "XAF" ? "FCFA" : service.shop.currencyCode)
+                }
+                .font(.subheadline.weight(.semibold))
+                .padding(8)
+                .background(COVITheme.navy.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
             }
         }
     }

@@ -249,7 +249,7 @@ struct RestaurantTable: View {
         .sheet(isPresented: $closing) {
             if let order {
                 RestaurantCheckout(table: table, order: order, service: service)
-                    .presentationDetents([.fraction(0.77), .large])
+                    .presentationDetents([.fraction(0.84), .large])
                     .presentationDragIndicator(.visible)
             }
         }

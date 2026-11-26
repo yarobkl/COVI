@@ -303,10 +303,20 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   sans les mêmes paiements partiels est refusé et les preuves locales
   sont préservées. La synchronisation des acomptes en cours entre
   appareils et la libération après départ restent à intégrer.
-- Le diagnostic iPhone ouvre la feuille de Table 01 avec un reste de
-  28 500 FCFA et une saisie de 15 000 FCFA, sans confirmer de paiement.
-  La compilation, les tests de caisse et de conflit, et la comparaison
-  de la capture restent à vérifier.
+- Sur `a5479af`, Debug, **131 XCTest sans échec**, Release et les
+  captures iPhone/iPad ont réussi
+  ([diagnostic GitHub](https://github.com/yarobkl/COVI/actions/runs/45837436117),
+  journal `139969915465`). Les trois nouveaux tests couvrent le
+  règlement en plusieurs fois, le conflit de synchronisation et le
+  rattachement du ticket au mois du solde.
+- La [capture iPhone](https://github.com/yarobkl/COVI/actions/runs/45837436117/artifacts/15129485288)
+  a été comparée à `A2188A03`. Elle confirme Table 01, les deux modes,
+  les moyens de paiement et le calcul 28 500 − 15 000 = 13 500 FCFA.
+  La feuille s’ouvre depuis la table. Elle présente des pictogrammes SF
+  Symbols, les moyens supplémentaires repliés et un bouton Annuler.
+  Dans cette première capture, le bouton de confirmation est coupé en
+  bas. Le correctif place l’action dans la zone sûre, agrandit la feuille
+  et affiche la devise de saisie. La nouvelle capture est à contrôler.
 
 ### Contrôles iOS et limites
 
