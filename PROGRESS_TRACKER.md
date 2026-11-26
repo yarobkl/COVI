@@ -115,7 +115,13 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   reçus en caisse et l’état du compte iCloud. La déconnexion est dans
   Paramètres, avec confirmation et conservation des données locales.
 - Les captures de Plus et Paramètres utilisent un profil et deux
-  établissements synthétiques. Résultats macOS et comparaison à relever.
+  établissements synthétiques. Sur [`f201df9`](https://github.com/yarobkl/COVI/actions/runs/45781831876),
+  Debug, Release et **123 XCTest sans échec** ont réussi. La [capture de Plus](https://github.com/yarobkl/COVI/actions/runs/45781831876/artifacts/15098539393)
+  confirme la carte du profil, le compteur 2/3 et les sections de gestion
+  et de système. Les lignes sont plus hautes que sur la planche. Le scénario
+  Paramètres n’a pas atteint sa destination. Le correctif utilise une route
+  typée commune pour Paramètres et Rapports et resserre les cartes. Nouvelle
+  capture à vérifier.
 - Les états réels de synchronisation et les paiements activés par espace
   devront être vérifiés avec les fonctions métier correspondantes. La règle
   actuelle des remboursements est affichée sans commande de désactivation.

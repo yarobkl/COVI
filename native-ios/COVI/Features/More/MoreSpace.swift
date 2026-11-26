@@ -82,8 +82,8 @@ struct MoreSpace: View {
     @Query private var restaurantOrders: [CommerceOrder]
     @Query private var restaurantPayments: [PaymentRecord]
     @Query private var restaurantRefunds: [Refund]
-    @State private var showingSettings = false
-    @State private var showingSalonReport = false
+    private enum Destination: Hashable { case settings, salonReport }
+    @State private var destination: Destination?
 #if DEBUG && targetEnvironment(simulator)
     @Environment(\.coviSimulatorDiagnostics) private var diagnostics
 #endif
@@ -113,14 +113,14 @@ struct MoreSpace: View {
                 if managesSalon {
                     COVISectionTitle("Gestion du salon")
                     COVICard {
-                        VStack(spacing: 11) {
+                        VStack(spacing: 4) {
                             NavigationLink {
                                 SalonCatalog(shop: shop, menu: salonMenu, actor: actor)
                             } label: {
                                 COVIIconRow(symbol: "scissors", title: "Catalogue prestations & produits", detail: nil)
                             }
                             Divider()
-                            Button { showingSalonReport = true } label: {
+                            Button { destination = .salonReport } label: {
                                 COVIIconRow(symbol: "chart.bar", title: "Rapports & Commissions équipe", detail: nil)
                             }
                             .buttonStyle(.plain)
@@ -139,7 +139,7 @@ struct MoreSpace: View {
                 if shop.kind == .restaurant && (role == .owner || role == .manager) {
                     COVISectionTitle("Gestion du restaurant")
                     COVICard {
-                        VStack(spacing: 11) {
+                        VStack(spacing: 4) {
                             NavigationLink {
                                 RestaurantSetup(service: RestaurantService(shop: shop, actor: actor,
                                     role: role, pin: pin, db: db), menu: salonMenu, tables: restaurantTables)
@@ -163,7 +163,7 @@ struct MoreSpace: View {
 
                 COVISectionTitle("Système & Multi-espaces")
                 COVICard {
-                    VStack(spacing: 11) {
+                    VStack(spacing: 4) {
                         Button(action: onSwitchShop) {
                             COVIIconRow(symbol: "storefront", title: "Changer d’établissement",
                                 detail: shop.name)
@@ -173,7 +173,7 @@ struct MoreSpace: View {
                             COVIIconRow(symbol: "icloud", title: "Centre de synchronisation hors-ligne", detail: nil)
                         }
                         Divider()
-                        Button { showingSettings = true } label: {
+                        Button { destination = .settings } label: {
                             COVIIconRow(symbol: "gearshape", title: "Profil et paramètres de sécurité", detail: nil)
                         }.buttonStyle(.plain)
                         Divider()
@@ -185,7 +185,7 @@ struct MoreSpace: View {
 
                 COVISectionTitle("Gestion du commerce")
                 COVICard {
-                    VStack(spacing: 11) {
+                    VStack(spacing: 4) {
                         NavigationLink { CommerceReceiptHistory(shop: shop) } label: {
                             COVIIconRow(symbol: "receipt", title: "Historique des reçus", detail: nil)
                         }
@@ -212,28 +212,31 @@ struct MoreSpace: View {
 
             }
             .foregroundStyle(COVITheme.navy)
+            .multilineTextAlignment(.leading)
             .padding(18)
         }
         .navigationTitle("Plus")
         .background(COVIBackdrop())
-        .navigationDestination(isPresented: $showingSettings) {
-            SystemSettings(shop: shop, actor: actor, pin: pin)
-        }
-        .navigationDestination(isPresented: $showingSalonReport) {
-            if managesSalon {
-                SalonReport(sales: salonSales, visits: salonVisits, currency: shop.currencyCode)
+        .navigationDestination(item: $destination) { screen in
+            switch screen {
+            case .settings:
+                SystemSettings(shop: shop, actor: actor, pin: pin)
+            case .salonReport:
+                if managesSalon {
+                    SalonReport(sales: salonSales, visits: salonVisits, currency: shop.currencyCode)
+                }
             }
         }
 #if DEBUG && targetEnvironment(simulator)
         .task {
-            if managesSalon, diagnostics?.scenario == .salonReport { showingSalonReport = true }
-            if shop.kind == .salon, diagnostics?.scenario == .salonSettings { showingSettings = true }
+            if managesSalon, diagnostics?.scenario == .salonReport { destination = .salonReport }
+            if shop.kind == .salon, diagnostics?.scenario == .salonSettings { destination = .settings }
         }
 #endif
     }
 
     private var profileCard: some View {
-        Button { showingSettings = true } label: {
+        Button { destination = .settings } label: {
             COVICard {
                 HStack(spacing: 12) {
                     Text(initials.isEmpty ? "C" : initials)
