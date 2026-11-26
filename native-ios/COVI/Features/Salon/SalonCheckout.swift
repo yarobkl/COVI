@@ -241,13 +241,74 @@ struct SalonCatalog: View {
     let menu: [CatalogItem]
     let actor: UUID
     @Environment(\.modelContext) private var db
+    @State private var adding = false
+    @State private var search = ""
+    @State private var showingServices = true
     @State private var name = ""
     @State private var price = ""
     @State private var qty = ""
     @State private var percent = 0
     @State private var service = true
     @State private var message = ""
+    private var filtered: [CatalogItem] {
+        menu.filter { $0.isService == showingServices &&
+            (search.isEmpty || $0.title.localizedStandardContains(search)) }
+    }
     var body: some View {
+        ScrollView {
+            VStack(spacing: 18) {
+                Picker("Catalogue", selection: $showingServices) {
+                    Text("Prestations (\(menu.filter(\.isService).count))").tag(true)
+                    Text("Produits (\(menu.filter { !$0.isService }.count))").tag(false)
+                }.pickerStyle(.segmented)
+                HStack {
+                    Image(systemName: "magnifyingglass").accessibilityHidden(true)
+                    TextField("Rechercher une prestation ou un soin…", text: $search)
+                }.padding(14).background(COVITheme.navy.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
+                if filtered.isEmpty {
+                    ContentUnavailableView(search.isEmpty ? "Catalogue vide" : "Aucun résultat",
+                        systemImage: "list.bullet.rectangle",
+                        description: Text("Ajoutez une référence ou adaptez votre recherche."))
+                } else {
+                    COVICard {
+                        VStack(spacing: 0) {
+                            ForEach(filtered) { item in
+                                NavigationLink {
+                                    SalonCatalogEditor(shop: shop, item: item, actor: actor)
+                                } label: {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: item.isService ? "scissors" : "pump.bottle")
+                                            .font(.title2).frame(width: 48, height: 56)
+                                            .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 12))
+                                            .accessibilityHidden(true)
+                                        VStack(alignment: .leading, spacing: 6) {
+                                            Text(item.title).font(.headline)
+                                            Text(item.soldOut ? "Suspendu" : (item.isService ? "Prestation" : "\(item.stockOnHand - item.stockReserved) disponible(s)"))
+                                                .font(.caption).foregroundStyle(COVITheme.secondaryText)
+                                        }
+                                        Spacer(minLength: 0)
+                                        Text(COVIMoney.text(item.priceMinor, currency: shop.currencyCode))
+                                            .font(.subheadline.bold())
+                                        Image(systemName: "chevron.right").font(.caption).accessibilityHidden(true)
+                                    }.padding(.vertical, 12).foregroundStyle(COVITheme.navy)
+                                }.buttonStyle(.plain)
+                                if item.id != filtered.last?.id { Divider() }
+                            }
+                        }
+                    }
+                }
+            }.padding(18)
+        }
+        .background(COVIBackdrop())
+        .navigationTitle("Catalogue salon")
+        .toolbar { Button("Ajouter", systemImage: "plus") { adding = true } }
+        .sheet(isPresented: $adding) {
+            NavigationStack {
+                addForm.toolbar { Button("Fermer") { adding = false } }
+            }
+        }
+    }
+    private var addForm: some View {
         Form {
             Section("Nouvelle référence") {
                 Picker("Type", selection: $service) { Text("Prestation").tag(true); Text("Produit").tag(false) }.pickerStyle(.segmented)
@@ -265,26 +326,8 @@ struct SalonCatalog: View {
                     } catch { message = error.localizedDescription }
                 }
             }
-            Section("Catalogue actif et suspendu") {
-                if menu.isEmpty {
-                    ContentUnavailableView("Catalogue vide", systemImage: "list.bullet.rectangle",
-                        description: Text("Ajoutez votre première prestation ou produit de soin."))
-                }
-                ForEach(menu) { item in
-                    NavigationLink {
-                        SalonCatalogEditor(shop: shop, item: item, actor: actor)
-                    } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(item.title).font(.headline)
-                            Text("\(item.priceMinor) \(shop.currencyCode) · \(item.salonPercent) %" +
-                                 (item.soldOut ? " · Suspendu" : ""))
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
-                    }
-                }
-            }
-            Text(message)
-        }.navigationTitle("Catalogue salon")
+            if !message.isEmpty { Text(message) }
+        }.navigationTitle("Nouvelle référence")
     }
 }
 

@@ -17,6 +17,7 @@ final class COVISimulatorDiagnostics {
         case restaurantTables = "restaurant-tables"
         case restaurantTable = "restaurant-table"
         case restaurantOrder = "restaurant-order"
+        case salonCatalog = "salon-catalog"
         case salonCheckout = "salon-checkout"
         case salonToday = "salon-today"
         case salonAgenda = "salon-agenda"
@@ -54,6 +55,7 @@ final class COVISimulatorDiagnostics {
     let due: Int64
     let cashReceived: Int64 = 40_000
     private(set) var restaurantSample: RestaurantSample?
+    private(set) var salonCatalogItems: [CatalogItem] = []
     private(set) var salonClock: Date?
     private(set) var salonBooking: SalonBookingSample?
     private(set) var salonProfileID: UUID?
@@ -93,7 +95,7 @@ final class COVISimulatorDiagnostics {
         case .restaurantTables, .restaurantTable, .restaurantOrder:
             kind = .restaurant
             name = "Restaurant de démonstration"
-        case .salonCheckout, .salonToday, .salonAgenda, .salonBooking, .salonBookingConflict, .salonClients, .salonProfile:
+        case .salonCatalog, .salonCheckout, .salonToday, .salonAgenda, .salonBooking, .salonBookingConflict, .salonClients, .salonProfile:
             kind = .salon
             name = "Studio Élégance"
         default:
@@ -237,11 +239,12 @@ final class COVISimulatorDiagnostics {
             priceMinor: 15_000, isService: true)
         for item in [braids, haircut, treatment] { context.insert(item) }
 
-        if scenario == .salonCheckout {
+        if scenario == .salonCheckout || scenario == .salonCatalog {
             braids.priceMinor = 25_000
             let serum = CatalogItem(establishmentID: shop.id, title: "Sérum Karité & Argan", priceMinor: 5_000)
             serum.stockOnHand = 5
             context.insert(serum)
+            salonCatalogItems = [braids, haircut, treatment, serum]
         }
         let appointments: [(name: String, service: CatalogItem, person: SalonStaff,
             startsAfterOpening: Int, duration: Int, walkIn: Bool)] = [
@@ -386,6 +389,10 @@ struct COVISimulatorDiagnosticView: View {
                 // La session mémoire est vide : RootView affiche le véritable accueil
                 // sans compte restauré et sans démarrer une synchronisation.
                 RootView()
+            } else if fixture.scenario == .salonCatalog {
+                NavigationStack {
+                    SalonCatalog(shop: fixture.shop, menu: fixture.salonCatalogItems, actor: fixture.owner)
+                }
             } else if let sample = fixture.restaurantSample, fixture.scenario == .restaurantTable {
                 NavigationStack {
                     RestaurantTable(table: sample.table, order: sample.order, menu: sample.menu,

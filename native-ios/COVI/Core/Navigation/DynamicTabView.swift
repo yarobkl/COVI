@@ -122,7 +122,7 @@ struct DynamicTabView: View {
                 case .salonToday: selected = .today
                 case .salonClients, .salonProfile: selected = .clients
                 case .salonAgenda, .salonBooking, .salonBookingConflict: selected = .agenda
-                case .welcome, .boutiqueHome, .restaurantTable, .restaurantOrder: break
+                case .welcome, .boutiqueHome, .restaurantTable, .restaurantOrder, .salonCatalog: break
                 }
             }
 #else

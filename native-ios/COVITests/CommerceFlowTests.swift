@@ -345,6 +345,31 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<SalonVisit>()), 0)
     }
 
+    func testSalonCatalogRechecksRoleBeforePriceStockAndAvailabilityWrites() throws {
+        let db = try database(), owner = UUID(), employee = UUID()
+        let shop = Establishment(ownerID: owner, name: "Salon", kind: .salon, city: "Brazzaville")
+        let membership = Membership(accountID: employee, establishmentID: shop.id, role: .manager)
+        db.insert(shop); db.insert(membership); try db.save()
+        let product = try SalonLedger.createCatalog(shop: shop, actor: employee, title: "Sérum",
+            price: 5_000, service: false, quantity: 5, percent: 10, db: db)
+        membership.role = .cashier; try db.save()
+        XCTAssertThrowsError(try SalonLedger.editCatalog(product, shop: shop, actor: employee,
+            title: "Autre prix", price: 1, percent: 100, db: db))
+        XCTAssertThrowsError(try SalonLedger.adjustProductStock(product, shop: shop, actor: employee,
+            counted: 100, reason: "Inventaire", db: db))
+        XCTAssertThrowsError(try SalonLedger.setCatalogAvailability(product, shop: shop,
+            actor: employee, available: false, db: db))
+        XCTAssertThrowsError(try SalonLedger.createCatalog(shop: shop, actor: employee, title: "Soin",
+            price: 1, service: true, quantity: 0, percent: 0, db: db))
+        XCTAssertEqual(product.priceMinor, 5_000)
+        XCTAssertEqual(product.stockOnHand, 5)
+        XCTAssertFalse(product.soldOut)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 1)
+        membership.role = .manager; membership.active = false; try db.save()
+        XCTAssertThrowsError(try SalonLedger.editCatalog(product, shop: shop, actor: employee,
+            title: "Sérum", price: 6_000, percent: 10, db: db))
+    }
+
     func testSalonCatalogValidatesNamesRatesAndShopOwnership() throws {
         let db = try database(), owner = UUID()
         let shop = Establishment(ownerID: owner, name: "Salon", kind: .salon, city: "Brazzaville")
@@ -379,7 +404,7 @@ final class CommerceFlowTests: XCTestCase {
         let visit = try XCTUnwrap(db.fetch(FetchDescriptor<SalonVisit>()).first)
         let sale = try SalonLedger.pay(shop: shop, actor: owner, pin: ownerPIN(), client: client,
             team: stylist.name, visit: visit, basket: [service.id: 1], menu: [service],
-            tender: .cash, confirmed: true, received: service.priceMinor, db: db)
+            tender: .cash, confirmed: true, quote: service.priceMinor, received: service.priceMinor, db: db)
         try SalonLedger.editCatalog(service, shop: shop, actor: owner,
             title: "Nouvelle coiffure", price: 7_000, percent: 25, db: db)
         XCTAssertEqual(visit.service, service.id)
@@ -412,10 +437,10 @@ final class CommerceFlowTests: XCTestCase {
             minutes: 30, walkIn: false, db: db))
         XCTAssertThrowsError(try SalonLedger.pay(shop: shop, actor: owner, pin: ownerPIN(),
             client: client, team: stylist.name, visit: nil, basket: [service.id: 1],
-            menu: [service], tender: .cash, confirmed: true, received: service.priceMinor, db: db))
+            menu: [service], tender: .cash, confirmed: true, quote: service.priceMinor, received: service.priceMinor, db: db))
         let sale = try SalonLedger.pay(shop: shop, actor: owner, pin: ownerPIN(),
             client: client, team: stylist.name, visit: visit, basket: [service.id: 1],
-            menu: [service], tender: .cash, confirmed: true, received: service.priceMinor, db: db)
+            menu: [service], tender: .cash, confirmed: true, quote: service.priceMinor, received: service.priceMinor, db: db)
         XCTAssertEqual(visit.receipt, sale.id)
         try SalonLedger.setCatalogAvailability(service, shop: shop, actor: owner,
             available: true, db: db)
@@ -496,12 +521,12 @@ final class CommerceFlowTests: XCTestCase {
         try db.save()
         XCTAssertThrowsError(try SalonLedger.pay(shop: shop, actor: owner, pin: ownerPIN(),
             client: client, team: stylist.name, visit: nil, basket: [item.id: 2],
-            menu: [item], tender: .orange, confirmed: false, db: db))
+            menu: [item], tender: .orange, confirmed: false, quote: item.priceMinor * 2, db: db))
         XCTAssertEqual(item.stockOnHand, 5)
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<PaymentRecord>()), 0)
         _ = try SalonLedger.pay(shop: shop, actor: owner, pin: ownerPIN(),
             client: client, team: stylist.name, visit: nil, basket: [item.id: 2],
-            menu: [item], tender: .orange, confirmed: true, db: db)
+            menu: [item], tender: .orange, confirmed: true, quote: item.priceMinor * 2, db: db)
         XCTAssertEqual(item.stockOnHand, 3)
         XCTAssertEqual(try db.fetch(FetchDescriptor<PaymentRecord>()).first?.method, Tender.orange.rawValue)
     }

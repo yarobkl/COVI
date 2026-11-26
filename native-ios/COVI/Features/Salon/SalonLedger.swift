@@ -101,6 +101,11 @@ enum SalonFault: String, LocalizedError {
         } catch { db.rollback(); throw error }
     }
 
+    private static func requireCatalogAccess(shop: Establishment, actor: UUID, db: ModelContext) throws {
+        let role = try StaffAccess.role(for: actor, in: shop, context: db)
+        guard role == .owner || role == .manager else { throw SalonFault.access }
+    }
+
     private static func catalogTitle(_ title: String, shop: UUID, excluding: UUID?,
                                      db: ModelContext) throws -> String {
         let cleaned = title.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -119,6 +124,7 @@ enum SalonFault: String, LocalizedError {
     static func createCatalog(shop: Establishment, actor: UUID, title: String,
                               price: Int64, service: Bool, quantity: Int, percent: Int,
                               db: ModelContext) throws -> CatalogItem {
+        try requireCatalogAccess(shop: shop, actor: actor, db: db)
         guard shop.kind == .salon, !shop.archived, price > 0, (0...100).contains(percent),
               quantity >= 0, (!service || quantity == 0) else { throw SalonFault.invalid }
         let name = try catalogTitle(title, shop: shop.id, excluding: nil, db: db)
@@ -145,6 +151,7 @@ enum SalonFault: String, LocalizedError {
 
     static func editCatalog(_ item: CatalogItem, shop: Establishment, actor: UUID,
                             title: String, price: Int64, percent: Int, db: ModelContext) throws {
+        try requireCatalogAccess(shop: shop, actor: actor, db: db)
         guard shop.kind == .salon, !shop.archived, item.establishmentID == shop.id,
               price > 0, (0...100).contains(percent) else { throw SalonFault.invalid }
         let name = try catalogTitle(title, shop: shop.id, excluding: item.id, db: db)
@@ -160,6 +167,7 @@ enum SalonFault: String, LocalizedError {
 
     static func setCatalogAvailability(_ item: CatalogItem, shop: Establishment,
                                        actor: UUID, available: Bool, db: ModelContext) throws {
+        try requireCatalogAccess(shop: shop, actor: actor, db: db)
         guard shop.kind == .salon, !shop.archived, item.establishmentID == shop.id else {
             throw SalonFault.invalid
         }
@@ -174,6 +182,7 @@ enum SalonFault: String, LocalizedError {
 
     static func adjustProductStock(_ item: CatalogItem, shop: Establishment,
                                    actor: UUID, counted: Int, reason: String, db: ModelContext) throws {
+        try requireCatalogAccess(shop: shop, actor: actor, db: db)
         let why = reason.trimmingCharacters(in: .whitespacesAndNewlines)
         guard shop.kind == .salon, !shop.archived, item.establishmentID == shop.id,
               !item.isService, counted >= item.stockReserved, counted >= 0,
@@ -271,7 +280,7 @@ enum SalonFault: String, LocalizedError {
 
     @discardableResult static func pay(shop: Establishment, actor: UUID, pin: PINManager, client: SalonClient, team: String,
                     visit: SalonVisit?, basket: [UUID:Int], menu: [CatalogItem],
-                    tender: Tender, confirmed: Bool, quote: Int64? = nil, received: Int64? = nil,
+                    tender: Tender, confirmed: Bool, quote: Int64, received: Int64? = nil,
                     db: ModelContext) throws -> CommerceOrder {
         guard try StaffAccess.mayTakePayment(actor: actor, in: shop, context: db),
               pin.mayOperate(shop: shop, actor: actor) else { throw SalonFault.access }
@@ -286,7 +295,7 @@ enum SalonFault: String, LocalizedError {
                   visit.stylist == team, basket[visit.service] == 1 else { throw SalonFault.stale }
         }
         let due = try total(basket: basket, menu: menu, shop: shop.id)
-        guard quote == nil || quote == due else { throw BoutiqueError.changed }
+        guard quote == due else { throw BoutiqueError.changed }
         guard tender != .cash || (received ?? -1) >= due else { throw SalonFault.invalid }
         let order = CommerceOrder(establishmentID: shop.id, createdByID: actor)
         var validated: [(CatalogItem, Int, Int64)] = []
