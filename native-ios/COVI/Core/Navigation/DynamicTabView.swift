@@ -112,7 +112,7 @@ struct DynamicTabView: View {
         }
         .onAppear {
 #if DEBUG && targetEnvironment(simulator)
-            if let diagnostics, diagnostics.scenario != .welcome,
+            if let diagnostics, [.sale, .checkout].contains(diagnostics.scenario),
                diagnostics.shop.id == establishment.id, diagnostics.owner == accountID,
                role == .owner, pinManager.mayOperate(shop: establishment, actor: accountID) {
                 selected = .sell

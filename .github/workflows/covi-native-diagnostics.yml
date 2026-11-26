@@ -56,7 +56,7 @@ jobs:
           mkdir -p "$CAPTURE_DIR"
           xcrun simctl status_bar "$DEVICE_ID" override --time "9:41" --batteryState charged --batteryLevel 100
           trap 'xcrun simctl status_bar "$DEVICE_ID" clear' EXIT
-          for SCENARIO in welcome boutique-sale boutique-checkout; do
+          for SCENARIO in welcome boutique-home boutique-sale boutique-checkout; do
             MARKER="$APP_DATA/tmp/covi-diagnostic-$SCENARIO.ready"
             rm -f "$MARKER"
             xcrun simctl launch --terminate-running-process "$DEVICE_ID" com.covi.app --covi-diagnostic-scenario "$SCENARIO" -AppleLanguages '(fr)' -AppleLocale fr_FR
@@ -73,6 +73,7 @@ jobs:
           printf '%s\n' \
             "Debug iPhone simulator; synthetic data stored in memory only; no network or TestFlight upload." \
             "welcome: actual RootView with an empty in-memory session." \
+            "boutique-home: BoutiqueSpace with two completed in-memory sales (cash and Airtel Money), and low stock." \
             "boutique-sale/checkout: actual DynamicTabView, BoutiqueSpace and Checkout." \
             "The RootView account header and ShopSyncStatus are not included in the Boutique captures." \
             "Basket: 18,000 + 17,000 XAF; cash received: 40,000 XAF; change: 5,000 XAF." \

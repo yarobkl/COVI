@@ -11,6 +11,7 @@ final class COVISimulatorDiagnostics {
 
     enum Scenario: String {
         case welcome
+        case boutiqueHome = "boutique-home"
         case sale = "boutique-sale"
         case checkout = "boutique-checkout"
     }
@@ -80,6 +81,24 @@ final class COVISimulatorDiagnostics {
             .init(product: shirt, units: 1),
             .init(product: trousers, units: 1)
         ], discount: 0)
+
+        if scenario == .boutiqueHome {
+            let whiteShirt = CatalogItem(establishmentID: shop.id,
+                title: "Chemise Lin Blanc", priceMinor: 18_500)
+            whiteShirt.stockOnHand = 2
+            context.insert(whiteShirt)
+            try context.save()
+
+            try BoutiqueLedger.sell([
+                .init(product: whiteShirt, units: 1)
+            ], discount: 0, quote: whiteShirt.priceMinor, tender: .airtel, received: nil,
+                confirmed: true, shop: shop, actor: owner, pin: pin, context: context)
+            try BoutiqueLedger.sell([
+                .init(product: shirt, units: 1),
+                .init(product: trousers, units: 1)
+            ], discount: 0, quote: due, tender: .cash, received: cashReceived,
+                confirmed: false, shop: shop, actor: owner, pin: pin, context: context)
+        }
     }
 
     /// Le workflow attend ce signal avant la capture ; aucun détail métier n'y figure.

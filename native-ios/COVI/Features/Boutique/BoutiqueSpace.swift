@@ -96,14 +96,20 @@ struct BoutiqueSpace: View {
                     }
                     Rectangle().fill(.white.opacity(0.58)).frame(height: 1)
                     let todaysPayments = payments.filter { Calendar.current.isDateInToday($0.confirmedAt) }
+                    let nonCash = todaysPayments.filter { $0.method != Tender.cash.rawValue }
+                    let mobilePayments = nonCash.filter { Tender(rawValue: $0.method)?.isMobileMoney == true }
+                    let otherPayments = nonCash.filter { Tender(rawValue: $0.method)?.isMobileMoney != true }
                     HStack {
                         amountSummary("Espèces", symbol: "banknote",
                             amount: todaysPayments.filter { $0.method == Tender.cash.rawValue }
                                 .reduce(Int64(0)) { $0 + $1.amountMinor })
                         Rectangle().fill(.white.opacity(0.45)).frame(width: 1, height: 42)
                         amountSummary("Mobile Money", symbol: "iphone",
-                            amount: todaysPayments.filter { $0.method != Tender.cash.rawValue }
-                                .reduce(Int64(0)) { $0 + $1.amountMinor })
+                            amount: mobilePayments.reduce(Int64(0)) { $0 + $1.amountMinor })
+                    }
+                    if !otherPayments.isEmpty {
+                        amountSummary("Autres moyens", symbol: "creditcard",
+                            amount: otherPayments.reduce(Int64(0)) { $0 + $1.amountMinor })
                     }
                 }
                 .foregroundStyle(.white)
@@ -136,16 +142,19 @@ struct BoutiqueSpace: View {
                     COVICard {
                         VStack(alignment: .leading, spacing: 12) {
                             let completed = sales.filter { $0.state == .completed }
+                            let paymentsByOrder = Dictionary(grouping: payments, by: \.orderID)
                             if completed.isEmpty {
                                 Text("Aucune vente pour le moment.")
                                     .foregroundStyle(COVITheme.secondaryText)
                             }
                             ForEach(Array(completed.prefix(4))) { sale in
                                 if sale.id != completed.first?.id { Divider() }
+                                let methods = Set((paymentsByOrder[sale.id] ?? []).map(\.method)).sorted()
+                                let date = sale.createdAt.formatted(date: .abbreviated, time: .shortened)
                                 NavigationLink { ReceiptDetail(order: sale, shop: shop) } label: {
                                     COVIIconRow(symbol: "bag",
                                         title: "#V-\(sale.id.uuidString.prefix(4).uppercased()) · \(COVIMoney.text(sale.totalMinor, currency: shop.currencyCode))",
-                                        detail: sale.createdAt.formatted(date: .abbreviated, time: .shortened))
+                                        detail: (methods + [date]).joined(separator: " · "))
                                 }
                             }
                         }

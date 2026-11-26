@@ -8,6 +8,13 @@ enum Tender: String, CaseIterable {
     case orange = "Orange Money"
     case moov = "Moov Money"
     case other = "Autre moyen reçu en caisse"
+
+    var isMobileMoney: Bool {
+        switch self {
+        case .airtel, .mtn, .orange, .moov: true
+        case .cash, .other: false
+        }
+    }
 }
 
 @Model final class Bale {
