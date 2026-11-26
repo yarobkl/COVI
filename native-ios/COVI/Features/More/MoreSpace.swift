@@ -82,7 +82,7 @@ struct MoreSpace: View {
     @Query private var restaurantOrders: [CommerceOrder]
     @Query private var restaurantPayments: [PaymentRecord]
     @Query private var restaurantRefunds: [Refund]
-    private enum Destination: Hashable { case settings, salonReport, restaurantReport }
+    private enum Destination: Hashable { case settings, salonReport, restaurantReport, restaurantTeam }
     @State private var destination: Destination?
 #if DEBUG && targetEnvironment(simulator)
     @Environment(\.coviSimulatorDiagnostics) private var diagnostics
@@ -153,9 +153,10 @@ struct MoreSpace: View {
                             }
                             .buttonStyle(.plain)
                             Divider()
-                            NavigationLink { OwnerSettings(shop: shop, pinManager: pin) } label: {
+                            Button { destination = .restaurantTeam } label: {
                                 COVIIconRow(symbol: "person.3", title: "Équipe & Accès", detail: nil)
                             }
+                            .buttonStyle(.plain)
                         }
                     }
                 }
@@ -229,12 +230,17 @@ struct MoreSpace: View {
                     RestaurantFinanceReport(shop: shop, orders: restaurantOrders,
                         payments: restaurantPayments, refunds: restaurantRefunds)
                 }
+            case .restaurantTeam:
+                if managesRestaurant {
+                    RestaurantTeamAccess(shop: shop, actor: actor, pin: pin)
+                }
             }
         }
 #if DEBUG && targetEnvironment(simulator)
         .task {
             if managesSalon, diagnostics?.scenario == .salonReport { destination = .salonReport }
             if managesRestaurant, diagnostics?.scenario == .restaurantReport { destination = .restaurantReport }
+            if managesRestaurant, diagnostics?.scenario == .restaurantTeam { destination = .restaurantTeam }
             if shop.kind == .salon, diagnostics?.scenario == .salonSettings { destination = .settings }
         }
 #endif

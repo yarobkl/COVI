@@ -171,6 +171,19 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   l’iPad a dépassé 120 secondes, ce qui a fait échouer la phase de captures
   complète. Le changement de mois et l’export restent à essayer sur appareil.
 
+### Équipe et accès du Restaurant
+
+- La planche `A30B3A65` a été inspectée. Depuis Plus, la liste présente
+  le propriétaire et les adhésions actives du restaurant. Le détail
+  reprend les écrans réellement autorisés et l’état du PIN sur l’iPhone.
+  Les réglages du propriétaire restent accessibles via une action dédiée.
+- L’écran utilise la politique de navigation existante. Le rôle Caissier
+  n’ouvre encore que Plus en Restaurant. L’activation de son flux
+  d’encaissement et les invitations par backend restent à intégrer.
+- Un test couvre la liste des onglets par rôle. Le scénario iPhone
+  comprend quatre membres actifs et une adhésion inactive. Test et capture
+  restent à relever.
+
 ### Contrôles iOS et limites
 
 Les premières compilations ont échoué sur une expression SwiftUI ; le découpage

@@ -295,6 +295,15 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertTrue(csv.contains("\"MTN MoMo\",\"3000\""))
     }
 
+    func testRestaurantTabPolicyListsOnlyScreensCurrentlyGrantedToEachRole() {
+        XCTAssertEqual(TabPolicy.tabs(for: .restaurant, role: .owner), [.service, .tables, .kitchen, .more])
+        XCTAssertEqual(TabPolicy.tabs(for: .restaurant, role: .manager), [.service, .tables, .kitchen, .more])
+        XCTAssertEqual(TabPolicy.tabs(for: .restaurant, role: .waiter), [.service, .tables, .more])
+        XCTAssertEqual(TabPolicy.tabs(for: .restaurant, role: .kitchen), [.kitchen, .more])
+        XCTAssertEqual(TabPolicy.tabs(for: .restaurant, role: .cashier), [.more])
+        XCTAssertEqual(TabPolicy.tabs(for: .restaurant, role: .stylist), [.more])
+    }
+
     func testRestaurantReportKeepsExternalPaymentsSeparateAndTotalsAboveInt64() throws {
         let owner = UUID(), shop = UUID(), otherShop = UUID()
         let date = Date.now

@@ -18,6 +18,7 @@ final class COVISimulatorDiagnostics {
         case restaurantTable = "restaurant-table"
         case restaurantOrder = "restaurant-order"
         case restaurantReport = "restaurant-report"
+        case restaurantTeam = "restaurant-team"
         case salonCatalog = "salon-catalog"
         case salonReport = "salon-report"
         case salonMore = "salon-more"
@@ -93,7 +94,7 @@ final class COVISimulatorDiagnostics {
         let simulatorSession = AppSession(keychain: storage)
         session = simulatorSession
         pin = PINManager(keychain: storage)
-        if scenario == .salonMore || scenario == .salonSettings {
+        if scenario == .salonMore || scenario == .salonSettings || scenario == .restaurantTeam {
             try simulatorSession.createLocalAccount(name: "Camille Démo")
             guard let accountID = simulatorSession.accountID else { throw Failure.invalidScenario }
             owner = accountID
@@ -103,7 +104,7 @@ final class COVISimulatorDiagnostics {
         let kind: BusinessKind
         let name: String
         switch scenario {
-        case .restaurantTables, .restaurantTable, .restaurantOrder, .restaurantReport:
+        case .restaurantTables, .restaurantTable, .restaurantOrder, .restaurantReport, .restaurantTeam:
             kind = .restaurant
             name = "Restaurant de démonstration"
         case .salonCatalog, .salonReport, .salonMore, .salonSettings, .salonCheckout, .salonToday, .salonAgenda, .salonBooking, .salonBookingConflict, .salonClients, .salonProfile:
@@ -122,6 +123,8 @@ final class COVISimulatorDiagnostics {
             due = 0
             if scenario == .restaurantReport {
                 try seedRestaurantReport()
+            } else if scenario == .restaurantTeam {
+                try seedRestaurantTeam()
             } else {
                 restaurantSample = try seedRestaurantTables()
             }
@@ -239,6 +242,30 @@ final class COVISimulatorDiagnostics {
 
         return RestaurantSample(table: occupied, order: active, lines: lines,
             menu: menu, draft: draft, service: service)
+    }
+
+    private func seedRestaurantTeam() throws {
+        let context = container.mainContext
+        context.insert(shop)
+        let team: [(name: String, role: StaffRole, configured: Bool)] = [
+            ("Aline D.", .cashier, true),
+            ("Junior T.", .waiter, true),
+            ("Patrick M.", .kitchen, false)
+        ]
+        for member in team {
+            let account = Account(fullName: member.name, email: "", phone: "")
+            context.insert(account)
+            context.insert(Membership(accountID: account.id, establishmentID: shop.id, role: member.role))
+            if member.configured {
+                try pin.configureCashierPIN("1234", for: account.id, shopID: shop.id)
+            }
+        }
+        let archived = Account(fullName: "Collaborateur inactif", email: "", phone: "")
+        context.insert(archived)
+        let membership = Membership(accountID: archived.id, establishmentID: shop.id, role: .waiter)
+        membership.active = false
+        context.insert(membership)
+        try context.save()
     }
 
     private func seedRestaurantReport() throws {
@@ -506,7 +533,7 @@ struct COVISimulatorDiagnosticView: View {
             // Le formulaire et la fiche Salon signalent leur propre apparition.
             if fixture.salonBooking == nil && fixture.salonProfileID == nil &&
                 fixture.scenario != .salonReport && fixture.scenario != .salonSettings &&
-                fixture.scenario != .restaurantReport {
+                fixture.scenario != .restaurantReport && fixture.scenario != .restaurantTeam {
                 await fixture.signalAfterPresentation()
             }
         }

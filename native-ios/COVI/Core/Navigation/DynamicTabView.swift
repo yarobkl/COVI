@@ -30,6 +30,18 @@ enum TabPolicy {
         case .salon: [.today, .agenda, .checkout, .clients, .more]
         }
     }
+    static func tabs(for kind: BusinessKind, role: StaffRole) -> [BusinessTab] {
+        tabs(for: kind).filter { tab in
+            switch role {
+            case .owner, .manager: true
+            case .cashier: [.home, .sell, .orders, .checkout, .today, .more].contains(tab)
+            case .waiter: [.service, .tables, .more].contains(tab)
+            case .kitchen: [.kitchen, .more].contains(tab)
+            case .stylist: [.today, .agenda, .clients, .more].contains(tab)
+            }
+        }
+    }
+
     static func requiresPIN(_ tab: BusinessTab) -> Bool {
         [.sell, .checkout, .service, .tables, .kitchen].contains(tab)
     }
@@ -48,15 +60,7 @@ struct DynamicTabView: View {
     @Environment(\.coviSimulatorDiagnostics) private var diagnostics
 #endif
 
-    private var tabs: [BusinessTab] { TabPolicy.tabs(for: establishment.kind).filter { tab in
-        switch role {
-        case .owner, .manager: true
-        case .cashier: [.home, .sell, .orders, .checkout, .today, .more].contains(tab)
-        case .waiter: [.service, .tables, .more].contains(tab)
-        case .kitchen: [.kitchen, .more].contains(tab)
-        case .stylist: [.today, .agenda, .clients, .more].contains(tab)
-        }
-    } }
+    private var tabs: [BusinessTab] { TabPolicy.tabs(for: establishment.kind, role: role) }
 
     var body: some View {
         TabView(selection: Binding(
@@ -119,7 +123,7 @@ struct DynamicTabView: View {
                 case .sale, .checkout: selected = .sell
                 case .restaurantTables: selected = .tables
                 case .salonCheckout: selected = .checkout
-                case .salonReport, .salonMore, .salonSettings, .restaurantReport: selected = .more
+                case .salonReport, .salonMore, .salonSettings, .restaurantReport, .restaurantTeam: selected = .more
                 case .salonToday: selected = .today
                 case .salonClients, .salonProfile: selected = .clients
                 case .salonAgenda, .salonBooking, .salonBookingConflict: selected = .agenda
