@@ -316,7 +316,16 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   Symbols, les moyens supplémentaires repliés et un bouton Annuler.
   Dans cette première capture, le bouton de confirmation est coupé en
   bas. Le correctif place l’action dans la zone sûre, agrandit la feuille
-  et affiche la devise de saisie. La nouvelle capture est à contrôler.
+  et affiche la devise de saisie.
+- Sur `e388065`, Debug, **131 XCTest sans échec**, Release et les
+  captures iPhone/iPad ont de nouveau réussi
+  ([diagnostic GitHub](https://github.com/yarobkl/COVI/actions/runs/45841893290),
+  journal `139985439633`, 29 captures). La
+  [nouvelle capture iPhone](https://github.com/yarobkl/COVI/actions/runs/45841893290/artifacts/15130376132)
+  montre le bouton entier, le montant saisi en FCFA et le solde
+  recalculé. Le scénario est réalisé sur simulateur sans confirmation
+  de paiement. Les interactions sur appareil physique et la feuille
+  à taille de texte d’accessibilité restent à vérifier.
 
 ### Contrôles iOS et limites
 
