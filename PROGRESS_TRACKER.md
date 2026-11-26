@@ -89,12 +89,22 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   La comparaison à `57D4B495` confirme le bandeau, les trois collaborateurs
   et les commissions. Les données synthétiques donnent 268 000 FCFA,
   dont 224 000 de prestations et 44 000 de revente, ainsi que 89 600 FCFA
-  de commissions. Le bouton natif ne montrait que le chevron. Un correctif
-  rend la date explicite avec une capsule et aligne le libellé des tickets.
-  Sa nouvelle capture reste à contrôler.
+  de commissions. Le bouton natif ne montrait que le chevron.
+- Sur `dc92b81`, Debug, Release, **123 XCTest sans échec** et les 20 captures
+  ont réussi ([GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45774535872)).
+  La [nouvelle capture iPhone](https://github.com/yarobkl/COVI/actions/runs/45774535872/artifacts/15096597367)
+  a été comparée à `57D4B495`. « nov. 2026 » est visible dans la capsule,
+  les libellés distinguent un ticket et deux tickets et les chiffres restent
+  exacts. Les cartes sont plus hautes que sur la planche et le récapitulatif
+  des commissions occupe une carte supplémentaire. Le changement de période
+  et les contrôles d’accès aux rapports restent à vérifier sur appareil.
 - Le suivi des absences et les demandes publiques représentées par la
   planche restent à intégrer. Leur statut ne peut pas être déduit
   d’un rendez-vous non encaissé.
+
+- Les planches `D2C012FF` (Plus et Paramètres du Salon) et `A30B3A65`
+  (Équipe et Rapports service du Restaurant) ont été retrouvées et vérifiées
+  par leur contenu. Prochaine comparaison sur Plus et Paramètres.
 
 ### Contrôles iOS et limites
 
