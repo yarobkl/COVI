@@ -20,10 +20,12 @@ final class BoutiqueArrivalTests: XCTestCase {
         XCTAssertEqual(try store.pending().count, 1)
         let cachedURL = photo.url.appendingPathExtension("analysis")
         let cachedBytes = try Data(contentsOf: cachedURL)
+        let modified = try cachedURL.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
         let second = try photo.preparedDraft()
         XCTAssertEqual(second.preview, first.preview)
         XCTAssertEqual(second.studio, first.studio)
         XCTAssertEqual(try Data(contentsOf: cachedURL), cachedBytes)
+        XCTAssertEqual(try cachedURL.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate, modified)
         XCTAssertEqual(try Data(contentsOf: photo.url), original)
         try photo.remove()
         XCTAssertTrue(try store.pending().isEmpty)

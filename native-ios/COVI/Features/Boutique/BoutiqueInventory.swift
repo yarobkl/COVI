@@ -234,7 +234,9 @@ struct NewProduct: View {
                         Button("Relancer l’analyse") { loadArrival(arrival) }
                     }
                 } else {
-                    BoutiquePhotoInput(busy: analyzing) { data in analyze { data } }
+                    BoutiquePhotoInput(busy: analyzing) { data in
+                        analyze { try BoutiquePhotoProcessor.process(data) }
+                    }
                 }
                 Text("Reconnaissance sur cet appareil. Vérifiez les propositions avant de créer l’article.")
                     .font(.footnote).foregroundStyle(.secondary)
@@ -287,34 +289,17 @@ struct NewProduct: View {
     private func loadArrival(_ photo: BoutiqueArrivalPhoto) {
         do {
             try BoutiqueInventoryService.checkReceive(shop: shop, actor: actor, context: context)
-            analyzePreparedArrival(photo)
+            analyze { try photo.preparedDraft() }
         } catch { self.error = error.localizedDescription }
     }
 
-    private func analyzePreparedArrival(_ photo: BoutiqueArrivalPhoto) {
-        analyzing = true
-        error = ""
-        Task { @MainActor in
-            defer { analyzing = false }
-            do {
-                let result = try await Task.detached(priority: .userInitiated) {
-                    try photo.preparedDraft()
-                }.value
-                draft = result
-                if title.isEmpty, let suggestion = result.suggestion { title = suggestion }
-                if description.isEmpty, let color = result.color { description = "Couleur proposée : " + color }
-                if quantity == "0" { quantity = "1" }
-            } catch { self.error = error.localizedDescription }
-        }
-    }
-
-    private func analyze(_ load: @escaping @Sendable () throws -> Data) {
+    private func analyze(_ load: @escaping @Sendable () throws -> BoutiquePhotoDraft) {
         analyzing = true; error = ""; draft = nil
         Task { @MainActor in
             defer { analyzing = false }
             do {
                 let result = try await Task.detached(priority: .userInitiated) {
-                    try BoutiquePhotoProcessor.process(load())
+                    try load()
                 }.value
                 draft = result
                 if title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, let suggestion = result.suggestion {
