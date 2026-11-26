@@ -9,6 +9,7 @@ struct SalonCheckout: View {
     let menu: [CatalogItem]
     let visits: [SalonVisit]
     let team: [SalonStaff]
+    @Environment(\.dynamicTypeSize) private var textSize
     @Environment(\.modelContext) private var db
 #if DEBUG && targetEnvironment(simulator)
     @Environment(\.coviSimulatorDiagnostics) private var diagnostics
@@ -27,6 +28,15 @@ struct SalonCheckout: View {
     @State private var message = ""
     @State private var receipt: CommerceOrder?
 
+    private var rowLayout: AnyLayout {
+        textSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
+    }
+    private var paymentTitle: LocalizedStringKey {
+        if textSize.isAccessibilitySize { return "Encaisser" }
+        return "Encaisser \(total.map { COVIMoney.text($0, currency: shop.currencyCode) } ?? "")"
+    }
     private var total: Int64? { try? SalonLedger.total(basket: basket, menu: menu, shop: shop.id) }
     private var visit: SalonVisit? { visits.first { $0.id == visitID } }
     private var client: SalonClient? { clients.first { $0.id == clientID } }
@@ -79,7 +89,7 @@ struct SalonCheckout: View {
     private var payFooter: some View {
             VStack(spacing: 8) {
                 if !message.isEmpty { Text(message).font(.footnote).foregroundStyle(COVITheme.navy) }
-                COVIButton("Encaisser \(total.map { COVIMoney.text($0, currency: shop.currencyCode) } ?? "")") {
+                COVIButton(paymentTitle) {
                     quoted = total; confirm = true
                 }.disabled(!canPay)
             }.padding(.horizontal, 18).padding(.vertical, 12).background(COVITheme.cream)
@@ -101,8 +111,8 @@ struct SalonCheckout: View {
     private var ticketCard: some View {
                 COVICard {
                     VStack(alignment: .leading, spacing: 14) {
-                        Label("Ticket en cours · " + (client?.name ?? "Vente directe"), systemImage: "person.crop.circle")
-                            .font(.title3.bold())
+                        Text("Ticket en cours · " + (client?.name ?? "Vente directe"))
+                            .font(.title3.bold()).fixedSize(horizontal: false, vertical: true)
                         if basket.isEmpty {
                             Text("Importez un rendez-vous ou ajoutez une prestation et ses produits.")
                                 .foregroundStyle(COVITheme.secondaryText)
@@ -112,9 +122,9 @@ struct SalonCheckout: View {
                             return $0.title.localizedStandardCompare($1.title) == .orderedAscending
                         }) { item in
                             Divider()
-                            HStack(alignment: .top, spacing: 12) {
+                            rowLayout {
                                 Image(systemName: item.isService ? "scissors" : "shippingbox")
-                                    .font(.title2).frame(width: 42, height: 48)
+                                    .font(.system(size: 24)).frame(width: 42, height: 48)
                                     .background(COVITheme.sand.opacity(0.3), in: RoundedRectangle(cornerRadius: 12))
                                     .accessibilityHidden(true)
                                 VStack(alignment: .leading, spacing: 5) {
@@ -122,7 +132,7 @@ struct SalonCheckout: View {
                                     Text(item.isService ? "Collaborateur : \(stylist)" : "Quantité : \(basket[item.id] ?? 0) · \(item.stockOnHand - item.stockReserved) disponible(s)")
                                         .font(.caption).foregroundStyle(COVITheme.secondaryText)
                                 }
-                                Spacer(minLength: 0)
+                                if !textSize.isAccessibilitySize { Spacer(minLength: 0) }
                                 if let subtotal = BoutiqueLedger.Line(product: item, units: basket[item.id] ?? 0).subtotal {
                                     Text(COVIMoney.text(subtotal, currency: shop.currencyCode)).font(.subheadline.bold())
                                 }
@@ -155,19 +165,21 @@ struct SalonCheckout: View {
                             }
                         }
                         Divider()
-                        HStack {
+                        rowLayout {
                             Text("Total à encaisser").font(.headline)
-                            Spacer()
+                            if !textSize.isAccessibilitySize { Spacer() }
                             Text(total.map { COVIMoney.text($0, currency: shop.currencyCode) } ?? "Montant invalide")
                                 .font(.title3.bold())
                         }.padding(12)
                         .background(COVITheme.sand.opacity(0.3), in: RoundedRectangle(cornerRadius: 12))
                         if tender == .cash {
-                            HStack {
+                            rowLayout {
                                 Text("Montant reçu")
-                                TextField("0", text: $received).keyboardType(.numberPad)
-                                    .multilineTextAlignment(.trailing).accessibilityLabel("Montant reçu")
-                                Text(shop.currencyCode)
+                                HStack {
+                                    TextField("0", text: $received).keyboardType(.numberPad)
+                                        .multilineTextAlignment(.trailing).accessibilityLabel("Montant reçu")
+                                    Text(shop.currencyCode)
+                                }
                             }
                             if let total, let cash = Int64(received), cash >= total {
                                 LabeledContent("Monnaie à rendre", value: COVIMoney.text(cash - total, currency: shop.currencyCode))
@@ -254,6 +266,7 @@ struct SalonCatalog: View {
     let shop: Establishment
     let menu: [CatalogItem]
     let actor: UUID
+    @Environment(\.dynamicTypeSize) private var textSize
     @Environment(\.modelContext) private var db
     @State private var adding = false
     @State private var search = ""
@@ -264,6 +277,11 @@ struct SalonCatalog: View {
     @State private var percent = 0
     @State private var service = true
     @State private var message = ""
+    private var rowLayout: AnyLayout {
+        textSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: 12))
+    }
     private var filtered: [CatalogItem] {
         menu.filter { $0.isService == showingServices &&
             (search.isEmpty || $0.title.localizedStandardContains(search)) }
@@ -276,7 +294,7 @@ struct SalonCatalog: View {
                     Text("Produits (\(menu.filter { !$0.isService }.count))").tag(false)
                 }.pickerStyle(.segmented)
                 HStack {
-                    Image(systemName: "magnifyingglass").accessibilityHidden(true)
+                    Image(systemName: "magnifyingglass").font(.system(size: 20)).accessibilityHidden(true)
                     TextField("Rechercher une prestation ou un soin…", text: $search)
                 }.padding(14).background(COVITheme.navy.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
                 if filtered.isEmpty {
@@ -290,9 +308,9 @@ struct SalonCatalog: View {
                                 NavigationLink {
                                     SalonCatalogEditor(shop: shop, item: item, actor: actor)
                                 } label: {
-                                    HStack(spacing: 12) {
+                                    rowLayout {
                                         Image(systemName: item.isService ? "scissors" : "shippingbox")
-                                            .font(.title2).frame(width: 48, height: 56)
+                                            .font(.system(size: 24)).frame(width: 48, height: 56)
                                             .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 12))
                                             .accessibilityHidden(true)
                                         VStack(alignment: .leading, spacing: 6) {
@@ -300,10 +318,12 @@ struct SalonCatalog: View {
                                             Text(item.soldOut ? "Suspendu" : (item.isService ? "Prestation" : "\(item.stockOnHand - item.stockReserved) disponible(s)"))
                                                 .font(.caption).foregroundStyle(COVITheme.secondaryText)
                                         }
-                                        Spacer(minLength: 0)
+                                        if !textSize.isAccessibilitySize { Spacer(minLength: 0) }
                                         Text(COVIMoney.text(item.priceMinor, currency: shop.currencyCode))
                                             .font(.subheadline.bold())
-                                        Image(systemName: "chevron.right").font(.caption).accessibilityHidden(true)
+                                        if !textSize.isAccessibilitySize {
+                                            Image(systemName: "chevron.right").font(.caption).accessibilityHidden(true)
+                                        }
                                     }.padding(.vertical, 12).foregroundStyle(COVITheme.navy)
                                 }.buttonStyle(.plain)
                                 if item.id != filtered.last?.id { Divider() }
