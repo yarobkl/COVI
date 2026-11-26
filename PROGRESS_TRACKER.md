@@ -181,8 +181,19 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   n’ouvre encore que Plus en Restaurant. L’activation de son flux
   d’encaissement et les invitations par backend restent à intégrer.
 - Un test couvre la liste des onglets par rôle. Le scénario iPhone
-  comprend quatre membres actifs et une adhésion inactive. Test et capture
-  restent à relever.
+  comprend quatre membres actifs et une adhésion inactive.
+- Sur `3f8b9e9`, Debug et Release compilent, **125 XCTest passent
+  sans échec**, dont le test des onglets Restaurant, et 24 captures sont
+  disponibles ([GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45804213643)).
+  La [capture iPhone](https://github.com/yarobkl/COVI/actions/runs/45804213643/artifacts/15109313137)
+  a été comparée à `A30B3A65`. Les quatre lignes, les badges de rôle
+  et les états PIN locaux sont visibles. L’adhésion inactive est absente.
+  La carte de réglages et l’ordre alphabétique diffèrent de la planche.
+  L’action Inviter dépend encore de l’intégration du backend et les
+  interactions administrateur et responsable restent à vérifier sur appareil.
+- Les planches `A2188A03` (Cuisine, Encaissement partiel, Incident) et
+  `683EE982` (Gestion de la carte, Stock boissons) ont été retrouvées et
+  vérifiées par leur contenu. Reprise visuelle sur Cuisine.
 
 ### Contrôles iOS et limites
 
