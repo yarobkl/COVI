@@ -16,6 +16,7 @@ struct BoutiqueSpace: View {
     @Query private var sales: [CommerceOrder]
     @Query private var payments: [PaymentRecord]
     @State private var search = ""
+    @State private var photoSearch = false
     @State private var basket: [UUID: Int] = [:]
     @State private var discount = ""
     @State private var quote: Quote?
@@ -52,6 +53,13 @@ struct BoutiqueSpace: View {
         .background(COVIBackdrop())
         .navigationTitle(tab.title)
         .navigationBarTitleDisplayMode(.large)
+        .sheet(isPresented: $photoSearch) {
+            BoutiqueSalePhotoSearch(shopID: shop.id, goods: goods, basket: basket,
+                currency: shop.currencyCode) { item in
+                photoSearch = false
+                add(item)
+            }
+        }
         .sheet(item: $quote) { frozen in
             Checkout(due: frozen.due, shop: shop) { tender, received, confirmed in
                 let order = try BoutiqueLedger.sell(lines, discount: rebate, quote: frozen.due, tender: tender, received: received,
@@ -184,6 +192,12 @@ struct BoutiqueSpace: View {
                 HStack {
                     Image(systemName: "magnifyingglass")
                     TextField("Rechercher un produit...", text: $search).autocorrectionDisabled()
+                    Button { photoSearch = true } label: {
+                        Image(systemName: "camera")
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .accessibilityLabel("Rechercher un article par photo")
                 }
                 .padding(15).foregroundStyle(COVITheme.secondaryText)
                 .background(COVITheme.navy.opacity(0.07), in: RoundedRectangle(cornerRadius: 15))
@@ -324,6 +338,87 @@ struct BoutiqueSpace: View {
         }
         basket[item.id] = units + 1
         pin.touch()
+    }
+}
+
+@MainActor
+private struct BoutiqueSalePhotoSearch: View {
+    let shopID: UUID
+    let goods: [CatalogItem]
+    let basket: [UUID: Int]
+    let currency: String
+    let select: (CatalogItem) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var work: Task<[UUID], Error>?
+    @State private var matches: [UUID]?
+    @State private var error = ""
+
+    private var available: [CatalogItem] {
+        goods.filter {
+            !$0.soldOut && $0.stockReserved >= 0 && $0.stockOnHand >= $0.stockReserved
+                && $0.stockOnHand - $0.stockReserved > basket[$0.id, default: 0]
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    BoutiquePhotoInput(busy: work != nil, onPhoto: search)
+                    if !error.isEmpty { Text(error).foregroundStyle(COVITheme.warning) }
+                }
+                if let matches {
+                    let items = matches.compactMap { id in available.first { $0.id == id } }
+                    Section("Articles à vérifier") {
+                        if items.isEmpty {
+                            Text("Aucun article disponible avec une photo locale. Essayez la recherche par nom.")
+                        }
+                        ForEach(items) { item in
+                            Button { select(item) } label: {
+                                HStack {
+                                    BoutiqueProductThumbnail(shopID: shopID, itemID: item.id)
+                                    VStack(alignment: .leading) {
+                                        Text(item.title)
+                                        Text(COVIMoney.text(item.priceMinor, currency: currency))
+                                            .font(.subheadline)
+                                    }
+                                }
+                            }
+                            .accessibilityHint("Ajoute une unité au panier")
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Recherche par photo")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Fermer") { dismiss() }
+                }
+            }
+        }
+        .onDisappear { work?.cancel() }
+    }
+
+    private func search(_ photo: Data) {
+        let ids = available.map(\.id)
+        let establishment = shopID
+        error = ""
+        matches = nil
+        let task = Task.detached(priority: .userInitiated) {
+            try BoutiquePhotoSearch.matches(photo: photo, shopID: establishment, itemIDs: ids)
+        }
+        work = task
+        Task { @MainActor in
+            defer { work = nil }
+            do {
+                matches = try await task.value
+            } catch is CancellationError {
+                return
+            } catch {
+                self.error = error.localizedDescription
+            }
+        }
     }
 }
 

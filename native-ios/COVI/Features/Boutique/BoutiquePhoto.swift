@@ -231,6 +231,43 @@ enum BoutiquePhotoStore {
     }
 }
 
+enum BoutiquePhotoSearch {
+    static func matches(photo: Data, shopID: UUID, itemIDs: [UUID]) throws -> [UUID] {
+        let query = try featurePrint(photo)
+        var distances: [(id: UUID, distance: Float)] = []
+        for itemID in itemIDs {
+            try Task.checkCancellation()
+            guard let data = BoutiquePhotoStore.data(shopID: shopID, itemID: itemID),
+                  let candidate = try? featurePrint(data) else { continue }
+            var distance: Float = 0
+            try query.computeDistance(&distance, to: candidate)
+            if distance.isFinite {
+                distances.append((itemID, distance))
+            }
+        }
+        // Apple does not define a universal matching threshold for these distances.
+        // Rank candidates for human confirmation, without claiming an identification.
+        return distances.sorted {
+            if $0.distance == $1.distance { return $0.id.uuidString < $1.id.uuidString }
+            return $0.distance < $1.distance
+        }.prefix(8).map { $0.id }
+    }
+
+    private static func featurePrint(_ data: Data) throws -> VNFeaturePrintObservation {
+        guard data.count <= 30 * 1024 * 1024 else { throw BoutiquePhotoFault.tooLarge }
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let image = CGImageSourceCreateThumbnailAtIndex(source, 0, [
+                  kCGImageSourceCreateThumbnailFromImageAlways: true,
+                  kCGImageSourceCreateThumbnailWithTransform: true,
+                  kCGImageSourceThumbnailMaxPixelSize: 512
+              ] as CFDictionary) else { throw BoutiquePhotoFault.unreadable }
+        let request = VNGenerateImageFeaturePrintRequest()
+        try VNImageRequestHandler(cgImage: image, options: [:]).perform([request])
+        guard let feature = request.results?.first else { throw BoutiquePhotoFault.unreadable }
+        return feature
+    }
+}
+
 struct BoutiquePhotoInput: View {
     let busy: Bool
     let onPhoto: (Data) -> Void

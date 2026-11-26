@@ -14,6 +14,14 @@ final class BoutiquePhotoTests: XCTestCase {
         XCTAssertThrowsError(try BoutiquePhotoProcessor.process(Data([0, 1, 2])))
     }
 
+    func testPhotoSearchRejectsUnreadableInput() {
+        XCTAssertThrowsError(try BoutiquePhotoSearch.matches(
+            photo: Data([0, 1, 2]), shopID: UUID(), itemIDs: [UUID()]
+        )) { error in
+            XCTAssertEqual(error.localizedDescription, BoutiquePhotoFault.unreadable.localizedDescription)
+        }
+    }
+
     func testPhotoStorageKeepsOriginalAndIsolatesShops() throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: root) }
