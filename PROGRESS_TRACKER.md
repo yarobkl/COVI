@@ -265,11 +265,23 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   rôle en vigueur et protège les réservations existantes. Le test ajouté
   couvre la révocation, le cloisonnement, les quantités invalides et les
   pertes supérieures au disponible.
-- Le scénario de diagnostic ouvre Stock boissons depuis Plus. Il utilise
-  des réassorts enregistrés sur quatre boissons et des réservations
-  simulées. Les résultats XCTest et la comparaison des captures iPhone
-  restent à relever. Les photos et la réservation à la commande suivie de
-  la déduction au service relèvent des étapes suivantes.
+- Sur `02d812b`, les compilations Debug et Release, les **128 XCTest
+  sans échec** et les étapes de capture iPhone et iPad ont réussi
+  ([GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45831958162),
+  journal `139950743285`). Le nouveau test de stock a réussi. L’archive
+  contient 28 captures, dont Stock boissons en taille standard et XXXL.
+- La [capture iPhone](https://github.com/yarobkl/COVI/actions/runs/45831958162/artifacts/15124672832)
+  a été comparée à `683EE982`. Le retour Plus, Réassort, les quatre
+  soldes et les états 32 et 13 en vert, 9 en orange et 0 en rouge
+  correspondent aux exemples de la planche. La liste est alphabétique,
+  les icônes remplacent les photos, et le bandeau explique les opérations
+  locales disponibles. En XXXL, les lignes passent en colonne et le bandeau
+  occupe une grande partie du premier écran. Les formulaires et leur
+  défilement restent à vérifier en interaction.
+- Les réassorts du simulateur sont journalisés et les réservations sont
+  injectées dans les données de démonstration. La réservation automatique
+  à la commande, la déduction au service et la synchronisation sur deux
+  appareils restent à tester ou à intégrer. Le lot 3 se poursuit.
 
 ### Contrôles iOS et limites
 
