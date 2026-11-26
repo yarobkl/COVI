@@ -1,0 +1,40 @@
+name: COVI Native Backend Authority Tests
+on:
+  push:
+    branches: [feature/covi-2-native]
+    paths:
+      - 'native-ios/backend/**'
+      - '.github/workflows/covi-native-backend-tests.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  authority:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: covi-disposable-test
+          POSTGRES_DB: covi_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: covi-disposable-test
+      PGDATABASE: covi_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate isolated native authority without any hosted project
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -f native-ios/backend/tests/bootstrap.sql
+          psql -v ON_ERROR_STOP=1 -f native-ios/backend/migrations/20261125220000_team_authority.sql
+          psql -v ON_ERROR_STOP=1 -f native-ios/backend/tests/team_authority.sql

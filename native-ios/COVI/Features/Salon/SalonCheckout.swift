@@ -42,6 +42,52 @@ struct SalonCheckout: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
+                ticketCard
+                paymentCard
+                if let receipt {
+                    NavigationLink { ReceiptDetail(order: receipt, shop: shop) } label: {
+                        Label("Voir et partager le dernier reçu", systemImage: "receipt")
+                    }.frame(minHeight: 44)
+                }
+            }.foregroundStyle(COVITheme.navy).padding(18)
+        }
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: 8) {
+                if !message.isEmpty { Text(message).font(.footnote).foregroundStyle(COVITheme.navy) }
+                COVIButton("Encaisser " + (total.map { COVIMoney.text($0, currency: shop.currencyCode) } ?? "")) {
+                    quoted = total; confirm = true
+                }.disabled(!canPay)
+            }.padding(.horizontal, 18).padding(.vertical, 12).background(COVITheme.cream)
+        }
+        .toolbar {
+            Button("Importer un RDV", systemImage: "calendar.badge.plus") { importing = true }
+        }
+        .sheet(isPresented: $importing) {
+            importSheet
+        }
+        .sheet(isPresented: $editing) {
+            ticketEditor
+        }
+        .confirmationDialog("Confirmer la réception de " + (quoted.map { COVIMoney.text($0, currency: shop.currencyCode) } ?? "") + " ?", isPresented: $confirm) {
+            Button("Je confirme avoir reçu · " + tender.rawValue) { pay() }
+        }
+        .onAppear {
+            if stylist.isEmpty { stylist = team.first(where: \.active)?.name ?? "" }
+#if DEBUG && targetEnvironment(simulator)
+            if let diagnostics, diagnostics.scenario == .salonCheckout,
+               db.container === diagnostics.container, let sample = visits.first(where: { appointment in
+                   !appointment.cancelled && appointment.receipt == nil && clients.first(where: { $0.id == appointment.client })?.name == "Mireille K."
+               }) {
+                importVisit(sample)
+                for item in menu where !item.isService { basket[item.id] = 1 }
+                received = "35000"
+            }
+#endif
+        }
+        .background(COVIBackdrop())
+    }
+
+    private var ticketCard: some View {
                 COVICard {
                     VStack(alignment: .leading, spacing: 14) {
                         Label("Ticket en cours · " + (client?.name ?? "Vente directe"), systemImage: "person.crop.circle")
@@ -72,6 +118,9 @@ struct SalonCheckout: View {
                             .frame(minHeight: 44)
                     }
                 }
+    }
+
+    private var paymentCard: some View {
                 COVICard {
                     VStack(alignment: .leading, spacing: 14) {
                         Label("Règlement externe", systemImage: "creditcard").font(.title3.bold())
@@ -117,25 +166,9 @@ struct SalonCheckout: View {
                         }
                     }
                 }
-                if let receipt {
-                    NavigationLink { ReceiptDetail(order: receipt, shop: shop) } label: {
-                        Label("Voir et partager le dernier reçu", systemImage: "receipt")
-                    }.frame(minHeight: 44)
-                }
-            }.foregroundStyle(COVITheme.navy).padding(18)
-        }
-        .safeAreaInset(edge: .bottom) {
-            VStack(spacing: 8) {
-                if !message.isEmpty { Text(message).font(.footnote).foregroundStyle(COVITheme.navy) }
-                COVIButton("Encaisser " + (total.map { COVIMoney.text($0, currency: shop.currencyCode) } ?? "")) {
-                    quoted = total; confirm = true
-                }.disabled(!canPay)
-            }.padding(.horizontal, 18).padding(.vertical, 12).background(COVITheme.cream)
-        }
-        .toolbar {
-            Button("Importer un RDV", systemImage: "calendar.badge.plus") { importing = true }
-        }
-        .sheet(isPresented: $importing) {
+    }
+
+    private var importSheet: some View {
             NavigationStack {
                 List {
                     Button("Vente directe") {
@@ -154,8 +187,9 @@ struct SalonCheckout: View {
                 }.navigationTitle("Importer un rendez-vous")
                 .toolbar { Button("Fermer") { importing = false } }
             }
-        }
-        .sheet(isPresented: $editing) {
+    }
+
+    private var ticketEditor: some View {
             NavigationStack {
                 Form {
                     Picker("Client", selection: $clientID) {
@@ -187,24 +221,6 @@ struct SalonCheckout: View {
                 }.navigationTitle("Modifier le ticket")
                 .toolbar { Button("Terminé") { editing = false } }
             }
-        }
-        .confirmationDialog("Confirmer la réception de " + (quoted.map { COVIMoney.text($0, currency: shop.currencyCode) } ?? "") + " ?", isPresented: $confirm) {
-            Button("Je confirme avoir reçu · " + tender.rawValue) { pay() }
-        }
-        .onAppear {
-            if stylist.isEmpty { stylist = team.first(where: \.active)?.name ?? "" }
-#if DEBUG && targetEnvironment(simulator)
-            if let diagnostics, diagnostics.scenario == .salonCheckout,
-               db.container === diagnostics.container, let sample = visits.first(where: { appointment in
-                   !appointment.cancelled && appointment.receipt == nil && clients.first(where: { $0.id == appointment.client })?.name == "Mireille K."
-               }) {
-                importVisit(sample)
-                for item in menu where !item.isService { basket[item.id] = 1 }
-                received = "35000"
-            }
-#endif
-        }
-        .background(COVIBackdrop())
     }
 
     private func pay() {

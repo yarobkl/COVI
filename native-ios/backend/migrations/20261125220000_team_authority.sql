@@ -37,6 +37,39 @@ as $$
      and m.account_id = auth.uid()
      and m.revoked_at is null
     where e.id = target_establishment and e.archived_at is null
+      and auth.uid() is not null
+      and exists (
+          select 1 from auth.sessions s
+          where s.id::text = (auth.jwt() ->> 'session_id')
+            and s.user_id = auth.uid()
+            and (s.not_after is null or s.not_after > now())
+      )
 $$;
 
 revoke all on function covi_native.current_staff_role(uuid) from public, anon, authenticated;
+
+-- Serialize creates/reactivations for an owner; checking only in SwiftUI would
+-- allow a fourth active establishment from another device or direct API call.
+create function covi_native.enforce_establishment_limit()
+returns trigger
+language plpgsql security definer
+set search_path = ''
+as $$
+begin
+    if TG_OP = 'UPDATE' and new.owner_id is distinct from old.owner_id then
+        raise exception 'Ownership transfer requires a separate audited migration' using errcode = '23514';
+    end if;
+    perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(new.owner_id::text, 0));
+    if new.archived_at is null and (
+        select count(*) from covi_native.establishments e
+        where e.owner_id = new.owner_id and e.archived_at is null and e.id <> new.id
+    ) >= 3 then
+        raise exception 'Maximum three active establishments per owner' using errcode = '23514';
+    end if;
+    return new;
+end
+$$;
+revoke all on function covi_native.enforce_establishment_limit() from public, anon, authenticated;
+create trigger enforce_establishment_limit
+before insert or update on covi_native.establishments
+for each row execute function covi_native.enforce_establishment_limit();
