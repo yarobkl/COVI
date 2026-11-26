@@ -138,7 +138,7 @@ struct BoutiqueSpace: View {
                                     detail: lowStock.first.map { "\($0.title) — \($0.stockOnHand - $0.stockReserved) restant(s)" } ?? "Aucune alerte")
                             }
                             Divider()
-                            NavigationLink { BaleList(shop: shop, actor: actor, goods: goods) } label: {
+                            NavigationLink { BoutiqueArrivals(shop: shop, actor: actor, goods: goods) } label: {
                                 COVIIconRow(symbol: "shippingbox", title: "Arrivages", detail: "Consulter les lots et les livraisons")
                             }
                         }
@@ -309,8 +309,8 @@ struct BoutiqueSpace: View {
                 NavigationLink { BoutiqueStockOverview(shop: shop, goods: goods) } label: {
                     COVIIconRow(symbol: "shippingbox", title: "État des stocks", detail: "Quantités et alertes")
                 }
-                NavigationLink { BaleList(shop: shop, actor: actor, goods: goods) } label: {
-                    COVIIconRow(symbol: "shippingbox", title: "Arrivages de balles", detail: "Lots et réceptions")
+                NavigationLink { BoutiqueArrivals(shop: shop, actor: actor, goods: goods) } label: {
+                    COVIIconRow(symbol: "shippingbox", title: "Arrivages", detail: "Captures et réceptions")
                 }
                 NavigationLink { NewProduct(shop: shop, actor: actor) } label: {
                     COVIIconRow(symbol: "plus", title: "Ajouter un article", detail: nil)

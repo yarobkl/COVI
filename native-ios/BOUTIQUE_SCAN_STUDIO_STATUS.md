@@ -9,3 +9,9 @@ Limites de ce lot : analyse d'une image à la fois ; classification générique 
 Le bouton caméra dans Vendre accepte la caméra ou la photothèque et classe localement jusqu’à huit articles disposant d’une photo, à partir des empreintes Vision. Le vendeur confirme l’article avant son ajout au panier. La disponibilité est vérifiée au choix et à l’encaissement. La recherche calcule les empreintes à chaque scan ; les performances sur un catalogue de plusieurs centaines de photos restent à mesurer.
 
 Studio centre le sujet détouré sur le fond beige, avec une marge et sans agrandissement ni déformation. L’original et l’aperçu de la prise de vue utilisent toujours leur cadrage initial.
+
+## Arrivages photo
+
+Depuis Boutique → Stock → Arrivages, un propriétaire ou un responsable sélectionne l’origine et peut enchaîner les captures ou sélectionner jusqu’à 450 photos en photothèque. Chaque fichier est enregistré localement avant que la capture suivante soit autorisée, sans lancer Vision. La liste des captures en attente se rouvre par établissement et origine. L’analyse et le Studio s’exécutent à l’ouverture de la fiche. La confirmation réutilise la création d’article existante et l’identifiant de la capture évite un second mouvement de stock en cas de reprise après sauvegarde.
+
+L’origine organise les files de captures. Le rattachement de chaque article à un lot commercial distinct, la préparation de plusieurs fiches en arrière-plan et les coûts et variantes restent à intégrer. La prise de vue en série et son orientation restent à vérifier sur appareil.

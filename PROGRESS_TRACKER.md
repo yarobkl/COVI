@@ -1,5 +1,11 @@
 # COVI — progression iOS native
 
+## Boutique COVI 2.0 — Arrivages photo
+
+- Capture en série et import groupé, avec sauvegarde locale à chaque photo et reprise de la file par origine.
+- Analyse Studio lors de la vérification de chaque fiche. Confirmation manuelle des prix et quantités, protection contre une double entrée de stock à la reprise.
+- Tests ajoutés pour 450 captures, le cloisonnement des files et la confirmation répétée. Validation macOS et essai caméra sur appareil à effectuer.
+
 ## Boutique COVI 2.0 — Scan en caisse et Studio
 
 - Le diagnostic macOS du premier lot Scan/Studio a réussi les XCTest, la compilation Release pour simulateur et les captures iPhone/iPad.

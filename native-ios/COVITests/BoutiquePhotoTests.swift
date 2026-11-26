@@ -52,6 +52,29 @@ final class BoutiquePhotoTests: XCTestCase {
         XCTAssertNil(BoutiquePhotoStore.data(shopID: shop, itemID: article, root: root))
     }
 
+    func testArrivalConfirmationDoesNotCreateStockTwice() throws {
+        let schema = Schema([Establishment.self, Membership.self, CatalogItem.self, StockMovement.self, OutboxEvent.self])
+        let container = try ModelContainer(for: schema,
+            configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)])
+        let db = ModelContext(container)
+        let owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Boutique", kind: .boutique, city: "Brazzaville")
+        db.insert(shop)
+        try db.save()
+        let id = UUID()
+        defer { try? BoutiquePhotoStore.remove(shopID: shop.id, itemID: id) }
+        let photo = BoutiquePhotoDraft(original: Data([1]), preview: Data([2]),
+            studio: nil, suggestion: nil, color: nil)
+        for _ in 0..<2 {
+            let article = try BoutiqueInventoryService.create(shop: shop, name: "Veste", price: 500,
+                actor: owner, context: db, initialStock: 1, photo: photo, arrivalID: id)
+            XCTAssertEqual(article.id, id)
+            XCTAssertEqual(article.stockOnHand, 1)
+        }
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<CatalogItem>()), 1)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<StockMovement>()), 1)
+    }
+
     func testInitialStockAndPermission() throws {
         let schema = Schema([Establishment.self, Membership.self, CatalogItem.self, StockMovement.self, OutboxEvent.self])
         let container = try ModelContainer(for: schema, configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)])

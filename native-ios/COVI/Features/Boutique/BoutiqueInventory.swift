@@ -123,17 +123,38 @@ struct BoutiqueStockOverview: View {
         return cleaned
     }
 
-    @discardableResult
-    static func create(shop: Establishment, name: String, price: Int64,
-                       actor: UUID, context: ModelContext, initialStock: Int = 0,
-                       photo: BoutiquePhotoDraft? = nil, description: String = "") throws -> CatalogItem {
+    static func checkReceive(shop: Establishment, actor: UUID, context: ModelContext) throws {
         guard shop.kind == .boutique, !shop.archived else { throw Fault.wrongShop }
         let role = try StaffAccess.role(for: actor, in: shop, context: context)
         guard role == .owner || role == .manager else { throw Fault.permission }
+    }
+
+    @discardableResult
+    static func create(shop: Establishment, name: String, price: Int64,
+                       actor: UUID, context: ModelContext, initialStock: Int = 0,
+                       photo: BoutiquePhotoDraft? = nil, description: String = "",
+                       arrivalID: UUID? = nil) throws -> CatalogItem {
+        try checkReceive(shop: shop, actor: actor, context: context)
+        if let arrivalID {
+            let matches = try context.fetch(FetchDescriptor<CatalogItem>(predicate: #Predicate {
+                $0.id == arrivalID
+            }))
+            if let existing = matches.first {
+                guard existing.establishmentID == shop.id, !existing.isService else { throw Fault.wrongShop }
+                return existing
+            }
+            guard photo != nil, initialStock > 0 else { throw Fault.invalid }
+        }
         guard initialStock >= 0 else { throw Fault.invalid }
         let cleaned = try validated(name, price, shopID: shop.id, excluding: nil, context: context)
         let item = CatalogItem(establishmentID: shop.id, title: cleaned, priceMinor: price)
         item.stockOnHand = initialStock
+        if let arrivalID {
+            item.id = arrivalID
+            // A crash between storing the media and committing SwiftData leaves the
+            // queue entry intact. Clear only the incomplete media for this same entry.
+            try BoutiquePhotoStore.remove(shopID: shop.id, itemID: arrivalID)
+        }
         if let photo {
             try BoutiquePhotoStore.save(photo, description: description, shopID: shop.id, itemID: item.id)
         }
@@ -191,6 +212,8 @@ struct BoutiqueStockOverview: View {
 struct NewProduct: View {
     let shop: Establishment
     let actor: UUID
+    var arrival: BoutiqueArrivalPhoto? = nil
+    var onArrivalSaved: (() -> Void)? = nil
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @State private var title = ""
@@ -204,7 +227,15 @@ struct NewProduct: View {
     var body: some View {
         Form {
             Section("COVI Scan") {
-                BoutiquePhotoInput(busy: analyzing) { data in analyze(data) }
+                if let arrival {
+                    if analyzing {
+                        ProgressView("Analyse de la capture…")
+                    } else if draft == nil {
+                        Button("Relancer l’analyse") { loadArrival(arrival) }
+                    }
+                } else {
+                    BoutiquePhotoInput(busy: analyzing) { data in analyze { data } }
+                }
                 Text("Reconnaissance sur cet appareil. Vérifiez les propositions avant de créer l’article.")
                     .font(.footnote).foregroundStyle(.secondary)
                 if let draft {
@@ -215,7 +246,9 @@ struct NewProduct: View {
                     } else {
                         Text("Type non reconnu. Renseignez le nom manuellement.").foregroundStyle(.secondary)
                     }
-                    Button("Retirer la photo", role: .destructive) { self.draft = nil }
+                    if arrival == nil {
+                        Button("Retirer la photo", role: .destructive) { self.draft = nil }
+                    }
                 }
             }
             Section("Fiche article") {
@@ -233,24 +266,39 @@ struct NewProduct: View {
                         guard let stock = Int(quantity), stock >= 0 else { throw BoutiqueInventoryService.Fault.invalid }
                         try BoutiqueInventoryService.create(shop: shop, name: title,
                             price: Int64(price) ?? 0, actor: actor, context: context,
-                            initialStock: stock, photo: draft, description: description)
+                            initialStock: stock, photo: draft, description: description, arrivalID: arrival?.id)
+                        if let arrival {
+                            try? FileManager.default.removeItem(at: arrival.url)
+                            onArrivalSaved?()
+                        }
                         dismiss()
                     } catch { self.error = error.localizedDescription }
                 }
-                .disabled(analyzing)
+                .disabled(analyzing || (arrival != nil && draft == nil))
                 if !error.isEmpty { Text(error).foregroundStyle(.red) }
             }
         }
         .navigationTitle("Nouvel article")
+        .task {
+            if let arrival, draft == nil, !analyzing { loadArrival(arrival) }
+        }
     }
 
-    private func analyze(_ data: Data) {
+    private func loadArrival(_ photo: BoutiqueArrivalPhoto) {
+        do {
+            try BoutiqueInventoryService.checkReceive(shop: shop, actor: actor, context: context)
+            let url = photo.url
+            analyze { try Data(contentsOf: url) }
+        } catch { self.error = error.localizedDescription }
+    }
+
+    private func analyze(_ load: @escaping @Sendable () throws -> Data) {
         analyzing = true; error = ""; draft = nil
         Task { @MainActor in
             defer { analyzing = false }
             do {
                 let result = try await Task.detached(priority: .userInitiated) {
-                    try BoutiquePhotoProcessor.process(data)
+                    try BoutiquePhotoProcessor.process(load())
                 }.value
                 draft = result
                 if title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, let suggestion = result.suggestion {
