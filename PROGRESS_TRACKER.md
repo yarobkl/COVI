@@ -104,7 +104,7 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
 
 - Les planches `D2C012FF` (Plus et Paramètres du Salon) et `A30B3A65`
   (Équipe et Rapports service du Restaurant) ont été retrouvées et vérifiées
-  par leur contenu. Prochaine comparaison sur Plus et Paramètres.
+  par leur contenu. Après Plus et Paramètres, poursuivre les écrans Restaurant de la planche `A30B3A65`.
 
 ### Plus et Paramètres
 
@@ -120,8 +120,22 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   confirme la carte du profil, le compteur 2/3 et les sections de gestion
   et de système. Les lignes sont plus hautes que sur la planche. Le scénario
   Paramètres n’a pas atteint sa destination. Le correctif utilise une route
-  typée commune pour Paramètres et Rapports et resserre les cartes. Nouvelle
-  capture à vérifier.
+  typée commune pour Paramètres et Rapports et resserre les cartes.
+- Sur `457b750`, les journaux confirment Debug, Release et **123 XCTest
+  sans échec** ([GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45783741110)).
+  Les [captures iPhone de Plus et Paramètres](https://github.com/yarobkl/COVI/actions/runs/45783741110/artifacts/15100957009)
+  ont été comparées à `D2C012FF`. Plus montre le profil, le compteur
+  2/3, les accès du salon et les trois premières lignes système.
+  Paramètres affiche le délai de 2 min, les accès PIN, la règle de
+  remboursement, le commerce et la liste de moyens disponibles dans la
+  caisse. Les lignes sont plus hautes, la barre d’onglets reste visible
+  dans Paramètres et la déconnexion demande de défiler. L’en-tête de compte
+  et les statuts iCloud réels sont hors de la capture.
+- Les 20 captures iPhone, dont deux en taille d’accessibilité XXXL,
+  ont été conservées. Le scénario complet a dépassé le délai de 18 min
+  pendant les étapes iPad. L’artefact n’inclut aucune capture iPad de cette
+  révision. Les interactions avec les réglages et la déconnexion restent
+  à vérifier sur appareil.
 - Les états réels de synchronisation et les paiements activés par espace
   devront être vérifiés avec les fonctions métier correspondantes. La règle
   actuelle des remboursements est affichée sans commande de désactivation.

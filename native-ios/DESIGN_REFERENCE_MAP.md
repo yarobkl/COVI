@@ -37,7 +37,7 @@ Les pièces jointes accessibles dans ce lot comprennent **16 fichiers JPEG compo
 | `57D4B495` | Salon : Demandes en ligne, Rapports salon | `SalonCheckout.swift` | Rapport et libellé de période comparés sur [simulateur iPhone](https://github.com/yarobkl/COVI/actions/runs/45774535872/artifacts/15096597367). Densité, interactions, absences et demandes publiques à vérifier ou intégrer. |
 | `683EE982` | Restaurant : Gestion de la carte, Stock boissons | `RestaurantMenu.swift` | Gestion de carte existante ; réservations et réassort des boissons à intégrer |
 | `657B79B7` | Variante Restaurant : Tables, Table 01, Commander | `RestaurantSpace.swift`, `RestaurantMenu.swift` | Variante à conserver comme référence distincte de `2A49F962` |
-| `D2C012FF` | Salon : Plus, Paramètres | `MoreSpace.swift`, `SystemSettings.swift` | Plus restructuré ; paramètres et rôles à finaliser |
+| `D2C012FF` | Salon : Plus, Paramètres | `MoreSpace.swift`, `SystemSettings.swift` | Plus et Paramètres comparés sur [simulateur iPhone](https://github.com/yarobkl/COVI/actions/runs/45783741110/artifacts/15100957009). Densité, en-tête, statuts iCloud, affichage de la déconnexion et interactions à vérifier. |
 
 Le fichier `D2C012FF…(20261119-142926).jpeg` est identique au précédent et n’est **pas un seizième lot distinct**.
 
