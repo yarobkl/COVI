@@ -137,12 +137,13 @@ struct SalonSpace: View {
                 .toolbar { Button("Fermer") { addingClient = false } }
             }
         }
+#if DEBUG && targetEnvironment(simulator)
+        .task {
+            if tab == .agenda, diagnostics?.salonBooking != nil { booking = true }
+        }
+#endif
         .sheet(isPresented: $booking) {
-            SalonBooking(shop: shop.id, actor: actor, currency: shop.currencyCode, clients: clients, menu: menu,
-                         team: activeTeam, visits: visits,
-                         day: tab == .today ? .now : day,
-                         personID: selectedStylist?.id,
-                         initialClient: bookingClientID)
+            bookingSheet.presentationDragIndicator(.visible)
         }
         .confirmationDialog("Annuler le rendez-vous ?", isPresented: Binding(
             get: { cancellingVisit != nil }, set: { if !$0 { cancellingVisit = nil } }
@@ -156,6 +157,29 @@ struct SalonSpace: View {
         } message: {
             Text("Cette action conserve l’historique mais libère le créneau dans l’agenda.")
         }
+    }
+
+    @ViewBuilder private var bookingSheet: some View {
+#if DEBUG && targetEnvironment(simulator)
+        if let diagnostics, let sample = diagnostics.salonBooking {
+            SalonBooking(shop: shop.id, actor: actor, currency: shop.currencyCode,
+                clients: clients, menu: menu, team: activeTeam, visits: visits,
+                day: sample.start, personID: sample.stylistID, initialClient: sample.clientID,
+                initialItem: sample.serviceID, initialMinutes: 120)
+                .task { await diagnostics.signalAfterPresentation() }
+        } else {
+            liveBooking
+        }
+#else
+        liveBooking
+#endif
+    }
+
+    private var liveBooking: some View {
+        SalonBooking(shop: shop.id, actor: actor, currency: shop.currencyCode,
+            clients: clients, menu: menu, team: activeTeam, visits: visits,
+            day: tab == .today ? .now : day, personID: selectedStylist?.id,
+            initialClient: bookingClientID)
     }
 
     @ViewBuilder private var todaySections: some View {
@@ -447,22 +471,49 @@ struct SalonBooking: View {
     let team: [SalonStaff]
     let visits: [SalonVisit]
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var textSize
     @Environment(\.modelContext) private var db
-    @State var day: Date
-    @State var personID: UUID?
-    let initialClient: UUID?
+    @State private var day: Date
+    @State private var personID: UUID?
     @State private var client: UUID?
     @State private var item: UUID?
     @State private var walk = false
-    @State private var minutes = 30
+    @State private var minutes: Int
+    @State private var editingSlot = false
     @State private var message = ""
+
+    init(shop: UUID, actor: UUID, currency: String, clients: [SalonClient], menu: [CatalogItem],
+         team: [SalonStaff], visits: [SalonVisit], day: Date, personID: UUID?, initialClient: UUID?,
+         initialItem: UUID? = nil, initialMinutes: Int = 30) {
+        self.shop = shop
+        self.actor = actor
+        self.currency = currency
+        self.clients = clients
+        self.menu = menu
+        self.team = team
+        self.visits = visits
+        let now = Date.now
+        _day = State(initialValue: day < now.addingTimeInterval(5 * 60) ? now.addingTimeInterval(15 * 60) : day)
+        _personID = State(initialValue: personID)
+        _client = State(initialValue: initialClient)
+        _item = State(initialValue: initialItem)
+        _minutes = State(initialValue: initialMinutes)
+    }
+
+    private var offeredServices: [CatalogItem] { menu.filter { $0.isService && !$0.soldOut } }
     private var chosenClient: SalonClient? { clients.first { $0.id == client } }
-    private var chosenItem: CatalogItem? { menu.first { $0.id == item } }
-    private var chosenStylist: SalonStaff? { team.first { $0.id == personID } }
+    private var chosenItem: CatalogItem? { offeredServices.first { $0.id == item } }
+    private var chosenStylist: SalonStaff? { team.first { $0.id == personID && $0.active } }
     private var chosenStart: Date { walk ? .now : day }
+    private var bookingWindow: ClosedRange<Date> {
+        let now = Date.now
+        return now...now.addingTimeInterval(366 * 24 * 3_600)
+    }
     private var slotAvailable: Bool? {
-        guard let chosenClient, let chosenStylist else { return nil }
+        guard let chosenClient, chosenItem != nil, let chosenStylist else { return nil }
         let start = chosenStart
+        let window = bookingWindow
+        guard start >= window.lowerBound.addingTimeInterval(-60), start <= window.upperBound else { return false }
         let end = start.addingTimeInterval(TimeInterval(minutes * 60))
         return !visits.contains {
             !$0.cancelled && $0.shop == shop &&
@@ -470,69 +521,92 @@ struct SalonBooking: View {
             $0.start < end && $0.end > start
         }
     }
+
+    private var slotSummary: String {
+        if walk { return "Maintenant · \(minutes) min" }
+        let end = day.addingTimeInterval(TimeInterval(minutes * 60))
+        let endDate: Date.FormatStyle.DateStyle = Calendar.current.isDate(day, inSameDayAs: end) ? .omitted : .abbreviated
+        return day.formatted(date: .abbreviated, time: .shortened) + " – " +
+            end.formatted(date: endDate, time: .shortened)
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 23) {
-                    HStack(spacing: 0) {
-                        forEachArrival(false, label: "Rendez-vous prévu")
-                        forEachArrival(true, label: "Passage spontané")
+                VStack(alignment: .leading, spacing: 16) {
+                    let arrivalLayout = textSize.isAccessibilitySize ?
+                        AnyLayout(VStackLayout(spacing: 2)) : AnyLayout(HStackLayout(spacing: 2))
+                    arrivalLayout {
+                        arrivalMode("Rendez-vous prévu", spontaneous: false)
+                        arrivalMode("Passage spontané", spontaneous: true)
                     }
-                    .padding(4)
-                    .background(.white, in: Capsule())
+                    .padding(3)
+                    .background(.white, in: RoundedRectangle(cornerRadius: 16))
+                    .accessibilityElement(children: .contain)
+                    .accessibilityLabel("Type de rendez-vous")
+
                     COVICard {
-                        VStack(spacing: 17) {
-                            HStack(spacing: 12) {
-                                bookingIcon("person")
+                        VStack(spacing: 8) {
+                            Menu {
                                 Picker("Client", selection: $client) {
                                     Text("Choisir un client").tag(nil as UUID?)
                                     ForEach(clients) { Text($0.name).tag(Optional($0.id)) }
                                 }
-                                .tint(COVITheme.navy)
+                            } label: {
+                                bookingRow("Client", symbol: "person", detail: chosenClient?.name ?? "Choisir un client",
+                                    extra: chosenClient.flatMap { $0.phone.isEmpty ? nil : $0.phone }, showsChevron: true)
                             }
                             Divider()
-                            HStack(spacing: 12) {
-                                bookingIcon("scissors")
+                            Menu {
                                 Picker("Prestation", selection: $item) {
                                     Text("Choisir une prestation").tag(nil as UUID?)
-                                    ForEach(menu.filter { $0.isService && !$0.soldOut }) {
-                                        Text("\($0.title) · \(COVIMoney.text($0.priceMinor, currency: currency))")
-                                            .tag(Optional($0.id))
+                                    ForEach(offeredServices) { service in
+                                        Text("\(service.title) · \(COVIMoney.text(service.priceMinor, currency: currency))")
+                                            .tag(Optional(service.id))
                                     }
                                 }
-                                .tint(COVITheme.navy)
+                            } label: {
+                                bookingRow("Prestation", symbol: "scissors",
+                                    detail: chosenItem?.title ?? "Choisir une prestation",
+                                    extra: chosenItem.map { COVIMoney.text($0.priceMinor, currency: currency) }, showsChevron: true)
                             }
                             Divider()
-                            HStack(spacing: 12) {
-                                bookingIcon("person.2")
+                            Menu {
                                 Picker("Collaborateur", selection: $personID) {
                                     Text("Choisir un collaborateur").tag(nil as UUID?)
                                     ForEach(team) { person in Text(person.name).tag(Optional(person.id)) }
                                 }
-                                .tint(COVITheme.navy)
+                            } label: {
+                                bookingRow("Collaborateur", symbol: "person.2",
+                                    detail: chosenStylist?.name ?? "Choisir un collaborateur", showsChevron: true)
                             }
                             Divider()
-                            HStack(spacing: 12) {
-                                bookingIcon("calendar")
-                                if walk {
-                                    LabeledContent("Créneau", value: "Maintenant")
-                                } else {
-                                    DatePicker("Créneau", selection: $day,
-                                        in: Date.now...Date.now.addingTimeInterval(366 * 24 * 3_600))
-                                        .tint(COVITheme.navy)
+                            DisclosureGroup(isExpanded: $editingSlot) {
+                                VStack(spacing: 10) {
+                                    if !walk {
+                                        DatePicker("Date et heure", selection: $day, in: bookingWindow)
+                                    }
+                                    Stepper("Durée : \(minutes) min", value: $minutes, in: 5...720, step: 5)
                                 }
+                                .padding(.vertical, 8)
+                            } label: {
+                                bookingRow("Créneau", symbol: "calendar", detail: slotSummary)
                             }
-                            Divider()
-                            Stepper("Durée : \(minutes) minutes", value: $minutes, in: 5...720, step: 5)
-                                .tint(COVITheme.navy)
+
                             if let slotAvailable {
-                                COVIBadge(title: slotAvailable ? "Créneau libre (sans chevauchement)" :
-                                        "Créneau indisponible", tint: slotAvailable ? COVITheme.successTint : COVITheme.dangerTint,
-                                        foreground: slotAvailable ? COVITheme.success : .red)
+                                Label(slotAvailable ? "Créneau libre (sans chevauchement)" : "Créneau indisponible",
+                                    systemImage: slotAvailable ? "checkmark" : "exclamationmark.circle")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(slotAvailable ? COVITheme.success : .red)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, 10).padding(.vertical, 6)
                                     .frame(maxWidth: .infinity)
+                                    .background(slotAvailable ? COVITheme.successTint : COVITheme.dangerTint,
+                                                in: RoundedRectangle(cornerRadius: 12))
                             }
                         }
                         .foregroundStyle(COVITheme.navy)
+                        .tint(COVITheme.navy)
                     }
                     if !message.isEmpty { Text(message).foregroundStyle(.red).font(.footnote) }
                 }
@@ -543,7 +617,8 @@ struct SalonBooking: View {
             .navigationBarTitleDisplayMode(.inline)
             .safeAreaInset(edge: .bottom) {
                 COVIButton("Confirmer le rendez-vous") { saveBooking() }
-                    .disabled(chosenClient == nil || chosenItem == nil || chosenStylist == nil || slotAvailable == false)
+                    .disabled(slotAvailable != true)
+                    .opacity(slotAvailable == true ? 1 : 0.45)
                     .padding(.horizontal, 18).padding(.vertical, 12)
                     .background(COVITheme.cream)
             }
@@ -551,33 +626,57 @@ struct SalonBooking: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Annuler") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Enregistrer") { saveBooking() }
-                        .disabled(chosenClient == nil || chosenItem == nil || chosenStylist == nil || slotAvailable == false)
-                }
-            }
-            .onAppear {
-                if let initialClient { client = initialClient }
-                if day < Date.now.addingTimeInterval(5 * 60) {
-                    day = Date.now.addingTimeInterval(15 * 60)
+                        .disabled(slotAvailable != true)
                 }
             }
         }
     }
 
-    private func forEachArrival(_ spontaneous: Bool, label: String) -> some View {
-        Button { walk = spontaneous } label: {
-            Text(label)
+    private func arrivalMode(_ title: String, spontaneous: Bool) -> some View {
+        let selected = walk == spontaneous
+        return Button {
+            walk = spontaneous
+        } label: {
+            Text(title)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(walk == spontaneous ? .white : COVITheme.navy)
-                .frame(maxWidth: .infinity).padding(.vertical, 13)
-                .background(walk == spontaneous ? COVITheme.navy : .clear, in: Capsule())
-        }.buttonStyle(.plain)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 6).padding(.vertical, 8)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .foregroundStyle(selected ? .white : COVITheme.navy)
+                .background(selected ? COVITheme.navy : .clear, in: RoundedRectangle(cornerRadius: 13))
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
-    private func bookingIcon(_ symbol: String) -> some View {
-        Image(systemName: symbol)
-            .font(.title3).foregroundStyle(COVITheme.navy)
-            .frame(width: 46, height: 46)
-            .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 13))
+    private func bookingRow(_ title: String, symbol: String, detail: String, extra: String? = nil,
+                            showsChevron: Bool = false) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: symbol)
+                .font(.title3)
+                .frame(width: 41, height: 41)
+                .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 11))
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title).font(.subheadline.bold())
+                Text(detail).font(.subheadline)
+                if let extra {
+                    Text(extra)
+                        .font(.caption)
+                        .foregroundStyle(COVITheme.secondaryText)
+                }
+            }
+            Spacer(minLength: 4)
+            if showsChevron {
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .accessibilityHidden(true)
+            }
+        }
+        .foregroundStyle(COVITheme.navy)
+        .frame(minHeight: 44)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
     }
 
     private func saveBooking() {

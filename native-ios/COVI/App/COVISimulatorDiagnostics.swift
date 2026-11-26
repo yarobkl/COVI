@@ -19,6 +19,8 @@ final class COVISimulatorDiagnostics {
         case restaurantOrder = "restaurant-order"
         case salonToday = "salon-today"
         case salonAgenda = "salon-agenda"
+        case salonBooking = "salon-booking"
+        case salonBookingConflict = "salon-booking-conflict"
     }
 
     struct RestaurantSample {
@@ -28,6 +30,13 @@ final class COVISimulatorDiagnostics {
         let menu: [CatalogItem]
         let draft: [UUID: Int]
         let service: RestaurantService
+    }
+
+    struct SalonBookingSample {
+        let clientID: UUID
+        let serviceID: UUID
+        let stylistID: UUID
+        let start: Date
     }
 
     enum Failure: Error { case invalidScenario }
@@ -43,6 +52,7 @@ final class COVISimulatorDiagnostics {
     let cashReceived: Int64 = 40_000
     private(set) var restaurantSample: RestaurantSample?
     private(set) var salonClock: Date?
+    private(set) var salonBooking: SalonBookingSample?
 
     init(arguments: [String]) throws {
         guard let index = arguments.firstIndex(of: Self.argument),
@@ -79,7 +89,7 @@ final class COVISimulatorDiagnostics {
         case .restaurantTables, .restaurantTable, .restaurantOrder:
             kind = .restaurant
             name = "Restaurant de démonstration"
-        case .salonToday, .salonAgenda:
+        case .salonToday, .salonAgenda, .salonBooking, .salonBookingConflict:
             kind = .salon
             name = "Studio Élégance"
         default:
@@ -247,11 +257,40 @@ final class COVISimulatorDiagnostics {
             stylist: sarah.name, start: opening, end: opening.addingTimeInterval(20 * 60), walkIn: false)
         paid.receipt = order.id
         context.insert(paid)
+
+        if scenario == .salonBooking || scenario == .salonBookingConflict {
+            let calendar = Calendar.current
+            guard let tomorrow = calendar.date(byAdding: .day, value: 1, to: opening),
+                  let start = calendar.date(bySettingHour: 15, minute: 0, second: 0, of: tomorrow) else {
+                throw Failure.invalidScenario
+            }
+            let client = SalonClient(shop: shop.id, name: "Grâce Tchicaya")
+            client.phone = "+242 06 410 22 15"
+            let service = CatalogItem(establishmentID: shop.id, title: "Tresses Knotless Moyennes",
+                priceMinor: 25_000, isService: true)
+            context.insert(client)
+            context.insert(service)
+            if scenario == .salonBookingConflict {
+                context.insert(SalonVisit(shop: shop.id, client: paidClient.id, service: treatment.id,
+                    stylist: sarah.name, start: start, end: start.addingTimeInterval(3_600), walkIn: false))
+            }
+            salonBooking = SalonBookingSample(clientID: client.id, serviceID: service.id,
+                stylistID: sarah.id, start: start)
+        }
         try context.save()
     }
 
     /// Le workflow attend ce signal avant la capture ; aucun détail métier n'y figure.
-    func signalReady() throws {
+    func signalAfterPresentation() async {
+        do {
+            try await Task.sleep(nanoseconds: 2_000_000_000)
+            try signalReady()
+        } catch {
+            // Une présentation annulée ou un signal impossible font échouer le diagnostic.
+        }
+    }
+
+    private func signalReady() throws {
         let marker = FileManager.default.temporaryDirectory
             .appendingPathComponent("covi-diagnostic-\(scenario.rawValue).ready")
         try Data(scenario.rawValue.utf8).write(to: marker, options: .atomic)
@@ -305,13 +344,8 @@ struct COVISimulatorDiagnosticView: View {
         .environment(\.coviSimulatorDiagnostics, fixture)
         .allowsHitTesting(false)
         .task {
-            do {
-                // Laisse se terminer les tâches d'état et la présentation native de sheet.
-                try await Task.sleep(nanoseconds: 2_000_000_000)
-                try fixture.signalReady()
-            } catch {
-                // Pas de signal en cas d'annulation/échec : le workflow échoue fermé.
-            }
+            // Pour le Salon, la feuille doit être apparue avant de signaler la capture.
+            if fixture.salonBooking == nil { await fixture.signalAfterPresentation() }
         }
     }
 }

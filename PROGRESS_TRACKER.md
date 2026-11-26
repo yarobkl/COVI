@@ -161,8 +161,13 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   diffèrent. Les deux écrans restent à rapprocher de la maquette et à vérifier
   sur appareil physique.
 - La gestion explicite des fauteuils, des arrivées, des absences et des
-  demandes en ligne reste à traiter dans les lots métier. Le formulaire de
-  réservation demande encore une capture et une comparaison.
+  demandes en ligne reste à traiter dans les lots métier.
+- Nouveau rendez-vous regroupe le client, la prestation avec son tarif,
+  le collaborateur et le créneau. La date et la durée se règlent depuis
+  la ligne Créneau. La confirmation reste au bas de la feuille et dépend
+  du contrôle local de disponibilité. Le service revérifie le créneau à
+  l’enregistrement. Deux diagnostics couvrent les états libre et occupé ;
+  preuves macOS et comparaison à la planche à relever.
 
 ### Suite du lot 1
 
