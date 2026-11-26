@@ -410,9 +410,19 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   case libre et ne déplace pas ses autres tables. Les changements
   sont enregistrés localement par établissement, avec les contrôles
   de rôle et de PIN.
-- Le scénario Terrasse charge deux tables dans un espace créé en
-  mémoire. La compilation, les tests de reprise des plans locaux
-  et la comparaison de la capture sont à vérifier.
+- Sur `123912e`, les compilations Debug et Release et les **140 XCTest
+  sans échec** ont réussi. Le test de reprise reconstruit le format
+  historique et vérifie le déplacement, la permutation limitée à
+  un même espace, le refus d’une destination occupée et la réouverture
+  après renommage. L’exécution a produit 32 captures.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45871562740)
+- Les [captures iPhone](https://github.com/yarobkl/COVI/actions/runs/45871562740/artifacts/15144681293)
+  ont été comparées à la planche Salle. Le scénario Terrasse préchargé
+  en mémoire montre son nom, ses deux tables et ses propres compteurs.
+  En salle principale, le sélecteur peut sortir de l’écran lorsque
+  l’ouverture du résumé fait défiler le plan. La création et le
+  transfert par interaction, le placement libre et la synchronisation
+  entre appareils restent à vérifier ou à intégrer.
 
 ### Contrôles iOS et limites
 

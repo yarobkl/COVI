@@ -21,6 +21,12 @@ L’écran SwiftUI ouvre depuis ce panneau un formulaire de forme, rotation
 et position enregistré sur l’appareil. Le décor de la salle, le placement
 libre et les commandes annexes de la maquette restent à intégrer.
 
+Le sélecteur des salles et terrasses reprend le nom d’espace de la
+planche. La [capture Terrasse](https://github.com/yarobkl/COVI/actions/runs/45871562740/artifacts/15144681293)
+montre deux tables, leurs chaises et les compteurs de l’espace. Le
+sélecteur est au-dessus du plan dans la zone de défilement. La planche
+le place dans l’en-tête. Les interactions sur appareil restent à essayer.
+
 ## Reprise du lot visuel COVI 2.0
 
 - Le build TestFlight 1.0.13 (10051), issu du commit `6eb37ed`, valide la
