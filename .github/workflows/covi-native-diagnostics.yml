@@ -12,7 +12,7 @@ on:
 jobs:
   diagnose:
     runs-on: macos-15
-    timeout-minutes: 35
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - name: Install XcodeGen
@@ -99,23 +99,7 @@ jobs:
             run_bounded xcrun simctl io "$DEVICE_ID" screenshot "$CAPTURE_DIR/$SCENARIO-accessibility-xxxl.png"
           done
           run_bounded xcrun simctl ui "$DEVICE_ID" content_size large
-          IPAD_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; data=json.load(sys.stdin); devices=[d for group in data["devices"].values() for d in group if d["isAvailable"] and "iPad" in d["name"]]; print(devices[0]["udid"] if devices else "")')
-          test -n "$IPAD_ID"
-          xcrun simctl boot "$IPAD_ID" 2>/dev/null || true
-          run_bounded xcrun simctl bootstatus "$IPAD_ID" -b
-          run_bounded xcrun simctl install "$IPAD_ID" "$APP_PATH"
-          IPAD_DATA=$(xcrun simctl get_app_container "$IPAD_ID" com.covi.app data)
-          for SCENARIO in salon-checkout salon-catalog; do
-            MARKER="$IPAD_DATA/tmp/covi-diagnostic-$SCENARIO.ready"
-            rm -f "$MARKER"
-            xcrun simctl launch --terminate-running-process "$IPAD_ID" com.covi.app --covi-diagnostic-scenario "$SCENARIO" -AppleLanguages '(fr)' -AppleLocale fr_FR
-            for ATTEMPT in {1..20}; do
-              if [ -f "$MARKER" ]; then break; fi
-              sleep 1
-            done
-            test "$(cat "$MARKER")" = "$SCENARIO"
-            run_bounded xcrun simctl io "$IPAD_ID" screenshot "$CAPTURE_DIR/$SCENARIO-iPad.png"
-          done
+          echo "COVI_DIAGNOSTIC_IPHONE=$DEVICE_ID" >> "$GITHUB_ENV"
           printf '%s\n' \
             "Debug iPhone simulator; synthetic data stored in memory only; no network or TestFlight upload." \
             "welcome: actual RootView with an empty in-memory session." \
@@ -134,9 +118,56 @@ jobs:
             "restaurant-menu: actual Plus destination with grouped dishes, a drink and a sold-out item in memory." \
             "Account header and ShopSyncStatus are outside the business captures." \
             "Basket: 18,000 + 17,000 XAF; cash received: 40,000 XAF; change: 5,000 XAF." \
-            "Salon checkout/catalog also captured on iPad simulator and iPhone accessibility XXXL; physical devices, interaction and cross-account sync remain unverified." \
+            "Salon checkout/catalog include iPhone accessibility XXXL. The iPad step records separate proof; physical devices, interaction and cross-account sync remain unverified." \
             > "$CAPTURE_DIR/capture-notes.txt"
-      - name: Save iPhone visual proof
+      - name: Capture Salon checkout and catalog on iPad
+        if: success()
+        timeout-minutes: 12
+        working-directory: native-ios
+        run: |
+          set -euo pipefail
+          xcrun simctl shutdown "$COVI_DIAGNOSTIC_IPHONE" || true
+          IPAD_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; data=json.load(sys.stdin); devices=[d for group in data["devices"].values() for d in group if d["isAvailable"] and "iPad" in d["name"]]; print(devices[0]["udid"] if devices else "")')
+          test -n "$IPAD_ID"
+          wait_for_ipad() {
+            python3 -c '
+          import subprocess, sys
+          try:
+              subprocess.run(["xcrun", "simctl", "bootstatus", sys.argv[1], "-b"], check=True, timeout=180)
+          except subprocess.TimeoutExpired:
+              print("iPad boot did not complete in 180 seconds.", flush=True)
+              sys.exit(124)
+          except subprocess.CalledProcessError as error:
+              sys.exit(error.returncode)
+          ' "$IPAD_ID"
+          }
+          xcrun simctl boot "$IPAD_ID" 2>/dev/null || true
+          if ! wait_for_ipad; then
+            xcrun simctl shutdown "$IPAD_ID" || true
+            xcrun simctl boot "$IPAD_ID" 2>/dev/null || true
+            wait_for_ipad
+          fi
+          APP_PATH=$(find "$HOME/Library/Developer/Xcode/DerivedData" -path '*/Build/Products/Debug-iphonesimulator/COVI.app' -type d -print -quit)
+          test -n "$APP_PATH"
+          xcrun simctl install "$IPAD_ID" "$APP_PATH"
+          IPAD_DATA=$(xcrun simctl get_app_container "$IPAD_ID" com.covi.app data)
+          CAPTURE_DIR="$RUNNER_TEMP/COVI-visual-diagnostics"
+          for SCENARIO in salon-checkout salon-catalog; do
+            MARKER="$IPAD_DATA/tmp/covi-diagnostic-$SCENARIO.ready"
+            rm -f "$MARKER"
+            xcrun simctl launch --terminate-running-process "$IPAD_ID" com.covi.app --covi-diagnostic-scenario "$SCENARIO" -AppleLanguages '(fr)' -AppleLocale fr_FR
+            for ATTEMPT in {1..20}; do
+              if [ -f "$MARKER" ]; then break; fi
+              sleep 1
+            done
+            if [ ! -f "$MARKER" ] || [ "$(cat "$MARKER")" != "$SCENARIO" ]; then
+              echo "iPad diagnostic scenario did not become ready: $SCENARIO"
+              exit 1
+            fi
+            xcrun simctl io "$IPAD_ID" screenshot "$CAPTURE_DIR/$SCENARIO-iPad.png"
+          done
+          printf '%s\n' "iPad simulator: Caisse and Catalogue Salon both captured." >> "$CAPTURE_DIR/capture-notes.txt"
+      - name: Save simulator visual proof
         if: always()
         uses: actions/upload-artifact@v4
         with:

@@ -228,7 +228,22 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   le rôle et contrôle le PIN, les doublons et l’établissement. Une
   demande de disponibilité identique ne crée pas d’événement supplémentaire.
 - Un test couvre les doublons, l’isolement et la révocation. Le scénario
-  iPhone ouvre l’écran depuis Plus. Tests et comparaison restent à relever.
+  iPhone ouvre l’écran depuis Plus.
+- Sur `e36dbde`, les compilations Debug et Release et **127 XCTest
+  sans échec** ont réussi, dont le test d’administration de la carte
+  ([GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45821233757)).
+  La [capture iPhone](https://github.com/yarobkl/COVI/actions/runs/45821233757/artifacts/15120090159)
+  a été comparée à `683EE982`. Elle affiche 4 plats, 1 boisson, la
+  recherche, l’ajout, les prix et les interrupteurs. Le Liboké en rupture
+  est identifié et désactivé. Les icônes remplacent les photos
+  absentes du modèle, et la barre d’onglets est visible. Les interactions
+  de recherche, d’ajout et de modification restent à essayer sur appareil.
+- Le diagnostic a conservé ses 24 captures iPhone. Le démarrage de l’iPad
+  a dépassé 120 secondes. Le workflow isole désormais cette étape,
+  arrête le simulateur iPhone avant de démarrer l’iPad et réessaie le
+  démarrage une fois. Une vérification du script avec des commandes
+  simulées a couvert l’échec initial et la production de deux fichiers.
+  Le prochain run macOS doit confirmer le comportement réel.
 - Les photos, les sous-catégories et le stock boissons avec réservation,
   réassort et pertes restent à intégrer à leurs données métier.
 
