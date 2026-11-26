@@ -23,3 +23,9 @@ L’action « Préparer les photos avec COVI Studio » traite les captures en at
 La préparation est suspendue quand l’application devient inactive ou que l’utilisateur quitte la file. La reprise réutilise les résultats terminés. Les captures et leurs analyses sont retirées ensemble après la création de l’article ou une suppression explicite. Le maintien du traitement pendant une suspension prolongée d’iOS reste à développer. Les essais caméra sur appareil, les coûts et variantes, la synchronisation et la conservation J+30 restent ouverts.
 
 Validation du lot : le diagnostic macOS 45881995888 a réussi sur le commit fe336fe, avec 144 XCTest sans échec, compilations Debug et Release pour simulateur et captures de régression iPhone/iPad. Le test du cache vérifie sa réutilisation sans réécriture, la conservation de l’original et sa suppression avec la capture. La vitesse sur un gros lot de photos réelles et les interactions du nouvel écran sur appareil restent à vérifier.
+
+## Rattachement du stock initial à un lot d’achat
+
+Le formulaire de création d’article propose un lot existant de la boutique. Lorsque le stock initial est positif, son mouvement conserve le lien vers ce lot. Le service refuse un lot d’un autre établissement avant toute création. Le choix reste facultatif. La répartition du coût global du lot entre les articles, les coûts unitaires et les variantes restent à développer.
+
+Le diagnostic macOS 45883944148 a réussi sur ae59479, avec 146 XCTest sans échec, compilations Debug et Release pour simulateur et captures de régression iPhone/iPad. Le test dédié vérifie le rattachement au bon lot et le refus d’un lot étranger sans création d’article. Les interactions de ce formulaire sur appareil restent à vérifier.
