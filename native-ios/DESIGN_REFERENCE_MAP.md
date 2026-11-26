@@ -23,7 +23,7 @@ Les pièces jointes accessibles dans ce lot comprennent **16 fichiers JPEG compo
 
 | Référence jointe (identifiant du fichier) | Vues représentées | SwiftUI de référence | État de reproduction |
 | --- | --- | --- | --- |
-| `9BF220F7` | Boutique : Accueil, Vendre, Encaissement | `BoutiqueSpace.swift` | Vendre et Encaissement comparés sur simulateur. En-tête, photos et scan à vérifier ou intégrer. Accueil Boutique à capturer. |
+| `9BF220F7` | Boutique : Accueil, Vendre, Encaissement | `BoutiqueSpace.swift` | Accueil, Vendre et Encaissement comparés sur simulateur. En-tête, densité de l’accueil, photos et scan à vérifier ou intégrer. |
 | `17327825` | Votre établissement, Mes espaces | `RootView.swift` | Sélection des activités et espaces branchée aux vraies données ; adresse, pays et téléphone non stockés par le modèle actuel |
 | `5AD6CB67` | Écran de lancement, Présentation COVI | `RootView.swift` | Capture réelle iPhone réalisée, puis recadrage de l’image des trois métiers corrigé pour retirer un texte parasite ; seconde capture à contrôler |
 | `13FF89C0` | Code PIN collaborateur, Synchronisation | `PINEntryView.swift`, `MoreSpace.swift` | Pavé numérique PIN et centre de synchronisation reliés aux services ; changement de collaborateur non câblé |
