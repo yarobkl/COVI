@@ -107,16 +107,19 @@ struct SalonCheckout: View {
                             Text("Importez un rendez-vous ou ajoutez une prestation et ses produits.")
                                 .foregroundStyle(COVITheme.secondaryText)
                         }
-                        ForEach(menu.filter { basket[$0.id] != nil }) { item in
+                        ForEach(menu.filter { basket[$0.id] != nil }.sorted {
+                            if $0.isService != $1.isService { return $0.isService }
+                            return $0.title.localizedStandardCompare($1.title) == .orderedAscending
+                        }) { item in
                             Divider()
                             HStack(alignment: .top, spacing: 12) {
-                                Image(systemName: item.isService ? "scissors" : "pump.bottle")
+                                Image(systemName: item.isService ? "scissors" : "shippingbox")
                                     .font(.title2).frame(width: 42, height: 48)
                                     .background(COVITheme.sand.opacity(0.3), in: RoundedRectangle(cornerRadius: 12))
                                     .accessibilityHidden(true)
                                 VStack(alignment: .leading, spacing: 5) {
-                                    Text(item.title + " (×\(basket[item.id] ?? 0))").font(.headline)
-                                    Text(item.isService ? "Collaborateur : \(stylist)" : "Stock revente · \(item.stockOnHand - item.stockReserved) disponible(s)")
+                                    Text(item.title).font(.subheadline.bold())
+                                    Text(item.isService ? "Collaborateur : \(stylist)" : "Quantité : \(basket[item.id] ?? 0) · \(item.stockOnHand - item.stockReserved) disponible(s)")
                                         .font(.caption).foregroundStyle(COVITheme.secondaryText)
                                 }
                                 Spacer(minLength: 0)
@@ -288,7 +291,7 @@ struct SalonCatalog: View {
                                     SalonCatalogEditor(shop: shop, item: item, actor: actor)
                                 } label: {
                                     HStack(spacing: 12) {
-                                        Image(systemName: item.isService ? "scissors" : "pump.bottle")
+                                        Image(systemName: item.isService ? "scissors" : "shippingbox")
                                             .font(.title2).frame(width: 48, height: 56)
                                             .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 12))
                                             .accessibilityHidden(true)
@@ -312,6 +315,7 @@ struct SalonCatalog: View {
         }
         .background(COVIBackdrop())
         .navigationTitle("Catalogue salon")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar { Button("Ajouter", systemImage: "plus") { adding = true } }
         .sheet(isPresented: $adding) {
             NavigationStack {
