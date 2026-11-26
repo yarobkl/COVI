@@ -347,9 +347,26 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   exactement une chaise par place. Les quatre silhouettes sont attribuées
   selon la capacité en attendant le choix de forme. Les tests ciblent la
   séparation des chaises jusqu’à 100 places et les quatre états affichés.
+- Le diagnostic de `36aa342` a réussi à sa seconde tentative après
+  l’annulation de la première avant compilation. Debug, Release et
+  **138 XCTest sans échec** ont réussi, dont les deux tests de Salle.
+  L’archive contient 30 captures, dont Salle sur iPhone. Les captures
+  iPad de cette exécution concernent le Salon.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45858244921/attempts/2)
+- La [capture iPhone](https://github.com/yarobkl/COVI/actions/runs/45858244921/artifacts/15139365423)
+  a été comparée aux deux maquettes récentes. Elle montre les quatre
+  états, huit tables, les dix chaises de Table 10 et le résumé sélectionné
+  avec accès au détail. Les pastilles sont sur deux lignes et le plan
+  reste une grille. La salle dessinée, l’en-tête, la barre de navigation
+  et les actions supplémentaires des concepts ne sont pas reproduits
+  dans cette étape.
 - Le plan physique éditable, les positions, l’orientation, le zoom,
   les salles et terrasses, la saisie des convives et l’état payé mais
-  occupé restent à intégrer. La première capture iPhone est à comparer.
+  occupé restent à intégrer. Le parcours tactile, iPad et les tailles
+  de texte d’accessibilité de Salle restent à vérifier.
+- Les diagnostics du [recentrage Studio](https://github.com/yarobkl/COVI/actions/runs/45856567128)
+  ont également été relus sur la base `c44c06a` avec 136 XCTest sans
+  échec. L’observation du Studio sur appareil physique reste distincte.
 
 ### Contrôles iOS et limites
 

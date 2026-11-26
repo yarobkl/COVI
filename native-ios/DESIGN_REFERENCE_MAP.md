@@ -5,6 +5,15 @@ Source de vérité : **les nouvelles captures partagées dans la conversation du
 ## Références plus récentes retrouvées le 26 novembre
 Deux concepts supplémentaires ont été inspectés dans la discussion : `covi_trois_écrans_une_expérience_fluide.png` (Boutique, Restaurant, Salon) et `application_covi_restaurant_plan_de_salle.png` (Salle). Ils complètent les planches du 19 novembre et priment sur celles-ci pour les éléments explicitement modifiés. Références : navigation basse arrondie et sélection champagne, recherche avec caméra en Boutique, photos réelles, panneau de reconnaissance, plan physique et panneau contextuel, agenda avec états visuels. La disposition exacte des chaises doit suivre la capacité réelle et non les incohérences éventuelles du dessin. Les concepts ne sont pas des captures d'une application compilée. Ne pas déclarer la conformité sans captures et essais. La reconnaissance Boutique est visuelle ; aucun QR article. QR uniquement pour les tables Restaurant.
 
+Les fichiers exacts retrouvés sont « COVI — Trois écrans, une expérience fluide.png »
+(SHA-256 commençant par `38512445`) et « Application COVI Restaurant — Plan de salle.png »
+(SHA-256 commençant par `e5113fe8`). La [capture Salle sur iPhone simulé](https://github.com/yarobkl/COVI/actions/runs/45858244921/artifacts/15139365423)
+a été comparée aux deux fichiers. `RestaurantFloorPlan.swift` reprend les
+tables vues de dessus, les chaises par capacité, les états et le panneau
+de sélection. Les positions réelles, les actions supplémentaires,
+l’en-tête et la barre de navigation des concepts restent à intégrer ou
+à vérifier.
+
 ## Reprise du lot visuel COVI 2.0
 
 - Le build TestFlight 1.0.13 (10051), issu du commit `6eb37ed`, valide la
