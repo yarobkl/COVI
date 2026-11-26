@@ -541,7 +541,7 @@ private struct RestaurantFinanceReport: View {
             }
             Divider().overlay(.white.opacity(0.4)).accessibilityHidden(true)
             layout {
-                summaryValue("Bruts", symbol: "circle.stack", amount: snapshot.gross)
+                summaryValue("Bruts", symbol: "banknote", amount: snapshot.gross)
                 summaryValue("Remboursements", symbol: "arrow.uturn.backward", amount: -snapshot.refunded)
             }
         }
@@ -564,9 +564,10 @@ private struct RestaurantFinanceReport: View {
     }
 
     private func activityCard(_ snapshot: RestaurantCashReportSnapshot) -> some View {
-        COVICard {
+        let tickets = snapshot.tableCount == 1 ? "1 ticket de table" : "\(snapshot.tableCount) tickets de table"
+        return COVICard {
             VStack(alignment: .leading, spacing: 6) {
-                tenderRow("Espèces encaissées", symbol: "circle.stack", amount: snapshot.cash,
+                tenderRow("Espèces encaissées", symbol: "banknote", amount: snapshot.cash,
                     gross: snapshot.gross, tint: COVITheme.successTint)
                 Divider()
                 tenderRow("Mobile Money", symbol: "iphone", amount: snapshot.mobile,
@@ -578,7 +579,7 @@ private struct RestaurantFinanceReport: View {
                 }
                 Divider()
                 COVIIconRow(symbol: "table.furniture", title: "Tables servies et ticket moyen",
-                    detail: "\(snapshot.tableCount) ticket(s) de table · \(money(snapshot.averageTicket))",
+                    detail: "\(tickets) · \(money(snapshot.averageTicket))",
                     accessory: nil)
                 Divider()
                 COVIIconRow(symbol: "arrow.uturn.backward", title: "Remboursements enregistrés",

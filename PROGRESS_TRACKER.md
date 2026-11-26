@@ -134,8 +134,7 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
 - Les 20 captures iPhone, dont deux en taille d’accessibilité XXXL,
   ont été conservées. Le scénario complet a dépassé le délai de 18 min
   pendant les étapes iPad. L’artefact n’inclut aucune capture iPad de cette
-  révision. Les interactions avec les réglages et la déconnexion restent
-  à vérifier sur appareil.
+  révision. Le [diagnostic suivant du même code](https://github.com/yarobkl/COVI/actions/runs/45787970552/artifacts/15102533650) a livré les 22 captures, dont Caisse et Catalogue sur iPad simulé. Les interactions avec les réglages et la déconnexion restent à vérifier sur appareil.
 - Les états réels de synchronisation et les paiements activés par espace
   devront être vérifiés avec les fonctions métier correspondantes. La règle
   actuelle des remboursements est affichée sans commande de désactivation.
@@ -152,7 +151,21 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   intégrer au modèle.
 - Un test couvre la séparation des moyens, le mois, l’établissement et
   les sommes supérieures à la plage d’un entier 64 bits. Un diagnostic
-  ouvre le rapport depuis Plus. Les résultats restent à relever.
+  ouvre le rapport depuis Plus.
+- Sur `9924829`, Debug, Release et **124 XCTest sans échec**, dont le
+  cas du rapport Restaurant, ont réussi avec 23 captures
+  ([GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45793932860)).
+- La [capture iPhone](https://github.com/yarobkl/COVI/actions/runs/45793932860/artifacts/15105577928)
+  a été comparée à `A30B3A65`. Le mois, le bandeau net et brut, les
+  pourcentages par moyen, les tickets de table et le bouton d’export sont
+  visibles. Les données de test donnent 356 000 FCFA brut, 4 500 FCFA de
+  remboursement et 351 500 FCFA net. Les autres moyens représentent
+  10 000 FCFA et apparaissent sur leur propre ligne. Les cartes sont plus
+  hautes, la barre d’onglets reste visible et les incidents ne sont pas
+  représentés. La première capture a révélé une icône d’espèces absente.
+  Le correctif emploie le symbole de billet et décline le nombre de tickets.
+  Son rendu reste à capturer, et le changement de mois et l’export
+  restent à essayer sur appareil.
 
 ### Contrôles iOS et limites
 
