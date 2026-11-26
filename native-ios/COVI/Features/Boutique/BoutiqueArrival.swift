@@ -325,6 +325,7 @@ private final class ArrivalCaptureController: NSObject, ObservableObject, AVCapt
     @Published private(set) var ready = false
     @Published private(set) var capturing = false
     private var completion: ((Result<Data, Error>) -> Void)?
+    private var processedPhoto: Result<Data, Error>?
 
     func start(onError: @escaping (Error) -> Void) {
         queue.async {
@@ -354,6 +355,7 @@ private final class ArrivalCaptureController: NSObject, ObservableObject, AVCapt
         guard ready, !capturing else { return }
         capturing = true
         self.completion = completion
+        processedPhoto = nil
         queue.async {
             let settings = AVCapturePhotoSettings()
             settings.photoQualityPrioritization = .balanced
@@ -368,9 +370,19 @@ private final class ArrivalCaptureController: NSObject, ObservableObject, AVCapt
             guard let data = photo.fileDataRepresentation() else { throw BoutiquePhotoFault.encoding }
             return data
         }
+        DispatchQueue.main.async { self.processedPhoto = result }
+    }
+
+    func photoOutput(_ output: AVCapturePhotoOutput,
+                     didFinishCaptureFor resolvedSettings: AVCaptureResolvedPhotoSettings, error: Error?) {
         DispatchQueue.main.async {
-            self.completion?(result)
+            guard let completion = self.completion else { return }
+            let result: Result<Data, Error>
+            if let error { result = .failure(error) }
+            else { result = self.processedPhoto ?? .failure(BoutiquePhotoFault.encoding) }
+            completion(result)
             self.completion = nil
+            self.processedPhoto = nil
             self.capturing = false
         }
     }
