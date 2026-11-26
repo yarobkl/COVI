@@ -20,6 +20,7 @@ final class COVISimulatorDiagnostics {
         case restaurantReport = "restaurant-report"
         case restaurantKitchen = "restaurant-kitchen"
         case restaurantMenu = "restaurant-menu"
+        case restaurantDrinks = "restaurant-drinks"
         case restaurantTeam = "restaurant-team"
         case salonCatalog = "salon-catalog"
         case salonReport = "salon-report"
@@ -106,7 +107,7 @@ final class COVISimulatorDiagnostics {
         let kind: BusinessKind
         let name: String
         switch scenario {
-        case .restaurantTables, .restaurantTable, .restaurantOrder, .restaurantReport, .restaurantTeam, .restaurantKitchen, .restaurantMenu:
+        case .restaurantTables, .restaurantTable, .restaurantOrder, .restaurantReport, .restaurantTeam, .restaurantKitchen, .restaurantMenu, .restaurantDrinks:
             kind = .restaurant
             name = "Restaurant de démonstration"
         case .salonCatalog, .salonReport, .salonMore, .salonSettings, .salonCheckout, .salonToday, .salonAgenda, .salonBooking, .salonBookingConflict, .salonClients, .salonProfile:
@@ -127,6 +128,8 @@ final class COVISimulatorDiagnostics {
                 try seedRestaurantReport()
             } else if scenario == .restaurantTeam {
                 try seedRestaurantTeam()
+            } else if scenario == .restaurantDrinks {
+                try seedRestaurantDrinks()
             } else {
                 restaurantSample = try seedRestaurantTables()
             }
@@ -260,6 +263,27 @@ final class COVISimulatorDiagnostics {
 
         return RestaurantSample(table: occupied, order: active, lines: lines,
             menu: menu, draft: draft, service: service)
+    }
+
+    private func seedRestaurantDrinks() throws {
+        let context = container.mainContext
+        context.insert(shop)
+        try context.save()
+        let service = RestaurantService(shop: shop, actor: owner, role: .owner, pin: pin, db: context)
+        let stock: [(name: String, physical: Int, reserved: Int)] = [
+            ("Primus 65 cl (Casier)", 36, 4),
+            ("Ngok 65 cl", 12, 3),
+            ("Jus de Bissap Maison (1 L)", 15, 2),
+            ("Eau Minérale Mayo 1,5 L", 2, 2)
+        ]
+        for drink in stock {
+            let item = CatalogItem(establishmentID: shop.id, title: drink.name, priceMinor: 1_500)
+            item.menuCategory = MenuGroup.drinks.rawValue
+            context.insert(item)
+            try service.adjustDrinkStock(item, operation: .restock, quantity: drink.physical)
+            item.stockReserved = drink.reserved
+        }
+        try context.save()
     }
 
     private func seedRestaurantTeam() throws {
@@ -552,7 +576,7 @@ struct COVISimulatorDiagnosticView: View {
             if fixture.salonBooking == nil && fixture.salonProfileID == nil &&
                 fixture.scenario != .salonReport && fixture.scenario != .salonSettings &&
                 fixture.scenario != .restaurantReport && fixture.scenario != .restaurantTeam &&
-                fixture.scenario != .restaurantMenu {
+                fixture.scenario != .restaurantMenu && fixture.scenario != .restaurantDrinks {
                 await fixture.signalAfterPresentation()
             }
         }

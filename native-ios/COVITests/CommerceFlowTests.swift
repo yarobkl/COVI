@@ -977,6 +977,49 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 3)
     }
 
+    func testRestaurantDrinkStockJournalsAdjustmentsAndProtectsReservedUnits() throws {
+        let db = try database(), owner = UUID(), manager = UUID()
+        let shop = Establishment(ownerID: owner, name: "Restaurant", kind: .restaurant, city: "Brazzaville")
+        let other = Establishment(ownerID: owner, name: "Autre", kind: .restaurant, city: "Dolisie")
+        let membership = Membership(accountID: manager, establishmentID: shop.id, role: .manager)
+        let drink = CatalogItem(establishmentID: shop.id, title: "Bissap", priceMinor: 1_000)
+        drink.menuCategory = MenuGroup.drinks.rawValue
+        let food = CatalogItem(establishmentID: shop.id, title: "Poulet", priceMinor: 2_000)
+        food.menuCategory = MenuGroup.food.rawValue
+        db.insert(shop); db.insert(other); db.insert(membership); db.insert(drink); db.insert(food)
+        try db.save()
+        let pin = ownerPIN()
+        let service = RestaurantService(shop: shop, actor: owner, role: .owner, pin: pin, db: db)
+        let foreign = RestaurantService(shop: other, actor: owner, role: .owner, pin: pin, db: db)
+        XCTAssertThrowsError(try service.adjustDrinkStock(drink, operation: .loss, quantity: 1))
+        XCTAssertThrowsError(try service.adjustDrinkStock(drink, operation: .restock, quantity: 0))
+        XCTAssertThrowsError(try service.adjustDrinkStock(food, operation: .restock, quantity: 1))
+        XCTAssertThrowsError(try foreign.adjustDrinkStock(drink, operation: .restock, quantity: 1))
+        try service.adjustDrinkStock(drink, operation: .restock, quantity: 12)
+        XCTAssertThrowsError(try service.adjustDrinkStock(drink, operation: .restock, quantity: .max))
+        drink.stockReserved = 3
+        try db.save()
+
+        try pin.configureCashierPIN("1234", for: manager, shopID: shop.id)
+        XCTAssertTrue(pin.verify("1234", scope: .cashier(staffID: manager, shopID: shop.id)))
+        let managerService = RestaurantService(shop: shop, actor: manager, role: .manager, pin: pin, db: db)
+        XCTAssertThrowsError(try managerService.adjustDrinkStock(drink, operation: .loss, quantity: 10))
+        try managerService.adjustDrinkStock(drink, operation: .loss, quantity: 9)
+        membership.active = false
+        try db.save()
+        XCTAssertThrowsError(try managerService.adjustDrinkStock(drink, operation: .restock, quantity: 1))
+
+        XCTAssertEqual(drink.stockOnHand, 3)
+        XCTAssertEqual(drink.stockReserved, 3)
+        XCTAssertFalse(drink.soldOut)
+        let moves = try db.fetch(FetchDescriptor<StockMovement>())
+        XCTAssertEqual(moves.count, 2)
+        XCTAssertEqual(Set(moves.map(\.itemID)), [drink.id])
+        XCTAssertEqual(moves.first { $0.actorID == owner }?.delta, 12)
+        XCTAssertEqual(moves.first { $0.actorID == manager }?.delta, -9)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 2)
+    }
+
     func testRestaurantMenuEditPreservesAlreadySentKitchenTicket() throws {
         let db = try database(), owner = UUID()
         let shop = Establishment(ownerID: owner, name: "Restaurant", kind: .restaurant, city: "Douala")

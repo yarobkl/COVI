@@ -250,7 +250,26 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   contient 26 captures, dont Caisse et Catalogue Salon sur iPad simulé.
   Le démarrage iPad a réussi au premier essai de cette exécution.
 - Les photos, les sous-catégories et le stock boissons avec réservation,
-  réassort et pertes restent à intégrer à leurs données métier.
+  déduction au service restent à intégrer aux parcours de commande.
+
+### Stock boissons du Restaurant
+
+- La partie droite de la planche `683EE982` présente le stock physique,
+  les réservations, le disponible et les actions Réassort et Casse ou perte.
+  L’écran SwiftUI est accessible depuis Plus pour le propriétaire et le
+  responsable. Le seuil visuel de stock faible est fixé à 10 unités
+  disponibles en reprenant les exemples de la planche. Un ancien article
+  sans mouvement ni solde affiche « Non suivi ».
+- Le service local enregistre les réassorts et les pertes. Chaque ajustement
+  crée un mouvement et un événement dans la même sauvegarde, vérifie le
+  rôle en vigueur et protège les réservations existantes. Le test ajouté
+  couvre la révocation, le cloisonnement, les quantités invalides et les
+  pertes supérieures au disponible.
+- Le scénario de diagnostic ouvre Stock boissons depuis Plus. Il utilise
+  des réassorts enregistrés sur quatre boissons et des réservations
+  simulées. Les résultats XCTest et la comparaison des captures iPhone
+  restent à relever. Les photos et la réservation à la commande suivie de
+  la déduction au service relèvent des étapes suivantes.
 
 ### Contrôles iOS et limites
 

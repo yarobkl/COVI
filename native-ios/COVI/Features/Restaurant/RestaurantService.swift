@@ -4,13 +4,27 @@ import Foundation
 enum Prep: String, CaseIterable { case cooking = "En cuisine", ready = "Prêt", served = "Servi" }
 enum MenuGroup: String, CaseIterable { case food = "Plats", drinks = "Boissons" }
 enum RestaurantFault: LocalizedError {
-    case access, stale, unavailable, invalid
+    case access, stale, unavailable, invalid, stock
     var errorDescription: String? {
         switch self {
         case .access: "Vérifiez le rôle et déverrouillez la caisse."
         case .stale: "La session ou le ticket a changé."
         case .unavailable: "Un article de la commande est en rupture."
         case .invalid: "Vérifiez les quantités et les montants."
+        case .stock: "Vérifiez le stock physique et les quantités réservées."
+        }
+    }
+}
+
+enum DrinkStockOperation: String, Identifiable {
+    case restock = "Réassort"
+    case loss = "Casse ou perte"
+
+    var id: Self { self }
+    var movementReason: String {
+        switch self {
+        case .restock: "Réassort boisson"
+        case .loss: "Casse ou perte boisson"
         }
     }
 }
@@ -61,6 +75,29 @@ enum RestaurantFault: LocalizedError {
         guard item.soldOut == available else { return }
         item.soldOut = !available
         try saveMenuChange("restaurant.menu.availability-changed", item: item)
+    }
+
+    func adjustDrinkStock(_ item: CatalogItem, operation: DrinkStockOperation, quantity: Int) throws {
+        try authorize()
+        guard admin, item.establishmentID == shop.id, item.menuCategory == MenuGroup.drinks.rawValue
+        else { throw RestaurantFault.access }
+        guard quantity > 0 else { throw RestaurantFault.invalid }
+
+        let delta = operation == .restock ? quantity : -quantity
+        let (next, overflow) = item.stockOnHand.addingReportingOverflow(delta)
+        guard !overflow, item.stockReserved >= 0, item.stockOnHand >= item.stockReserved,
+              next >= item.stockReserved else { throw RestaurantFault.stock }
+
+        let movement = StockMovement(establishmentID: shop.id, itemID: item.id,
+            delta: delta, reason: operation.movementReason, actorID: actor)
+        db.insert(movement)
+        item.stockOnHand = next
+        item.updatedAt = .now
+        do {
+            try BusinessOutbox.enqueue(kind: "restaurant.drink-stock.adjusted", establishmentID: shop.id,
+                entityID: item.id, actorID: actor, relatedIDs: [movement.id], in: db)
+            try save()
+        } catch { db.rollback(); throw error }
     }
 
     private func validMenuTitle(_ title: String, price: Int64, ignoring existingID: UUID? = nil) throws -> String {

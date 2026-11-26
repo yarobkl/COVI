@@ -82,7 +82,7 @@ struct MoreSpace: View {
     @Query private var restaurantOrders: [CommerceOrder]
     @Query private var restaurantPayments: [PaymentRecord]
     @Query private var restaurantRefunds: [Refund]
-    private enum Destination: Hashable { case settings, salonReport, restaurantReport, restaurantTeam, restaurantMenu }
+    private enum Destination: Hashable { case settings, salonReport, restaurantReport, restaurantTeam, restaurantMenu, restaurantDrinks }
     @State private var destination: Destination?
 #if DEBUG && targetEnvironment(simulator)
     @Environment(\.coviSimulatorDiagnostics) private var diagnostics
@@ -143,6 +143,11 @@ struct MoreSpace: View {
                         VStack(spacing: 4) {
                             Button { destination = .restaurantMenu } label: {
                                 COVIIconRow(symbol: "fork.knife", title: "Gestion de la carte", detail: nil)
+                            }
+                            .buttonStyle(.plain)
+                            Divider()
+                            Button { destination = .restaurantDrinks } label: {
+                                COVIIconRow(symbol: "wineglass", title: "Stock boissons", detail: nil)
                             }
                             .buttonStyle(.plain)
                             Divider()
@@ -239,6 +244,11 @@ struct MoreSpace: View {
                 if managesRestaurant {
                     RestaurantTeamAccess(shop: shop, actor: actor, pin: pin)
                 }
+            case .restaurantDrinks:
+                if managesRestaurant {
+                    RestaurantDrinkStock(service: RestaurantService(shop: shop, actor: actor,
+                        role: role, pin: pin, db: db))
+                }
             case .restaurantMenu:
                 if managesRestaurant {
                     RestaurantMenuManagement(service: RestaurantService(shop: shop, actor: actor,
@@ -252,6 +262,7 @@ struct MoreSpace: View {
             if managesRestaurant, diagnostics?.scenario == .restaurantReport { destination = .restaurantReport }
             if managesRestaurant, diagnostics?.scenario == .restaurantTeam { destination = .restaurantTeam }
             if managesRestaurant, diagnostics?.scenario == .restaurantMenu { destination = .restaurantMenu }
+            if managesRestaurant, diagnostics?.scenario == .restaurantDrinks { destination = .restaurantDrinks }
             if shop.kind == .salon, diagnostics?.scenario == .salonSettings { destination = .settings }
         }
 #endif
