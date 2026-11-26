@@ -249,8 +249,22 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   départ. Les tickets prêts restent dans « Prêts ».
 - Le format CloudKit garde le statut historique et transporte un
   indicateur facultatif pour les lignes reçues. Une ligne ancienne
-  « En cuisine » reste en préparation. Les parcours et les captures
-  restent à vérifier sur GitHub Actions.
+  « En cuisine » reste en préparation. Les tests vérifient le format
+  miroir et le refus d’un événement reçu après la prise en charge.
+- Sur `6f4fce3`, le [diagnostic GitHub](https://github.com/yarobkl/COVI/actions/runs/45900641946)
+  a réussi en Debug et Release avec **149 XCTest sans échec** (journal
+  `140185276913`). Les 37 captures incluent Cuisine sur iPhone simulé
+  et Salon sur iPad simulé.
+- Les [captures Cuisine](https://github.com/yarobkl/COVI/actions/runs/45900641946/artifacts/15156845558)
+  ont été comparées à `A2188A03`. Table 01 affiche « Reçu · 12 min »,
+  « Urgent » et « Prendre en charge ». Table 03 affiche « Pris en
+  charge » et « Marquer prêt ». « Marquer servi » apparaît dans
+  l’onglet Prêts. Les cartes sont plus hautes, l’en-tête global est
+  absent dans ces captures et les états pris en charge et prêt
+  n’affichent pas l’âge montré sur la planche.
+- Le panneau Incident, les interactions et l’accessibilité sur appareil
+  physique ainsi que la synchronisation CloudKit entre versions
+  restent à vérifier.
 
 ### Gestion de la carte du Restaurant
 
