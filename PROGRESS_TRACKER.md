@@ -106,6 +106,20 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   (Équipe et Rapports service du Restaurant) ont été retrouvées et vérifiées
   par leur contenu. Prochaine comparaison sur Plus et Paramètres.
 
+### Plus et Paramètres
+
+- La référence `D2C012FF` a été vérifiée. Plus ouvre Paramètres depuis
+  la carte du profil ou la section Système et affiche le nombre réel
+  d’espaces locaux actifs du propriétaire. Les réglages regroupent
+  le délai d’inactivité, les accès PIN, la ville, la devise, les moyens
+  reçus en caisse et l’état du compte iCloud. La déconnexion est dans
+  Paramètres, avec confirmation et conservation des données locales.
+- Les captures de Plus et Paramètres utilisent un profil et deux
+  établissements synthétiques. Résultats macOS et comparaison à relever.
+- Les états réels de synchronisation et les paiements activés par espace
+  devront être vérifiés avec les fonctions métier correspondantes. La règle
+  actuelle des remboursements est affichée sans commande de désactivation.
+
 ### Contrôles iOS et limites
 
 Les premières compilations ont échoué sur une expression SwiftUI ; le découpage

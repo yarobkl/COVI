@@ -10,6 +10,11 @@ struct SystemSettings: View {
     @Environment(AppSession.self) private var session
     @Environment(\.modelContext) private var db
     @Query private var entries: [MaintenanceEntry]
+#if DEBUG && targetEnvironment(simulator)
+    @Environment(\.coviSimulatorDiagnostics) private var diagnostics
+#endif
+    @State private var confirmingSignOut = false
+    @State private var signOutFailed = false
     @State private var cloud = "Vérification en cours"
     @State private var currency = "XAF"
     @State private var profileName = ""
@@ -21,73 +26,74 @@ struct SystemSettings: View {
         _entries = Query(filter: #Predicate<MaintenanceEntry> { $0.shop == id && $0.actor == user }, sort: \.date, order: .reverse)
     }
     var body: some View {
-        Form {
-            Section("Sécurité de caisse partagée") {
-                LabeledContent {
-                    Text("Après 2 min")
-                } label: {
-                    Label("Verrouillage automatique (PIN)", systemImage: "lock")
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                COVISectionTitle("Sécurité de caisse partagée")
+                securityCard
+                COVISectionTitle("Établissement actif (\(shop.name))")
+                establishmentCard
+                Button(role: .destructive) { confirmingSignOut = true } label: {
+                    Label("Déconnecter le compte principal", systemImage: "rectangle.portrait.and.arrow.right")
+                        .font(.subheadline.weight(.semibold))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 12).padding(.vertical, 14)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .foregroundStyle(.red)
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(.red))
+                        .contentShape(Rectangle())
                 }
-                if actor == shop.ownerID {
-                    NavigationLink { OwnerSettings(shop: shop, pinManager: pin) } label: {
-                        Label("Codes PIN et accès", systemImage: "circle.grid.3x3")
-                    }
-                }
-                Label("Le PIN est vérifié pour les opérations de caisse et les actions protégées.",
-                      systemImage: "shield.checkered")
-                    .font(.footnote).foregroundStyle(COVITheme.secondaryText)
-            }
-            Section("Stockage local & Sauvegarde iCloud") {
-                LabeledContent("Compte iCloud", value: cloud)
-                Button("Vérifier la connexion") { Task { await refresh() } }
-                Text("La connexion iCloud est gérée par iOS. COVI ne dépend d’aucune base de données web.")
-                    .font(.footnote).foregroundStyle(.secondary)
-            }
-            Section("Identité") {
-                LabeledContent("Mode", value: session.usesAppleAccount ? "Connexion Apple" : "Sur cet appareil")
-                TextField("Nom du profil", text: $profileName).textContentType(.name)
-                Button("Enregistrer le nom") {
-                    do {
-                        try session.updateDisplayName(profileName)
-                        if let owner = session.accountID,
-                           let profile = try db.fetch(FetchDescriptor<Account>(
-                            predicate: #Predicate { $0.id == owner })).first {
-                            profile.fullName = session.displayName
-                            try db.save()
-                        }
-                        message = "Profil actualisé."
-                    } catch { db.rollback(); message = "Impossible de modifier le nom." }
-                }
-                .disabled(profileName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-                          profileName == session.displayName)
-                Text("La déconnexion à distance d'autres appareils n'est pas disponible sans service de gestion de sessions.")
-                    .font(.footnote).foregroundStyle(.secondary)
-            }
-            Section("Établissement actif (\(shop.name))") {
-                LabeledContent("Ville", value: shop.city)
-                Text("Devise actuelle · " + shop.currencyCode)
-                if actor == shop.ownerID {
-                    Picker("Devise", selection: $currency) {
-                        ForEach(SupportedCurrency.options) { option in
-                            Text(option.label + " · " + option.code).tag(option.code)
+                .buttonStyle(.plain)
+
+                COVISectionTitle("Identité")
+                identityCard
+                if !entries.isEmpty {
+                    COVISectionTitle("Journal local de maintenance")
+                    COVICard {
+                        VStack(alignment: .leading, spacing: 8) {
+                            ForEach(entries.prefix(100)) { entry in
+                                VStack(alignment: .leading) {
+                                    Text(entry.action)
+                                    Text(entry.date.formatted()).font(.caption)
+                                }
+                            }
                         }
                     }
-                    Text("La devise ne peut plus être modifiée une fois le catalogue ou une vente créé. Les montants ne sont jamais convertis.")
-                        .font(.footnote).foregroundStyle(.secondary)
-                    Button("Appliquer") { currencyPIN = true }.disabled(currency == shop.currencyCode)
+                }
+                if !message.isEmpty {
+                    Text(message).font(.footnote)
                 }
             }
-            Section("Journal local de maintenance") {
-                ForEach(entries.prefix(100)) { entry in
-                    VStack(alignment: .leading) { Text(entry.action); Text(entry.date.formatted()).font(.caption) }
-                }
-            }
-            if !message.isEmpty { Text(message) }
+            .foregroundStyle(COVITheme.navy)
+            .padding(COVITheme.Metrics.screenPadding)
         }
         .navigationTitle("Paramètres")
-        .scrollContentBackground(.hidden)
+        .navigationBarTitleDisplayMode(.inline)
         .background(COVIBackdrop())
-        .task { currency = shop.currencyCode; profileName = session.displayName; await refresh() }
+        .task {
+            currency = shop.currencyCode
+            profileName = session.displayName
+#if DEBUG && targetEnvironment(simulator)
+            if let diagnostics, diagnostics.scenario == .salonSettings {
+                cloud = "Compte iCloud non vérifié"
+                await diagnostics.signalAfterPresentation()
+                return
+            }
+#endif
+            await refresh()
+        }
+        .confirmationDialog("Se déconnecter de COVI ?", isPresented: $confirmingSignOut) {
+            Button("Se déconnecter", role: .destructive) {
+                do { try session.signOut() }
+                catch { signOutFailed = true }
+            }
+        } message: {
+            Text("Vos établissements et vos opérations enregistrées restent sur cet iPhone.")
+        }
+        .alert("Déconnexion impossible", isPresented: $signOutFailed) {
+            Button("OK") {}
+        } message: {
+            Text("Le trousseau iOS n’a pas permis d’effacer la session active.")
+        }
         .sheet(isPresented: $currencyPIN) {
             PINEntryView(pinManager: pin, scope: .master(ownerID: shop.ownerID)) { ok in
                 currencyPIN = false
@@ -106,6 +112,86 @@ struct SystemSettings: View {
             }
         }
     }
+    private var securityCard: some View {
+        COVICard {
+            VStack(spacing: 6) {
+                COVIIconRow(symbol: "lock", title: "Verrouillage automatique (PIN)",
+                    detail: "Après \(Int(pin.inactivityTimeout / 60)) min d’inactivité", accessory: nil)
+                if actor == shop.ownerID {
+                    Divider()
+                    NavigationLink { OwnerSettings(shop: shop, pinManager: pin) } label: {
+                        COVIIconRow(symbol: "circle.grid.3x3", title: "Codes PIN et accès", detail: nil)
+                    }
+                }
+                Divider()
+                COVIIconRow(symbol: "shield", title: "Remboursements",
+                    detail: "PIN propriétaire s’il est configuré", accessory: nil)
+            }
+        }
+    }
+
+    private var establishmentCard: some View {
+        COVICard {
+            VStack(alignment: .leading, spacing: 8) {
+                COVIIconRow(symbol: "mappin.and.ellipse", title: "Ville et devise",
+                    detail: "\(shop.city) · \(shop.currencyCode)", accessory: nil)
+                Divider()
+                COVIIconRow(symbol: "creditcard", title: "Moyens de règlement externes",
+                    detail: Tender.allCases.map(\.rawValue).joined(separator: ", "), accessory: nil)
+                Divider()
+                COVIIconRow(symbol: "icloud", title: "Stockage local et iCloud",
+                    detail: cloud, accessory: nil)
+                Button("Vérifier la connexion iCloud") { Task { await refresh() } }
+                    .font(.footnote.weight(.semibold))
+                if actor == shop.ownerID {
+                    Divider()
+                    Picker("Devise", selection: $currency) {
+                        ForEach(SupportedCurrency.options) { option in
+                            Text(option.label + " · " + option.code).tag(option.code)
+                        }
+                    }
+                    Text("La devise est verrouillée dès qu’un produit, une vente, un arrivage ou une dépense l’utilise.")
+                        .font(.footnote).foregroundStyle(COVITheme.secondaryText)
+                    if currency != shop.currencyCode {
+                        Button("Appliquer la devise") { currencyPIN = true }
+                            .buttonStyle(.borderedProminent)
+                    }
+                }
+            }
+        }
+    }
+
+    private var identityCard: some View {
+        COVICard {
+            VStack(alignment: .leading, spacing: 10) {
+                LabeledContent("Mode", value: session.usesAppleAccount ? "Connexion Apple" : "Sur cet appareil")
+                TextField("Nom du profil", text: $profileName)
+                    .textContentType(.name)
+                    .textFieldStyle(.roundedBorder)
+                Button("Enregistrer le nom") { saveProfileName() }
+                    .disabled(profileName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
+                              profileName == session.displayName)
+            }
+        }
+    }
+
+    private func saveProfileName() {
+        do {
+            try session.updateDisplayName(profileName)
+            if let owner = session.accountID,
+               let profile = try db.fetch(FetchDescriptor<Account>(
+                    predicate: #Predicate { $0.id == owner })).first {
+                profile.fullName = session.displayName
+                try db.save()
+            }
+            profileName = session.displayName
+            message = "Profil actualisé."
+        } catch {
+            db.rollback()
+            message = "Impossible de modifier le nom."
+        }
+    }
+
     func refresh() async {
         do {
             switch try await CKContainer.default().accountStatus() {

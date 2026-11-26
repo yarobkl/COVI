@@ -71,7 +71,7 @@ jobs:
           xcrun simctl status_bar "$DEVICE_ID" override --time "9:41" --batteryState charged --batteryLevel 100
           trap 'xcrun simctl status_bar "$DEVICE_ID" clear' EXIT
           # Give the newest diagnostic an opportunity to render before the regression sweep.
-          for SCENARIO in salon-report salon-checkout salon-catalog welcome boutique-home boutique-sale boutique-checkout restaurant-tables restaurant-table restaurant-order salon-today salon-agenda salon-booking salon-booking-conflict salon-clients salon-profile; do
+          for SCENARIO in salon-more salon-settings salon-report salon-checkout salon-catalog welcome boutique-home boutique-sale boutique-checkout restaurant-tables restaurant-table restaurant-order salon-today salon-agenda salon-booking salon-booking-conflict salon-clients salon-profile; do
             MARKER="$APP_DATA/tmp/covi-diagnostic-$SCENARIO.ready"
             rm -f "$MARKER"
             xcrun simctl launch --terminate-running-process "$DEVICE_ID" com.covi.app --covi-diagnostic-scenario "$SCENARIO" -AppleLanguages '(fr)' -AppleLocale fr_FR
@@ -127,6 +127,7 @@ jobs:
             "salon-booking and salon-booking-conflict: actual Agenda sheet with a prefilled appointment and an overlapping stylist appointment in the conflict scenario." \
             "salon-clients/profile: actual directory and navigation destination with four synthetic clients, three service receipts and one upcoming booking." \
             "salon-report: Plus navigation with four receipts and three Salon appointments in memory." \
+            "salon-more/settings: normal Plus tab and settings route with a local synthetic owner and two in-memory establishments." \
             "Account header and ShopSyncStatus are outside the business captures." \
             "Basket: 18,000 + 17,000 XAF; cash received: 40,000 XAF; change: 5,000 XAF." \
             "Salon checkout/catalog also captured on iPad simulator and iPhone accessibility XXXL; physical devices, interaction and cross-account sync remain unverified." \

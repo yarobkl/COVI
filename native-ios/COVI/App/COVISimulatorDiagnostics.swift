@@ -19,6 +19,8 @@ final class COVISimulatorDiagnostics {
         case restaurantOrder = "restaurant-order"
         case salonCatalog = "salon-catalog"
         case salonReport = "salon-report"
+        case salonMore = "salon-more"
+        case salonSettings = "salon-settings"
         case salonCheckout = "salon-checkout"
         case salonToday = "salon-today"
         case salonAgenda = "salon-agenda"
@@ -87,16 +89,23 @@ final class COVISimulatorDiagnostics {
         container = try ModelContainer(for: schema, configurations: [configuration])
 
         let storage = COVISimulatorMemoryStore()
-        session = AppSession(keychain: storage)
+        let simulatorSession = AppSession(keychain: storage)
+        session = simulatorSession
         pin = PINManager(keychain: storage)
-        owner = UUID(uuidString: "00000000-0000-4000-8000-000000000001")!
+        if scenario == .salonMore || scenario == .salonSettings {
+            try simulatorSession.createLocalAccount(name: "Camille Démo")
+            guard let accountID = simulatorSession.accountID else { throw Failure.invalidScenario }
+            owner = accountID
+        } else {
+            owner = UUID(uuidString: "00000000-0000-4000-8000-000000000001")!
+        }
         let kind: BusinessKind
         let name: String
         switch scenario {
         case .restaurantTables, .restaurantTable, .restaurantOrder:
             kind = .restaurant
             name = "Restaurant de démonstration"
-        case .salonCatalog, .salonReport, .salonCheckout, .salonToday, .salonAgenda, .salonBooking, .salonBookingConflict, .salonClients, .salonProfile:
+        case .salonCatalog, .salonReport, .salonMore, .salonSettings, .salonCheckout, .salonToday, .salonAgenda, .salonBooking, .salonBookingConflict, .salonClients, .salonProfile:
             kind = .salon
             name = "Studio Élégance"
         default:
@@ -120,6 +129,12 @@ final class COVISimulatorDiagnostics {
                 try seedSalonDirectory()
             } else if scenario == .salonReport {
                 try seedSalonReport()
+            } else if scenario == .salonMore || scenario == .salonSettings {
+                let context = container.mainContext
+                context.insert(shop)
+                context.insert(Establishment(ownerID: owner, name: "Boutique de démonstration",
+                    kind: .boutique, city: "Brazzaville"))
+                try context.save()
             } else {
                 try seedSalon()
             }
@@ -451,7 +466,8 @@ struct COVISimulatorDiagnosticView: View {
         .allowsHitTesting(false)
         .task {
             // Le formulaire et la fiche Salon signalent leur propre apparition.
-            if fixture.salonBooking == nil && fixture.salonProfileID == nil && fixture.scenario != .salonReport {
+            if fixture.salonBooking == nil && fixture.salonProfileID == nil &&
+                fixture.scenario != .salonReport && fixture.scenario != .salonSettings {
                 await fixture.signalAfterPresentation()
             }
         }

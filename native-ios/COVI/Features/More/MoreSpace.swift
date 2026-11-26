@@ -74,6 +74,7 @@ struct MoreSpace: View {
     let onSwitchShop: () -> Void
     @Environment(AppSession.self) private var session
     @Environment(\.modelContext) private var db
+    @Query private var ownedShops: [Establishment]
     @Query private var salonMenu: [CatalogItem]
     @Query private var salonSales: [SalonSaleLine]
     @Query private var salonVisits: [SalonVisit]
@@ -81,8 +82,7 @@ struct MoreSpace: View {
     @Query private var restaurantOrders: [CommerceOrder]
     @Query private var restaurantPayments: [PaymentRecord]
     @Query private var restaurantRefunds: [Refund]
-    @State private var confirmingSignOut = false
-    @State private var signOutFailed = false
+    @State private var showingSettings = false
     @State private var showingSalonReport = false
 #if DEBUG && targetEnvironment(simulator)
     @Environment(\.coviSimulatorDiagnostics) private var diagnostics
@@ -95,6 +95,7 @@ struct MoreSpace: View {
         self.shop = shop; self.actor = actor; self.role = role; self.pin = pin
         self.onSwitchShop = onSwitchShop
         let id = shop.id
+        _ownedShops = Query(filter: #Predicate<Establishment> { $0.ownerID == actor && !$0.archived })
         _salonMenu = Query(filter: #Predicate<CatalogItem> { $0.establishmentID == id }, sort: \.title)
         _salonSales = Query(filter: #Predicate<SalonSaleLine> { $0.shop == id }, sort: \.date, order: .reverse)
         _salonVisits = Query(filter: #Predicate<SalonVisit> { $0.shop == id }, sort: \.start, order: .reverse)
@@ -106,22 +107,8 @@ struct MoreSpace: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
-                COVICard {
-                    HStack(spacing: 14) {
-                        Text(initials)
-                            .font(.title2.bold())
-                            .foregroundStyle(COVITheme.navy)
-                            .frame(width: 65, height: 65)
-                            .background(COVITheme.champagne, in: Circle())
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(session.displayName.isEmpty ? "Mon profil COVI" : session.displayName)
-                                .font(.title3.bold())
-                            COVIBadge(title: roleName)
-                        }
-                        Spacer(minLength: 0)
-                    }
-                }
+            VStack(alignment: .leading, spacing: 16) {
+                profileCard
 
                 if managesSalon {
                     COVISectionTitle("Gestion du salon")
@@ -139,7 +126,7 @@ struct MoreSpace: View {
                             .buttonStyle(.plain)
                             Divider()
                             NavigationLink { LocalShopCard(shop: shop) } label: {
-                                COVIIconRow(symbol: "link", title: "Fiche à partager & QR", detail: "Fiche locale ; pas de réservation publique")
+                                COVIIconRow(symbol: "link", title: "Fiche à partager et QR", detail: "Fiche locale")
                             }
                             Divider()
                             NavigationLink { SalonTeamSettings(shop: shop, actor: actor) } label: {
@@ -174,6 +161,28 @@ struct MoreSpace: View {
                     }
                 }
 
+                COVISectionTitle("Système & Multi-espaces")
+                COVICard {
+                    VStack(spacing: 11) {
+                        Button(action: onSwitchShop) {
+                            COVIIconRow(symbol: "storefront", title: "Changer d’établissement",
+                                detail: shop.name)
+                        }.buttonStyle(.plain)
+                        Divider()
+                        NavigationLink { COVISyncCentre(shop: shop) } label: {
+                            COVIIconRow(symbol: "icloud", title: "Centre de synchronisation hors-ligne", detail: nil)
+                        }
+                        Divider()
+                        Button { showingSettings = true } label: {
+                            COVIIconRow(symbol: "gearshape", title: "Profil et paramètres de sécurité", detail: nil)
+                        }.buttonStyle(.plain)
+                        Divider()
+                        NavigationLink { HelpPrivacyView(kind: shop.kind) } label: {
+                            COVIIconRow(symbol: "questionmark.circle", title: "Aide & Confidentialité", detail: nil)
+                        }
+                    }
+                }
+
                 COVISectionTitle("Gestion du commerce")
                 COVICard {
                     VStack(spacing: 11) {
@@ -201,45 +210,15 @@ struct MoreSpace: View {
                     }
                 }
 
-                COVISectionTitle("Système & Multi-espaces")
-                COVICard {
-                    VStack(spacing: 11) {
-                        Button(action: onSwitchShop) {
-                            COVIIconRow(symbol: "storefront", title: "Changer d’établissement",
-                                detail: "Boutique / Restaurant / Salon")
-                        }.buttonStyle(.plain)
-                        Divider()
-                        NavigationLink { COVISyncCentre(shop: shop) } label: {
-                            COVIIconRow(symbol: "icloud", title: "Centre de synchronisation hors-ligne", detail: nil)
-                        }
-                        Divider()
-                        NavigationLink { SystemSettings(shop: shop, actor: actor, pin: pin) } label: {
-                            COVIIconRow(symbol: "gearshape", title: "Profil & Paramètres de sécurité", detail: nil)
-                        }
-                        Divider()
-                        NavigationLink { HelpPrivacyView(kind: shop.kind) } label: {
-                            COVIIconRow(symbol: "questionmark.circle", title: "Aide & Confidentialité", detail: nil)
-                        }
-                    }
-                }
-
-                Button(role: .destructive) { confirmingSignOut = true } label: {
-                    Label("Déconnecter le compte principal", systemImage: "rectangle.portrait.and.arrow.right")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(17)
-                        .overlay(RoundedRectangle(cornerRadius: 15).stroke(.red, lineWidth: 1.5))
-                }
-                .buttonStyle(.plain)
-                Text("COVI · Gratuit · Vos données restent enregistrées sur votre iPhone.")
-                    .font(.caption).foregroundStyle(COVITheme.secondaryText)
-                    .frame(maxWidth: .infinity)
             }
             .foregroundStyle(COVITheme.navy)
             .padding(18)
         }
         .navigationTitle("Plus")
         .background(COVIBackdrop())
+        .navigationDestination(isPresented: $showingSettings) {
+            SystemSettings(shop: shop, actor: actor, pin: pin)
+        }
         .navigationDestination(isPresented: $showingSalonReport) {
             if managesSalon {
                 SalonReport(sales: salonSales, visits: salonVisits, currency: shop.currencyCode)
@@ -248,21 +227,48 @@ struct MoreSpace: View {
 #if DEBUG && targetEnvironment(simulator)
         .task {
             if managesSalon, diagnostics?.scenario == .salonReport { showingSalonReport = true }
+            if shop.kind == .salon, diagnostics?.scenario == .salonSettings { showingSettings = true }
         }
 #endif
-        .confirmationDialog("Se déconnecter de COVI ?", isPresented: $confirmingSignOut) {
-            Button("Se déconnecter", role: .destructive) {
-                do { try session.signOut() }
-                catch { signOutFailed = true }
+    }
+
+    private var profileCard: some View {
+        Button { showingSettings = true } label: {
+            COVICard {
+                HStack(spacing: 12) {
+                    Text(initials.isEmpty ? "C" : initials)
+                        .font(.title2.bold())
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                        .frame(width: 54, height: 54)
+                        .background(COVITheme.champagne, in: Circle())
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(session.displayName.isEmpty ? "Mon profil COVI" : session.displayName)
+                            .font(.headline)
+                        Text(profileSubtitle)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 8).padding(.vertical, 4)
+                            .background(COVITheme.navy, in: Capsule())
+                    }
+                    Spacer(minLength: 4)
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.semibold))
+                        .accessibilityHidden(true)
+                }
             }
-        } message: {
-            Text("Vos établissements et vos opérations enregistrées restent sur cet iPhone.")
+            .foregroundStyle(COVITheme.navy)
+            .contentShape(Rectangle())
+            .accessibilityElement(children: .combine)
         }
-        .alert("Déconnexion impossible", isPresented: $signOutFailed) {
-            Button("OK") {}
-        } message: {
-            Text("Le trousseau iOS n'a pas permis d'effacer la session active.")
-        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Ouvre les paramètres")
+    }
+
+    private var profileSubtitle: String {
+        guard role == .owner else { return roleName }
+        return "\(roleName) · \(ownedShops.count)/\(EstablishmentPolicy.maximumActivePerOwner) espaces"
     }
 
     private var initials: String {

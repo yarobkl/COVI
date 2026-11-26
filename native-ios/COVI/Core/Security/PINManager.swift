@@ -26,7 +26,7 @@ enum PINScope: Sendable {
     private(set) var lastError: PINError?
 
     private var lastActivity = Date.distantPast
-    private let inactivityTimeout: TimeInterval = 120
+    let inactivityTimeout: TimeInterval = 120
     private let maxAttempts = 5
     private let lockoutDuration: TimeInterval = 60
     private let keychain: any SecureStorage
