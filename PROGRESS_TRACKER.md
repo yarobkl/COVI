@@ -206,7 +206,15 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   changement et écrit une trace par ligne dans la même transaction.
 - Le test de régression vérifie le rejet d’un groupe périmé ou dupliqué.
   Le diagnostic iPhone ouvre Cuisine avec trois tables actives.
-  Compilation, tests et comparaison restent à relever.
+- Sur `ef01312`, les compilations Debug et Release, **126 XCTest sans
+  échec** dont le nouveau test Cuisine et les 25 captures ont réussi
+  ([GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45812714632)).
+  La [capture iPhone](https://github.com/yarobkl/COVI/actions/runs/45812714632/artifacts/15114762515)
+  a été comparée à `A2188A03`. Elle montre trois tickets à préparer,
+  un prêt, un servi, deux lignes regroupées pour la table 01 et les
+  délais de 12, 7 et 2 minutes. L’en-tête global est hors capture,
+  et les cartes sont plus hautes que dans la planche. Le basculement
+  de filtre et les boutons restent à vérifier sur appareil physique.
 - La prise en charge distincte, les délais d’urgence, le paiement partiel
   et les incidents présentés sur la planche restent à intégrer.
 
