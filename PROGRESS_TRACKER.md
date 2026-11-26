@@ -71,7 +71,8 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   En espèces, la feuille affiche un montant reçu de 40 000 FCFA et une monnaie de
   5 000 FCFA. La commande de confirmation était sous la zone visible.
 - La confirmation reste maintenant visible au bas de la feuille pendant le
-  défilement. [Diagnostic de `cf61665`](https://github.com/yarobkl/COVI/actions/runs/45724727588). L’en-tête de
+  défilement. Sur `cf61665`, Debug, 118 XCTest et Release ont réussi ([diagnostics](https://github.com/yarobkl/COVI/actions/runs/45724727588)).
+  [La capture](https://github.com/yarobkl/COVI/actions/runs/45724727588/artifacts/15073324402) confirme le bouton visible dès l’ouverture. Les champs « Montant reçu » et « Monnaie à rendre » nécessitent encore un défilement avec la liste complète des moyens de paiement. L’en-tête de
   l’établissement est hors cadrage des captures isolées. La couverture
   iPad, grandes tailles de texte et iPhone physique reste à vérifier.
 
