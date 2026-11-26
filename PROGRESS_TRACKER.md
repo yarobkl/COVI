@@ -1,5 +1,107 @@
 # COVI — progression iOS native
 
+## Reprise exécutée — 26 novembre 2026, matin
+
+Base vérifiée `766dc77` sur `feature/covi-2-native`. Les recherches de contexte
+confirment la Caisse Salon comme prochain écran, après Clients et Fiche client.
+La planche `6155DBBE-144F-4B98-BC2A-001713D39598(1).jpeg` a été récupérée
+et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
+
+### Changements enregistrés
+
+- `6b12ff0`, `e2786d4`, `cb2f057`, `3dd831c` : Caisse Salon regroupée en
+  ticket et règlement, import d'un rendez-vous, modification du ticket dans
+  une feuille native et confirmation fixe. Montant exact en entier vérifié
+  à nouveau à la confirmation ; espèces reçues enregistrées et monnaie
+  affichée. Rejet des montants insuffisants ou d'un panier dont le prix a changé.
+- `5007612` : Catalogue Salon avec onglets Prestations/Produits, recherche,
+  ajout dans une feuille et accès aux fiches existantes. Relecture du rôle
+  propriétaire/responsable avant création, modification de prix, inventaire
+  ou suspension. Un responsable révoqué ou devenu caissier perd ces droits.
+- `656e40b` : export de toutes les pages du reçu vérifié en PNG, partage par
+  les outils natifs iOS, PDF conservé. Fichiers image temporaires protégés et
+  nettoyés après fermeture du partage. Aucun paiement créé par un partage.
+- `924c8ab` : captures des deux écrans Salon ajoutées sur iPhone standard,
+  iPhone accessibilité XXXL et iPad simulateur. Ces scénarios utilisent
+  exclusivement des données synthétiques en mémoire ; aucun compte réel.
+- `e2786d4`, `7229f3c` : autorité backend privée renforcée : contrôle d'une
+  session Auth existante, liée au bon compte et non expirée, révocation
+  d'adhésion relue, et limite de trois établissements actifs, sérialisée
+  entre créations concurrentes. Aucun droit public supplémentaire.
+
+### Preuves backend vérifiées
+
+- [PostgreSQL 17, assertions d'autorité](https://github.com/yarobkl/COVI/actions/runs/45766928675)
+  réussi ; journal `139729946649`, message `PASS: team authority assertions`.
+- [PostgreSQL 17, limite concurrente](https://github.com/yarobkl/COVI/actions/runs/45767340961)
+  réussi ; job `139731307702`. Deux connexions concurrentes : la troisième
+  création réussit, la quatrième est refusée, exactement trois espaces actifs.
+- Les mêmes assertions SQL ont été exécutées localement sous PostgreSQL
+  embarqué PGlite ; cela ne remplace pas l'instance Supabase hébergée.
+- Les tests utilisent un schéma Auth minimal synthétique dans une base jetable.
+  `backend/tests/bootstrap.sql` ne doit jamais être appliqué à Supabase.
+- Le connecteur liste COVI `bmbwmwgfzrijglzcgjut` comme `INACTIVE`.
+  La référence historique de préproduction `stcsjwxmmxnjwisqkudz` renvoie
+  un refus d'autorisation. Le navigateur cloud affiche la connexion Supabase.
+  Aucune migration hébergée, aucune clé et aucune donnée de production modifiée.
+  Apple/Google, invitations et synchronisation d'équipe restent à intégrer.
+
+### Preuves visuelles et diagnostics récupérés
+
+- `3dd831c`, [diagnostics complets](https://github.com/yarobkl/COVI/actions/runs/45767753580) :
+  Debug, **123 XCTest, zéro échec**, Release et 15 captures iPhone réussis.
+  Journaux `139732687256` lus, artefact `15093397829` récupéré.
+- `924c8ab`, [diagnostics avec iPad et accessibilité](https://github.com/yarobkl/COVI/actions/runs/45767849103) :
+  Debug, **123 XCTest, zéro échec**, Release et 19 captures produits.
+  Journaux `139733001937` lus, artefact `15093597494` récupéré et inspecté.
+- Comparaison iPhone à `6155DBBE` : ticket de Mireille, total de 30 000 FCFA,
+  choix du moyen et bouton fixe visibles. Le montant reçu de 35 000 et la
+  monnaie de 5 000 sont présents sur iPad ; sur iPhone standard la monnaie
+  est sous la zone visible. Le nom de compte est hors capture.
+- Le catalogue montre ses deux types, leurs compteurs réels, la recherche,
+  trois prestations et leurs prix. Écarts : photos/durées absentes du modèle,
+  style des onglets, densité et navigation complète à vérifier.
+- Les premières captures révèlent un titre de catalogue trop large et un
+  symbole produit inexistant. Correctif `f64afc2` : titre inline, symbole
+  `shippingbox`, prestation avant produit, nom de ligne plus compact.
+- Sur iPhone XXXL, la disposition horizontale coupe les mots et montants.
+  Correctif `060e8ee` : dispositions verticales aux tailles d'accessibilité,
+  icônes décoratives fixes et bouton « Encaisser » plus court ; la confirmation
+  conserve le montant exact. Nouveau diagnostic à contrôler avant validation.
+- La capture iPad confirme les onglets natifs en haut, les deux cartes et le
+  bouton fixe. Elle ne valide pas les interactions tactiles ni une orientation
+  différente. Aucune conformité complète des 46 écrans n'est annoncée.
+- La collecte des captures prend plusieurs minutes. `fdd1def` borne désormais
+  chaque commande longue du simulateur à 120 secondes et conserve les images
+  partielles en cas d'échec. Les diagnostics antérieurs ont finalement livré
+  leurs artefacts ; aucun blocage du code n'a été déduit de la seule lenteur.
+
+### Contrôles iOS et limites
+
+Les premières compilations ont échoué sur une expression SwiftUI ; le découpage
+a révélé une chaîne `String` passée au bouton attendant `LocalizedStringKey`.
+Le correctif est dans `3dd831c`. Les résultats finaux XCTest, Release et captures
+pour `3dd831c` et `924c8ab` figurent ci-dessus après lecture des journaux.
+Le diagnostic du dernier correctif visuel `060e8ee` est en cours :
+https://github.com/yarobkl/COVI/actions/runs/45770269249.
+Il ne faut pas attribuer les 123 tests antérieurs à ce correctif avant lecture
+finale de ses propres journaux. Aucun échec de compilation n'est présenté comme validé.
+
+Aucun modèle SwiftData existant n'a été modifié. La conservation d'une ancienne
+base installée, les appareils physiques, la synchronisation CloudKit réelle,
+les comptes collaborateurs distants et la livraison TestFlight restent non
+validés. Les lots Boutique Scan/Studio, QR Restaurant, paiements mixtes/crédit
+et les autres écarts du contrat produit ne sont pas déclarés terminés.
+
+Points métier encore observés dans les sources, sans correctif annoncé :
+- `RestaurantService.finish` libère actuellement la table au paiement et les
+  miroirs CloudKit font de même ; l'état « payé mais encore occupé » et la
+  libération physique explicite doivent être traités ensemble, avec leurs tests.
+- La caisse Salon exige encore une fiche client ; le parcours universel sans
+  identité, hors crédit, reste à harmoniser sans perdre les liens d'historique.
+- Le catalogue utilise des symboles natifs : photos, durées structurées et
+  ressources proposées par la planche ne sont pas inventées lorsqu'absentes.
+
 ## Reprise COVI 2.0 — 25 novembre 2026
 
 Branche active de refonte `feature/covi-2-native`, contrat produit dans
