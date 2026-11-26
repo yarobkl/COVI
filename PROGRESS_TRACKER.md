@@ -130,7 +130,16 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   Le total et l’envoi en cuisine restent au bas de la feuille.
 - Les scénarios simulateur `restaurant-table` et `restaurant-order` reprennent
   l’écran de session et le formulaire avec une commande de test enregistrée
-  et un panier de brouillon. [Diagnostic iOS](https://github.com/yarobkl/COVI/actions/runs/45745812693).
+  et un panier de brouillon. Debug, 118 XCTest sans échec et Release réussis sur
+  simulateur ([diagnostic](https://github.com/yarobkl/COVI/actions/runs/45745812693)).
+- Les [captures Table 01 et Commander](https://github.com/yarobkl/COVI/actions/runs/45745812693/artifacts/15084050627)
+  ont été comparées à `2A49F962`. La session affiche trois lignes, l’état
+  des plats et 28 500 FCFA à encaisser. La commande affiche une recherche
+  visible, les onglets Plats et Boissons, les quantités 2 et 1, l’article
+  épuisé et l’envoi fixe pour 3 articles à 25 500 FCFA. Les photos, le QR,
+  le nom du serveur, les convives réels et le parcours de navigation complet
+  restent à vérifier ou à intégrer. Les deux vues en capture sont ouvertes
+  directement sur simulateur avec des données synthétiques.
 
 ### Suite du lot 1
 
