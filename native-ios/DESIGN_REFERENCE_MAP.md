@@ -36,6 +36,12 @@ confirmé. Le résumé Table 10 montre 0 sur 10. Table 3 illustre 2 sur 3.
 La feuille de confirmation et la synchronisation sur appareil restent
 à essayer.
 
+Le [détail Table 01 après règlement](https://github.com/yarobkl/COVI/actions/runs/45893079833/artifacts/15152629880)
+reprend la carte d’état de Salle et le montant de l’encaissement
+`A2188A03`. L’état « Réglée · occupée » et l’action de départ suivent
+le contrat produit. Les références n’incluent pas de planche dédiée à
+cet état. La confirmation tactile reste à essayer sur appareil.
+
 ## Reprise du lot visuel COVI 2.0
 
 - Le build TestFlight 1.0.13 (10051), issu du commit `6eb37ed`, valide la

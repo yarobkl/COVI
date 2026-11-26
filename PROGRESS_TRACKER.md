@@ -488,10 +488,21 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   libérée est gardée dans l’instantané de table. La réception d’un
   ancien instantané ne doit ni rouvrir la table ni effacer un
   nouvel occupant. Les reçus anciens gardent leur règle de clôture.
-- Deux champs SwiftData facultatifs ont été ajoutés. Les tests et
-  la capture après règlement doivent être vérifiés dans GitHub Actions.
-  La migration installée, la coexistence avec une version ancienne,
-  CloudKit entre appareils physiques et la fermeture QR restent à valider.
+- Sur `2d875c7`, Debug, Release, **148 XCTest sans échec** et
+  36 captures. Le test du service vérifie le refus d’une nouvelle
+  commande ou d’une réouverture avant le départ. Le test de
+  synchronisation vérifie l’occupation après import du reçu, la
+  libération et le rejeu d’un ancien instantané sans rouvrir la table.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45893079833)
+- La [capture iPhone](https://github.com/yarobkl/COVI/actions/runs/45893079833/artifacts/15152629880)
+  montre Table 01 réglée à 28 500 FCFA, encore occupée, avec l’action
+  « Confirmer le départ ». La présentation reprend les cartes de
+  Salle et le montant de la planche d’encaissement. L’état après
+  règlement n’a pas de planche dédiée dans ces références.
+- Deux champs SwiftData facultatifs ont été ajoutés. La migration
+  depuis une installation, la coexistence avec une version ancienne,
+  les interactions sur appareil et la synchronisation réelle restent
+  à vérifier. L’intégration QR reste à réaliser.
 
 ### Contrôles iOS et limites
 
