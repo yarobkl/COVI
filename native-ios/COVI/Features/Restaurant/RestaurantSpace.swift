@@ -85,7 +85,9 @@ struct RestaurantSpace: View {
                                     .padding(.vertical, 12)
                                     .foregroundStyle(filter == option ? .white : COVITheme.navy)
                                     .background(filter == option ? COVITheme.navy : .white, in: Capsule())
-                            }.buttonStyle(.plain)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityAddTraits(filter == option ? .isSelected : [])
                         }
                     }
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 15) {
@@ -100,15 +102,31 @@ struct RestaurantSpace: View {
                                             .font(.system(size: 36))
                                             .foregroundStyle(t.billRequested ? COVITheme.warning : t.isOccupied ? COVITheme.navy : COVITheme.success)
                                             .frame(height: 48)
-                                        Text(t.label).font(.title3.bold()).lineLimit(1)
-                                        Text("(\(t.capacity) pers.)").font(.caption)
+                                        ViewThatFits(in: .horizontal) {
+                                            HStack(spacing: 5) {
+                                                Text(t.label).font(.headline)
+                                                Text("(\(t.capacity) pers.)").font(.caption)
+                                            }
+                                            VStack(spacing: 3) {
+                                                Text(t.label).font(.headline)
+                                                Text("(\(t.capacity) pers.)").font(.caption)
+                                            }
+                                        }
+                                        .multilineTextAlignment(.center)
                                         COVIBadge(title: state(t),
                                             tint: t.billRequested ? COVITheme.warningTint : t.isOccupied ? COVITheme.champagne : COVITheme.successTint,
                                             foreground: t.billRequested ? COVITheme.warning : t.isOccupied ? COVITheme.navy : COVITheme.success)
                                         if let order = orders.first(where: { $0.id == t.activeSessionID }) {
-                                            Text(COVIMoney.text(order.totalMinor, currency: shop.currencyCode))
-                                                .font(.subheadline.bold())
-                                        } else { Text("Prête au service").font(.caption) }
+                                            VStack(spacing: 3) {
+                                                Text(t.billRequested ? "Reste dû" : "En cours")
+                                                    .font(.caption)
+                                                Text(COVIMoney.text(order.totalMinor, currency: shop.currencyCode))
+                                                    .font(.subheadline.bold())
+                                            }
+                                            .multilineTextAlignment(.center)
+                                        } else if !t.isOccupied {
+                                            Text("Prête au service").font(.caption)
+                                        }
                                     }
                                     .foregroundStyle(COVITheme.navy)
                                     .frame(maxWidth: .infinity, minHeight: 174)

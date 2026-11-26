@@ -14,6 +14,7 @@ final class COVISimulatorDiagnostics {
         case boutiqueHome = "boutique-home"
         case sale = "boutique-sale"
         case checkout = "boutique-checkout"
+        case restaurantTables = "restaurant-tables"
     }
 
     enum Failure: Error { case invalidScenario }
@@ -57,10 +58,18 @@ final class COVISimulatorDiagnostics {
         session = AppSession(keychain: storage)
         pin = PINManager(keychain: storage)
         owner = UUID(uuidString: "00000000-0000-4000-8000-000000000001")!
+        let isRestaurant = scenario == .restaurantTables
         shop = Establishment(
             id: UUID(uuidString: "00000000-0000-4000-8000-000000000002")!,
-            ownerID: owner, name: "Boutique de démonstration", kind: .boutique,
-            city: "Brazzaville", currencyCode: "XAF")
+            ownerID: owner, name: isRestaurant ? "Restaurant de démonstration" : "Boutique de démonstration",
+            kind: isRestaurant ? .restaurant : .boutique, city: "Brazzaville", currencyCode: "XAF")
+
+        if isRestaurant {
+            basket = [:]
+            due = 0
+            try seedRestaurantTables()
+            return
+        }
 
         let shirt = CatalogItem(establishmentID: shop.id,
             title: "Chemise Lin Noir (M)", priceMinor: 18_000)
@@ -98,6 +107,38 @@ final class COVISimulatorDiagnostics {
                 .init(product: trousers, units: 1)
             ], discount: 0, quote: due, tender: .cash, received: cashReceived,
                 confirmed: false, shop: shop, actor: owner, pin: pin, context: context)
+        }
+    }
+
+    private func seedRestaurantTables() throws {
+        let context = container.mainContext
+        let occupied = DiningTable(establishmentID: shop.id, label: "Table 01", capacity: 4)
+        let free = DiningTable(establishmentID: shop.id, label: "Table 02", capacity: 2)
+        let secondOccupied = DiningTable(establishmentID: shop.id, label: "Table 03", capacity: 6)
+        let awaitingBill = DiningTable(establishmentID: shop.id, label: "Table 04", capacity: 4)
+        for table in [occupied, free, secondOccupied, awaitingBill] {
+            context.insert(table)
+        }
+        context.insert(shop)
+
+        let main = CatalogItem(establishmentID: shop.id, title: "Capitaine à la braise", priceMinor: 9_500)
+        main.menuCategory = MenuGroup.food.rawValue
+        let chicken = CatalogItem(establishmentID: shop.id, title: "Poulet braisé", priceMinor: 8_000)
+        chicken.menuCategory = MenuGroup.food.rawValue
+        context.insert(main)
+        context.insert(chicken)
+        try context.save()
+
+        let service = RestaurantService(shop: shop, actor: owner, role: .owner, pin: pin, db: context)
+        for (table, dish, quantity) in [(occupied, main, 3), (secondOccupied, chicken, 8), (awaitingBill, main, 2)] {
+            try service.open(table)
+            guard let id = table.activeSessionID,
+                  let order = try context.fetch(FetchDescriptor<CommerceOrder>(
+                    predicate: #Predicate { $0.id == id })).first else { throw Failure.invalidScenario }
+            try service.send([dish.id: quantity], menu: [dish], table: table, order: order)
+            if table.id == awaitingBill.id {
+                try service.finish(table, order: order, paid: false)
+            }
         }
     }
 
