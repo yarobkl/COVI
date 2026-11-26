@@ -166,8 +166,22 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   le collaborateur et le créneau. La date et la durée se règlent depuis
   la ligne Créneau. La confirmation reste au bas de la feuille et dépend
   du contrôle local de disponibilité. Le service revérifie le créneau à
-  l’enregistrement. Deux diagnostics couvrent les états libre et occupé ;
-  preuves macOS et comparaison à la planche à relever.
+  l’enregistrement.
+- Sur `4cbf619`, Debug et Release compilent et les journaux confirment
+  **118 XCTest exécutés, 0 échec** sur simulateur
+  ([diagnostics macOS](https://github.com/yarobkl/COVI/actions/runs/45759787263)).
+- Les [captures de Nouveau rendez-vous](https://github.com/yarobkl/COVI/actions/runs/45759787263/artifacts/15090135910)
+  ont été comparées à `058F98E6`. La feuille affiche les deux modes, les
+  quatre lignes, le tarif de 25 000 FCFA et le créneau de 15 h à 17 h. Le
+  bouton fixe est actif pour le créneau libre. Lorsque le collaborateur
+  a déjà un rendez-vous, l’indicateur passe au rouge et les deux actions
+  d’enregistrement sont désactivées. Le rendu diffère par l’espacement,
+  l’action Enregistrer dans la barre native et le détail en plusieurs
+  lignes. Le dépliage du créneau, le passage spontané et l’enregistrement
+  de bout en bout restent à vérifier en interaction sur appareil physique.
+- Les planches `C0053217` (Clients, Fiche client) et `6155DBBE`
+  (Caisse, Catalogue salon) ont été retrouvées et relues. Prochaine
+  comparaison visuelle sur Clients et Fiche client.
 
 ### Suite du lot 1
 
