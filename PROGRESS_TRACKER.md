@@ -107,6 +107,18 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   en mémoire. Debug, 118 XCTest sans échec et Release sur simulateur réussis ([diagnostic](https://github.com/yarobkl/COVI/actions/runs/45731281847)).
 - La [capture de l’Accueil Boutique](https://github.com/yarobkl/COVI/actions/runs/45731281847/artifacts/15077287578) a été comparée à `9BF220F7`. Elle confirme la carte de ventes (53 500 FCFA, dont 35 000 en espèces et 18 500 en Mobile Money), l’alerte stock et le moyen de paiement de la première vente visible. Le raccourci Vendre et l’espacement repoussent la seconde vente sous la ligne de flottaison. L’en-tête complet, la densité et la conformité physique iPhone/iPad restent à vérifier.
 
+### Lot 3 — Restaurant
+
+- La première grille suit la planche `2A49F962`. Le nom et la capacité
+  tiennent sur la même ligne quand la largeur le permet. Les cartes
+  distinguent le total en cours du reste dû après demande d’addition.
+  VoiceOver annonce le filtre sélectionné.
+- Le scénario simulateur `restaurant-tables` utilise le service natif pour
+  ouvrir trois tables et demander une addition dans un magasin en mémoire.
+  Il inclut une quatrième table libre. La comparaison reste à faire sur
+  [les diagnostics de `74b5386`](https://github.com/yarobkl/COVI/actions/runs/45739778882).
+  Les QR et le plan de salle configurable relèvent du lot 6.
+
 ### Suite du lot 1
 
 Le correctif d’annulation CloudKit `0872560` a également passé la compilation
