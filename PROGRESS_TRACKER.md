@@ -124,6 +124,14 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   L’en-tête de compte est hors capture. Les QR et le plan de salle configurable
   relèvent du lot 6. La vue Table 01 et le formulaire de commande restent à capturer.
 
+- Sur `9b685f6`, le détail affiche l’heure d’ouverture de la session,
+  la capacité et les états des lignes. Commander propose une recherche native
+  et des boutons de quantité de 44 points avec des libellés VoiceOver.
+  Le total et l’envoi en cuisine restent au bas de la feuille.
+- Les scénarios simulateur `restaurant-table` et `restaurant-order` reprennent
+  l’écran de session et le formulaire avec une commande de test enregistrée
+  et un panier de brouillon. [Diagnostic iOS](https://github.com/yarobkl/COVI/actions/runs/45745812693).
+
 ### Suite du lot 1
 
 Le correctif d’annulation CloudKit `0872560` a également passé la compilation
