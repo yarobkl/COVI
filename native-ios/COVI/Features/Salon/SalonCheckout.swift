@@ -79,7 +79,7 @@ struct SalonCheckout: View {
     private var payFooter: some View {
             VStack(spacing: 8) {
                 if !message.isEmpty { Text(message).font(.footnote).foregroundStyle(COVITheme.navy) }
-                COVIButton("Encaisser " + (total.map { COVIMoney.text($0, currency: shop.currencyCode) } ?? "")) {
+                COVIButton("Encaisser \(total.map { COVIMoney.text($0, currency: shop.currencyCode) } ?? "")") {
                     quoted = total; confirm = true
                 }.disabled(!canPay)
             }.padding(.horizontal, 18).padding(.vertical, 12).background(COVITheme.cream)
