@@ -140,6 +140,20 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   devront être vérifiés avec les fonctions métier correspondantes. La règle
   actuelle des remboursements est affichée sans commande de désactivation.
 
+### Rapports service du Restaurant
+
+- La planche `A30B3A65` a été inspectée. Rapports service place le mois
+  dans l’en-tête, le montant net dans le bandeau et les moyens de règlement
+  dans la carte d’activité. Le journal CSV conserve les règlements du mois.
+- Les montants sont agrégés en décimal exact. Les moyens externes hors
+  Mobile Money sont comptés séparément, tout comme les remboursements
+  enregistrés. Le ticket moyen utilise les commandes de table clôturées
+  avec un règlement dans la période. Les incidents de service restent à
+  intégrer au modèle.
+- Un test couvre la séparation des moyens, le mois, l’établissement et
+  les sommes supérieures à la plage d’un entier 64 bits. Un diagnostic
+  ouvre le rapport depuis Plus. Les résultats restent à relever.
+
 ### Contrôles iOS et limites
 
 Les premières compilations ont échoué sur une expression SwiftUI ; le découpage

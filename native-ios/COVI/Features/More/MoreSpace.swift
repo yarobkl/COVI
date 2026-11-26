@@ -82,13 +82,14 @@ struct MoreSpace: View {
     @Query private var restaurantOrders: [CommerceOrder]
     @Query private var restaurantPayments: [PaymentRecord]
     @Query private var restaurantRefunds: [Refund]
-    private enum Destination: Hashable { case settings, salonReport }
+    private enum Destination: Hashable { case settings, salonReport, restaurantReport }
     @State private var destination: Destination?
 #if DEBUG && targetEnvironment(simulator)
     @Environment(\.coviSimulatorDiagnostics) private var diagnostics
 #endif
 
     private var managesSalon: Bool { shop.kind == .salon && (role == .owner || role == .manager) }
+    private var managesRestaurant: Bool { shop.kind == .restaurant && (role == .owner || role == .manager) }
 
     init(shop: Establishment, actor: UUID, role: StaffRole, pin: PINManager,
          onSwitchShop: @escaping () -> Void) {
@@ -136,7 +137,7 @@ struct MoreSpace: View {
                     }
                 }
 
-                if shop.kind == .restaurant && (role == .owner || role == .manager) {
+                if managesRestaurant {
                     COVISectionTitle("Gestion du restaurant")
                     COVICard {
                         VStack(spacing: 4) {
@@ -147,12 +148,10 @@ struct MoreSpace: View {
                                 COVIIconRow(symbol: "fork.knife", title: "Gestion de la carte & tables", detail: nil)
                             }
                             Divider()
-                            NavigationLink {
-                                RestaurantFinanceReport(shop: shop, orders: restaurantOrders,
-                                    payments: restaurantPayments, refunds: restaurantRefunds)
-                            } label: {
+                            Button { destination = .restaurantReport } label: {
                                 COVIIconRow(symbol: "chart.bar", title: "Rapports service", detail: nil)
                             }
+                            .buttonStyle(.plain)
                             Divider()
                             NavigationLink { OwnerSettings(shop: shop, pinManager: pin) } label: {
                                 COVIIconRow(symbol: "person.3", title: "Équipe & Accès", detail: nil)
@@ -225,11 +224,17 @@ struct MoreSpace: View {
                 if managesSalon {
                     SalonReport(sales: salonSales, visits: salonVisits, currency: shop.currencyCode)
                 }
+            case .restaurantReport:
+                if managesRestaurant {
+                    RestaurantFinanceReport(shop: shop, orders: restaurantOrders,
+                        payments: restaurantPayments, refunds: restaurantRefunds)
+                }
             }
         }
 #if DEBUG && targetEnvironment(simulator)
         .task {
             if managesSalon, diagnostics?.scenario == .salonReport { destination = .salonReport }
+            if managesRestaurant, diagnostics?.scenario == .restaurantReport { destination = .restaurantReport }
             if shop.kind == .salon, diagnostics?.scenario == .salonSettings { destination = .settings }
         }
 #endif
@@ -384,97 +389,106 @@ private struct COVISyncCentre: View {
     }
 }
 
+struct RestaurantCashReportSnapshot {
+    let receipts: [PaymentRecord]
+    let refunded: Decimal
+    let refundCount: Int
+    let gross: Decimal
+    let cash: Decimal
+    let mobile: Decimal
+    let tableCount: Int
+    let averageTicket: Decimal
+    var other: Decimal { gross - cash - mobile }
+    var net: Decimal { gross - refunded }
+
+    init(shop: UUID, month: Date, orders: [CommerceOrder], payments: [PaymentRecord],
+         refunds: [Refund], calendar: Calendar = .current) {
+        let periodReceipts = payments.filter {
+            $0.establishmentID == shop && $0.amountMinor > 0 &&
+            calendar.isDate($0.confirmedAt, equalTo: month, toGranularity: .month)
+        }
+        receipts = periodReceipts
+        let periodRefunds = refunds.filter {
+            $0.establishmentID == shop && $0.amountMinor > 0 &&
+            calendar.isDate($0.date, equalTo: month, toGranularity: .month)
+        }
+        refundCount = periodRefunds.count
+        refunded = periodRefunds.reduce(Decimal.zero) { $0 + Decimal($1.amountMinor) }
+        gross = periodReceipts.reduce(Decimal.zero) { $0 + Decimal($1.amountMinor) }
+        cash = periodReceipts.filter { $0.method == Tender.cash.rawValue }
+            .reduce(Decimal.zero) { $0 + Decimal($1.amountMinor) }
+        mobile = periodReceipts.filter { Tender(rawValue: $0.method)?.isMobileMoney == true }
+            .reduce(Decimal.zero) { $0 + Decimal($1.amountMinor) }
+
+        let paid = Set(periodReceipts.map(\.orderID))
+        let tableOrders = orders.filter {
+            $0.establishmentID == shop && $0.tableID != nil && $0.state == .completed && paid.contains($0.id)
+        }
+        tableCount = tableOrders.count
+        let tableTotal = tableOrders.reduce(Decimal.zero) { $0 + Decimal($1.totalMinor) }
+        averageTicket = tableOrders.isEmpty ? .zero : tableTotal / Decimal(tableOrders.count)
+    }
+}
+
 private struct RestaurantFinanceReport: View {
     let shop: Establishment
     let orders: [CommerceOrder]
     let payments: [PaymentRecord]
     let refunds: [Refund]
+    @Environment(\.dynamicTypeSize) private var textSize
+#if DEBUG && targetEnvironment(simulator)
+    @Environment(\.coviSimulatorDiagnostics) private var diagnostics
+#endif
     @State private var month = Date.now
+    @State private var choosingMonth = false
     @State private var exporting = false
     @State private var exportError = ""
 
-    private var receipts: [PaymentRecord] {
-        payments.filter { Calendar.current.isDate($0.confirmedAt, equalTo: month, toGranularity: .month) }
-    }
-    private var returned: [Refund] {
-        refunds.filter { Calendar.current.isDate($0.date, equalTo: month, toGranularity: .month) }
-    }
-    private var gross: Int64 { receipts.reduce(0) { $0 + $1.amountMinor } }
-    private var refunded: Int64 { returned.reduce(0) { $0 + $1.amountMinor } }
-    private var cash: Int64 { receipts.filter { $0.method == Tender.cash.rawValue }.reduce(0) { $0 + $1.amountMinor } }
-    private var mobile: Int64 { receipts.filter { $0.method != Tender.cash.rawValue }.reduce(0) { $0 + $1.amountMinor } }
-    private var tableOrders: [CommerceOrder] {
-        let paid = Set(receipts.map(\.orderID))
-        return orders.filter { $0.tableID != nil && $0.state == .completed && paid.contains($0.id) }
-    }
-
     var body: some View {
+        let snapshot = RestaurantCashReportSnapshot(shop: shop.id, month: month, orders: orders,
+            payments: payments, refunds: refunds)
         ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
-                DatePicker("Mois", selection: $month, displayedComponents: .date)
-                    .tint(COVITheme.navy)
-
-                VStack(alignment: .leading, spacing: 18) {
-                    HStack(spacing: 13) {
-                        Image(systemName: "chart.bar.fill")
-                            .font(.largeTitle).foregroundStyle(COVITheme.sand)
-                            .frame(width: 66, height: 66)
-                            .background(.white.opacity(0.13), in: Circle())
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text("Encaissements nets :").font(.headline)
-                            Text(COVIMoney.text(gross - refunded, currency: shop.currencyCode))
-                                .font(.system(size: 29, weight: .bold))
-                                .minimumScaleFactor(0.7).lineLimit(1)
-                        }
-                    }
-                    Rectangle().fill(.white.opacity(0.5)).frame(height: 1)
-                    HStack {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Encaissements bruts").font(.caption)
-                            Text(COVIMoney.text(gross, currency: shop.currencyCode)).font(.headline)
-                        }
-                        Spacer()
-                        VStack(alignment: .trailing, spacing: 6) {
-                            Text("Remboursements").font(.caption)
-                            Text("−" + COVIMoney.text(refunded, currency: shop.currencyCode)).font(.headline)
-                        }
-                    }
-                }
-                .foregroundStyle(.white)
-                .padding(18)
-                .background(COVITheme.navy, in: RoundedRectangle(cornerRadius: 20))
-
-                COVISectionTitle("Répartition & Activité")
-                COVICard {
-                    VStack(spacing: 15) {
-                        COVIIconRow(symbol: "circle.stack", title: "Espèces encaissées",
-                            detail: COVIMoney.text(cash, currency: shop.currencyCode), accessory: nil)
-                        Divider()
-                        COVIIconRow(symbol: "iphone", title: "Mobile Money & autres moyens",
-                            detail: COVIMoney.text(mobile, currency: shop.currencyCode), accessory: nil)
-                        Divider()
-                        let average = tableOrders.isEmpty ? Int64(0) :
-                            tableOrders.reduce(Int64(0)) { $0 + $1.totalMinor } / Int64(tableOrders.count)
-                        COVIIconRow(symbol: "table.furniture", title: "Tables servies & Ticket moyen",
-                            detail: "\(tableOrders.count) tables · \(COVIMoney.text(average, currency: shop.currencyCode))", accessory: nil)
-                    }
-                }
-                Text("Les incidents et encaissements partiels ne sont pas encore suivis dans ce rapport. Les sommes affichées proviennent des règlements réellement confirmés.")
-                    .font(.footnote).foregroundStyle(COVITheme.secondaryText)
-                COVIButton("Exporter le journal de caisse", systemImage: "square.and.arrow.down") {
+            VStack(alignment: .leading, spacing: 16) {
+                if textSize.isAccessibilitySize { monthButton }
+                summaryCard(snapshot)
+                COVISectionTitle("Répartition et activité")
+                activityCard(snapshot)
+                COVIButton("Exporter le journal de caisse", systemImage: "square.and.arrow.down", role: .secondary) {
+                    exportError = ""
                     exporting = true
                 }
                 if !exportError.isEmpty { Text(exportError).foregroundStyle(.red) }
             }
             .foregroundStyle(COVITheme.navy)
-            .padding(18)
+            .padding(COVITheme.Metrics.screenPadding)
         }
         .background(COVIBackdrop())
         .navigationTitle("Rapports service")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if !textSize.isAccessibilitySize {
+                ToolbarItem(placement: .topBarTrailing) { monthButton }
+            }
+        }
+        .sheet(isPresented: $choosingMonth) {
+            NavigationStack {
+                Form {
+                    DatePicker("Date du mois à consulter", selection: $month, displayedComponents: .date)
+                }
+                .navigationTitle("Mois du rapport")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Terminé") { choosingMonth = false }
+                    }
+                }
+                .presentationDetents([.medium, .large])
+            }
+        }
         .fileExporter(isPresented: $exporting,
             document: COVICSVDocument(COVICSV.encode(
                 headers: ["Date", "Méthode", "Montant", "Devise"],
-                rows: receipts.map { payment in
+                rows: snapshot.receipts.map { payment in
                     [.text(payment.confirmedAt.formatted(.iso8601)), .text(payment.method),
                      .number(String(payment.amountMinor)), .text(shop.currencyCode)]
                 })),
@@ -482,6 +496,115 @@ private struct RestaurantFinanceReport: View {
             defaultFilename: "COVI-journal-service") { result in
                 if case .failure(let error) = result { exportError = error.localizedDescription }
             }
+#if DEBUG && targetEnvironment(simulator)
+        .task {
+            if let diagnostics, diagnostics.scenario == .restaurantReport {
+                await diagnostics.signalAfterPresentation()
+            }
+        }
+#endif
+    }
+
+    private var monthButton: some View {
+        let title = month.formatted(.dateTime.month(.abbreviated).year())
+        return Button { choosingMonth = true } label: {
+            HStack(spacing: 4) {
+                Text(title)
+                    .fixedSize(horizontal: !textSize.isAccessibilitySize, vertical: true)
+                Image(systemName: "chevron.down").accessibilityHidden(true)
+            }
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 10).padding(.vertical, 7)
+            .background(COVITheme.champagne, in: Capsule())
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Mois du rapport")
+        .accessibilityValue(title)
+    }
+
+    private func summaryCard(_ snapshot: RestaurantCashReportSnapshot) -> some View {
+        let layout = textSize.isAccessibilitySize ?
+            AnyLayout(VStackLayout(alignment: .leading, spacing: 10)) : AnyLayout(HStackLayout(spacing: 12))
+        return VStack(alignment: .leading, spacing: 12) {
+            layout {
+                Image(systemName: "chart.bar.fill")
+                    .font(.title2).foregroundStyle(COVITheme.sand)
+                    .frame(width: 50, height: 50)
+                    .background(.white.opacity(0.14), in: Circle())
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Encaissements nets").font(.subheadline)
+                    Text(money(snapshot.net)).font(.title.bold())
+                }
+            }
+            Divider().overlay(.white.opacity(0.4)).accessibilityHidden(true)
+            layout {
+                summaryValue("Bruts", symbol: "circle.stack", amount: snapshot.gross)
+                summaryValue("Remboursements", symbol: "arrow.uturn.backward", amount: -snapshot.refunded)
+            }
+        }
+        .foregroundStyle(.white)
+        .padding(COVITheme.Metrics.cardPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(COVITheme.navy, in: RoundedRectangle(cornerRadius: COVITheme.Metrics.cardRadius))
+    }
+
+    private func summaryValue(_ title: String, symbol: String, amount: Decimal) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: symbol).foregroundStyle(COVITheme.sand).accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title).font(.caption)
+                Text(money(amount)).font(.subheadline.bold())
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func activityCard(_ snapshot: RestaurantCashReportSnapshot) -> some View {
+        COVICard {
+            VStack(alignment: .leading, spacing: 6) {
+                tenderRow("Espèces encaissées", symbol: "circle.stack", amount: snapshot.cash,
+                    gross: snapshot.gross, tint: COVITheme.successTint)
+                Divider()
+                tenderRow("Mobile Money", symbol: "iphone", amount: snapshot.mobile,
+                    gross: snapshot.gross, tint: COVITheme.champagne)
+                if snapshot.other > .zero {
+                    Divider()
+                    tenderRow("Autres moyens", symbol: "creditcard", amount: snapshot.other,
+                        gross: snapshot.gross, tint: COVITheme.champagne)
+                }
+                Divider()
+                COVIIconRow(symbol: "table.furniture", title: "Tables servies et ticket moyen",
+                    detail: "\(snapshot.tableCount) ticket(s) de table · \(money(snapshot.averageTicket))",
+                    accessory: nil)
+                Divider()
+                COVIIconRow(symbol: "arrow.uturn.backward", title: "Remboursements enregistrés",
+                    detail: "\(snapshot.refundCount) · \(money(snapshot.refunded))", accessory: nil)
+            }
+        }
+    }
+
+    private func tenderRow(_ title: String, symbol: String, amount: Decimal, gross: Decimal, tint: Color) -> some View {
+        let layout = textSize.isAccessibilitySize ?
+            AnyLayout(VStackLayout(alignment: .leading, spacing: 4)) : AnyLayout(HStackLayout(spacing: 7))
+        return layout {
+            COVIIconRow(symbol: symbol, title: title, detail: money(amount), accessory: nil)
+            if gross > .zero {
+                Text((amount / gross).formatted(.percent.precision(.fractionLength(0))))
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 9).padding(.vertical, 4)
+                    .background(tint, in: Capsule())
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func money(_ amount: Decimal) -> String {
+        let formatted = amount.formatted(.number.precision(.fractionLength(0)))
+        return "\(formatted) \(shop.currencyCode == "XAF" ? "FCFA" : shop.currencyCode)"
     }
 }
 

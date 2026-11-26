@@ -17,6 +17,7 @@ final class COVISimulatorDiagnostics {
         case restaurantTables = "restaurant-tables"
         case restaurantTable = "restaurant-table"
         case restaurantOrder = "restaurant-order"
+        case restaurantReport = "restaurant-report"
         case salonCatalog = "salon-catalog"
         case salonReport = "salon-report"
         case salonMore = "salon-more"
@@ -102,7 +103,7 @@ final class COVISimulatorDiagnostics {
         let kind: BusinessKind
         let name: String
         switch scenario {
-        case .restaurantTables, .restaurantTable, .restaurantOrder:
+        case .restaurantTables, .restaurantTable, .restaurantOrder, .restaurantReport:
             kind = .restaurant
             name = "Restaurant de démonstration"
         case .salonCatalog, .salonReport, .salonMore, .salonSettings, .salonCheckout, .salonToday, .salonAgenda, .salonBooking, .salonBookingConflict, .salonClients, .salonProfile:
@@ -119,7 +120,11 @@ final class COVISimulatorDiagnostics {
         if kind == .restaurant {
             basket = [:]
             due = 0
-            restaurantSample = try seedRestaurantTables()
+            if scenario == .restaurantReport {
+                try seedRestaurantReport()
+            } else {
+                restaurantSample = try seedRestaurantTables()
+            }
             return
         }
         if kind == .salon {
@@ -234,6 +239,39 @@ final class COVISimulatorDiagnostics {
 
         return RestaurantSample(table: occupied, order: active, lines: lines,
             menu: menu, draft: draft, service: service)
+    }
+
+    private func seedRestaurantReport() throws {
+        let context = container.mainContext
+        context.insert(shop)
+        let lines: [(table: String?, tender: Tender, amount: Int64)] = [
+            ("Table 01", .cash, 239_000), ("Table 02", .mtn, 107_000), (nil, .other, 10_000)
+        ]
+        for line in lines {
+            let table = line.table.map { DiningTable(establishmentID: shop.id, label: $0, capacity: 4) }
+            if let table { context.insert(table) }
+            let order = CommerceOrder(establishmentID: shop.id, createdByID: owner, tableID: table?.id)
+            order.totalMinor = line.amount
+            order.state = .completed
+            context.insert(order)
+            context.insert(PaymentRecord(orderID: order.id, establishmentID: shop.id,
+                method: line.tender.rawValue, amountMinor: line.amount, confirmedByID: owner))
+        }
+
+        guard let priorMonth = Calendar.current.date(byAdding: .month, value: -1, to: .now) else {
+            throw Failure.invalidScenario
+        }
+        let oldOrder = CommerceOrder(establishmentID: shop.id, createdByID: owner)
+        oldOrder.state = .completed
+        oldOrder.totalMinor = 4_500
+        oldOrder.createdAt = priorMonth
+        context.insert(oldOrder)
+        let oldPayment = PaymentRecord(orderID: oldOrder.id, establishmentID: shop.id,
+            method: Tender.cash.rawValue, amountMinor: 4_500, confirmedByID: owner)
+        oldPayment.confirmedAt = priorMonth
+        context.insert(oldPayment)
+        context.insert(Refund(payment: oldPayment, ownerID: owner))
+        try context.save()
     }
 
     private func seedSalon() throws {
@@ -467,7 +505,8 @@ struct COVISimulatorDiagnosticView: View {
         .task {
             // Le formulaire et la fiche Salon signalent leur propre apparition.
             if fixture.salonBooking == nil && fixture.salonProfileID == nil &&
-                fixture.scenario != .salonReport && fixture.scenario != .salonSettings {
+                fixture.scenario != .salonReport && fixture.scenario != .salonSettings &&
+                fixture.scenario != .restaurantReport {
                 await fixture.signalAfterPresentation()
             }
         }

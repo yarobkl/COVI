@@ -295,6 +295,49 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertTrue(csv.contains("\"MTN MoMo\",\"3000\""))
     }
 
+    func testRestaurantReportKeepsExternalPaymentsSeparateAndTotalsAboveInt64() throws {
+        let owner = UUID(), shop = UUID(), otherShop = UUID()
+        let date = Date.now
+        let priorMonth = try XCTUnwrap(Calendar.current.date(byAdding: .month, value: -1, to: date))
+        let cashOrder = CommerceOrder(establishmentID: shop, createdByID: owner, tableID: UUID())
+        cashOrder.state = .completed
+        cashOrder.totalMinor = .max
+        let mobileOrder = CommerceOrder(establishmentID: shop, createdByID: owner, tableID: UUID())
+        mobileOrder.state = .completed
+        mobileOrder.totalMinor = 25
+        let cash = PaymentRecord(orderID: cashOrder.id, establishmentID: shop, method: Tender.cash.rawValue,
+            amountMinor: .max, confirmedByID: owner)
+        let mobile = PaymentRecord(orderID: mobileOrder.id, establishmentID: shop, method: Tender.mtn.rawValue,
+            amountMinor: 25, confirmedByID: owner)
+        let external = PaymentRecord(orderID: UUID(), establishmentID: shop, method: Tender.other.rawValue,
+            amountMinor: 10, confirmedByID: owner)
+        let foreign = PaymentRecord(orderID: UUID(), establishmentID: otherShop, method: Tender.cash.rawValue,
+            amountMinor: 100, confirmedByID: owner)
+        let previous = PaymentRecord(orderID: UUID(), establishmentID: shop, method: Tender.cash.rawValue,
+            amountMinor: 8, confirmedByID: owner)
+        for payment in [cash, mobile, external, foreign] { payment.confirmedAt = date }
+        previous.confirmedAt = priorMonth
+        let refund = Refund(payment: previous, ownerID: owner)
+        refund.date = date
+        let outOfScopeRefund = Refund(payment: foreign, ownerID: owner)
+        outOfScopeRefund.date = date
+
+        let report = RestaurantCashReportSnapshot(shop: shop, month: date, orders: [cashOrder, mobileOrder],
+            payments: [cash, mobile, external, foreign, previous], refunds: [refund, outOfScopeRefund])
+
+        let maximum = Decimal(Int64.max)
+        XCTAssertEqual(report.receipts.map(\.id), [cash.id, mobile.id, external.id])
+        XCTAssertEqual(report.gross, maximum + Decimal(35))
+        XCTAssertEqual(report.cash, maximum)
+        XCTAssertEqual(report.mobile, Decimal(25))
+        XCTAssertEqual(report.other, Decimal(10))
+        XCTAssertEqual(report.refundCount, 1)
+        XCTAssertEqual(report.refunded, Decimal(8))
+        XCTAssertEqual(report.net, maximum + Decimal(27))
+        XCTAssertEqual(report.tableCount, 2)
+        XCTAssertEqual(report.averageTicket, (maximum + Decimal(25)) / Decimal(2))
+    }
+
     func testCurrencyCanChangeBeforeAnyOperationButNotAfterAnExpense() throws {
         let db = try database(), owner = UUID()
         let shop = Establishment(ownerID: owner, name: "Salon", kind: .salon, city: "Kinshasa")
