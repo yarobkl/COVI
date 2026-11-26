@@ -104,7 +104,8 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   les dernières ventes. Le résumé du jour distingue les espèces, le Mobile
   Money et les autres moyens. La révision `534449b` ajoute une capture de
   cet écran avec deux ventes créées par le service de caisse dans un stockage
-  en mémoire. [Diagnostic iOS](https://github.com/yarobkl/COVI/actions/runs/45731281847).
+  en mémoire. Debug, 118 XCTest sans échec et Release sur simulateur réussis ([diagnostic](https://github.com/yarobkl/COVI/actions/runs/45731281847)).
+- La [capture de l’Accueil Boutique](https://github.com/yarobkl/COVI/actions/runs/45731281847/artifacts/15077287578) a été comparée à `9BF220F7`. Elle confirme la carte de ventes (53 500 FCFA, dont 35 000 en espèces et 18 500 en Mobile Money), l’alerte stock et le moyen de paiement de la première vente visible. Le raccourci Vendre et l’espacement repoussent la seconde vente sous la ligne de flottaison. L’en-tête complet, la densité et la conformité physique iPhone/iPad restent à vérifier.
 
 ### Suite du lot 1
 
