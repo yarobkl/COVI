@@ -28,7 +28,7 @@ Les pièces jointes accessibles dans ce lot comprennent **16 fichiers JPEG compo
 | `5AD6CB67` | Écran de lancement, Présentation COVI | `RootView.swift` | Capture réelle iPhone réalisée, puis recadrage de l’image des trois métiers corrigé pour retirer un texte parasite ; seconde capture à contrôler |
 | `13FF89C0` | Code PIN collaborateur, Synchronisation | `PINEntryView.swift`, `MoreSpace.swift` | Pavé numérique PIN et centre de synchronisation reliés aux services ; changement de collaborateur non câblé |
 | `6906CB2C` | Connexion, Création de compte | `AppSession.swift` | Habillage avancé ; parcours de compte distant à intégrer |
-| `2A49F962` | Restaurant : Tables, Table 01, Commander | `RestaurantSpace.swift`, `RestaurantMenu.swift` | Grille, table et commande reliées aux données |
+| `2A49F962` | Restaurant : Tables, Table 01, Commander | `RestaurantSpace.swift`, `RestaurantMenu.swift` | Grille Tables comparée sur simulateur. Vue Table 01 et commande à capturer. Contours, hauteur des cartes et en-tête à vérifier. |
 | `A30B3A65` | Restaurant : Équipe & Accès, Rapports service | `OwnerSettings.swift`, `MoreSpace.swift` | Fonctions existantes ; rendu à comparer |
 | `058F98E6` | Salon : Aujourd’hui, Agenda, Nouveau rendez-vous | `SalonSpace.swift` | Résumé du jour, grille et réservation reliés aux données |
 | `C0053217` | Salon : Clients, Fiche client | `SalonSpace.swift` | Liste, historique, modification et rendez-vous reliés aux données |
