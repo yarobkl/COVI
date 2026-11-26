@@ -100,6 +100,12 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   bloque l’encaissement. Le test de dépassement couvre aussi ce calcul.
   L’état sélectionné du moyen de paiement est annoncé par VoiceOver.
 
+- L’Accueil Boutique affiche désormais le moyen de paiement enregistré pour
+  les dernières ventes. Le résumé du jour distingue les espèces, le Mobile
+  Money et les autres moyens. La révision `534449b` ajoute une capture de
+  cet écran avec deux ventes créées par le service de caisse dans un stockage
+  en mémoire. [Diagnostic iOS](https://github.com/yarobkl/COVI/actions/runs/45731281847).
+
 ### Suite du lot 1
 
 Le correctif d’annulation CloudKit `0872560` a également passé la compilation
