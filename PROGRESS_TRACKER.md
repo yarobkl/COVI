@@ -164,8 +164,12 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   hautes, la barre d’onglets reste visible et les incidents ne sont pas
   représentés. La première capture a révélé une icône d’espèces absente.
   Le correctif emploie le symbole de billet et décline le nombre de tickets.
-  Son rendu reste à capturer, et le changement de mois et l’export
-  restent à essayer sur appareil.
+- Sur `fefe079`, la [nouvelle capture sur simulateur iPhone](https://github.com/yarobkl/COVI/actions/runs/45799016253/artifacts/15108775726)
+  confirme les deux icônes de billet et le libellé « 2 tickets de table ».
+  Debug, Release et **124 XCTest sans échec** ont réussi sur cette
+  révision. Les 21 captures iPhone ont été conservées. Le lancement de
+  l’iPad a dépassé 120 secondes, ce qui a fait échouer la phase de captures
+  complète. Le changement de mois et l’export restent à essayer sur appareil.
 
 ### Contrôles iOS et limites
 
