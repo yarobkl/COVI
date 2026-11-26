@@ -21,6 +21,8 @@ final class COVISimulatorDiagnostics {
         case salonAgenda = "salon-agenda"
         case salonBooking = "salon-booking"
         case salonBookingConflict = "salon-booking-conflict"
+        case salonClients = "salon-clients"
+        case salonProfile = "salon-profile"
     }
 
     struct RestaurantSample {
@@ -53,6 +55,7 @@ final class COVISimulatorDiagnostics {
     private(set) var restaurantSample: RestaurantSample?
     private(set) var salonClock: Date?
     private(set) var salonBooking: SalonBookingSample?
+    private(set) var salonProfileID: UUID?
 
     init(arguments: [String]) throws {
         guard let index = arguments.firstIndex(of: Self.argument),
@@ -89,7 +92,7 @@ final class COVISimulatorDiagnostics {
         case .restaurantTables, .restaurantTable, .restaurantOrder:
             kind = .restaurant
             name = "Restaurant de démonstration"
-        case .salonToday, .salonAgenda, .salonBooking, .salonBookingConflict:
+        case .salonToday, .salonAgenda, .salonBooking, .salonBookingConflict, .salonClients, .salonProfile:
             kind = .salon
             name = "Studio Élégance"
         default:
@@ -109,7 +112,11 @@ final class COVISimulatorDiagnostics {
         if kind == .salon {
             basket = [:]
             due = 0
-            try seedSalon()
+            if scenario == .salonClients || scenario == .salonProfile {
+                try seedSalonDirectory()
+            } else {
+                try seedSalon()
+            }
             return
         }
 
@@ -280,6 +287,53 @@ final class COVISimulatorDiagnostics {
         try context.save()
     }
 
+    private func seedSalonDirectory() throws {
+        let context = container.mainContext
+        let calendar = Calendar.current
+        let now = Date.now
+        context.insert(shop)
+
+        let mireille = SalonClient(shop: shop.id, name: "Mireille K.")
+        mireille.phone = "+242 00 000 00 01"
+        mireille.preferences = "Coiffeuse préférée : Chloé."
+        mireille.notes = "Cuir chevelu sensible. Préfère les mèches longues."
+        let yannick = SalonClient(shop: shop.id, name: "Yannick M.")
+        yannick.phone = "+242 00 000 00 02"
+        let grace = SalonClient(shop: shop.id, name: "Grâce T.")
+        let cedric = SalonClient(shop: shop.id, name: "Cédric L.")
+        for client in [mireille, yannick, grace, cedric] { context.insert(client) }
+
+        let chloe = SalonStaff(shop: shop.id, name: "Chloé")
+        context.insert(chloe)
+        let braids = CatalogItem(establishmentID: shop.id, title: "Tresses Box Braids",
+            priceMinor: 25_000, isService: true)
+        let treatment = CatalogItem(establishmentID: shop.id, title: "Soin Kératine",
+            priceMinor: 20_000, isService: true)
+        let knotless = CatalogItem(establishmentID: shop.id, title: "Tresses Knotless",
+            priceMinor: 25_000, isService: true)
+        for service in [braids, treatment, knotless] { context.insert(service) }
+
+        for (service, daysAgo) in [(braids, 2), (treatment, 21), (knotless, 42)] {
+            guard let date = calendar.date(byAdding: .day, value: -daysAgo, to: now) else {
+                throw Failure.invalidScenario
+            }
+            let order = CommerceOrder(establishmentID: shop.id, createdByID: owner)
+            order.customerID = mireille.id
+            order.createdAt = date
+            order.totalMinor = service.priceMinor
+            order.state = .completed
+            context.insert(order)
+            context.insert(SalonSaleLine(order: order, client: mireille.id, stylist: chloe.name,
+                item: service, units: 1, gross: service.priceMinor))
+        }
+
+        let start = now.addingTimeInterval(24 * 3_600)
+        context.insert(SalonVisit(shop: shop.id, client: grace.id, service: knotless.id,
+            stylist: chloe.name, start: start, end: start.addingTimeInterval(7_200), walkIn: false))
+        if scenario == .salonProfile { salonProfileID = mireille.id }
+        try context.save()
+    }
+
     /// Le workflow attend ce signal avant la capture ; aucun détail métier n'y figure.
     func signalAfterPresentation() async {
         do {
@@ -344,8 +398,10 @@ struct COVISimulatorDiagnosticView: View {
         .environment(\.coviSimulatorDiagnostics, fixture)
         .allowsHitTesting(false)
         .task {
-            // Pour le Salon, la feuille doit être apparue avant de signaler la capture.
-            if fixture.salonBooking == nil { await fixture.signalAfterPresentation() }
+            // Le formulaire et la fiche Salon signalent leur propre apparition.
+            if fixture.salonBooking == nil && fixture.salonProfileID == nil {
+                await fixture.signalAfterPresentation()
+            }
         }
     }
 }

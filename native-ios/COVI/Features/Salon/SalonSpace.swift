@@ -25,6 +25,7 @@ struct SalonSpace: View {
     @State private var newClient = ""
     @State private var addingClient = false
     @State private var clientSearch = ""
+    @State private var clientProfileID: UUID?
     @State private var cancellingVisit: UUID?
     @State private var message = ""
     init(shop: Establishment, tab: BusinessTab, actor: UUID, role: StaffRole, pin: PINManager) {
@@ -57,32 +58,7 @@ struct SalonSpace: View {
                     } else if tab == .agenda {
                         agendaSections
                     } else if tab == .clients {
-                        Section {
-                            COVISectionTitle("Clients (\(clients.count))")
-                        }
-                        let matching = clients.filter {
-                            clientSearch.isEmpty || $0.name.localizedCaseInsensitiveContains(clientSearch) ||
-                            $0.phone.localizedCaseInsensitiveContains(clientSearch)
-                        }
-                        if matching.isEmpty {
-                            ContentUnavailableView(clients.isEmpty ? "Aucun client" : "Aucun résultat",
-                                systemImage: "person.crop.circle.badge.questionmark",
-                                description: Text(clients.isEmpty ? "Créez une fiche client pour réserver et encaisser." :
-                                    "Essayez un autre nom ou numéro de téléphone."))
-                        }
-                        ForEach(matching) { c in
-                            NavigationLink {
-                                SalonProfile(client: c, actor: actor,
-                                    history: sales.filter { $0.client == c.id && $0.service },
-                                    currency: shop.currencyCode) {
-                                        bookingClientID = c.id
-                                        booking = true
-                                    }
-                            } label: {
-                                COVIIconRow(symbol: "person.crop.circle", title: c.name,
-                                    detail: c.phone.isEmpty ? "Fiche client" : c.phone)
-                            }
-                        }
+                        clientSections
                     } else if admin {
                         NavigationLink("Rapports du salon") { SalonReport(sales: sales, visits: visits,
                                                                               currency: shop.currencyCode) }
@@ -115,10 +91,22 @@ struct SalonSpace: View {
             }
             if tab == .clients {
                 Button("Client", systemImage: "plus") { addingClient = true }
+                    .buttonStyle(.borderedProminent)
+                    .tint(COVITheme.navy)
+            }
+        }
+        .navigationDestination(item: $clientProfileID) { id in
+            if let client = clients.first(where: { $0.id == id }) {
+                SalonProfile(client: client, actor: actor,
+                    history: sales.filter { $0.client == id && $0.service },
+                    currency: shop.currencyCode) {
+                        bookingClientID = id
+                        booking = true
+                    }
             }
         }
         .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { current in
-            if tab == .today { now = current }
+            if tab == .today || tab == .clients { now = current }
         }
         .sheet(isPresented: $addingClient) {
             NavigationStack {
@@ -140,6 +128,7 @@ struct SalonSpace: View {
 #if DEBUG && targetEnvironment(simulator)
         .task {
             if tab == .agenda, diagnostics?.salonBooking != nil { booking = true }
+            if tab == .clients, let id = diagnostics?.salonProfileID { clientProfileID = id }
         }
 #endif
         .sheet(isPresented: $booking) {
@@ -157,6 +146,85 @@ struct SalonSpace: View {
         } message: {
             Text("Cette action conserve l’historique mais libère le créneau dans l’agenda.")
         }
+    }
+
+    @ViewBuilder private var clientSections: some View {
+        let query = clientSearch.trimmingCharacters(in: .whitespacesAndNewlines)
+        let phoneDigits = query.filter(\.isNumber)
+        let isPhoneQuery = !phoneDigits.isEmpty && query.allSatisfy { $0.isNumber || " +()-.".contains($0) }
+        let matching = clients.filter {
+            query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) ||
+            (isPhoneQuery && $0.phone.filter(\.isNumber).contains(phoneDigits)) ||
+            $0.phone.localizedCaseInsensitiveContains(query)
+        }
+        let historyByClient = Dictionary(grouping: sales.filter(\.service), by: \.client)
+        let upcomingByClient = Dictionary(grouping: visits.filter {
+            !$0.cancelled && $0.receipt == nil && !$0.walkIn && $0.start >= now
+        }, by: \.client)
+
+        if matching.isEmpty {
+            ContentUnavailableView(clients.isEmpty ? "Aucun client" : "Aucun résultat",
+                systemImage: "person.crop.circle.badge.questionmark",
+                description: Text(clients.isEmpty ? "Créez une fiche client pour réserver et encaisser." :
+                    "Essayez un autre nom ou numéro de téléphone."))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+        } else {
+            Section {
+                ForEach(matching) { client in
+                    let history = historyByClient[client.id] ?? []
+                    let count = Set(history.map(\.order)).count
+                    let nextVisit = upcomingByClient[client.id]?.first
+                    Button {
+                        clientProfileID = client.id
+                    } label: {
+                        clientRow(client, visitCount: count, latestService: history.first, nextVisit: nextVisit)
+                    }
+                    .buttonStyle(.plain)
+                    .listRowBackground(COVITheme.card)
+                }
+            } header: {
+                COVIBadge(title: query.isEmpty ? "Tous (\(clients.count))" : "\(matching.count) résultat(s)",
+                    tint: COVITheme.navy, foreground: .white)
+                    .padding(.vertical, 6)
+                    .textCase(nil)
+            }
+        }
+    }
+
+    private func clientRow(_ client: SalonClient, visitCount: Int,
+                           latestService: SalonSaleLine?, nextVisit: SalonVisit?) -> some View {
+        HStack(spacing: 10) {
+            SalonClientInitials(name: client.name)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(client.name).font(.subheadline.bold())
+                if !client.phone.isEmpty {
+                    Text(client.phone)
+                        .font(.caption).foregroundStyle(COVITheme.secondaryText)
+                }
+                if let nextVisit {
+                    Text("RDV · " + nextVisit.start.formatted(date: .abbreviated, time: .shortened))
+                        .font(.caption).foregroundStyle(COVITheme.secondaryText)
+                } else if let latestService {
+                    Text("Dernière prestation · " + latestService.title)
+                        .font(.caption).foregroundStyle(COVITheme.secondaryText)
+                }
+            }
+            Spacer(minLength: 4)
+            if visitCount > 0 {
+                Text(visitCount == 1 ? "1 visite" : "\(visitCount) visites")
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 7).padding(.vertical, 4)
+                    .background(COVITheme.champagne, in: Capsule())
+            }
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .accessibilityHidden(true)
+        }
+        .foregroundStyle(COVITheme.navy)
+        .frame(minHeight: 48)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
     }
 
     @ViewBuilder private var bookingSheet: some View {
@@ -457,7 +525,7 @@ private struct SalonClientSearch: ViewModifier {
     let enabled: Bool
     @Binding var text: String
     @ViewBuilder func body(content: Content) -> some View {
-        if enabled { content.searchable(text: $text, prompt: "Rechercher un client") }
+        if enabled { content.searchable(text: $text, placement: .navigationBarDrawer(displayMode: .always), prompt: "Nom ou numéro") }
         else { content }
     }
 }
@@ -762,6 +830,27 @@ private struct SalonAppointmentEditor: View {
     }
 }
 
+private struct SalonClientInitials: View {
+    let name: String
+    var large = false
+
+    private var initials: String {
+        let words = name.split(whereSeparator: \.isWhitespace)
+        return [words.first?.first, words.count > 1 ? words.last?.first : nil]
+            .compactMap { $0 }.map { String($0) }.joined().uppercased()
+    }
+
+    var body: some View {
+        Text(initials)
+            .font(large ? .title2.bold() : .subheadline.bold())
+            .lineLimit(1)
+            .minimumScaleFactor(0.5)
+            .frame(width: large ? 68 : 40, height: large ? 68 : 40)
+            .background(COVITheme.champagne, in: Circle())
+            .accessibilityHidden(true)
+    }
+}
+
 private struct SalonProfile: View {
     let client: SalonClient
     let actor: UUID
@@ -775,6 +864,10 @@ private struct SalonProfile: View {
     @State private var phone = ""
     @State private var message = ""
     @State private var editing = false
+#if DEBUG && targetEnvironment(simulator)
+    @Environment(\.coviSimulatorDiagnostics) private var diagnostics
+#endif
+
     var body: some View {
         Group {
             if editing {
@@ -787,7 +880,7 @@ private struct SalonProfile: View {
                         do {
                             try SalonLedger.updateClient(client, shop: client.shop, actor: actor,
                                 name: name, phone: phone, notes: notes, preferences: preferences, db: db)
-                            message = "Fiche enregistrée."
+                            message = ""
                             editing = false
                         } catch { message = error.localizedDescription }
                     }
@@ -798,13 +891,10 @@ private struct SalonProfile: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 22) {
                         COVICard {
-                            VStack(spacing: 20) {
-                                HStack(spacing: 16) {
-                                    Text(String(client.name.prefix(1)).uppercased())
-                                        .font(.largeTitle.bold())
-                                        .frame(width: 85, height: 85)
-                                        .background(COVITheme.champagne, in: Circle())
-                                    VStack(alignment: .leading, spacing: 9) {
+                            VStack(spacing: 14) {
+                                HStack(spacing: 14) {
+                                    SalonClientInitials(name: client.name, large: true)
+                                    VStack(alignment: .leading, spacing: 6) {
                                         Text(client.name).font(.title2.bold())
                                         Label(client.phone.isEmpty ? "Téléphone non renseigné" : client.phone,
                                               systemImage: "phone")
@@ -812,42 +902,48 @@ private struct SalonProfile: View {
                                     }
                                     Spacer(minLength: 0)
                                 }
-                                HStack {
-                                    stat("Visites", value: "\(Set(history.map(\.order)).count)")
-                                    Divider()
-                                    stat("Total", value: COVIMoney.text(history.reduce(0) { $0 + $1.gross }, currency: currency))
+                                HStack(spacing: 12) {
+                                    stat("Visites", value: "\(Set(history.map(\.order)).count)", symbol: "calendar")
+                                    stat("Prestations", value: COVIMoney.text(history.reduce(0) { $0 + $1.gross },
+                                         currency: currency), symbol: "creditcard")
                                 }
                             }
                         }
-                        VStack(alignment: .leading, spacing: 12) {
-                            COVISectionTitle("Préférences & Notes techniques")
+                        HStack(alignment: .top, spacing: 12) {
+                            Image(systemName: "list.clipboard")
+                                .font(.title3)
+                                .accessibilityHidden(true)
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Préférences et notes techniques")
+                                    .font(.subheadline.bold())
+                                    .accessibilityAddTraits(.isHeader)
+                                if client.preferences.isEmpty && client.notes.isEmpty {
+                                    Text("Aucune préférence ni note renseignée.").font(.caption)
+                                }
+                                if !client.preferences.isEmpty { Text(client.preferences).font(.caption) }
+                                if !client.notes.isEmpty { Text(client.notes).font(.caption) }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .padding(COVITheme.Metrics.cardPadding)
+                        .background(COVITheme.champagne,
+                                    in: RoundedRectangle(cornerRadius: COVITheme.Metrics.cardRadius))
+                        VStack(alignment: .leading, spacing: 10) {
+                            COVISectionTitle("Historique des prestations")
                             COVICard {
-                                COVIIconRow(symbol: "list.clipboard", title: "Préférences",
-                                    detail: client.preferences.isEmpty ? "Aucune préférence renseignée" : client.preferences,
-                                    accessory: nil)
-                                if !client.notes.isEmpty {
-                                    Divider()
-                                    Text(client.notes).font(.subheadline)
+                                VStack(alignment: .leading, spacing: 6) {
+                                    if history.isEmpty {
+                                        Text("Aucune prestation encaissée.")
+                                            .foregroundStyle(COVITheme.secondaryText)
+                                    }
+                                    ForEach(history.prefix(3)) { row in
+                                        if row.id != history.first?.id { Divider() }
+                                        COVIIconRow(symbol: "calendar", title: row.title,
+                                            detail: "\(row.date.formatted(date: .abbreviated, time: .omitted)) · \(row.stylist) · \(COVIMoney.text(row.gross, currency: currency))",
+                                            accessory: nil)
+                                    }
                                 }
                             }
-                        }
-                        VStack(alignment: .leading, spacing: 12) {
-                            COVISectionTitle("Historique des prestations (3 dernières)")
-                            COVICard {
-                                if history.isEmpty {
-                                    Text("Aucune prestation encaissée.")
-                                        .foregroundStyle(COVITheme.secondaryText)
-                                }
-                                ForEach(Array(history.prefix(3))) { row in
-                                    if row.id != history.first?.id { Divider() }
-                                    COVIIconRow(symbol: "calendar", title: row.title,
-                                        detail: "\(row.date.formatted(date: .abbreviated, time: .omitted)) · \(row.stylist) · \(COVIMoney.text(row.gross, currency: currency))",
-                                        accessory: nil)
-                                }
-                            }
-                        }
-                        COVIButton("Nouveau rendez-vous pour \(client.name)", systemImage: "plus") {
-                            onNewBooking()
                         }
                     }
                     .foregroundStyle(COVITheme.navy)
@@ -855,21 +951,44 @@ private struct SalonProfile: View {
                 }
             }
         }
+        .safeAreaInset(edge: .bottom) {
+            if !editing {
+                COVIButton("Nouveau rendez-vous pour \(client.name)", systemImage: "plus", action: onNewBooking)
+                    .padding(.horizontal, 18).padding(.vertical, 10)
+                    .background(COVITheme.cream)
+            }
+        }
         .background(COVIBackdrop())
         .navigationTitle(editing ? "Modifier la fiche" : "Fiche client")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            Button(editing ? "Annuler" : "Modifier") { editing.toggle() }
+            Button(editing ? "Annuler" : "Modifier") {
+                if !editing {
+                    name = client.name
+                    notes = client.notes
+                    preferences = client.preferences
+                    phone = client.phone
+                    message = ""
+                }
+                editing.toggle()
+            }
         }
-        .onAppear {
-            name = client.name; notes = client.notes; preferences = client.preferences; phone = client.phone
+#if DEBUG && targetEnvironment(simulator)
+        .task {
+            if let diagnostics, diagnostics.salonProfileID == client.id {
+                await diagnostics.signalAfterPresentation()
+            }
         }
+#endif
     }
 
-    private func stat(_ title: String, value: String) -> some View {
-        VStack(spacing: 8) {
-            Text(value).font(.headline).minimumScaleFactor(0.7).lineLimit(1)
+    private func stat(_ title: String, value: String, symbol: String) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: symbol).accessibilityHidden(true)
+            Text(value).font(.headline).multilineTextAlignment(.center)
             Text(title).font(.caption).foregroundStyle(COVITheme.secondaryText)
         }
         .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
     }
 }

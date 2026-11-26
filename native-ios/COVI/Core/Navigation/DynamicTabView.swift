@@ -119,6 +119,7 @@ struct DynamicTabView: View {
                 case .sale, .checkout: selected = .sell
                 case .restaurantTables: selected = .tables
                 case .salonToday: selected = .today
+                case .salonClients, .salonProfile: selected = .clients
                 case .salonAgenda, .salonBooking, .salonBookingConflict: selected = .agenda
                 case .welcome, .boutiqueHome, .restaurantTable, .restaurantOrder: break
                 }

@@ -180,8 +180,15 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   lignes. Le dépliage du créneau, le passage spontané et l’enregistrement
   de bout en bout restent à vérifier en interaction sur appareil physique.
 - Les planches `C0053217` (Clients, Fiche client) et `6155DBBE`
-  (Caisse, Catalogue salon) ont été retrouvées et relues. Prochaine
-  comparaison visuelle sur Clients et Fiche client.
+  (Caisse, Catalogue salon) ont été retrouvées et relues.
+- Clients affiche les initiales, les visites associées à des encaissements
+  distincts, la prochaine réservation ou la dernière prestation, selon
+  les données disponibles. La recherche accepte les numéros avec ou
+  sans espaces. La fiche groupe les préférences et notes, montre les
+  trois prestations les plus récentes et fixe le bouton de réservation.
+  Les statuts de fidélité et d’absence restent à modéliser.
+- Les scénarios Clients et Fiche client attendent les captures macOS et la
+  comparaison à `C0053217`.
 
 ### Suite du lot 1
 
