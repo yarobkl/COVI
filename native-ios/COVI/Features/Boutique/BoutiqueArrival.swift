@@ -22,6 +22,40 @@ enum BoutiqueArrivalOrigin: String, CaseIterable, Identifiable {
 struct BoutiqueArrivalPhoto: Identifiable {
     let id: UUID
     let url: URL
+
+    private struct Analysis: Codable {
+        let preview: Data
+        let studio: Data?
+        let suggestion: String?
+        let color: String?
+    }
+
+    private var analysisURL: URL { url.appendingPathExtension("analysis") }
+
+    func preparedDraft() throws -> BoutiquePhotoDraft {
+        let original = try Data(contentsOf: url)
+        if let data = try? Data(contentsOf: analysisURL),
+           let cached = try? PropertyListDecoder().decode(Analysis.self, from: data) {
+            return BoutiquePhotoDraft(original: original, preview: cached.preview, studio: cached.studio,
+                                      suggestion: cached.suggestion, color: cached.color)
+        }
+        try Task.checkCancellation()
+        let result = try BoutiquePhotoProcessor.process(original)
+        try Task.checkCancellation()
+        let cached = Analysis(preview: result.preview, studio: result.studio,
+                              suggestion: result.suggestion, color: result.color)
+        let encoder = PropertyListEncoder()
+        encoder.outputFormat = .binary
+        try encoder.encode(cached).write(to: analysisURL, options: [.atomic, .completeFileProtection])
+        return result
+    }
+
+    func remove() throws {
+        try FileManager.default.removeItem(at: url)
+        if FileManager.default.fileExists(atPath: analysisURL.path) {
+            try FileManager.default.removeItem(at: analysisURL)
+        }
+    }
 }
 
 struct BoutiqueArrivalStore {
@@ -114,6 +148,11 @@ private struct BoutiqueArrivalQueue: View {
     @State private var capturedCount = 0
     @State private var selection: [PhotosPickerItem] = []
     @State private var importing = false
+    @State private var preparation: Task<Void, Never>?
+    @State private var preparedCount = 0
+    @State private var batchTotal = 0
+    @State private var failedCount = 0
+    @Environment(\.scenePhase) private var scenePhase
     @State private var camera = false
     @State private var error = ""
 
@@ -142,6 +181,19 @@ private struct BoutiqueArrivalQueue: View {
             }
             .disabled(importing)
             Section {
+                if preparation == nil {
+                    Button("Préparer les photos avec COVI Studio", systemImage: "sparkles") {
+                        prepareBatch()
+                    }
+                    .disabled(photos.isEmpty || importing)
+                } else {
+                    ProgressView("\(preparedCount) / \(batchTotal) photo(s) préparée(s)")
+                    Button("Suspendre") { preparation?.cancel() }
+                }
+                Text("Chaque résultat est conservé sur cet appareil. Vous pouvez reprendre la préparation après une interruption.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+            Section {
                 ForEach(photos) { photo in
                     NavigationLink {
                         NewProduct(shop: shop, actor: actor, arrival: photo) { refresh() }
@@ -151,11 +203,12 @@ private struct BoutiqueArrivalQueue: View {
                             Text("Vérifier l’article")
                         }
                     }
+                    .disabled(preparation != nil)
                     .swipeActions(allowsFullSwipe: false) {
                         Button("Retirer", role: .destructive) {
                             do {
                                 try BoutiqueInventoryService.checkReceive(shop: shop, actor: actor, context: context)
-                                try FileManager.default.removeItem(at: photo.url)
+                                try photo.remove()
                                 refresh()
                             } catch { self.error = error.localizedDescription }
                         }
@@ -169,6 +222,10 @@ private struct BoutiqueArrivalQueue: View {
         }
         .navigationTitle(origin.title)
         .onAppear { refresh() }
+        .onDisappear { preparation?.cancel() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active { preparation?.cancel() }
+        }
         .onChange(of: selection) { _, items in
             guard !items.isEmpty, !importing else { return }
             importing = true
@@ -197,6 +254,41 @@ private struct BoutiqueArrivalQueue: View {
             BoutiqueArrivalCamera(count: $capturedCount) { data in
                 try save(data)
                 capturedCount += 1
+            }
+        }
+    }
+
+    private func prepareBatch() {
+        guard preparation == nil else { return }
+        let pending = photos
+        batchTotal = pending.count
+        preparedCount = 0
+        failedCount = 0
+        error = ""
+        preparation = Task { @MainActor in
+            defer { preparation = nil }
+            for photo in pending {
+                if Task.isCancelled { break }
+                do {
+                    try BoutiqueInventoryService.checkReceive(shop: shop, actor: actor, context: context)
+                } catch {
+                    self.error = error.localizedDescription
+                    break
+                }
+                let worker = Task.detached(priority: .utility) { try photo.preparedDraft() }
+                do {
+                    _ = try await withTaskCancellationHandler {
+                        try await worker.value
+                    } onCancel: {
+                        worker.cancel()
+                    }
+                    preparedCount += 1
+                } catch is CancellationError {
+                    break
+                } catch {
+                    failedCount += 1
+                    self.error = "\(failedCount) photo(s) à reprendre. \(error.localizedDescription)"
+                }
             }
         }
     }

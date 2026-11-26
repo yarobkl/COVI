@@ -268,7 +268,7 @@ struct NewProduct: View {
                             price: Int64(price) ?? 0, actor: actor, context: context,
                             initialStock: stock, photo: draft, description: description, arrivalID: arrival?.id)
                         if let arrival {
-                            try? FileManager.default.removeItem(at: arrival.url)
+                            try? arrival.remove()
                             onArrivalSaved?()
                         }
                         dismiss()
@@ -287,9 +287,25 @@ struct NewProduct: View {
     private func loadArrival(_ photo: BoutiqueArrivalPhoto) {
         do {
             try BoutiqueInventoryService.checkReceive(shop: shop, actor: actor, context: context)
-            let url = photo.url
-            analyze { try Data(contentsOf: url) }
+            analyzePreparedArrival(photo)
         } catch { self.error = error.localizedDescription }
+    }
+
+    private func analyzePreparedArrival(_ photo: BoutiqueArrivalPhoto) {
+        analyzing = true
+        error = ""
+        Task { @MainActor in
+            defer { analyzing = false }
+            do {
+                let result = try await Task.detached(priority: .userInitiated) {
+                    try photo.preparedDraft()
+                }.value
+                draft = result
+                if title.isEmpty, let suggestion = result.suggestion { title = suggestion }
+                if description.isEmpty, let color = result.color { description = "Couleur proposée : " + color }
+                if quantity == "0" { quantity = "1" }
+            } catch { self.error = error.localizedDescription }
+        }
     }
 
     private func analyze(_ load: @escaping @Sendable () throws -> Data) {
