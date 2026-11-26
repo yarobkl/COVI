@@ -85,9 +85,9 @@ jobs:
             fi
             run_bounded xcrun simctl io "$DEVICE_ID" screenshot "$CAPTURE_DIR/$SCENARIO.png"
           done
-          # Validate the same native Salon views on iPhone accessibility text and iPad.
+          # Validate the same native views with iPhone accessibility text.
           run_bounded xcrun simctl ui "$DEVICE_ID" content_size accessibility-extra-extra-extra-large
-          for SCENARIO in restaurant-drinks salon-checkout salon-catalog; do
+          for SCENARIO in restaurant-kitchen restaurant-drinks salon-checkout salon-catalog; do
             MARKER="$APP_DATA/tmp/covi-diagnostic-$SCENARIO.ready"
             rm -f "$MARKER"
             xcrun simctl launch --terminate-running-process "$DEVICE_ID" com.covi.app --covi-diagnostic-scenario "$SCENARIO" -AppleLanguages '(fr)' -AppleLocale fr_FR

@@ -61,7 +61,7 @@ struct RestaurantKitchenBoard: View {
             ContentUnavailableView("Aucun ticket", systemImage: "checkmark.circle",
                 description: Text("Les tickets de cet état apparaissent ici."))
         } else {
-            LazyVStack(spacing: 12) {
+            LazyVStack(spacing: 10) {
                 ForEach(visible) { ticket in
                     ticketCard(ticket)
                 }
@@ -114,18 +114,31 @@ struct RestaurantKitchenBoard: View {
 
     private func ticketCard(_ ticket: Ticket) -> some View {
         TimelineView(.periodic(from: .now, by: 60)) { context in
-            let pending = ticket.lines.filter { $0.preparation == Prep.received.rawValue }
+            let phases = selectedFilter.phases
+            let linesByPhase = Dictionary(grouping: ticket.lines, by: \.preparation)
+            let pending = linesByPhase[Prep.received.rawValue] ?? []
             let oldest = pending.compactMap(\.sentAt).min()
             let urgent = oldest.map { context.date.timeIntervalSince($0) >= 600 } ?? false
+            let visiblePhases = phases.filter { linesByPhase[$0.rawValue] != nil }
+            let headingPhase = visiblePhases.count == 1 ? visiblePhases.first : nil
             COVICard {
-                VStack(alignment: .leading, spacing: 11) {
-                    ticketHeading(ticket)
-                    ForEach(selectedFilter.phases, id: \.self) { phase in
-                        let current = ticket.lines.filter { $0.preparation == phase.rawValue }
-                        if !current.isEmpty {
-                            if phase == .cooking && !pending.isEmpty { Divider() }
-                            ticketSection(ticket, lines: current, phase: phase, now: context.date, urgent: urgent)
+                VStack(alignment: .leading, spacing: 6) {
+                    let headingLayout = textSize.isAccessibilitySize
+                        ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6))
+                        : AnyLayout(HStackLayout(alignment: .center, spacing: 8))
+                    headingLayout {
+                        ticketHeading(ticket)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        if let headingPhase {
+                            phaseBadge(headingPhase, sentAt: oldest, now: context.date)
+                                .fixedSize(horizontal: !textSize.isAccessibilitySize, vertical: true)
                         }
+                    }
+                    ForEach(visiblePhases, id: \.self) { phase in
+                        let current = linesByPhase[phase.rawValue] ?? []
+                        if phase != visiblePhases.first { Divider() }
+                        ticketSection(ticket, lines: current, phase: phase, showsBadge: headingPhase == nil,
+                                      now: context.date, urgent: urgent)
                     }
                 }
                 .foregroundStyle(COVITheme.navy)
@@ -140,10 +153,12 @@ struct RestaurantKitchenBoard: View {
         }
     }
 
-    private func ticketSection(_ ticket: Ticket, lines: [OrderLine], phase: Prep, now: Date, urgent: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            let sentAt = lines.compactMap(\.sentAt).min()
-            phaseBadge(phase, sentAt: sentAt, now: now)
+    private func ticketSection(_ ticket: Ticket, lines: [OrderLine], phase: Prep, showsBadge: Bool,
+                               now: Date, urgent: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if showsBadge {
+                phaseBadge(phase, sentAt: lines.compactMap(\.sentAt).min(), now: now)
+            }
             ForEach(lines) { line in
                 Text("\(line.quantity) × \(dishName(line))")
                     .font(.subheadline)
@@ -162,6 +177,7 @@ struct RestaurantKitchenBoard: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 3) {
                 Text(ticket.table.label).font(.headline)
+                    .accessibilityAddTraits(.isHeader)
                 if let name = accounts.first(where: { $0.id == ticket.order.createdByID })?.fullName,
                    !name.isEmpty {
                     Text("Ouverte par \(name)").font(.caption).foregroundStyle(COVITheme.secondaryText)
