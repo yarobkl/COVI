@@ -32,8 +32,11 @@ enum RestaurantFloorState: String, CaseIterable {
 }
 
 struct FloorTableDrawing {
-    enum Shape: Equatable {
-        case round, oval, square, rectangle
+    enum Shape: String, CaseIterable, Codable {
+        case round = "Ronde"
+        case oval = "Ovale"
+        case square = "Carrée"
+        case rectangle = "Rectangulaire"
 
         init(capacity: Int) {
             switch capacity {
@@ -85,6 +88,21 @@ struct FloorTableDrawing {
                     return CGPoint(x: x, y: y)
                 }
             }
+        } else if shape == .square {
+            let largestSide = (capacity + 3) / 4
+            chairSide = min(preferredChairSide, width / CGFloat(largestSide) * 0.72)
+            chairCenters = (0..<4).flatMap { edge in
+                let count = capacity / 4 + (edge < capacity % 4 ? 1 : 0)
+                return (0..<count).map { i in
+                    let offset = width * (CGFloat(i) + 0.5) / CGFloat(count)
+                    switch edge {
+                    case 0: return CGPoint(x: surface.minX + offset, y: surface.minY - gap)
+                    case 1: return CGPoint(x: surface.maxX + gap, y: surface.minY + offset)
+                    case 2: return CGPoint(x: surface.minX + offset, y: surface.maxY + gap)
+                    default: return CGPoint(x: surface.minX - gap, y: surface.minY + offset)
+                    }
+                }
+            }
         } else {
             let rx = width / 2 + gap
             let ry = height / 2 + gap
@@ -103,16 +121,30 @@ struct RestaurantFloorPlan<Detail: View>: View {
     let orders: [CommerceOrder]
     let lines: [OrderLine]
     let payments: [PaymentRecord]
-    let currency: String
-    @ViewBuilder let detail: (DiningTable) -> Detail
+    let service: RestaurantService
+    private let detail: (DiningTable) -> Detail
+    @AppStorage private var layoutData: Data
     @Environment(\.dynamicTypeSize) private var textSize
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var selectedID: UUID?
     @State private var highlightedState: RestaurantFloorState?
+    @State private var editingTable: DiningTable?
 #if DEBUG && targetEnvironment(simulator)
     @Environment(\.coviSimulatorDiagnostics) private var diagnostics
+    @State private var diagnosticLayout: Data?
 #endif
+
+    init(tables: [DiningTable], orders: [CommerceOrder], lines: [OrderLine], payments: [PaymentRecord],
+         service: RestaurantService, @ViewBuilder detail: @escaping (DiningTable) -> Detail) {
+        self.tables = tables
+        self.orders = orders
+        self.lines = lines
+        self.payments = payments
+        self.service = service
+        self.detail = detail
+        _layoutData = AppStorage(wrappedValue: Data(), "covi.floor-plan.v1." + service.shop.id.uuidString)
+    }
 
     private var orderedTables: [DiningTable] {
         tables.sorted { $0.label.localizedStandardCompare($1.label) == .orderedAscending }
@@ -134,14 +166,54 @@ struct RestaurantFloorPlan<Detail: View>: View {
             }
 #if DEBUG && targetEnvironment(simulator)
             .task {
-                if let diagnostics, diagnostics.scenario == .restaurantFloorPlan {
-                    selectedID = tables.first { $0.label == "Table 10" }?.id
-                    guard selectedID != nil else { return }
-                    await diagnostics.signalAfterPresentation()
+                if let diagnostics, [.restaurantFloorPlan, .restaurantFloorEdit].contains(diagnostics.scenario),
+                   let sample = tables.first(where: { $0.label == "Table 10" }) {
+                    if let staged = try? sampleLayout(table: sample) { diagnosticLayout = staged }
+                    selectedID = sample.id
+                    if diagnostics.scenario == .restaurantFloorEdit { editingTable = sample }
+                    else { await diagnostics.signalAfterPresentation() }
                 }
             }
 #endif
         }
+        .sheet(item: $editingTable) { table in
+            let current = resolvedLayout
+            if let placement = current[table.id] {
+                RestaurantFloorEditor(table: table, placement: placement, lastSlot: current.values.map(\.slot).max() ?? 0) {
+                    try savePlacement($0, tableID: table.id)
+                }
+            }
+        }
+    }
+
+    private var resolvedLayout: [UUID: RestaurantTablePlacement] {
+        var stored = layoutData
+#if DEBUG && targetEnvironment(simulator)
+        if let diagnosticLayout { stored = diagnosticLayout }
+#endif
+        let configuration = (try? RestaurantFloorLayout(stored: stored)) ?? RestaurantFloorLayout()
+        return configuration.resolved(tables: orderedTables)
+    }
+
+#if DEBUG && targetEnvironment(simulator)
+    private func sampleLayout(table: DiningTable) throws -> Data {
+        var layout = RestaurantFloorLayout()
+        let tables = orderedTables
+        try layout.place(.init(slot: 8, shape: .rectangle), tableID: table.id, tables: tables)
+        if let other = tables.first(where: { $0.label == "Table 6" }) {
+            try layout.place(.init(slot: 5, shape: .rectangle, rotation: 1), tableID: other.id, tables: tables)
+        }
+        return try layout.encoded()
+    }
+#endif
+
+    private func savePlacement(_ placement: RestaurantTablePlacement, tableID: UUID) throws {
+        try service.authorize()
+        guard service.admin, orderedTables.contains(where: { $0.id == tableID && $0.establishmentID == service.shop.id })
+        else { throw RestaurantFault.access }
+        var configuration = try RestaurantFloorLayout(stored: layoutData)
+        try configuration.place(placement, tableID: tableID, tables: orderedTables)
+        layoutData = try configuration.encoded()
     }
 
     @ViewBuilder private var plan: some View {
@@ -156,14 +228,7 @@ struct RestaurantFloorPlan<Detail: View>: View {
                 description: Text("Ajoutez une table depuis la configuration du restaurant."))
         } else {
             filters(states)
-            let columns = textSize.isAccessibilitySize ? 1 : sizeClass == .regular ? 4 : 3
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: columns), spacing: 8) {
-                ForEach(orderedTables) { table in
-                    if let state = states[table.id] {
-                        floorTable(table, state: state)
-                    }
-                }
-            }
+            floorGrid(states)
             .padding(8)
             .background(COVITheme.champagne.opacity(0.30), in: RoundedRectangle(cornerRadius: 12))
             .overlay {
@@ -174,6 +239,25 @@ struct RestaurantFloorPlan<Detail: View>: View {
                 let order = table.activeSessionID.flatMap { ordersByID[$0]?.first }
                 selection(table, state: state, order: order)
                     .id("restaurant-table-summary")
+            }
+        }
+    }
+
+    private func floorGrid(_ states: [UUID: RestaurantFloorState]) -> some View {
+        let positions = resolvedLayout
+        let occupants = Dictionary(uniqueKeysWithValues: tables.compactMap { table in
+            positions[table.id].map { ($0.slot, table) }
+        })
+        let slots = textSize.isAccessibilitySize
+            ? occupants.keys.sorted() : Array(0..<(occupants.keys.max().map { $0 + 1 } ?? 0))
+        let columns = textSize.isAccessibilitySize ? 1 : RestaurantFloorLayout.columns
+        return LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: columns), spacing: 8) {
+            ForEach(slots, id: \.self) { slot in
+                if let table = occupants[slot], let state = states[table.id], let placement = positions[table.id] {
+                    floorTable(table, state: state, placement: placement)
+                } else {
+                    Color.clear.frame(height: 96).accessibilityHidden(true)
+                }
             }
         }
     }
@@ -203,7 +287,8 @@ struct RestaurantFloorPlan<Detail: View>: View {
         }
     }
 
-    private func floorTable(_ table: DiningTable, state: RestaurantFloorState) -> some View {
+    private func floorTable(_ table: DiningTable, state: RestaurantFloorState,
+                            placement: RestaurantTablePlacement) -> some View {
         let selected = selectedID == table.id
         let emphasized = highlightedState == nil || highlightedState == state || selected
         return Button {
@@ -212,37 +297,25 @@ struct RestaurantFloorPlan<Detail: View>: View {
         } label: {
             VStack(spacing: 2) {
                 GeometryReader { proxy in
-                    let drawing = FloorTableDrawing(shape: .init(capacity: table.capacity),
-                        capacity: table.capacity, size: proxy.size)
-                    ZStack(alignment: .topLeading) {
-                        ForEach(drawing.chairCenters.indices, id: \.self) { index in
-                            RoundedRectangle(cornerRadius: drawing.chairSide * 0.32)
-                                .fill(state.outline.opacity(0.65))
-                                .frame(width: drawing.chairSide, height: drawing.chairSide)
-                                .position(drawing.chairCenters[index])
+                    let turned = !placement.rotation.isMultiple(of: 2)
+                    let size = turned ? CGSize(width: proxy.size.height, height: proxy.size.width) : proxy.size
+                    let drawing = FloorTableDrawing(shape: placement.shape, capacity: table.capacity, size: size)
+                    ZStack {
+                        tableDrawing(drawing, state: state, selected: selected)
+                            .frame(width: size.width, height: size.height)
+                            .rotationEffect(.degrees(Double(placement.rotation) * 90))
+                        if !textSize.isAccessibilitySize {
+                            VStack(spacing: 2) {
+                                Text(table.label)
+                                    .font(.caption.weight(.bold))
+                                    .lineLimit(1).minimumScaleFactor(0.66)
+                                Label("\(table.capacity)", systemImage: "person")
+                                    .font(.caption2.weight(.semibold))
+                            }
+                            .foregroundStyle(COVITheme.navy)
+                            .padding(.horizontal, 3)
+                            .frame(width: turned ? drawing.surface.height : drawing.surface.width)
                         }
-                        RoundedRectangle(cornerRadius: drawing.cornerRadius)
-                            .fill(state.tint)
-                            .overlay {
-                                RoundedRectangle(cornerRadius: drawing.cornerRadius)
-                                    .strokeBorder(selected ? COVITheme.navy : state.outline.opacity(0.55),
-                                                  lineWidth: selected ? 2.5 : 1)
-                            }
-                            .overlay {
-                                if !textSize.isAccessibilitySize {
-                                    VStack(spacing: 2) {
-                                        Text(table.label)
-                                            .font(.caption.weight(.bold))
-                                            .lineLimit(1).minimumScaleFactor(0.66)
-                                        Label("\(table.capacity)", systemImage: "person")
-                                            .font(.caption2.weight(.semibold))
-                                    }
-                                    .foregroundStyle(COVITheme.navy)
-                                    .padding(.horizontal, 3)
-                                }
-                            }
-                            .frame(width: drawing.surface.width, height: drawing.surface.height)
-                            .position(x: drawing.surface.midX, y: drawing.surface.midY)
                     }
                     .accessibilityHidden(true)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -262,6 +335,26 @@ struct RestaurantFloorPlan<Detail: View>: View {
         .accessibilityLabel("\(table.label), \(table.capacity) places, \(state.rawValue)")
         .accessibilityHint("Affiche le résumé de la table")
         .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    private func tableDrawing(_ drawing: FloorTableDrawing, state: RestaurantFloorState, selected: Bool) -> some View {
+        ZStack(alignment: .topLeading) {
+            ForEach(drawing.chairCenters.indices, id: \.self) { index in
+                RoundedRectangle(cornerRadius: drawing.chairSide * 0.32)
+                    .fill(state.outline.opacity(0.65))
+                    .frame(width: drawing.chairSide, height: drawing.chairSide)
+                    .position(drawing.chairCenters[index])
+            }
+            RoundedRectangle(cornerRadius: drawing.cornerRadius)
+                .fill(state.tint)
+                .overlay {
+                    RoundedRectangle(cornerRadius: drawing.cornerRadius)
+                        .strokeBorder(selected ? COVITheme.navy : state.outline.opacity(0.55),
+                                      lineWidth: selected ? 2.5 : 1)
+                }
+                .frame(width: drawing.surface.width, height: drawing.surface.height)
+                .position(x: drawing.surface.midX, y: drawing.surface.midY)
+        }
     }
 
     private func selection(_ table: DiningTable, state: RestaurantFloorState, order: CommerceOrder?) -> some View {
@@ -285,8 +378,16 @@ struct RestaurantFloorPlan<Detail: View>: View {
                 if let order {
                     let amount = RestaurantBill.remaining(order, payments: payments)
                     LabeledContent(state == .checkout ? "Reste dû" : "Commande en cours",
-                        value: amount.map { COVIMoney.text($0, currency: currency) } ?? "À vérifier")
+                        value: amount.map { COVIMoney.text($0, currency: service.shop.currencyCode) } ?? "À vérifier")
                         .font(.subheadline)
+                }
+                if service.admin {
+                    Button { editingTable = table } label: {
+                        Label("Déplacer ou orienter", systemImage: "arrow.up.and.down.and.arrow.left.and.right")
+                            .font(.subheadline.weight(.semibold))
+                            .frame(minHeight: 44)
+                    }
+                    .buttonStyle(.plain)
                 }
                 NavigationLink {
                     detail(table)

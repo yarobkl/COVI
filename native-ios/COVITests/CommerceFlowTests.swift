@@ -307,20 +307,46 @@ final class CommerceFlowTests: XCTestCase {
     func testRestaurantFloorDrawingKeepsEveryChairVisibleAndSeparate() {
         let size = CGSize(width: 96, height: 96)
         let bounds = CGRect(origin: .zero, size: size)
-        for capacity in 1...100 {
-            let drawing = FloorTableDrawing(shape: .init(capacity: capacity), capacity: capacity, size: size)
-            XCTAssertEqual(drawing.chairCenters.count, capacity)
-            let side = drawing.chairSide
-            XCTAssertGreaterThan(side, 0)
-            let chairs = drawing.chairCenters.map { point in
-                CGRect(x: point.x - side / 2, y: point.y - side / 2, width: side, height: side)
-            }
-            for (index, chair) in chairs.enumerated() {
-                XCTAssertTrue(bounds.contains(chair), "Capacité \(capacity)")
-                XCTAssertFalse(chairs.dropFirst(index + 1).contains(where: { $0.intersects(chair) }),
-                    "Capacité \(capacity)")
+        for shape in FloorTableDrawing.Shape.allCases {
+            for capacity in 1...100 {
+                let drawing = FloorTableDrawing(shape: shape, capacity: capacity, size: size)
+                XCTAssertEqual(drawing.chairCenters.count, capacity)
+                let side = drawing.chairSide
+                XCTAssertGreaterThan(side, 0)
+                let chairs = drawing.chairCenters.map { point in
+                    CGRect(x: point.x - side / 2, y: point.y - side / 2, width: side, height: side)
+                }
+                for (index, chair) in chairs.enumerated() {
+                    XCTAssertTrue(bounds.contains(chair), "\(shape) · Capacité \(capacity)")
+                    XCTAssertFalse(chairs.dropFirst(index + 1).contains(where: { $0.intersects(chair) }),
+                        "\(shape) · Capacité \(capacity)")
+                }
             }
         }
+    }
+
+    func testRestaurantFloorLayoutPreservesPositionsDuringSwapsAndReopening() throws {
+        let shop = UUID()
+        let first = DiningTable(establishmentID: shop, label: "Table 1", capacity: 4)
+        let second = DiningTable(establishmentID: shop, label: "Table 2", capacity: 8)
+        let third = DiningTable(establishmentID: shop, label: "Table 3", capacity: 6)
+        var layout = try RestaurantFloorLayout(stored: Data())
+        let tables = [first, second, third]
+        XCTAssertEqual(layout.resolved(tables: tables)[second.id]?.slot, 1)
+        try layout.place(.init(slot: 8, shape: .oval, rotation: 1), tableID: second.id, tables: tables)
+        try layout.place(.init(slot: 8, shape: .round, rotation: 2), tableID: first.id, tables: tables)
+        let saved = try RestaurantFloorLayout(stored: layout.encoded())
+        let positions = saved.resolved(tables: [third, second, first])
+        XCTAssertEqual(positions[first.id], .init(slot: 8, shape: .round, rotation: 2))
+        XCTAssertEqual(positions[second.id], .init(slot: 0, shape: .oval, rotation: 1))
+        XCTAssertEqual(positions[third.id]?.slot, 2)
+
+        let newTable = DiningTable(establishmentID: shop, label: "Table 4", capacity: 10)
+        let updated = saved.resolved(tables: [third, second, first, newTable])
+        XCTAssertEqual(updated[newTable.id]?.slot, 1)
+        XCTAssertThrowsError(try layout.place(.init(slot: -1, shape: .square), tableID: first.id, tables: tables))
+        XCTAssertThrowsError(try layout.place(.init(slot: 0, shape: .square, rotation: 4), tableID: first.id, tables: tables))
+        XCTAssertEqual(layout.placements, saved.placements)
     }
 
     func testRestaurantFloorUsesRealTableStateBeforeAndAfterBillRequest() {

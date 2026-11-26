@@ -40,7 +40,7 @@ struct RestaurantSpace: View {
         Group {
             if tab == .tables && showFloorPlan {
                 RestaurantFloorPlan(tables: tables, orders: orders, lines: lines,
-                    payments: payments, currency: shop.currencyCode) { table in
+                    payments: payments, service: service) { table in
                     tableDetail(table)
                 }
             } else {

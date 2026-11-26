@@ -368,6 +368,24 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   ont également été relus sur la base `c44c06a` avec 136 XCTest sans
   échec. L’observation du Studio sur appareil physique reste distincte.
 
+### Configuration du plan de salle
+
+- L’action « Déplacer ou orienter » reprend l’action « Déplacer » de la
+  maquette Salle. Le propriétaire ou le responsable peut choisir une
+  forme, une orientation par quart de tour et une case sur trois
+  colonnes. Deux tables échangent leurs cases si la case cible est
+  occupée. L’enregistrement vérifie le rôle courant et le code de caisse.
+- La disposition est conservée sur l’appareil par établissement,
+  indépendamment des commandes et du schéma SwiftData. Les anciennes
+  tables apparaissent dans l’ordre de la liste tant qu’un plan n’est
+  pas enregistré. Les nouvelles occupent une case libre. L’ordre des
+  tables ou leur occupation commerciale ne change pas leur emplacement.
+- Le scénario iPhone reprend Salle avec Table 10 déplacée et Table 6
+  tournée, puis ouvre l’éditeur dans une seconde capture. La compilation,
+  les tests de géométrie et la comparaison des captures restent à vérifier.
+  Le placement libre, les salles et terrasses et la synchronisation du
+  plan entre appareils restent à intégrer.
+
 ### Contrôles iOS et limites
 
 Les premières compilations ont échoué sur une expression SwiftUI ; le découpage
