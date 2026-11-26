@@ -40,6 +40,30 @@ struct SalonCheckout: View {
     }
 
     var body: some View {
+        checkoutContent
+        .safeAreaInset(edge: .bottom) { payFooter }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Importer un RDV", systemImage: "calendar.badge.plus") { importing = true }
+            }
+        }
+        .sheet(isPresented: $importing) {
+            importSheet
+        }
+        .sheet(isPresented: $editing) {
+            ticketEditor
+        }
+        .confirmationDialog(confirmationTitle, isPresented: $confirm) {
+            Button("Je confirme avoir reçu · " + tender.rawValue) { pay() }
+        }
+        .onAppear(perform: prepare)
+        .background(COVIBackdrop())
+    }
+
+    private var confirmationTitle: String {
+        "Confirmer la réception de " + (quoted.map { COVIMoney.text($0, currency: shop.currencyCode) } ?? "") + " ?"
+    }
+    private var checkoutContent: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 ticketCard
@@ -51,27 +75,16 @@ struct SalonCheckout: View {
                 }
             }.foregroundStyle(COVITheme.navy).padding(18)
         }
-        .safeAreaInset(edge: .bottom) {
+    }
+    private var payFooter: some View {
             VStack(spacing: 8) {
                 if !message.isEmpty { Text(message).font(.footnote).foregroundStyle(COVITheme.navy) }
                 COVIButton("Encaisser " + (total.map { COVIMoney.text($0, currency: shop.currencyCode) } ?? "")) {
                     quoted = total; confirm = true
                 }.disabled(!canPay)
             }.padding(.horizontal, 18).padding(.vertical, 12).background(COVITheme.cream)
-        }
-        .toolbar {
-            Button("Importer un RDV", systemImage: "calendar.badge.plus") { importing = true }
-        }
-        .sheet(isPresented: $importing) {
-            importSheet
-        }
-        .sheet(isPresented: $editing) {
-            ticketEditor
-        }
-        .confirmationDialog("Confirmer la réception de " + (quoted.map { COVIMoney.text($0, currency: shop.currencyCode) } ?? "") + " ?", isPresented: $confirm) {
-            Button("Je confirme avoir reçu · " + tender.rawValue) { pay() }
-        }
-        .onAppear {
+    }
+    private func prepare() {
             if stylist.isEmpty { stylist = team.first(where: \.active)?.name ?? "" }
 #if DEBUG && targetEnvironment(simulator)
             if let diagnostics, diagnostics.scenario == .salonCheckout,
@@ -84,8 +97,6 @@ struct SalonCheckout: View {
             }
 #endif
         }
-        .background(COVIBackdrop())
-    }
 
     private var ticketCard: some View {
                 COVICard {
