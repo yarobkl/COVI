@@ -195,6 +195,21 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   `683EE982` (Gestion de la carte, Stock boissons) ont été retrouvées et
   vérifiées par leur contenu. Reprise visuelle sur Cuisine.
 
+### Cuisine du Restaurant
+
+- La planche `A2188A03` a été inspectée. Cuisine affiche le nombre de
+  tickets par état, groupe les lignes par table, montre le délai depuis
+  l’envoi et ordonne les tickets du plus ancien au plus récent. L’identité
+  affichée est celle de l’ouverture de la table lorsqu’elle est connue.
+- Les actions par ticket ou par ligne passent par les contrôles existants
+  du service. Le traitement groupé valide toutes les lignes avant leur
+  changement et écrit une trace par ligne dans la même transaction.
+- Le test de régression vérifie le rejet d’un groupe périmé ou dupliqué.
+  Le diagnostic iPhone ouvre Cuisine avec trois tables actives.
+  Compilation, tests et comparaison restent à relever.
+- La prise en charge distincte, les délais d’urgence, le paiement partiel
+  et les incidents présentés sur la planche restent à intégrer.
+
 ### Contrôles iOS et limites
 
 Les premières compilations ont échoué sur une expression SwiftUI ; le découpage

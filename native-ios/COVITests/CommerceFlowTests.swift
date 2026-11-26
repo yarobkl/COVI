@@ -856,6 +856,43 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 6)
     }
 
+    func testKitchenAdvancesTicketLinesTogetherAndRejectsStaleOrRepeatedLines() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Restaurant", kind: .restaurant, city: "Brazzaville")
+        let table = DiningTable(establishmentID: shop.id, label: "Table 1", capacity: 4)
+        let dishes = ["Poulet", "Poisson", "Riz"].map { name in
+            CatalogItem(establishmentID: shop.id, title: name, priceMinor: 5_000)
+        }
+        db.insert(shop)
+        db.insert(table)
+        for dish in dishes {
+            dish.menuCategory = MenuGroup.food.rawValue
+            db.insert(dish)
+        }
+        try db.save()
+        let service = RestaurantService(shop: shop, actor: owner, role: .owner, pin: ownerPIN(), db: db)
+        try service.open(table)
+        let order = try XCTUnwrap(db.fetch(FetchDescriptor<CommerceOrder>()).first)
+        let basket = Dictionary(uniqueKeysWithValues: dishes.map { ($0.id, 1) })
+        try service.send(basket, menu: dishes, table: table, order: order)
+        let lines = try db.fetch(FetchDescriptor<OrderLine>())
+        XCTAssertEqual(lines.count, 3)
+        let first = try XCTUnwrap(lines.first)
+        let pending = Array(lines.dropFirst())
+        let another = try XCTUnwrap(pending.first)
+        try service.advance(first, from: .cooking, table: table, order: order)
+        let events = try db.fetchCount(FetchDescriptor<OutboxEvent>())
+
+        XCTAssertThrowsError(try service.advance(lines, from: .cooking, table: table, order: order))
+        XCTAssertThrowsError(try service.advance([another, another], from: .cooking, table: table, order: order))
+        XCTAssertTrue(pending.allSatisfy { $0.preparation == Prep.cooking.rawValue })
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), events)
+
+        try service.advance(pending, from: .cooking, table: table, order: order)
+        XCTAssertTrue(lines.allSatisfy { $0.preparation == Prep.ready.rawValue })
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), events + pending.count)
+    }
+
     func testRestaurantRejectsUnconfirmedMobilePaymentAndInsufficientCash() throws {
         let db = try database(), owner = UUID()
         let shop = Establishment(ownerID: owner, name: "Restaurant", kind: .restaurant, city: "Libreville")

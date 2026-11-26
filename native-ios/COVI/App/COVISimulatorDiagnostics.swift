@@ -18,6 +18,7 @@ final class COVISimulatorDiagnostics {
         case restaurantTable = "restaurant-table"
         case restaurantOrder = "restaurant-order"
         case restaurantReport = "restaurant-report"
+        case restaurantKitchen = "restaurant-kitchen"
         case restaurantTeam = "restaurant-team"
         case salonCatalog = "salon-catalog"
         case salonReport = "salon-report"
@@ -104,7 +105,7 @@ final class COVISimulatorDiagnostics {
         let kind: BusinessKind
         let name: String
         switch scenario {
-        case .restaurantTables, .restaurantTable, .restaurantOrder, .restaurantReport, .restaurantTeam:
+        case .restaurantTables, .restaurantTable, .restaurantOrder, .restaurantReport, .restaurantTeam, .restaurantKitchen:
             kind = .restaurant
             name = "Restaurant de démonstration"
         case .salonCatalog, .salonReport, .salonMore, .salonSettings, .salonCheckout, .salonToday, .salonAgenda, .salonBooking, .salonBookingConflict, .salonClients, .salonProfile:
@@ -232,13 +233,29 @@ final class COVISimulatorDiagnostics {
             predicate: #Predicate { $0.orderID == activeID }, sortBy: [SortDescriptor(\.sentAt)]))
         for line in lines where line.catalogItemID != main.id {
             try service.advance(line, from: .cooking, table: occupied, order: active)
-            try service.advance(line, from: .ready, table: occupied, order: active)
+            if scenario != .restaurantKitchen || line.catalogItemID == juice.id {
+                try service.advance(line, from: .ready, table: occupied, order: active)
+            }
         }
         let other = try open(secondOccupied)
         try service.send([chicken.id: 8], menu: menu, table: secondOccupied, order: other)
         let bill = try open(awaitingBill)
         try service.send([main.id: 2], menu: menu, table: awaitingBill, order: bill)
         try service.finish(awaitingBill, order: bill, paid: false)
+
+        if scenario == .restaurantKitchen {
+            try service.send([greens.id: 1], menu: menu, table: occupied, order: active)
+            context.insert(Account(id: owner, fullName: "Camille Démo", email: "", phone: ""))
+            let activeAges = [active.id: 12, other.id: 7, bill.id: 2]
+            let sampleLines = try context.fetch(FetchDescriptor<OrderLine>())
+            let now = Date.now
+            for line in sampleLines {
+                if let minutes = activeAges[line.orderID] {
+                    line.sentAt = now.addingTimeInterval(-Double(minutes * 60))
+                }
+            }
+            try context.save()
+        }
 
         return RestaurantSample(table: occupied, order: active, lines: lines,
             menu: menu, draft: draft, service: service)

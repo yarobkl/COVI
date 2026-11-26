@@ -128,16 +128,27 @@ enum RestaurantFault: LocalizedError {
         } catch { db.rollback(); throw error }
     }
     func advance(_ line: OrderLine, from expected: Prep, table: DiningTable, order: CommerceOrder) throws {
+        try advance([line], from: expected, table: table, order: order)
+    }
+
+    func advance(_ lines: [OrderLine], from expected: Prep, table: DiningTable, order: CommerceOrder) throws {
         try authorize(kitchen: expected == .cooking || role == .kitchen)
         try check(table, order)
-        guard line.orderID == order.id, line.preparation == expected.rawValue, expected != .served else { throw RestaurantFault.stale }
-        line.preparation = (expected == .cooking ? Prep.ready : Prep.served).rawValue
+        guard expected != .served, !lines.isEmpty, Set(lines.map(\.id)).count == lines.count,
+              lines.allSatisfy({ $0.orderID == order.id && $0.preparation == expected.rawValue })
+        else { throw RestaurantFault.stale }
+
+        let next: Prep = expected == .cooking ? .ready : .served
         do {
-            try BusinessOutbox.enqueue(kind: "restaurant.line.advanced", establishmentID: shop.id,
-                entityID: line.id, actorID: actor, relatedIDs: [order.id], in: db)
+            for line in lines {
+                line.preparation = next.rawValue
+                try BusinessOutbox.enqueue(kind: "restaurant.line.advanced", establishmentID: shop.id,
+                    entityID: line.id, actorID: actor, relatedIDs: [order.id], in: db)
+            }
             try save()
         } catch { db.rollback(); throw error }
     }
+
     func finish(_ table: DiningTable, order: CommerceOrder, paid: Bool,
                 tender: Tender? = nil, received: Int64? = nil, confirmed: Bool = false) throws {
         try authorize()

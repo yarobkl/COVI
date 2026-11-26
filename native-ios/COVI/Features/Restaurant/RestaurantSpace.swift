@@ -13,7 +13,6 @@ struct RestaurantSpace: View {
     @Query private var menu: [CatalogItem]
     @Query(sort: \OrderLine.sentAt) private var lines: [OrderLine]
     @State private var filter = "Toutes"
-    @State private var phase = Prep.cooking
     @State private var setup = false
     @State private var message = ""
     init(shop: Establishment, tab: BusinessTab, actor: UUID, role: StaffRole, pin: PINManager) {
@@ -35,43 +34,8 @@ struct RestaurantSpace: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 if tab == .kitchen {
-                    HStack(spacing: 8) {
-                        ForEach(Prep.allCases, id: \.self) { option in
-                            Button { phase = option } label: {
-                                Text(option == .cooking ? "À préparer" : option == .ready ? "Prêts" : "Servis")
-                                    .font(.subheadline.weight(.semibold))
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 13)
-                                    .foregroundStyle(phase == option ? .white : COVITheme.navy)
-                                    .background(phase == option ? COVITheme.navy : .white, in: Capsule())
-                            }.buttonStyle(.plain)
-                        }
-                    }
-                    let activeOrders = Set(tables.compactMap(\.activeSessionID))
-                    if !lines.contains(where: { activeOrders.contains($0.orderID) && $0.preparation == phase.rawValue }) {
-                        ContentUnavailableView("Aucune commande", systemImage: "checkmark.circle",
-                            description: Text("Les nouveaux plats envoyés en cuisine apparaîtront ici."))
-                    }
-                    ForEach(tables) { t in
-                        if let order = orders.first(where: { $0.id == t.activeSessionID }) {
-                            ForEach(lines.filter { $0.orderID == order.id && $0.preparation == phase.rawValue }) { line in
-                                COVICard { VStack(alignment: .leading, spacing: 15) {
-                                    HStack {
-                                        Label(t.label, systemImage: "fork.knife")
-                                            .font(.headline)
-                                        Spacer()
-                                        if let sent = line.sentAt { COVIBadge(title: sent.formatted(date: .omitted, time: .shortened), tint: COVITheme.warningTint, foreground: COVITheme.warning) }
-                                    }
-                                    Text("\(line.quantity) × \(line.dishName ?? "Article")")
-                                        .font(.title3.bold())
-                                    if phase == .cooking || phase == .ready {
-                                        COVIButton(phase == .cooking ? "Marquer prêt" : "Marquer servi") {
-                                            perform { try service.advance(line, from: phase, table: t, order: order) }
-                                        }
-                                    }
-                                }.foregroundStyle(COVITheme.navy) }
-                            }
-                        }
+                    RestaurantKitchenBoard(tables: tables, orders: orders, lines: lines) { ticketLines, phase, table, order in
+                        perform { try service.advance(ticketLines, from: phase, table: table, order: order) }
                     }
                 } else {
                     HStack(spacing: 8) {

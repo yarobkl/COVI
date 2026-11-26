@@ -71,7 +71,7 @@ jobs:
           xcrun simctl status_bar "$DEVICE_ID" override --time "9:41" --batteryState charged --batteryLevel 100
           trap 'xcrun simctl status_bar "$DEVICE_ID" clear' EXIT
           # Give the newest diagnostic an opportunity to render before the regression sweep.
-          for SCENARIO in restaurant-team restaurant-report salon-more salon-settings salon-report salon-checkout salon-catalog welcome boutique-home boutique-sale boutique-checkout restaurant-tables restaurant-table restaurant-order salon-today salon-agenda salon-booking salon-booking-conflict salon-clients salon-profile; do
+          for SCENARIO in restaurant-kitchen restaurant-team restaurant-report salon-more salon-settings salon-report salon-checkout salon-catalog welcome boutique-home boutique-sale boutique-checkout restaurant-tables restaurant-table restaurant-order salon-today salon-agenda salon-booking salon-booking-conflict salon-clients salon-profile; do
             MARKER="$APP_DATA/tmp/covi-diagnostic-$SCENARIO.ready"
             rm -f "$MARKER"
             xcrun simctl launch --terminate-running-process "$DEVICE_ID" com.covi.app --covi-diagnostic-scenario "$SCENARIO" -AppleLanguages '(fr)' -AppleLocale fr_FR
@@ -130,6 +130,7 @@ jobs:
             "salon-more/settings: normal Plus tab and settings route with a local synthetic owner and two in-memory establishments." \
             "restaurant-report: actual Plus destination with synthetic receipts and a refund recorded in the selected month." \
             "restaurant-team: Plus team screen with a local test owner, three enabled members and one inactive membership." \
+            "restaurant-kitchen: actual Kitchen tab with three active tables, a grouped ticket and real preparation states in memory." \
             "Account header and ShopSyncStatus are outside the business captures." \
             "Basket: 18,000 + 17,000 XAF; cash received: 40,000 XAF; change: 5,000 XAF." \
             "Salon checkout/catalog also captured on iPad simulator and iPhone accessibility XXXL; physical devices, interaction and cross-account sync remain unverified." \
