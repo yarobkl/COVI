@@ -44,13 +44,26 @@ jobs:
         working-directory: native-ios
         run: |
           set -euo pipefail
+          # A stalled Simulator command must not hide all earlier screenshots.
+          run_bounded() {
+            python3 - "$@" <<'PYTIMEOUT'
+          import subprocess, sys
+          try:
+              subprocess.run(sys.argv[1:], check=True, timeout=120)
+          except subprocess.TimeoutExpired:
+              print('Simulator command timed out after 120 seconds: ' + ' '.join(sys.argv[1:]), flush=True)
+              sys.exit(124)
+          except subprocess.CalledProcessError as error:
+              sys.exit(error.returncode)
+          PYTIMEOUT
+          }
           DEVICE_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; data=json.load(sys.stdin); devices=[d for group in data["devices"].values() for d in group if d["isAvailable"] and "iPhone" in d["name"]]; print(devices[0]["udid"] if devices else "")')
           if [ -z "$DEVICE_ID" ]; then echo "No available iPhone simulator"; exit 1; fi
           xcrun simctl boot "$DEVICE_ID" 2>/dev/null || true
-          xcrun simctl bootstatus "$DEVICE_ID" -b
+          run_bounded xcrun simctl bootstatus "$DEVICE_ID" -b
           APP_PATH=$(find "$HOME/Library/Developer/Xcode/DerivedData" -path '*/Build/Products/Debug-iphonesimulator/COVI.app' -type d -print -quit)
           if [ -z "$APP_PATH" ]; then echo "COVI Debug simulator app not found"; exit 1; fi
-          xcrun simctl install "$DEVICE_ID" "$APP_PATH"
+          run_bounded xcrun simctl install "$DEVICE_ID" "$APP_PATH"
           APP_DATA=$(xcrun simctl get_app_container "$DEVICE_ID" com.covi.app data)
           CAPTURE_DIR="$RUNNER_TEMP/COVI-visual-diagnostics"
           mkdir -p "$CAPTURE_DIR"
@@ -59,7 +72,7 @@ jobs:
           for SCENARIO in welcome boutique-home boutique-sale boutique-checkout restaurant-tables restaurant-table restaurant-order salon-today salon-agenda salon-booking salon-booking-conflict salon-clients salon-profile salon-checkout salon-catalog; do
             MARKER="$APP_DATA/tmp/covi-diagnostic-$SCENARIO.ready"
             rm -f "$MARKER"
-            xcrun simctl launch --terminate-running-process "$DEVICE_ID" com.covi.app --covi-diagnostic-scenario "$SCENARIO" -AppleLanguages '(fr)' -AppleLocale fr_FR
+            run_bounded xcrun simctl launch --terminate-running-process "$DEVICE_ID" com.covi.app --covi-diagnostic-scenario "$SCENARIO" -AppleLanguages '(fr)' -AppleLocale fr_FR
             for ATTEMPT in {1..20}; do
               if [ -f "$MARKER" ]; then break; fi
               sleep 1
@@ -68,38 +81,38 @@ jobs:
               echo "Diagnostic scenario did not become ready: $SCENARIO"
               exit 1
             fi
-            xcrun simctl io "$DEVICE_ID" screenshot "$CAPTURE_DIR/$SCENARIO.png"
+            run_bounded xcrun simctl io "$DEVICE_ID" screenshot "$CAPTURE_DIR/$SCENARIO.png"
           done
           # Validate the same native Salon views on iPhone accessibility text and iPad.
-          xcrun simctl ui "$DEVICE_ID" content_size accessibility-extra-extra-extra-large
+          run_bounded xcrun simctl ui "$DEVICE_ID" content_size accessibility-extra-extra-extra-large
           for SCENARIO in salon-checkout salon-catalog; do
             MARKER="$APP_DATA/tmp/covi-diagnostic-$SCENARIO.ready"
             rm -f "$MARKER"
-            xcrun simctl launch --terminate-running-process "$DEVICE_ID" com.covi.app --covi-diagnostic-scenario "$SCENARIO" -AppleLanguages '(fr)' -AppleLocale fr_FR
+            run_bounded xcrun simctl launch --terminate-running-process "$DEVICE_ID" com.covi.app --covi-diagnostic-scenario "$SCENARIO" -AppleLanguages '(fr)' -AppleLocale fr_FR
             for ATTEMPT in {1..20}; do
               if [ -f "$MARKER" ]; then break; fi
               sleep 1
             done
             test "$(cat "$MARKER")" = "$SCENARIO"
-            xcrun simctl io "$DEVICE_ID" screenshot "$CAPTURE_DIR/$SCENARIO-accessibility-xxxl.png"
+            run_bounded xcrun simctl io "$DEVICE_ID" screenshot "$CAPTURE_DIR/$SCENARIO-accessibility-xxxl.png"
           done
-          xcrun simctl ui "$DEVICE_ID" content_size large
+          run_bounded xcrun simctl ui "$DEVICE_ID" content_size large
           IPAD_ID=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; data=json.load(sys.stdin); devices=[d for group in data["devices"].values() for d in group if d["isAvailable"] and "iPad" in d["name"]]; print(devices[0]["udid"] if devices else "")')
           test -n "$IPAD_ID"
           xcrun simctl boot "$IPAD_ID" 2>/dev/null || true
-          xcrun simctl bootstatus "$IPAD_ID" -b
-          xcrun simctl install "$IPAD_ID" "$APP_PATH"
+          run_bounded xcrun simctl bootstatus "$IPAD_ID" -b
+          run_bounded xcrun simctl install "$IPAD_ID" "$APP_PATH"
           IPAD_DATA=$(xcrun simctl get_app_container "$IPAD_ID" com.covi.app data)
           for SCENARIO in salon-checkout salon-catalog; do
             MARKER="$IPAD_DATA/tmp/covi-diagnostic-$SCENARIO.ready"
             rm -f "$MARKER"
-            xcrun simctl launch --terminate-running-process "$IPAD_ID" com.covi.app --covi-diagnostic-scenario "$SCENARIO" -AppleLanguages '(fr)' -AppleLocale fr_FR
+            run_bounded xcrun simctl launch --terminate-running-process "$IPAD_ID" com.covi.app --covi-diagnostic-scenario "$SCENARIO" -AppleLanguages '(fr)' -AppleLocale fr_FR
             for ATTEMPT in {1..20}; do
               if [ -f "$MARKER" ]; then break; fi
               sleep 1
             done
             test "$(cat "$MARKER")" = "$SCENARIO"
-            xcrun simctl io "$IPAD_ID" screenshot "$CAPTURE_DIR/$SCENARIO-iPad.png"
+            run_bounded xcrun simctl io "$IPAD_ID" screenshot "$CAPTURE_DIR/$SCENARIO-iPad.png"
           done
           printf '%s\n' \
             "Debug iPhone simulator; synthetic data stored in memory only; no network or TestFlight upload." \
@@ -116,6 +129,7 @@ jobs:
             "Salon checkout/catalog also captured on iPad simulator and iPhone accessibility XXXL; physical devices, interaction and cross-account sync remain unverified." \
             > "$CAPTURE_DIR/capture-notes.txt"
       - name: Save iPhone visual proof
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: COVI-visual-diagnostics-iPhone
