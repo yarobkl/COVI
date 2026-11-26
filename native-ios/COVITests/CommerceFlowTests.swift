@@ -988,10 +988,15 @@ final class CommerceFlowTests: XCTestCase {
         try service.advance(line, from: .ready, table: table, order: order)
         try service.finish(table, order: order, paid: false)
         XCTAssertTrue(table.billRequested)
+        XCTAssertThrowsError(try service.release(table, after: order))
         XCTAssertThrowsError(try service.finish(table, order: order, paid: true))
         try service.finish(table, order: order, paid: true, tender: .mtn, confirmed: true)
-        XCTAssertFalse(table.isOccupied)
+        XCTAssertTrue(table.isOccupied)
+        XCTAssertFalse(table.billRequested)
+        XCTAssertEqual(table.activeSessionID, order.id)
         XCTAssertEqual(order.state, .completed)
+        XCTAssertThrowsError(try service.open(table))
+        XCTAssertThrowsError(try service.send([dish.id: 1], menu: [dish], table: table, order: order))
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<PaymentRecord>()), 1)
         XCTAssertEqual(try db.fetch(FetchDescriptor<PaymentRecord>()).first?.method, Tender.mtn.rawValue)
 
@@ -999,6 +1004,16 @@ final class CommerceFlowTests: XCTestCase {
                                                tender: .mtn, confirmed: true))
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<PaymentRecord>()), 1)
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 6)
+        try service.release(table, after: order)
+        XCTAssertFalse(table.isOccupied)
+        XCTAssertNil(table.activeSessionID)
+        XCTAssertEqual(table.lastReleasedSessionID, order.id)
+        XCTAssertThrowsError(try service.release(table, after: order))
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 7)
+        try service.open(table)
+        XCTAssertNotEqual(table.activeSessionID, order.id)
+        XCTAssertThrowsError(try service.release(table, after: order))
+        XCTAssertTrue(table.isOccupied)
     }
 
     func testRestaurantPartialPaymentKeepsBillOpenUntilTheVerifiedRemainderIsPaid() throws {
@@ -1048,8 +1063,10 @@ final class CommerceFlowTests: XCTestCase {
             products: [dish], payments: payments)
         XCTAssertEqual(receipt.totalMinor, 28_500)
         XCTAssertEqual(order.state, .completed)
-        XCTAssertFalse(table.isOccupied)
+        XCTAssertTrue(table.isOccupied)
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 7)
+        try service.release(table, after: order)
+        XCTAssertFalse(table.isOccupied)
     }
 
     func testKitchenAdvancesTicketLinesTogetherAndRejectsStaleOrRepeatedLines() throws {

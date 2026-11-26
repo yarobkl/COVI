@@ -5,9 +5,11 @@ enum RestaurantFloorState: String, CaseIterable {
     case occupied = "Occupée"
     case serving = "En service"
     case checkout = "À encaisser"
+    case paidOccupied = "Réglée · occupée"
 
-    init(table: DiningTable, hasOrderLines: Bool) {
-        if table.billRequested { self = .checkout }
+    init(table: DiningTable, hasOrderLines: Bool, settled: Bool = false) {
+        if table.isOccupied && settled { self = .paidOccupied }
+        else if table.billRequested { self = .checkout }
         else if !table.isOccupied { self = .available }
         else { self = hasOrderLines ? .serving : .occupied }
     }
@@ -18,6 +20,7 @@ enum RestaurantFloorState: String, CaseIterable {
         case .occupied: COVITheme.warningTint
         case .serving: Color(red: 0.85, green: 0.92, blue: 1)
         case .checkout: COVITheme.champagne
+        case .paidOccupied: COVITheme.navy.opacity(0.12)
         }
     }
 
@@ -26,7 +29,7 @@ enum RestaurantFloorState: String, CaseIterable {
         case .available: COVITheme.success
         case .occupied: COVITheme.warning
         case .serving: COVITheme.blue
-        case .checkout: COVITheme.navy
+        case .checkout, .paidOccupied: COVITheme.navy
         }
     }
 }
@@ -293,7 +296,8 @@ struct RestaurantFloorPlan<Detail: View>: View {
         let ordersWithLines = Set(lines.map(\.orderID))
         let states = Dictionary(uniqueKeysWithValues: displayed.map { table in
             let hasLines = table.activeSessionID.map { ordersWithLines.contains($0) } ?? false
-            return (table.id, RestaurantFloorState(table: table, hasOrderLines: hasLines))
+            let settled = table.activeSessionID.flatMap { ordersByID[$0]?.first?.state } == .completed
+            return (table.id, RestaurantFloorState(table: table, hasOrderLines: hasLines, settled: settled))
         })
         if displayed.isEmpty {
             ContentUnavailableView("Aucune table dans cet espace", systemImage: "table.furniture",
@@ -434,7 +438,7 @@ struct RestaurantFloorPlan<Detail: View>: View {
         let counts = Dictionary(grouping: states.values, by: { $0 }).mapValues(\.count)
         let columns = textSize.isAccessibilitySize ? 1 : sizeClass == .regular ? 4 : 2
         return LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: columns), spacing: 6) {
-            ForEach(RestaurantFloorState.allCases, id: \.self) { state in
+            ForEach(RestaurantFloorState.allCases.filter { $0 != .paidOccupied || counts[$0] != nil }, id: \.self) { state in
                 let selected = highlightedState == state
                 Button { highlightedState = selected ? nil : state } label: {
                     HStack(spacing: 5) {
@@ -552,8 +556,11 @@ struct RestaurantFloorPlan<Detail: View>: View {
                 COVIBadge(title: state.rawValue, tint: state.tint)
                 if let order {
                     let amount = RestaurantBill.remaining(order, payments: payments)
-                    LabeledContent(state == .checkout ? "Reste dû" : "Commande en cours",
-                        value: amount.map { COVIMoney.text($0, currency: service.shop.currencyCode) } ?? "À vérifier")
+                    let paid = state == .paidOccupied
+                    LabeledContent(paid ? "Addition réglée" : state == .checkout ? "Reste dû" : "Commande en cours",
+                        value: (paid ? order.totalMinor : amount).map {
+                            COVIMoney.text($0, currency: service.shop.currencyCode)
+                        } ?? "À vérifier")
                         .font(.subheadline)
                 }
                 if service.admin {

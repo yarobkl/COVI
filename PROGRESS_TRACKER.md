@@ -479,6 +479,20 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   haut du plan reste partiellement masqué. Les captures utilisent
   des données synthétiques et ne valident pas les appuis sur appareil.
 
+### Table réglée et départ des clients
+
+- Le solde ferme la commande et conserve l’occupation de la table.
+  Salle affiche « Réglée · occupée ». Le détail permet de confirmer le
+  départ et garde la table indisponible jusqu’à cet appui.
+- Le reçu transporte la règle d’occupation et la dernière session
+  libérée est gardée dans l’instantané de table. La réception d’un
+  ancien instantané ne doit ni rouvrir la table ni effacer un
+  nouvel occupant. Les reçus anciens gardent leur règle de clôture.
+- Deux champs SwiftData facultatifs ont été ajoutés. Les tests et
+  la capture après règlement doivent être vérifiés dans GitHub Actions.
+  La migration installée, la coexistence avec une version ancienne,
+  CloudKit entre appareils physiques et la fermeture QR restent à valider.
+
 ### Contrôles iOS et limites
 
 Les premières compilations ont échoué sur une expression SwiftUI ; le découpage
@@ -498,9 +512,6 @@ validés. Les lots Boutique Scan/Studio, QR Restaurant, paiements mixtes/crédit
 et les autres écarts du contrat produit ne sont pas déclarés terminés.
 
 Points métier encore observés dans les sources, sans correctif annoncé :
-- `RestaurantService.finish` libère actuellement la table au paiement et les
-  miroirs CloudKit font de même ; l'état « payé mais encore occupé » et la
-  libération physique explicite doivent être traités ensemble, avec leurs tests.
 - La caisse Salon exige encore une fiche client ; le parcours universel sans
   identité, hors crédit, reste à harmoniser sans perdre les liens d'historique.
 - Le catalogue utilise des symboles natifs : photos, durées structurées et

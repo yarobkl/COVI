@@ -140,11 +140,13 @@ struct OperationalTable: Codable, Equatable {
     let capacity: Int
     let occupied: Bool
     let session: UUID?
+    let lastReleasedSession: UUID?
     let billRequested: Bool
     init(_ row: DiningTable) {
         id = row.id; shop = row.establishmentID; label = row.label
         capacity = row.capacity; occupied = row.isOccupied
         session = row.activeSessionID; billRequested = row.billRequested
+        lastReleasedSession = row.lastReleasedSessionID
     }
 }
 
@@ -430,8 +432,15 @@ struct OperationalCloudAdapter {
             return try find(CommerceOrder.self, id: detail.order, context: context)?.state == .completed
         case .table:
             let detail = try decode(row, as: OperationalTable.self)
-            guard let session = detail.session else { return false }
-            return try find(CommerceOrder.self, id: session, context: context)?.state == .completed
+            if let session = detail.session,
+               try find(CommerceOrder.self, id: session, context: context)?.state == .completed { return true }
+            if let released = detail.lastReleasedSession,
+               let table = try find(DiningTable.self, id: detail.id, context: context),
+               table.activeSessionID == released,
+               let order = try find(CommerceOrder.self, id: released, context: context),
+               order.establishmentID == detail.shop, order.tableID == detail.id,
+               order.state == .completed, order.restaurantKeepsTable == true { return true }
+            return false
         default: return false
         }
     }
@@ -549,24 +558,46 @@ struct OperationalCloudAdapter {
             guard x.id == id, x.shop == sid, !x.label.isEmpty,
                   (1...100).contains(x.capacity), x.occupied == (x.session != nil),
                   (!x.billRequested || x.occupied) else { throw SyncFault.invalidEvent }
-            let paidSession: Bool
-            if let session = x.session {
-                paidSession = try find(CommerceOrder.self, id: session, context: context)?.state == .completed
-            } else { paidSession = false }
+            let active = try x.session.flatMap { try find(CommerceOrder.self, id: $0, context: context) }
+            if let active, active.establishmentID != sid || active.tableID != id { throw SyncFault.invalidEvent }
+            let paidSession = active?.state == .completed
             let table = try find(DiningTable.self, id: id, context: context) ??
                 DiningTable(establishmentID: sid, label: x.label, capacity: x.capacity)
             guard table.establishmentID == sid else { throw SyncFault.journalChanged }
-            // A verified receipt wins over stale room state. If the table is
-            // already used for a newer session, do not evict that guest either.
+
+            if let release = x.lastReleasedSession {
+                guard shop.kind == .restaurant, release != x.session,
+                      let releasedOrder = try find(CommerceOrder.self, id: release, context: context),
+                      releasedOrder.establishmentID == sid, releasedOrder.tableID == id,
+                      releasedOrder.state == .completed, releasedOrder.restaurantKeepsTable == true
+                else { throw SyncFault.journalChanged }
+                if !x.occupied, let current = table.activeSessionID, current != release { return }
+                if let previous = table.lastReleasedSessionID, previous != release,
+                   let previousOrder = try find(CommerceOrder.self, id: previous, context: context),
+                   previousOrder.createdAt > releasedOrder.createdAt { return }
+            }
+
             if paidSession, table.isOccupied, table.activeSessionID != x.session { return }
+            if let active, paidSession, active.restaurantKeepsTable == true,
+               let released = table.lastReleasedSessionID {
+                let old = try find(CommerceOrder.self, id: released, context: context)
+                if released == active.id || old.map({ $0.createdAt >= active.createdAt }) == true { return }
+            }
+            if let current = table.activeSessionID, current != x.session,
+               let prior = try find(CommerceOrder.self, id: current, context: context),
+               prior.state == .completed, prior.restaurantKeepsTable == true,
+               x.lastReleasedSession != current { return }
             if let currentSession = table.activeSessionID, table.billRequested,
                currentSession != x.session || !x.billRequested,
                try find(CommerceOrder.self, id: currentSession, context: context)?.state != .completed,
                try hasPayment(orderID: currentSession, context: context) { throw SyncFault.journalChanged }
+
+            let legacyPaid = paidSession && active?.restaurantKeepsTable != true
             table.id = id; table.label = x.label; table.capacity = x.capacity
-            table.isOccupied = !paidSession && x.occupied
-            table.activeSessionID = paidSession ? nil : x.session
+            table.isOccupied = !legacyPaid && x.occupied
+            table.activeSessionID = legacyPaid ? nil : x.session
             table.billRequested = !paidSession && x.billRequested
+            table.lastReleasedSessionID = x.lastReleasedSession ?? table.lastReleasedSessionID
             context.insert(table)
         case .kitchenLine:
             let x = try decode(row, as: OperationalKitchenLine.self)

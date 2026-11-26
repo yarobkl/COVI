@@ -312,8 +312,7 @@ enum RestaurantBill {
         let paid = amount == due
         if paid {
             order.state = .completed
-            table.activeSessionID = nil
-            table.isOccupied = false
+            order.restaurantKeepsTable = true
             table.billRequested = false
         }
         do {
@@ -323,4 +322,20 @@ enum RestaurantBill {
             try save()
         } catch { db.rollback(); throw error }
     }
+    func release(_ table: DiningTable, after order: CommerceOrder) throws {
+        try authorize()
+        guard table.establishmentID == shop.id, order.establishmentID == shop.id,
+              order.tableID == table.id, order.state == .completed, order.restaurantKeepsTable == true,
+              table.isOccupied, table.activeSessionID == order.id else { throw RestaurantFault.stale }
+        table.lastReleasedSessionID = order.id
+        table.activeSessionID = nil
+        table.isOccupied = false
+        table.billRequested = false
+        do {
+            try BusinessOutbox.enqueue(kind: "restaurant.table.released", establishmentID: shop.id,
+                entityID: table.id, actorID: actor, relatedIDs: [order.id], in: db)
+            try save()
+        } catch { db.rollback(); throw error }
+    }
+
 }

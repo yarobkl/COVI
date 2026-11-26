@@ -29,6 +29,7 @@ struct ArchivedReceipt: Codable, Equatable {
     let tableID: UUID?
     let customerID: UUID?
     let guestCount: Int?
+    let keepsTable: Bool?
     let createdByID: UUID
     let createdAt: Date
     let totalMinor: Int64
@@ -52,6 +53,10 @@ struct ArchivedReceipt: Codable, Equatable {
         tableID = order.tableID
         customerID = order.customerID
         guestCount = order.restaurantGuestCount
+        keepsTable = order.restaurantKeepsTable
+        guard order.restaurantKeepsTable == nil ||
+              (order.restaurantKeepsTable == true && shop.kind == .restaurant && order.tableID != nil)
+        else { throw SyncFault.invalidEvent }
         createdByID = order.createdByID
         createdAt = order.createdAt
         totalMinor = order.totalMinor
@@ -71,7 +76,9 @@ struct ArchivedReceipt: Codable, Equatable {
     @MainActor
     func importIfNeeded(shop: Establishment, context: ModelContext) throws {
         guard version == 1, establishmentID == shop.id, ownerID == shop.ownerID,
-              !articles.isEmpty, !confirmations.isEmpty else { throw SyncFault.invalidEvent }
+              !articles.isEmpty, !confirmations.isEmpty,
+              keepsTable == nil || (keepsTable == true && shop.kind == .restaurant && tableID != nil)
+        else { throw SyncFault.invalidEvent }
         if let guestCount {
             guard shop.kind == .restaurant, tableID != nil, (1...100).contains(guestCount)
             else { throw SyncFault.invalidEvent }
@@ -136,7 +143,8 @@ struct ArchivedReceipt: Codable, Equatable {
             if existing.state == .completed {
                 guard guestCount == nil || existing.restaurantGuestCount == nil ||
                       existing.restaurantGuestCount == guestCount else { throw SyncFault.journalChanged }
-                guard existing.totalMinor == totalMinor,
+                guard keepsTable == existing.restaurantKeepsTable,
+                      existing.totalMinor == totalMinor,
                       existing.discountMinor == discountMinor,
                       localLines.count == articles.count,
                       localPayments.count == confirmations.count else { throw SyncFault.journalChanged }
@@ -174,13 +182,17 @@ struct ArchivedReceipt: Codable, Equatable {
             existing.restaurantGuestCount = guestCount ?? existing.restaurantGuestCount
             existing.discountMinor = discountMinor
             existing.state = .completed
+            existing.restaurantKeepsTable = keepsTable
             if let tableID {
                 let tables = try context.fetch(FetchDescriptor<DiningTable>(predicate: #Predicate {
                     $0.id == tableID
                 }))
-                if let table = tables.first, table.activeSessionID == id {
-                    table.activeSessionID = nil; table.isOccupied = false
+                if let table = tables.first, table.establishmentID == shop.id, table.activeSessionID == id {
                     table.billRequested = false
+                    if keepsTable != true || table.lastReleasedSessionID == id {
+                        table.activeSessionID = nil
+                        table.isOccupied = false
+                    }
                 }
             }
             return
@@ -190,6 +202,7 @@ struct ArchivedReceipt: Codable, Equatable {
         order.id = orderID
         order.customerID = customerID
         order.restaurantGuestCount = guestCount
+        order.restaurantKeepsTable = keepsTable
         order.createdAt = createdAt
         order.totalMinor = totalMinor
         order.discountMinor = discountMinor

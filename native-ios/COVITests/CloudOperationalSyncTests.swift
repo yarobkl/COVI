@@ -364,6 +364,60 @@ final class CloudOperationalSyncTests: XCTestCase {
         XCTAssertEqual(try target.fetch(FetchDescriptor<DiningTable>()).first?.isOccupied, false)
     }
 
+    func testRestaurantReceiptRetainsOccupancyUntilExplicitReleaseAndRejectsStaleTable() throws {
+        let source = try memory(), target = try memory(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Restaurant", kind: .restaurant, city: "Douala")
+        let copy = clone(shop)
+        let table = DiningTable(establishmentID: shop.id, label: "Table 01", capacity: 4)
+        let order = CommerceOrder(establishmentID: shop.id, createdByID: owner, tableID: table.id)
+        order.state = .accepted
+        order.totalMinor = 3_000
+        table.activeSessionID = order.id
+        table.isOccupied = true
+        table.billRequested = true
+        let line = OrderLine(orderID: order.id, catalogItemID: UUID(), quantity: 1, unitPriceMinor: 3_000)
+        line.dishName = "Poisson"
+        line.preparation = Prep.served.rawValue
+        source.insert(shop); source.insert(table); source.insert(order); source.insert(line)
+        target.insert(copy)
+        try source.save(); try target.save()
+        let initial = try export(source, shop: shop)
+        try CloudOperationalSync.merge(initial, shop: copy, cloudUserID: "iCloud-A", context: target)
+        try target.save()
+        let mirrored = try XCTUnwrap(target.fetch(FetchDescriptor<DiningTable>()).first)
+
+        order.state = .completed
+        order.restaurantKeepsTable = true
+        table.billRequested = false
+        let payment = PaymentRecord(orderID: order.id, establishmentID: shop.id,
+            method: Tender.cash.rawValue, amountMinor: 3_000, confirmedByID: owner)
+        source.insert(payment)
+        try source.save()
+        let paidRoom = try export(source, shop: shop)
+        let receipt = try ArchivedReceipt(shop: shop, order: order, lines: [line], payments: [payment], catalog: [])
+        try receipt.importIfNeeded(shop: copy, context: target)
+        try target.save()
+        XCTAssertTrue(mirrored.isOccupied)
+        XCTAssertFalse(mirrored.billRequested)
+        try CloudOperationalSync.merge(paidRoom, shop: copy, cloudUserID: "iCloud-A", context: target)
+        try target.save()
+
+        table.activeSessionID = nil
+        table.isOccupied = false
+        table.lastReleasedSessionID = order.id
+        try source.save()
+        let releasedRoom = try export(source, shop: shop)
+        try CloudOperationalSync.merge(releasedRoom, shop: copy, cloudUserID: "iCloud-A", context: target)
+        try target.save()
+        XCTAssertFalse(mirrored.isOccupied)
+        XCTAssertEqual(mirrored.lastReleasedSessionID, order.id)
+        try CloudOperationalSync.merge(paidRoom, shop: copy, cloudUserID: "iCloud-A", context: target)
+        try receipt.importIfNeeded(shop: copy, context: target)
+        XCTAssertFalse(mirrored.isOccupied)
+        XCTAssertNil(mirrored.activeSessionID)
+        XCTAssertEqual(try target.fetchCount(FetchDescriptor<PaymentRecord>()), 1)
+    }
+
     func testStaleDiningTableSnapshotCannotReopenPaidSession() throws {
         let source = try memory(), target = try memory(), owner = UUID()
         let shop = Establishment(ownerID: owner, name: "Restaurant", kind: .restaurant, city: "Libreville")

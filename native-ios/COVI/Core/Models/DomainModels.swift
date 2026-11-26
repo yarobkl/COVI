@@ -135,6 +135,7 @@ enum SupportedCurrency {
     var capacity: Int
     var isOccupied: Bool
     var activeSessionID: UUID?
+    var lastReleasedSessionID: UUID?
     var billRequested: Bool = false
     init(establishmentID: UUID, label: String, capacity: Int) {
         self.id = UUID(); self.establishmentID = establishmentID; self.label = label
@@ -148,6 +149,7 @@ enum SupportedCurrency {
     var tableID: UUID?
     var customerID: UUID?
     var restaurantGuestCount: Int?
+    var restaurantKeepsTable: Bool?
     var createdByID: UUID
     var stateRaw: String
     var createdAt: Date

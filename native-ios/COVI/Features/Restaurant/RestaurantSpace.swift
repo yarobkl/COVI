@@ -29,7 +29,12 @@ struct RestaurantSpace: View {
         _menu = Query(filter: #Predicate<CatalogItem> { $0.establishmentID == id }, sort: \.title)
     }
     var service: RestaurantService { RestaurantService(shop: shop, actor: actor, role: role, pin: pin, db: db) }
-    func state(_ t: DiningTable) -> String { t.billRequested ? "Addition demandée" : t.isOccupied ? "Occupée" : "Libre" }
+    func state(_ table: DiningTable) -> String {
+        if table.isOccupied && orders.contains(where: { $0.id == table.activeSessionID && $0.state == .completed }) {
+            return RestaurantFloorState.paidOccupied.rawValue
+        }
+        return table.billRequested ? "Addition demandée" : table.isOccupied ? "Occupée" : "Libre"
+    }
     var filteredTables: [DiningTable] {
         tables.filter { table in
             filter == "Toutes" || (filter == "Occupées" && table.isOccupied) ||
@@ -127,9 +132,9 @@ struct RestaurantSpace: View {
                                             foreground: t.billRequested ? COVITheme.warning : t.isOccupied ? COVITheme.navy : COVITheme.success)
                                         if let order = orders.first(where: { $0.id == t.activeSessionID }) {
                                             VStack(spacing: 3) {
-                                                Text(t.billRequested ? "Reste dû" : "En cours")
+                                                Text(order.state == .completed ? "Addition réglée" : t.billRequested ? "Reste dû" : "En cours")
                                                     .font(.caption)
-                                                Text(RestaurantBill.remaining(order, payments: payments).map {
+                                                Text((order.state == .completed ? order.totalMinor : RestaurantBill.remaining(order, payments: payments)).map {
                                                     COVIMoney.text($0, currency: shop.currencyCode)
                                                 } ?? "À vérifier")
                                                     .font(.subheadline.bold())
@@ -167,6 +172,7 @@ struct RestaurantTable: View {
     @State private var ordering = false
     @State private var closing = false
     @State private var editingGuests = false
+    @State private var confirmingDeparture = false
     @Query private var payments: [PaymentRecord]
 #if DEBUG && targetEnvironment(simulator)
     @Environment(\.coviSimulatorDiagnostics) private var diagnostics
@@ -185,9 +191,12 @@ struct RestaurantTable: View {
     }
 
     var body: some View {
+        let currentOrder = table.activeSessionID == order?.id ? order : nil
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                if let order {
+                if let order = currentOrder, order.state == .completed {
+                    paidTable(order)
+                } else if let order = currentOrder {
                     COVICard {
                         VStack(alignment: .leading, spacing: 10) {
                             ViewThatFits(in: .horizontal) {
@@ -297,6 +306,15 @@ struct RestaurantTable: View {
         .background(COVIBackdrop())
         .navigationTitle(table.label)
         .navigationBarTitleDisplayMode(.inline)
+        .confirmationDialog("Confirmer le départ des convives", isPresented: $confirmingDeparture,
+                            titleVisibility: .visible) {
+            Button("Libérer la table") {
+                if let order = currentOrder { run { try service.release(table, after: order) } }
+            }
+            Button("Annuler", role: .cancel) {}
+        } message: {
+            Text("Cette table redeviendra disponible.")
+        }
         .sheet(isPresented: $closing) {
             if let order {
                 RestaurantCheckout(table: table, order: order, service: service)
@@ -317,6 +335,29 @@ struct RestaurantTable: View {
         }
         .sheet(isPresented: $ordering) { if let order { RestaurantComposer(menu: menu, table: table, order: order, service: service) } }
     }
+    private func paidTable(_ order: CommerceOrder) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            COVICard {
+                VStack(alignment: .leading, spacing: 10) {
+                    COVIBadge(title: RestaurantFloorState.paidOccupied.rawValue,
+                              tint: RestaurantFloorState.paidOccupied.tint)
+                    LabeledContent("Addition réglée",
+                                   value: COVIMoney.text(order.totalMinor, currency: service.shop.currencyCode))
+                        .font(.headline)
+                    if let guests = order.restaurantGuestCount {
+                        Label("\(guests) convives", systemImage: "person.2")
+                    }
+                    Text("Confirmez le départ pour rendre la table disponible.")
+                        .font(.subheadline)
+                        .foregroundStyle(COVITheme.secondaryText)
+                }
+            }
+            if service.admin || service.role == .waiter {
+                COVIButton("Confirmer le départ", systemImage: "checkmark") { confirmingDeparture = true }
+            }
+        }
+    }
+
     private func openingTime(_ order: CommerceOrder) -> some View {
         Label("Ouverte à \(order.createdAt.formatted(date: .omitted, time: .shortened))", systemImage: "clock")
     }
