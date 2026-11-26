@@ -984,6 +984,7 @@ final class CommerceFlowTests: XCTestCase {
         try service.send([dish.id: 2], menu: [dish], table: table, order: order)
         let line = try XCTUnwrap(db.fetch(FetchDescriptor<OrderLine>()).first)
         XCTAssertEqual(order.totalMinor, 10_000)
+        try service.advance(line, from: .received, table: table, order: order)
         try service.advance(line, from: .cooking, table: table, order: order)
         try service.advance(line, from: .ready, table: table, order: order)
         try service.finish(table, order: order, paid: false)
@@ -1003,13 +1004,13 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertThrowsError(try service.finish(table, order: order, paid: true,
                                                tender: .mtn, confirmed: true))
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<PaymentRecord>()), 1)
-        XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 6)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 7)
         try service.release(table, after: order)
         XCTAssertFalse(table.isOccupied)
         XCTAssertNil(table.activeSessionID)
         XCTAssertEqual(table.lastReleasedSessionID, order.id)
         XCTAssertThrowsError(try service.release(table, after: order))
-        XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 7)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 8)
         try service.open(table)
         XCTAssertNotEqual(table.activeSessionID, order.id)
         XCTAssertThrowsError(try service.release(table, after: order))
@@ -1032,6 +1033,7 @@ final class CommerceFlowTests: XCTestCase {
         try service.finish(table, order: order, paid: false)
         XCTAssertThrowsError(try service.recordPartialPayment(table, order: order, tender: .cash,
             amount: 15_000, confirmed: false, expectedDue: 28_500))
+        try service.advance(line, from: .received, table: table, order: order)
         try service.advance(line, from: .cooking, table: table, order: order)
         try service.advance(line, from: .ready, table: table, order: order)
         XCTAssertThrowsError(try service.recordPartialPayment(table, order: order, tender: .cash,
@@ -1064,7 +1066,7 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertEqual(receipt.totalMinor, 28_500)
         XCTAssertEqual(order.state, .completed)
         XCTAssertTrue(table.isOccupied)
-        XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 7)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 8)
         try service.release(table, after: order)
         XCTAssertFalse(table.isOccupied)
     }
@@ -1093,17 +1095,20 @@ final class CommerceFlowTests: XCTestCase {
         let first = try XCTUnwrap(lines.first)
         let pending = Array(lines.dropFirst())
         let another = try XCTUnwrap(pending.first)
-        try service.advance(first, from: .cooking, table: table, order: order)
+        XCTAssertThrowsError(try service.advance(first, from: .cooking, table: table, order: order))
+        try service.advance(first, from: .received, table: table, order: order)
         let events = try db.fetchCount(FetchDescriptor<OutboxEvent>())
 
-        XCTAssertThrowsError(try service.advance(lines, from: .cooking, table: table, order: order))
-        XCTAssertThrowsError(try service.advance([another, another], from: .cooking, table: table, order: order))
-        XCTAssertTrue(pending.allSatisfy { $0.preparation == Prep.cooking.rawValue })
+        XCTAssertThrowsError(try service.advance(lines, from: .received, table: table, order: order))
+        XCTAssertThrowsError(try service.advance([another, another], from: .received, table: table, order: order))
+        XCTAssertTrue(pending.allSatisfy { $0.preparation == Prep.received.rawValue })
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), events)
 
-        try service.advance(pending, from: .cooking, table: table, order: order)
+        try service.advance(pending, from: .received, table: table, order: order)
+        XCTAssertTrue(lines.allSatisfy { $0.preparation == Prep.cooking.rawValue })
+        try service.advance(lines, from: .cooking, table: table, order: order)
         XCTAssertTrue(lines.allSatisfy { $0.preparation == Prep.ready.rawValue })
-        XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), events + pending.count)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), events + pending.count + lines.count)
     }
 
     func testRestaurantRejectsUnconfirmedMobilePaymentAndInsufficientCash() throws {
@@ -1119,6 +1124,7 @@ final class CommerceFlowTests: XCTestCase {
         let order = try XCTUnwrap(db.fetch(FetchDescriptor<CommerceOrder>()).first)
         try service.send([dish.id: 1], menu: [dish], table: table, order: order)
         let line = try XCTUnwrap(db.fetch(FetchDescriptor<OrderLine>()).first)
+        try service.advance(line, from: .received, table: table, order: order)
         try service.advance(line, from: .cooking, table: table, order: order)
         try service.advance(line, from: .ready, table: table, order: order)
         try service.finish(table, order: order, paid: false)
@@ -1289,6 +1295,7 @@ final class CommerceFlowTests: XCTestCase {
                                                tender: .cash, received: 3_000))
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<PaymentRecord>()), 0)
         let line = try XCTUnwrap(db.fetch(FetchDescriptor<OrderLine>()).first)
+        try service.advance(line, from: .received, table: table, order: order)
         try service.advance(line, from: .cooking, table: table, order: order)
         try service.advance(line, from: .ready, table: table, order: order)
         try service.finish(table, order: order, paid: true, tender: .cash, received: 3_000)

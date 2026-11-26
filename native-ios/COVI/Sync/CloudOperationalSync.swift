@@ -177,11 +177,19 @@ struct OperationalKitchenLine: Codable, Equatable {
     let price: Int64
     let name: String?
     let preparation: String?
+    let awaitingClaim: Bool?
     let sentAt: Date?
+
+    var localPreparation: String? { awaitingClaim == true ? Prep.received.rawValue : preparation }
     init(_ row: OrderLine) {
         id = row.id; order = row.orderID; item = row.catalogItemID
         quantity = row.quantity; price = row.unitPriceMinor
-        name = row.dishName; preparation = row.preparation; sentAt = row.sentAt
+        name = row.dishName
+        // Keep the existing transport status readable by older installations.
+        let received = row.preparation == Prep.received.rawValue
+        preparation = received ? Prep.cooking.rawValue : row.preparation
+        awaitingClaim = received ? true : nil
+        sentAt = row.sentAt
     }
 }
 
@@ -602,7 +610,8 @@ struct OperationalCloudAdapter {
         case .kitchenLine:
             let x = try decode(row, as: OperationalKitchenLine.self)
             guard x.id == id, x.quantity > 0, x.price > 0,
-                  x.preparation == nil || Prep(rawValue: x.preparation!) != nil,
+                  x.preparation == nil || (x.preparation != Prep.received.rawValue && Prep(rawValue: x.preparation!) != nil),
+                  x.awaitingClaim != true || (shop.kind == .restaurant && x.preparation == Prep.cooking.rawValue),
                   try find(CommerceOrder.self, id: x.order, context: context)?.establishmentID == sid
             else { throw SyncFault.invalidEvent }
             if try supersededByReceipt(row, context: context) { return }
@@ -610,11 +619,13 @@ struct OperationalCloudAdapter {
                 OrderLine(orderID: x.order, catalogItemID: x.item,
                           quantity: x.quantity, unitPriceMinor: x.price)
             guard line.orderID == x.order else { throw SyncFault.journalChanged }
+            if x.awaitingClaim == true, let state = line.preparation.flatMap(Prep.init(rawValue:)),
+               state != .received { return }
             if shop.kind == .restaurant, OperationalKitchenLine(line) != x,
                try hasPayment(orderID: x.order, context: context) { throw SyncFault.journalChanged }
             line.id = id; line.catalogItemID = x.item; line.quantity = x.quantity
             line.unitPriceMinor = x.price; line.dishName = x.name
-            line.preparation = x.preparation; line.sentAt = x.sentAt; context.insert(line)
+            line.preparation = x.localPreparation; line.sentAt = x.sentAt; context.insert(line)
         case .salonSale:
             let x = try decode(row, as: OperationalSalonSale.self)
             guard (0...100).contains(x.percent) else { throw SyncFault.invalidEvent }

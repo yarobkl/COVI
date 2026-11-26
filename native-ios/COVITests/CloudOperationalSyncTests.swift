@@ -271,6 +271,39 @@ final class CloudOperationalSyncTests: XCTestCase {
         XCTAssertEqual(try target.fetch(FetchDescriptor<StockMovement>()).first?.reason, "Arrivage")
     }
 
+    func testKitchenQueueMirrorsReceivedAndClaimedWithoutChangingTheLegacyStatus() throws {
+        let source = try memory(), target = try memory(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Restaurant", kind: .restaurant, city: "Douala")
+        let copy = clone(shop)
+        let order = CommerceOrder(establishmentID: shop.id, createdByID: owner)
+        order.state = .accepted
+        let line = OrderLine(orderID: order.id, catalogItemID: UUID(), quantity: 1, unitPriceMinor: 5_000)
+        line.preparation = Prep.received.rawValue
+        source.insert(shop); source.insert(order); source.insert(line)
+        target.insert(copy)
+        try source.save(); try target.save()
+        let pending = try JSONDecoder().decode(OperationalKitchenLine.self,
+            from: JSONEncoder().encode(OperationalKitchenLine(line)))
+        XCTAssertEqual(pending.preparation, Prep.cooking.rawValue)
+        XCTAssertEqual(pending.awaitingClaim, true)
+        let pendingRows = try export(source, shop: shop)
+        try CloudOperationalSync.merge(pendingRows, shop: copy,
+            cloudUserID: "iCloud-A", context: target)
+        try target.save()
+        let mirrored = try XCTUnwrap(target.fetch(FetchDescriptor<OrderLine>()).first)
+        XCTAssertEqual(mirrored.preparation, Prep.received.rawValue)
+
+        line.preparation = Prep.cooking.rawValue
+        try source.save()
+        XCTAssertNil(OperationalKitchenLine(line).awaitingClaim)
+        try CloudOperationalSync.merge(try export(source, shop: shop), shop: copy,
+            cloudUserID: "iCloud-A", context: target)
+        try target.save()
+        XCTAssertEqual(mirrored.preparation, Prep.cooking.rawValue)
+        try CloudOperationalSync.merge(pendingRows, shop: copy, cloudUserID: "iCloud-A", context: target)
+        XCTAssertEqual(mirrored.preparation, Prep.cooking.rawValue)
+    }
+
     func testRestaurantOpenSessionThenVerifiedReceiptCompletesWithoutDuplicatePayments() throws {
         let source = try memory(), target = try memory(), owner = UUID()
         let shop = Establishment(ownerID: owner, name: "Restaurant", kind: .restaurant, city: "Douala")

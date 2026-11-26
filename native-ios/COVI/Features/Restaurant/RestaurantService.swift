@@ -1,7 +1,21 @@
 import SwiftData
 import Foundation
 
-enum Prep: String, CaseIterable { case cooking = "En cuisine", ready = "Prêt", served = "Servi" }
+enum Prep: String, CaseIterable {
+    case received = "Reçu"
+    case cooking = "En cuisine"
+    case ready = "Prêt"
+    case served = "Servi"
+
+    var next: Prep? {
+        switch self {
+        case .received: .cooking
+        case .cooking: .ready
+        case .ready: .served
+        case .served: nil
+        }
+    }
+}
 enum MenuGroup: String, CaseIterable { case food = "Plats", drinks = "Boissons" }
 enum RestaurantFault: LocalizedError {
     case access, stale, unavailable, invalid, stock, balanceChanged, floorSlotOccupied, floorRoomName, guestCount
@@ -218,7 +232,7 @@ enum RestaurantBill {
             guard count > 0, item.priceMinor > 0, !overflow, !exceeds else { throw RestaurantFault.invalid }
             let line = OrderLine(orderID: order.id, catalogItemID: id, quantity: count, unitPriceMinor: item.priceMinor)
             line.dishName = item.title
-            line.preparation = Prep.cooking.rawValue
+            line.preparation = Prep.received.rawValue
             line.sentAt = .now
             lines.append(line)
             total = next
@@ -236,17 +250,17 @@ enum RestaurantBill {
     }
 
     func advance(_ lines: [OrderLine], from expected: Prep, table: DiningTable, order: CommerceOrder) throws {
-        try authorize(kitchen: expected == .cooking || role == .kitchen)
+        try authorize(kitchen: expected == .received || expected == .cooking || role == .kitchen)
         try check(table, order)
-        guard expected != .served, !lines.isEmpty, Set(lines.map(\.id)).count == lines.count,
+        guard let next = expected.next, !lines.isEmpty, Set(lines.map(\.id)).count == lines.count,
               lines.allSatisfy({ $0.orderID == order.id && $0.preparation == expected.rawValue })
         else { throw RestaurantFault.stale }
 
-        let next: Prep = expected == .cooking ? .ready : .served
         do {
             for line in lines {
                 line.preparation = next.rawValue
-                try BusinessOutbox.enqueue(kind: "restaurant.line.advanced", establishmentID: shop.id,
+                try BusinessOutbox.enqueue(kind: expected == .received ? "restaurant.line.claimed" : "restaurant.line.advanced",
+                    establishmentID: shop.id,
                     entityID: line.id, actorID: actor, relatedIDs: [order.id], in: db)
             }
             try save()

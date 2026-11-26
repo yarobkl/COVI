@@ -25,6 +25,7 @@ final class COVISimulatorDiagnostics {
         case restaurantOrder = "restaurant-order"
         case restaurantReport = "restaurant-report"
         case restaurantKitchen = "restaurant-kitchen"
+        case restaurantKitchenReady = "restaurant-kitchen-ready"
         case restaurantMenu = "restaurant-menu"
         case restaurantPayment = "restaurant-payment"
         case restaurantPaidTable = "restaurant-paid-table"
@@ -115,7 +116,7 @@ final class COVISimulatorDiagnostics {
         let kind: BusinessKind
         let name: String
         switch scenario {
-        case .restaurantTables, .restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace, .restaurantFloorZoom, .restaurantFloorGuests, .restaurantTable, .restaurantOrder, .restaurantReport, .restaurantTeam, .restaurantKitchen, .restaurantMenu, .restaurantDrinks, .restaurantPayment, .restaurantPaidTable:
+        case .restaurantTables, .restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace, .restaurantFloorZoom, .restaurantFloorGuests, .restaurantTable, .restaurantOrder, .restaurantReport, .restaurantTeam, .restaurantKitchen, .restaurantKitchenReady, .restaurantMenu, .restaurantDrinks, .restaurantPayment, .restaurantPaidTable:
             kind = .restaurant
             name = "Restaurant de démonstration"
         case .salonCatalog, .salonReport, .salonMore, .salonSettings, .salonCheckout, .salonToday, .salonAgenda, .salonBooking, .salonBookingConflict, .salonClients, .salonProfile:
@@ -265,6 +266,7 @@ final class COVISimulatorDiagnostics {
             return order
         }
 
+        let kitchen = [.restaurantKitchen, .restaurantKitchenReady].contains(scenario)
         let active = try open(occupied)
         let draft = [chicken.id: 2, main.id: 1]
         for (dish, quantity) in [(chicken, 2), (main, 1), (juice, 2)] {
@@ -274,8 +276,9 @@ final class COVISimulatorDiagnostics {
         let lines = try context.fetch(FetchDescriptor<OrderLine>(
             predicate: #Predicate { $0.orderID == activeID }, sortBy: [SortDescriptor(\.sentAt)]))
         for line in lines where line.catalogItemID != main.id || [.restaurantPayment, .restaurantPaidTable].contains(scenario) {
+            try service.advance(line, from: .received, table: occupied, order: active)
             try service.advance(line, from: .cooking, table: occupied, order: active)
-            if scenario != .restaurantKitchen || line.catalogItemID == juice.id {
+            if !kitchen || line.catalogItemID == juice.id {
                 try service.advance(line, from: .ready, table: occupied, order: active)
             }
         }
@@ -291,7 +294,12 @@ final class COVISimulatorDiagnostics {
         try service.send([main.id: 2], menu: menu, table: awaitingBill, order: bill)
         try service.finish(awaitingBill, order: bill, paid: false)
 
-        if scenario == .restaurantKitchen {
+        if kitchen {
+            let otherID = other.id
+            let otherLines = try context.fetch(FetchDescriptor<OrderLine>(predicate: #Predicate {
+                $0.orderID == otherID
+            }))
+            try service.advance(otherLines, from: .received, table: secondOccupied, order: other)
             try service.send([greens.id: 1], menu: menu, table: occupied, order: active)
             context.insert(Account(id: owner, fullName: "Camille Démo", email: "", phone: ""))
             let activeAges = [active.id: 12, other.id: 7, bill.id: 2]
@@ -625,6 +633,7 @@ struct COVISimulatorDiagnosticView: View {
             if fixture.salonBooking == nil && fixture.salonProfileID == nil &&
                 fixture.scenario != .salonReport && fixture.scenario != .salonSettings &&
                 fixture.scenario != .restaurantReport && fixture.scenario != .restaurantTeam &&
+                fixture.scenario != .restaurantKitchenReady &&
                 fixture.scenario != .restaurantMenu && fixture.scenario != .restaurantDrinks &&
                 fixture.scenario != .restaurantPayment && fixture.scenario != .restaurantFloorPlan &&
                 fixture.scenario != .restaurantFloorEdit && fixture.scenario != .restaurantFloorTerrace &&

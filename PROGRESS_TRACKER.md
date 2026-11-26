@@ -236,6 +236,22 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
 - La prise en charge distincte, les délais d’urgence, le paiement partiel
   et les incidents présentés sur la planche restent à intégrer.
 
+### Prise en charge des tickets Cuisine
+
+- La planche `A2188A03` distingue les tickets reçus et pris en charge.
+  Une nouvelle ligne reste « Reçu » jusqu’à l’appui du personnel
+  autorisé. Les lignes prises en charge peuvent ensuite être marquées
+  prêtes, puis servies. Les actions par ligne et par groupe restent
+  disponibles, avec journalisation de la première prise en charge.
+- La file « À préparer » conserve les lignes reçues et en préparation.
+  L’indication « Urgent » apparaît après dix minutes sans prise en
+  charge. Ce seuil reprend les âges de la planche comme repère de
+  départ. Les tickets prêts restent dans « Prêts ».
+- Le format CloudKit garde le statut historique et transporte un
+  indicateur facultatif pour les lignes reçues. Une ligne ancienne
+  « En cuisine » reste en préparation. Les parcours et les captures
+  restent à vérifier sur GitHub Actions.
+
 ### Gestion de la carte du Restaurant
 
 - La planche `683EE982` a été inspectée. Plus ouvre un écran dédié
