@@ -2,6 +2,9 @@
 
 Source de vérité : **les nouvelles captures partagées dans la conversation du 19 novembre 2026**. Ne pas importer les anciennes planches COVI de Figma, les explorations précédentes ou les chiffres de démonstration dans les données métier.
 
+## Références plus récentes retrouvées le 26 novembre
+Deux concepts supplémentaires ont été inspectés dans la discussion : `covi_trois_écrans_une_expérience_fluide.png` (Boutique, Restaurant, Salon) et `application_covi_restaurant_plan_de_salle.png` (Salle). Ils complètent les planches du 19 novembre et priment sur celles-ci pour les éléments explicitement modifiés. Références : navigation basse arrondie et sélection champagne, recherche avec caméra en Boutique, photos réelles, panneau de reconnaissance, plan physique et panneau contextuel, agenda avec états visuels. La disposition exacte des chaises doit suivre la capacité réelle et non les incohérences éventuelles du dessin. Les concepts ne sont pas des captures d'une application compilée. Ne pas déclarer la conformité sans captures et essais. La reconnaissance Boutique est visuelle ; aucun QR article. QR uniquement pour les tables Restaurant.
+
 ## Reprise du lot visuel COVI 2.0
 
 - Le build TestFlight 1.0.13 (10051), issu du commit `6eb37ed`, valide la

@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UIKit
 
 struct StockSnapshot {
     let articleCount: Int
@@ -98,12 +99,13 @@ struct BoutiqueStockOverview: View {
 
 @MainActor enum BoutiqueInventoryService {
     enum Fault: LocalizedError {
-        case invalid, duplicate, wrongShop
+        case invalid, duplicate, wrongShop, permission
         var errorDescription: String? {
             switch self {
             case .invalid: "Saisissez un nom et un prix strictement positif."
             case .duplicate: "Un article portant ce nom existe déjà dans cette boutique."
             case .wrongShop: "Cet article n'appartient pas à cette boutique."
+            case .permission: "Seul le propriétaire ou le responsable peut créer un article."
             }
         }
     }
@@ -123,17 +125,35 @@ struct BoutiqueStockOverview: View {
 
     @discardableResult
     static func create(shop: Establishment, name: String, price: Int64,
-                       actor: UUID, context: ModelContext) throws -> CatalogItem {
+                       actor: UUID, context: ModelContext, initialStock: Int = 0,
+                       photo: BoutiquePhotoDraft? = nil, description: String = "") throws -> CatalogItem {
         guard shop.kind == .boutique, !shop.archived else { throw Fault.wrongShop }
+        let role = try StaffAccess.role(for: actor, in: shop, context: context)
+        guard role == .owner || role == .manager else { throw Fault.permission }
+        guard initialStock >= 0 else { throw Fault.invalid }
         let cleaned = try validated(name, price, shopID: shop.id, excluding: nil, context: context)
         let item = CatalogItem(establishmentID: shop.id, title: cleaned, priceMinor: price)
+        item.stockOnHand = initialStock
+        if let photo {
+            try BoutiquePhotoStore.save(photo, description: description, shopID: shop.id, itemID: item.id)
+        }
         context.insert(item)
+        var movements: [UUID] = []
+        if initialStock > 0 {
+            let movement = StockMovement(establishmentID: shop.id, itemID: item.id,
+                delta: initialStock, reason: "Stock initial", actorID: actor)
+            context.insert(movement); movements.append(movement.id)
+        }
         do {
             try BusinessOutbox.enqueue(kind: "boutique.product.created", establishmentID: shop.id,
-                entityID: item.id, actorID: actor, in: context)
+                entityID: item.id, actorID: actor, relatedIDs: movements, in: context)
             try context.save()
             return item
-        } catch { context.rollback(); throw error }
+        } catch {
+            context.rollback()
+            if photo != nil { try? BoutiquePhotoStore.remove(shopID: shop.id, itemID: item.id) }
+            throw error
+        }
     }
 
     static func edit(_ item: CatalogItem, in shop: Establishment, name: String, price: Int64,
@@ -175,20 +195,71 @@ struct NewProduct: View {
     @Environment(\.dismiss) private var dismiss
     @State private var title = ""
     @State private var price = ""
+    @State private var quantity = "0"
+    @State private var description = ""
+    @State private var draft: BoutiquePhotoDraft?
+    @State private var analyzing = false
     @State private var error = ""
+
     var body: some View {
         Form {
-            TextField("Nom", text: $title)
-            TextField("Prix en " + shop.currencyCode, text: $price).keyboardType(.numberPad)
-            Button("Créer l’article") {
-                do {
-                    try BoutiqueInventoryService.create(shop: shop, name: title,
-                        price: Int64(price) ?? 0, actor: actor, context: context)
-                    dismiss()
-                } catch { self.error = error.localizedDescription }
+            Section("COVI Scan") {
+                BoutiquePhotoInput(busy: analyzing) { data in analyze(data) }
+                Text("Reconnaissance sur cet appareil. Vérifiez les propositions avant de créer l’article.")
+                    .font(.footnote).foregroundStyle(.secondary)
+                if let draft {
+                    BoutiquePhotoPreview(draft: draft)
+                    if draft.suggestion != nil {
+                        Label("Type proposé — à vérifier", systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(COVITheme.success)
+                    } else {
+                        Text("Type non reconnu. Renseignez le nom manuellement.").foregroundStyle(.secondary)
+                    }
+                    Button("Retirer la photo", role: .destructive) { self.draft = nil }
+                }
             }
-            Text(error)
-        }.navigationTitle("Nouvel article")
+            Section("Fiche article") {
+                TextField("Nom", text: $title)
+                TextField("Prix en " + shop.currencyCode, text: $price).keyboardType(.numberPad)
+                TextField("Quantité initiale", text: $quantity).keyboardType(.numberPad)
+                if draft != nil {
+                    TextField("Description et caractéristiques", text: $description, axis: .vertical)
+                }
+                Text("Le prix n'est jamais proposé automatiquement.").font(.footnote).foregroundStyle(.secondary)
+            }
+            Section {
+                Button("Créer l’article") {
+                    do {
+                        guard let stock = Int(quantity), stock >= 0 else { throw BoutiqueInventoryService.Fault.invalid }
+                        try BoutiqueInventoryService.create(shop: shop, name: title,
+                            price: Int64(price) ?? 0, actor: actor, context: context,
+                            initialStock: stock, photo: draft, description: description)
+                        dismiss()
+                    } catch { self.error = error.localizedDescription }
+                }
+                .disabled(analyzing)
+                if !error.isEmpty { Text(error).foregroundStyle(.red) }
+            }
+        }
+        .navigationTitle("Nouvel article")
+    }
+
+    private func analyze(_ data: Data) {
+        analyzing = true; error = ""; draft = nil
+        Task { @MainActor in
+            defer { analyzing = false }
+            do {
+                let result = try await Task.detached(priority: .userInitiated) {
+                    try BoutiquePhotoProcessor.process(data)
+                }.value
+                draft = result
+                if title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, let suggestion = result.suggestion {
+                    title = suggestion
+                }
+                if description.isEmpty, let color = result.color { description = "Couleur proposée : " + color }
+                if quantity == "0" { quantity = "1" }
+            } catch { self.error = error.localizedDescription }
+        }
     }
 }
 
@@ -213,6 +284,21 @@ struct ProductDetail: View {
     var body: some View {
         List {
             Section(item.title) {
+                if let data = BoutiquePhotoStore.data(shopID: shop.id, itemID: item.id),
+                   let image = UIImage(data: data) {
+                    Image(uiImage: image).resizable().scaledToFit()
+                        .frame(maxHeight: 240)
+                        .accessibilityLabel("Photo de l’article")
+                    if let description = BoutiquePhotoStore.description(shopID: shop.id, itemID: item.id),
+                       !description.isEmpty { Text(description).font(.subheadline) }
+                    if let studio = BoutiquePhotoStore.data(shopID: shop.id, itemID: item.id, studio: true),
+                       let rendered = UIImage(data: studio) {
+                        let photo = Image(uiImage: rendered)
+                        ShareLink(item: photo, preview: SharePreview("Studio COVI", image: photo)) {
+                            Label("Partager la photo Studio", systemImage: "square.and.arrow.up")
+                        }
+                    }
+                }
                 Text("\(item.priceMinor) \(shop.currencyCode)")
                 LabeledContent("Stock · réservé", value: "\(item.stockOnHand) · \(item.stockReserved)")
                 Label(item.soldOut ? "Vente suspendue" : "Disponible à la vente",

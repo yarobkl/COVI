@@ -249,10 +249,7 @@ struct BoutiqueSpace: View {
                     Button { add(item) } label: {
                         COVICard {
                             HStack(spacing: 12) {
-                                Image(systemName: "bag")
-                                    .font(.title2).foregroundStyle(COVITheme.navy)
-                                    .frame(width: 65, height: 70)
-                                    .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 13))
+                                BoutiqueProductThumbnail(shopID: shop.id, itemID: item.id)
                                 VStack(alignment: .leading, spacing: 7) {
                                     Text(item.title).font(.headline)
                                     Text(COVIMoney.text(item.priceMinor, currency: shop.currencyCode))

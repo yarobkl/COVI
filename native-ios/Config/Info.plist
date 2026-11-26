@@ -19,5 +19,6 @@
     <string>UIInterfaceOrientationLandscapeRight</string>
 </array>
 <key>ITSAppUsesNonExemptEncryption</key><false/>
+<key>NSCameraUsageDescription</key><string>COVI utilise la caméra pour identifier vos articles et préparer leurs photos commerciales.</string>
 <key>UILaunchScreen</key><dict/>
 </dict></plist>
