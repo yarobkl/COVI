@@ -420,6 +420,7 @@ struct BaleList: View {
     let actor: UUID
     let goods: [CatalogItem]
     @Environment(\.modelContext) private var context
+    @Query private var memberships: [Membership]
     @Query private var bales: [Bale]
     @Query private var movements: [StockMovement]
     @State private var label = ""
@@ -428,6 +429,22 @@ struct BaleList: View {
     @State private var units = ""
     @State private var message = ""
     var body: some View {
+        Group {
+            if canReceive { receptionList }
+            else {
+                ContentUnavailableView("Accès réservé", systemImage: "lock",
+                    description: Text("La réception des arrivages est réservée au propriétaire et au responsable."))
+            }
+        }
+        .navigationTitle("Arrivages")
+    }
+
+    private var canReceive: Bool {
+        let role = StaffAccess.role(for: actor, in: shop, memberships: memberships)
+        return !shop.archived && (role == .owner || role == .manager)
+    }
+
+    private var receptionList: some View {
         List {
             Section("Nouvelle balle") {
                 TextField("Référence du lot", text: $label)

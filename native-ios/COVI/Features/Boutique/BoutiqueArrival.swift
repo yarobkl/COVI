@@ -87,9 +87,12 @@ struct BoutiqueArrivals: View {
                         }
                     }
                 }
-            }
-            NavigationLink("Historique et stock des balles") {
-                BaleList(shop: shop, actor: actor, goods: goods)
+                NavigationLink("Historique et stock des balles") {
+                    BaleList(shop: shop, actor: actor, goods: goods)
+                }
+            } else {
+                ContentUnavailableView("Accès réservé", systemImage: "lock",
+                    description: Text("La réception des arrivages est réservée au propriétaire et au responsable."))
             }
         }
         .navigationTitle("Arrivages")
