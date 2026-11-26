@@ -452,100 +452,168 @@ struct SalonReport: View {
     let sales: [SalonSaleLine]
     let visits: [SalonVisit]
     let currency: String
+    @Environment(\.dynamicTypeSize) private var textSize
+#if DEBUG && targetEnvironment(simulator)
+    @Environment(\.coviSimulatorDiagnostics) private var diagnostics
+#endif
     @State private var date = Date()
     @State private var monthly = true
-    func includes(_ d: Date) -> Bool { Calendar.current.isDate(d, equalTo: date, toGranularity: monthly ? .month : .day) }
+    @State private var choosingPeriod = false
+
     var body: some View {
-        let rows = sales.filter { includes($0.date) }
-        let periodVisits = visits.filter { includes($0.start) }
-        let gross = rows.reduce(Int64(0)) { $0 + $1.gross }
-        let services = rows.filter(\.service).reduce(Int64(0)) { $0 + $1.gross }
-        let products = rows.filter { !$0.service }.reduce(Int64(0)) { $0 + $1.gross }
-        let commissions = rows.reduce(Int64(0)) { $0 + $1.commission }
-        let people = Array(Set(rows.map(\.stylist) + periodVisits.map(\.stylist))).sorted()
+        let granularity: Calendar.Component = monthly ? .month : .day
+        let rows = sales.filter { Calendar.current.isDate($0.date, equalTo: date, toGranularity: granularity) }
+        let periodVisits = visits.filter {
+            !$0.cancelled && Calendar.current.isDate($0.start, equalTo: date, toGranularity: granularity)
+        }
+        let services = total(rows.filter(\.service), by: \.gross)
+        let products = total(rows.filter { !$0.service }, by: \.gross)
+        let commissions = total(rows, by: \.commission)
+
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                HStack {
-                    Picker("Période", selection: $monthly) {
-                        Text("Jour").tag(false)
-                        Text("Mois").tag(true)
-                    }.pickerStyle(.segmented)
-                    DatePicker("Date", selection: $date, displayedComponents: .date)
-                        .labelsHidden()
-                }
-
-                VStack(alignment: .leading, spacing: 18) {
-                    HStack(spacing: 15) {
-                        Image(systemName: "chart.bar.fill")
-                            .font(.largeTitle).foregroundStyle(COVITheme.sand)
-                            .frame(width: 62, height: 62)
-                            .background(.white.opacity(0.14), in: Circle())
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Chiffre d’affaires total :").font(.headline)
-                            Text(COVIMoney.text(gross, currency: currency))
-                                .font(.system(size: 29, weight: .bold))
-                                .minimumScaleFactor(0.7).lineLimit(1)
-                        }
-                    }
-                    Rectangle().fill(.white.opacity(0.48)).frame(height: 1)
-                    HStack(spacing: 8) {
-                        reportMoney("Prestations", amount: services, symbol: "scissors")
-                        Rectangle().fill(.white.opacity(0.48)).frame(width: 1, height: 45)
-                        reportMoney("Revente produits", amount: products, symbol: "shippingbox")
-                    }
-                }
-                .foregroundStyle(.white)
-                .padding(18)
-                .background(COVITheme.navy, in: RoundedRectangle(cornerRadius: 20))
-
-                COVISectionTitle("Activité & Commissions équipe")
-                COVICard {
-                    if people.isEmpty {
-                        Text("Aucune activité sur cette période.")
-                            .foregroundStyle(COVITheme.secondaryText)
-                    }
-                    ForEach(people, id: \.self) { person in
-                        let activity = rows.filter { $0.stylist == person }
-                        VStack(alignment: .leading, spacing: 9) {
-                            COVIIconRow(symbol: "person.crop.circle", title: person,
-                                detail: "\(Set(activity.map(\.order)).count) tickets · CA : \(COVIMoney.text(activity.reduce(0) { $0 + $1.gross }, currency: currency))",
-                                accessory: nil)
-                            HStack {
-                                COVIBadge(title: "Part : \(COVIMoney.text(activity.reduce(0) { $0 + $1.commission }, currency: currency))")
-                                Spacer()
-                                Text("\(periodVisits.filter { !$0.cancelled && $0.stylist == person }.count) RDV")
-                                    .font(.caption).foregroundStyle(COVITheme.secondaryText)
-                            }
-                        }
-                        Divider()
-                    }
-                }
+            VStack(alignment: .leading, spacing: 16) {
+                summaryCard(services: services, products: products)
+                COVISectionTitle("Activité et commissions de l’équipe")
+                teamCard(salesByPerson: Dictionary(grouping: rows, by: \.stylist),
+                         visitsByPerson: Dictionary(grouping: periodVisits, by: \.stylist))
                 COVICard {
                     VStack(alignment: .leading, spacing: 10) {
-                        LabeledContent("Commissions équipe", value: COVIMoney.text(commissions, currency: currency))
+                        LabeledContent("Commissions équipe", value: money(commissions))
                         Divider()
-                        LabeledContent("Après commissions · hors charges", value: COVIMoney.text(gross - commissions, currency: currency))
+                        LabeledContent("Après commissions, hors charges", value: money(services + products - commissions))
                     }
                     .font(.subheadline)
                 }
             }
             .foregroundStyle(COVITheme.navy)
-            .padding(18)
+            .padding(COVITheme.Metrics.screenPadding)
         }
         .background(COVIBackdrop())
         .navigationTitle("Rapports salon")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            Button { choosingPeriod = true } label: {
+                Label(periodTitle, systemImage: "chevron.down")
+                    .font(.subheadline.weight(.semibold))
+                    .labelStyle(.titleAndIcon)
+            }
+            .accessibilityLabel("Période du rapport")
+            .accessibilityValue(periodTitle)
+        }
+        .sheet(isPresented: $choosingPeriod) {
+            NavigationStack {
+                Form {
+                    Picker("Période", selection: $monthly) {
+                        Text("Jour").tag(false)
+                        Text("Mois").tag(true)
+                    }
+                    .pickerStyle(.segmented)
+                    DatePicker("Date de référence", selection: $date, displayedComponents: .date)
+                }
+                .navigationTitle("Période du rapport")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Terminé") { choosingPeriod = false }
+                    }
+                }
+                .presentationDetents([.medium, .large])
+            }
+        }
+#if DEBUG && targetEnvironment(simulator)
+        .task {
+            if let diagnostics, diagnostics.scenario == .salonReport {
+                await diagnostics.signalAfterPresentation()
+            }
+        }
+#endif
     }
 
-    private func reportMoney(_ title: String, amount: Int64, symbol: String) -> some View {
-        HStack(spacing: 9) {
-            Image(systemName: symbol).foregroundStyle(COVITheme.sand)
+    private var periodTitle: String {
+        monthly ? date.formatted(.dateTime.month(.abbreviated).year()) :
+            date.formatted(.dateTime.day().month(.abbreviated).year())
+    }
+
+    private func summaryCard(services: Decimal, products: Decimal) -> some View {
+        let layout = textSize.isAccessibilitySize ?
+            AnyLayout(VStackLayout(alignment: .leading, spacing: 10)) : AnyLayout(HStackLayout(spacing: 12))
+        return VStack(alignment: .leading, spacing: 12) {
+            layout {
+                Image(systemName: "chart.bar.fill")
+                    .font(.title2)
+                    .foregroundStyle(COVITheme.sand)
+                    .frame(width: 50, height: 50)
+                    .background(.white.opacity(0.14), in: Circle())
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Chiffre d’affaires total").font(.subheadline)
+                    Text(money(services + products)).font(.title.bold())
+                }
+                .accessibilityElement(children: .combine)
+            }
+            Rectangle().fill(.white.opacity(0.4)).frame(height: 1).accessibilityHidden(true)
+            layout {
+                reportMoney("Prestations", amount: services, symbol: "scissors")
+                reportMoney("Revente produits", amount: products, symbol: "shippingbox")
+            }
+        }
+        .foregroundStyle(.white)
+        .padding(COVITheme.Metrics.cardPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(COVITheme.navy, in: RoundedRectangle(cornerRadius: COVITheme.Metrics.cardRadius))
+    }
+
+    private func teamCard(salesByPerson: [String: [SalonSaleLine]], visitsByPerson: [String: [SalonVisit]]) -> some View {
+        let people = Set(salesByPerson.keys).union(visitsByPerson.keys).sorted {
+            $0.localizedStandardCompare($1) == .orderedAscending
+        }
+        let layout = textSize.isAccessibilitySize ?
+            AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 8))
+        return COVICard {
+            VStack(alignment: .leading, spacing: 8) {
+                if people.isEmpty {
+                    Text("Aucune activité sur cette période.")
+                        .foregroundStyle(COVITheme.secondaryText)
+                }
+                ForEach(people, id: \.self) { person in
+                    if person != people.first { Divider() }
+                    let activity = salesByPerson[person] ?? []
+                    let visitsCount = visitsByPerson[person]?.count ?? 0
+                    let tickets = Set(activity.map(\.order)).count
+                    layout {
+                        COVIIconRow(symbol: "person", title: person,
+                            detail: "\(tickets) ticket(s) · \(visitsCount) RDV · \(money(total(activity, by: \.gross)))",
+                            accessory: nil)
+                        Text("Part · " + money(total(activity, by: \.commission)))
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 8).padding(.vertical, 5)
+                            .background(COVITheme.champagne, in: Capsule())
+                    }
+                    .accessibilityElement(children: .combine)
+                }
+            }
+        }
+    }
+
+    private func reportMoney(_ title: String, amount: Decimal, symbol: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: symbol)
+                .foregroundStyle(COVITheme.sand)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
                 Text(title).font(.caption)
-                Text(COVIMoney.text(amount, currency: currency))
-                    .font(.subheadline.bold())
-                    .lineLimit(1).minimumScaleFactor(0.7)
+                Text(money(amount)).font(.subheadline.bold())
             }
-            Spacer(minLength: 0)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func total(_ rows: [SalonSaleLine], by field: KeyPath<SalonSaleLine, Int64>) -> Decimal {
+        rows.reduce(Decimal.zero) { $0 + Decimal($1[keyPath: field]) }
+    }
+
+    private func money(_ amount: Decimal) -> String {
+        "\(amount.formatted(.number.grouping(.automatic))) \(currency == "XAF" ? "FCFA" : currency)"
     }
 }

@@ -83,6 +83,12 @@ struct MoreSpace: View {
     @Query private var restaurantRefunds: [Refund]
     @State private var confirmingSignOut = false
     @State private var signOutFailed = false
+    @State private var showingSalonReport = false
+#if DEBUG && targetEnvironment(simulator)
+    @Environment(\.coviSimulatorDiagnostics) private var diagnostics
+#endif
+
+    private var managesSalon: Bool { shop.kind == .salon && (role == .owner || role == .manager) }
 
     init(shop: Establishment, actor: UUID, role: StaffRole, pin: PINManager,
          onSwitchShop: @escaping () -> Void) {
@@ -117,7 +123,7 @@ struct MoreSpace: View {
                     }
                 }
 
-                if shop.kind == .salon && (role == .owner || role == .manager) {
+                if managesSalon {
                     COVISectionTitle("Gestion du salon")
                     COVICard {
                         VStack(spacing: 11) {
@@ -127,11 +133,10 @@ struct MoreSpace: View {
                                 COVIIconRow(symbol: "scissors", title: "Catalogue prestations & produits", detail: nil)
                             }
                             Divider()
-                            NavigationLink {
-                                SalonReport(sales: salonSales, visits: salonVisits, currency: shop.currencyCode)
-                            } label: {
+                            Button { showingSalonReport = true } label: {
                                 COVIIconRow(symbol: "chart.bar", title: "Rapports & Commissions équipe", detail: nil)
                             }
+                            .buttonStyle(.plain)
                             Divider()
                             NavigationLink { LocalShopCard(shop: shop) } label: {
                                 COVIIconRow(symbol: "link", title: "Fiche à partager & QR", detail: "Fiche locale ; pas de réservation publique")
@@ -235,6 +240,16 @@ struct MoreSpace: View {
         }
         .navigationTitle("Plus")
         .background(COVIBackdrop())
+        .navigationDestination(isPresented: $showingSalonReport) {
+            if managesSalon {
+                SalonReport(sales: salonSales, visits: salonVisits, currency: shop.currencyCode)
+            }
+        }
+#if DEBUG && targetEnvironment(simulator)
+        .task {
+            if managesSalon, diagnostics?.scenario == .salonReport { showingSalonReport = true }
+        }
+#endif
         .confirmationDialog("Se déconnecter de COVI ?", isPresented: $confirmingSignOut) {
             Button("Se déconnecter", role: .destructive) {
                 do { try session.signOut() }

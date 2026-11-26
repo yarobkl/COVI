@@ -18,6 +18,7 @@ final class COVISimulatorDiagnostics {
         case restaurantTable = "restaurant-table"
         case restaurantOrder = "restaurant-order"
         case salonCatalog = "salon-catalog"
+        case salonReport = "salon-report"
         case salonCheckout = "salon-checkout"
         case salonToday = "salon-today"
         case salonAgenda = "salon-agenda"
@@ -95,7 +96,7 @@ final class COVISimulatorDiagnostics {
         case .restaurantTables, .restaurantTable, .restaurantOrder:
             kind = .restaurant
             name = "Restaurant de démonstration"
-        case .salonCatalog, .salonCheckout, .salonToday, .salonAgenda, .salonBooking, .salonBookingConflict, .salonClients, .salonProfile:
+        case .salonCatalog, .salonReport, .salonCheckout, .salonToday, .salonAgenda, .salonBooking, .salonBookingConflict, .salonClients, .salonProfile:
             kind = .salon
             name = "Studio Élégance"
         default:
@@ -117,6 +118,8 @@ final class COVISimulatorDiagnostics {
             due = 0
             if scenario == .salonClients || scenario == .salonProfile {
                 try seedSalonDirectory()
+            } else if scenario == .salonReport {
+                try seedSalonReport()
             } else {
                 try seedSalon()
             }
@@ -344,6 +347,41 @@ final class COVISimulatorDiagnostics {
         try context.save()
     }
 
+    private func seedSalonReport() throws {
+        let context = container.mainContext
+        context.insert(shop)
+        let client = SalonClient(shop: shop.id, name: "Cliente de démonstration")
+        context.insert(client)
+        let receipts: [(stylist: String, label: String, amount: Int64, service: Bool, rate: Int)] = [
+            ("Chloé M.", "Tresses Box Braids", 105_000, true, 40),
+            ("Brice K.", "Coupe et barbe", 51_000, true, 40),
+            ("Sarah M.", "Soin Kératine", 68_000, true, 40),
+            ("Brice K.", "Produits de soin", 44_000, false, 0)
+        ]
+        let start = Date.now
+        for receipt in receipts {
+            let item = CatalogItem(establishmentID: shop.id, title: receipt.label,
+                priceMinor: receipt.amount, isService: receipt.service)
+            item.salonPercent = receipt.rate
+            context.insert(item)
+            let order = CommerceOrder(establishmentID: shop.id, createdByID: owner)
+            order.createdAt = start
+            order.customerID = client.id
+            order.totalMinor = receipt.amount
+            order.state = .completed
+            context.insert(order)
+            context.insert(SalonSaleLine(order: order, client: client.id, stylist: receipt.stylist,
+                item: item, units: 1, gross: receipt.amount))
+            if receipt.service {
+                let visit = SalonVisit(shop: shop.id, client: client.id, service: item.id,
+                    stylist: receipt.stylist, start: start, end: start.addingTimeInterval(3_600), walkIn: false)
+                visit.receipt = order.id
+                context.insert(visit)
+            }
+        }
+        try context.save()
+    }
+
     /// Le workflow attend ce signal avant la capture ; aucun détail métier n'y figure.
     func signalAfterPresentation() async {
         do {
@@ -413,7 +451,7 @@ struct COVISimulatorDiagnosticView: View {
         .allowsHitTesting(false)
         .task {
             // Le formulaire et la fiche Salon signalent leur propre apparition.
-            if fixture.salonBooking == nil && fixture.salonProfileID == nil {
+            if fixture.salonBooking == nil && fixture.salonProfileID == nil && fixture.scenario != .salonReport {
                 await fixture.signalAfterPresentation()
             }
         }

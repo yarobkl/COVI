@@ -76,6 +76,19 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   partielles en cas d'échec. Les diagnostics antérieurs ont finalement livré
   leurs artefacts ; aucun blocage du code n'a été déduit de la seule lenteur.
 
+### Rapports du Salon
+
+- La planche `57D4B495` a été inspectée. La période se choisit depuis
+  l’en-tête, le bandeau distingue prestations et revente, et l’activité
+  de l’équipe affiche les tickets, les rendez-vous et les commissions
+  enregistrés. Les sommes du rapport s’agrègent en décimal exact sans
+  modifier les données historiques.
+- Le parcours Plus → Rapports dispose d’un scénario iPhone sur données
+  synthétiques. Compilation, tests et comparaison du rendu à relever.
+- Le suivi des absences et les demandes publiques représentées par la
+  planche restent à intégrer. Leur statut ne peut pas être déduit
+  d’un rendez-vous non encaissé.
+
 ### Contrôles iOS et limites
 
 Les premières compilations ont échoué sur une expression SwiftUI ; le découpage
