@@ -333,6 +333,24 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   de paiement. Les interactions sur appareil physique et la feuille
   à taille de texte d’accessibilité restent à vérifier.
 
+### Aperçu du plan de salle du Restaurant
+
+- Les deux maquettes récentes ont été retrouvées dans le dossier COVI
+  et vérifiées par leur contenu. Elles montrent une vue aérienne des
+  tables, des statuts et un résumé de la table sélectionnée. La planche
+  dédiée distingue le numéro de table, la capacité et les convives.
+- L’onglet Tables ouvre une vue Salle alimentée par les tables, commandes
+  et paiements enregistrés. Les pastilles mettent en évidence un état
+  et conservent la position des autres tables. La liste reste disponible.
+  Le résumé ouvre le détail de la session ou la création de session.
+- Le dessin dispose les tables dans une grille provisoire et représente
+  exactement une chaise par place. Les quatre silhouettes sont attribuées
+  selon la capacité en attendant le choix de forme. Les tests ciblent la
+  séparation des chaises jusqu’à 100 places et les quatre états affichés.
+- Le plan physique éditable, les positions, l’orientation, le zoom,
+  les salles et terrasses, la saisie des convives et l’état payé mais
+  occupé restent à intégrer. La première capture iPhone est à comparer.
+
 ### Contrôles iOS et limites
 
 Les premières compilations ont échoué sur une expression SwiftUI ; le découpage

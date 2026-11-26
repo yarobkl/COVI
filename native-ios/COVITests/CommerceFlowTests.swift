@@ -304,6 +304,35 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertEqual(TabPolicy.tabs(for: .restaurant, role: .stylist), [.more])
     }
 
+    func testRestaurantFloorDrawingKeepsEveryChairVisibleAndSeparate() {
+        let size = CGSize(width: 96, height: 96)
+        let bounds = CGRect(origin: .zero, size: size)
+        for capacity in 1...100 {
+            let drawing = FloorTableDrawing(shape: .init(capacity: capacity), capacity: capacity, size: size)
+            XCTAssertEqual(drawing.chairCenters.count, capacity)
+            let side = drawing.chairSide
+            XCTAssertGreaterThan(side, 0)
+            let chairs = drawing.chairCenters.map { point in
+                CGRect(x: point.x - side / 2, y: point.y - side / 2, width: side, height: side)
+            }
+            for (index, chair) in chairs.enumerated() {
+                XCTAssertTrue(bounds.contains(chair), "Capacité \(capacity)")
+                XCTAssertFalse(chairs.dropFirst(index + 1).contains(where: { $0.intersects(chair) }),
+                    "Capacité \(capacity)")
+            }
+        }
+    }
+
+    func testRestaurantFloorUsesRealTableStateBeforeAndAfterBillRequest() {
+        let table = DiningTable(establishmentID: UUID(), label: "Table 7", capacity: 4)
+        XCTAssertEqual(RestaurantFloorState(table: table, hasOrderLines: false), .available)
+        table.isOccupied = true
+        XCTAssertEqual(RestaurantFloorState(table: table, hasOrderLines: false), .occupied)
+        XCTAssertEqual(RestaurantFloorState(table: table, hasOrderLines: true), .serving)
+        table.billRequested = true
+        XCTAssertEqual(RestaurantFloorState(table: table, hasOrderLines: true), .checkout)
+    }
+
     func testRestaurantReportKeepsExternalPaymentsSeparateAndTotalsAboveInt64() throws {
         let owner = UUID(), shop = UUID(), otherShop = UUID()
         let date = Date.now

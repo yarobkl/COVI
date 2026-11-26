@@ -15,6 +15,7 @@ final class COVISimulatorDiagnostics {
         case sale = "boutique-sale"
         case checkout = "boutique-checkout"
         case restaurantTables = "restaurant-tables"
+        case restaurantFloorPlan = "restaurant-floor-plan"
         case restaurantTable = "restaurant-table"
         case restaurantOrder = "restaurant-order"
         case restaurantReport = "restaurant-report"
@@ -108,7 +109,7 @@ final class COVISimulatorDiagnostics {
         let kind: BusinessKind
         let name: String
         switch scenario {
-        case .restaurantTables, .restaurantTable, .restaurantOrder, .restaurantReport, .restaurantTeam, .restaurantKitchen, .restaurantMenu, .restaurantDrinks, .restaurantPayment:
+        case .restaurantTables, .restaurantFloorPlan, .restaurantTable, .restaurantOrder, .restaurantReport, .restaurantTeam, .restaurantKitchen, .restaurantMenu, .restaurantDrinks, .restaurantPayment:
             kind = .restaurant
             name = "Restaurant de démonstration"
         case .salonCatalog, .salonReport, .salonMore, .salonSettings, .salonCheckout, .salonToday, .salonAgenda, .salonBooking, .salonBookingConflict, .salonClients, .salonProfile:
@@ -129,6 +130,8 @@ final class COVISimulatorDiagnostics {
                 try seedRestaurantReport()
             } else if scenario == .restaurantTeam {
                 try seedRestaurantTeam()
+            } else if scenario == .restaurantFloorPlan {
+                try seedRestaurantFloorPlan()
             } else if scenario == .restaurantDrinks {
                 try seedRestaurantDrinks()
             } else {
@@ -191,6 +194,34 @@ final class COVISimulatorDiagnostics {
                 .init(product: trousers, units: 1)
             ], discount: 0, quote: due, tender: .cash, received: cashReceived,
                 confirmed: false, shop: shop, actor: owner, pin: pin, context: context)
+        }
+    }
+
+    private func seedRestaurantFloorPlan() throws {
+        let context = container.mainContext
+        context.insert(shop)
+        let numbers = [1, 2, 3, 4, 5, 6, 8, 10]
+        let tables = numbers.map { DiningTable(establishmentID: shop.id, label: "Table \($0)", capacity: $0) }
+        for table in tables { context.insert(table) }
+        let plate = CatalogItem(establishmentID: shop.id, title: "Poulet braisé", priceMinor: 8_000)
+        plate.menuCategory = MenuGroup.food.rawValue
+        context.insert(plate)
+        try context.save()
+        let service = RestaurantService(shop: shop, actor: owner, role: .owner, pin: pin, db: context)
+        for number in [2, 3, 6] {
+            guard let index = numbers.firstIndex(of: number) else { throw Failure.invalidScenario }
+            let table = tables[index]
+            try service.open(table)
+            let id = table.activeSessionID
+            guard let order = try context.fetch(FetchDescriptor<CommerceOrder>()).first(where: { $0.id == id }) else {
+                throw Failure.invalidScenario
+            }
+            if number != 2 {
+                try service.send([plate.id: 2], menu: [plate], table: table, order: order)
+            }
+            if number == 6 {
+                try service.finish(table, order: order, paid: false)
+            }
         }
     }
 
@@ -582,7 +613,7 @@ struct COVISimulatorDiagnosticView: View {
                 fixture.scenario != .salonReport && fixture.scenario != .salonSettings &&
                 fixture.scenario != .restaurantReport && fixture.scenario != .restaurantTeam &&
                 fixture.scenario != .restaurantMenu && fixture.scenario != .restaurantDrinks &&
-                fixture.scenario != .restaurantPayment {
+                fixture.scenario != .restaurantPayment && fixture.scenario != .restaurantFloorPlan {
                 await fixture.signalAfterPresentation()
             }
         }

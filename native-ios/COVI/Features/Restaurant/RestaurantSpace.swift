@@ -13,6 +13,10 @@ struct RestaurantSpace: View {
     @Query private var payments: [PaymentRecord]
     @Query private var menu: [CatalogItem]
     @Query(sort: \OrderLine.sentAt) private var lines: [OrderLine]
+    @State private var showFloorPlan = true
+#if DEBUG && targetEnvironment(simulator)
+    @Environment(\.coviSimulatorDiagnostics) private var diagnostics
+#endif
     @State private var filter = "Toutes"
     @State private var setup = false
     @State private var message = ""
@@ -33,6 +37,46 @@ struct RestaurantSpace: View {
         }
     }
     var body: some View {
+        Group {
+            if tab == .tables && showFloorPlan {
+                RestaurantFloorPlan(tables: tables, orders: orders, lines: lines,
+                    payments: payments, currency: shop.currencyCode) { table in
+                    tableDetail(table)
+                }
+            } else {
+                gridOrKitchen
+            }
+        }
+        .background(COVIBackdrop())
+        .navigationTitle(tab == .kitchen ? "Cuisine" : tab == .tables && showFloorPlan ? "Salle" : tab.title)
+        .toolbar {
+            if tab == .tables {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button { showFloorPlan.toggle() } label: {
+                        Label(showFloorPlan ? "Afficher la liste" : "Afficher le plan",
+                              systemImage: showFloorPlan ? "list.bullet" : "square.grid.3x3")
+                    }
+                    if service.admin { Button("Configurer") { setup = true } }
+                }
+            }
+        }
+#if DEBUG && targetEnvironment(simulator)
+        .onAppear {
+            if diagnostics?.scenario == .restaurantTables { showFloorPlan = false }
+        }
+#endif
+        .sheet(isPresented: $setup) { RestaurantSetup(service: service, tables: tables) }
+        .alert("Restaurant", isPresented: Binding(get: { !message.isEmpty }, set: { if !$0 { message = "" } })) {
+            Button("OK") {}
+        } message: { Text(message) }
+    }
+
+    private func tableDetail(_ table: DiningTable) -> some View {
+        RestaurantTable(table: table, order: orders.first { $0.id == table.activeSessionID }, menu: menu,
+                        lines: lines.filter { $0.orderID == table.activeSessionID }, service: service)
+    }
+
+    private var gridOrKitchen: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 if tab == .kitchen {
@@ -59,8 +103,7 @@ struct RestaurantSpace: View {
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 15) {
                         ForEach(filteredTables) { t in
                             NavigationLink {
-                                RestaurantTable(table: t, order: orders.first { $0.id == t.activeSessionID }, menu: menu,
-                                                lines: lines.filter { $0.orderID == t.activeSessionID }, service: service)
+                                tableDetail(t)
                             } label: {
                                 COVICard {
                                     VStack(spacing: 12) {
@@ -108,10 +151,7 @@ struct RestaurantSpace: View {
                     if tables.isEmpty { Text("Aucune table configurée.") }
                 }
             }.padding(18)
-        }.background(COVIBackdrop()).navigationTitle(tab == .kitchen ? "Cuisine" : tab.title)
-        .toolbar { if service.admin && tab == .tables { Button("Configurer") { setup = true } } }
-        .sheet(isPresented: $setup) { RestaurantSetup(service: service, tables: tables) }
-        .alert("Restaurant", isPresented: Binding(get: { !message.isEmpty }, set: { if !$0 { message = "" } })) { Button("OK") {} } message: { Text(message) }
+        }
     }
     func perform(_ work: () throws -> Void) {
         do { try work(); HapticService.confirm() } catch { message = error.localizedDescription; HapticService.error() }
