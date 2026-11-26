@@ -120,39 +120,36 @@ enum BoutiquePhotoProcessor {
         // Si le détourage échoue, conserver la photo réelle, sans inventer un résultat.
         if (try? handler.perform([request])) != nil,
            let foreground = request.results?.first, !foreground.allInstances.isEmpty,
-           let maskBuffer = try? foreground.generateScaledMaskForImage(
-              forInstances: foreground.allInstances, from: handler) {
-            let input = CIImage(cgImage: cg)
-            let mask = CIImage(cvPixelBuffer: maskBuffer)
+           let cutout = try? foreground.generateMaskedImage(
+              ofInstances: foreground.allInstances, from: handler, croppedToInstancesExtent: true) {
+            let image = CIImage(cvPixelBuffer: cutout)
             let context = CIContext()
-            let transparent = CIImage(color: CIColor(red: 0, green: 0, blue: 0, alpha: 0)).cropped(to: input.extent)
-            let foregroundFilter = CIFilter.blendWithMask()
-            foregroundFilter.inputImage = input
-            foregroundFilter.backgroundImage = transparent
-            foregroundFilter.maskImage = mask
-            if let output = foregroundFilter.outputImage,
-               let isolated = context.createCGImage(output, from: input.extent) {
+            if let isolated = context.createCGImage(image, from: image.extent) {
                 color = dominantColor(isolated)
             }
-            let beige = CIImage(color: CIColor(red: 0.96, green: 0.92, blue: 0.86)).cropped(to: input.extent)
             let controls = CIFilter.colorControls()
-            controls.inputImage = input
+            controls.inputImage = image
             controls.brightness = 0.015
-            let blend = CIFilter.blendWithMask()
-            blend.inputImage = controls.outputImage ?? input
-            blend.backgroundImage = beige
-            blend.maskImage = mask
-            if let result = blend.outputImage,
-               let rendered = context.createCGImage(result, from: input.extent) {
-                studio = signedImage(rendered)
+            if let rendered = context.createCGImage(controls.outputImage ?? image, from: image.extent) {
+                let canvas = CGSize(width: cg.width, height: cg.height)
+                studio = signedImage(rendered, canvas: canvas)
             }
         }
         return BoutiquePhotoDraft(original: data, preview: preview, studio: studio,
                                    suggestion: name, color: color)
     }
 
-    private static func signedImage(_ image: CGImage) -> Data? {
-        let width = CGFloat(image.width), height = CGFloat(image.height)
+    static func studioFrame(subject: CGSize, canvas: CGSize) -> CGRect {
+        let scale = min(1, 0.9 * min(canvas.width / subject.width, canvas.height / subject.height))
+        let width = subject.width * scale
+        let height = subject.height * scale
+        return CGRect(x: (canvas.width - width) / 2, y: (canvas.height - height) / 2,
+                      width: width, height: height)
+    }
+
+    private static func signedImage(_ image: CGImage, canvas: CGSize) -> Data? {
+        let width = canvas.width
+        let height = canvas.height
         let margin = max(32, width * 0.055)
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
@@ -161,7 +158,8 @@ enum BoutiquePhotoProcessor {
                                                 format: format).image { renderer in
             UIColor(red: 0.96, green: 0.92, blue: 0.86, alpha: 1).setFill()
             renderer.fill(CGRect(x: 0, y: 0, width: width, height: height + margin))
-            UIImage(cgImage: image).draw(in: CGRect(x: 0, y: 0, width: width, height: height))
+            let subject = CGSize(width: image.width, height: image.height)
+            UIImage(cgImage: image).draw(in: studioFrame(subject: subject, canvas: canvas))
             let attributes: [NSAttributedString.Key: Any] = [
                 .font: UIFont.systemFont(ofSize: max(14, width * 0.023), weight: .medium),
                 .foregroundColor: UIColor(red: 0.20, green: 0.25, blue: 0.29, alpha: 1)

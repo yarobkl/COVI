@@ -1,4 +1,5 @@
 import Foundation
+import CoreGraphics
 import XCTest
 import SwiftData
 @testable import COVI
@@ -12,6 +13,18 @@ final class BoutiquePhotoTests: XCTestCase {
         XCTAssertEqual(BoutiquePhotoProcessor.colorName(red: 0.04, green: 0.06, blue: 0.1), "Noir")
         XCTAssertEqual(BoutiquePhotoProcessor.colorName(red: 0.1, green: 0.3, blue: 0.8), "Bleu")
         XCTAssertThrowsError(try BoutiquePhotoProcessor.process(Data([0, 1, 2])))
+    }
+
+    func testStudioCentersSubjectAndPreservesProportions() {
+        let canvas = CGSize(width: 400, height: 600)
+        XCTAssertEqual(
+            BoutiquePhotoProcessor.studioFrame(subject: CGSize(width: 400, height: 200), canvas: canvas),
+            CGRect(x: 20, y: 210, width: 360, height: 180)
+        )
+        XCTAssertEqual(
+            BoutiquePhotoProcessor.studioFrame(subject: CGSize(width: 100, height: 200), canvas: canvas),
+            CGRect(x: 150, y: 200, width: 100, height: 200)
+        )
     }
 
     func testPhotoSearchRejectsUnreadableInput() {

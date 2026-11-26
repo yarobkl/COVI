@@ -7,3 +7,5 @@ Limites de ce lot : analyse d'une image à la fois ; classification générique 
 ## Recherche photo en caisse
 
 Le bouton caméra dans Vendre accepte la caméra ou la photothèque et classe localement jusqu’à huit articles disposant d’une photo, à partir des empreintes Vision. Le vendeur confirme l’article avant son ajout au panier. La disponibilité est vérifiée au choix et à l’encaissement. La recherche calcule les empreintes à chaque scan ; les performances sur un catalogue de plusieurs centaines de photos restent à mesurer.
+
+Studio centre le sujet détouré sur le fond beige, avec une marge et sans agrandissement ni déformation. L’original et l’aperçu de la prise de vue utilisent toujours leur cadrage initial.

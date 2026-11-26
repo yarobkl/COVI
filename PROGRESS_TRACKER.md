@@ -1,5 +1,11 @@
 # COVI — progression iOS native
 
+## Boutique COVI 2.0 — Scan en caisse et Studio
+
+- Le diagnostic macOS du premier lot Scan/Studio a réussi les XCTest, la compilation Release pour simulateur et les captures iPhone/iPad.
+- Recherche locale par photo dans Vendre, avec sélection manuelle d’un article disponible et maintien de la recherche textuelle.
+- Studio recentre le sujet détouré en conservant ses proportions et l’original. Essais visuels sur des vêtements réels et mesures des temps de recherche sur de gros catalogues restent à réaliser.
+
 ## Reprise exécutée — 26 novembre 2026, matin
 
 Base vérifiée `766dc77` sur `feature/covi-2-native`. Les recherches de contexte
