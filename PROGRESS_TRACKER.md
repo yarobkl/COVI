@@ -115,9 +115,14 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   VoiceOver annonce le filtre sélectionné.
 - Le scénario simulateur `restaurant-tables` utilise le service natif pour
   ouvrir trois tables et demander une addition dans un magasin en mémoire.
-  Il inclut une quatrième table libre. La comparaison reste à faire sur
-  [les diagnostics de `74b5386`](https://github.com/yarobkl/COVI/actions/runs/45739778882).
-  Les QR et le plan de salle configurable relèvent du lot 6.
+  Il inclut une quatrième table libre. Debug, 118 XCTest sans échec et Release ont réussi sur
+  simulateur pour la révision [`74b5386`](https://github.com/yarobkl/COVI/actions/runs/45739778882).
+- La [capture de Tables](https://github.com/yarobkl/COVI/actions/runs/45739778882/artifacts/15080604096)
+  a été comparée à `2A49F962`. Les filtres et leurs compteurs, les capacités,
+  la table libre et les montants de 28 500, 64 000 et 19 000 FCFA sont lisibles.
+  Les contours et la hauteur des cartes diffèrent encore de la maquette.
+  L’en-tête de compte est hors capture. Les QR et le plan de salle configurable
+  relèvent du lot 6. La vue Table 01 et le formulaire de commande restent à capturer.
 
 ### Suite du lot 1
 
