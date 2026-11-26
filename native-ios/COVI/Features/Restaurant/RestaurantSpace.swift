@@ -106,7 +106,7 @@ struct RestaurantSpace: View {
             }.padding(18)
         }.background(COVIBackdrop()).navigationTitle(tab == .kitchen ? "Cuisine" : tab.title)
         .toolbar { if service.admin && tab == .tables { Button("Configurer") { setup = true } } }
-        .sheet(isPresented: $setup) { RestaurantSetup(service: service, menu: menu, tables: tables) }
+        .sheet(isPresented: $setup) { RestaurantSetup(service: service, tables: tables) }
         .alert("Restaurant", isPresented: Binding(get: { !message.isEmpty }, set: { if !$0 { message = "" } })) { Button("OK") {} } message: { Text(message) }
     }
     func perform(_ work: () throws -> Void) {

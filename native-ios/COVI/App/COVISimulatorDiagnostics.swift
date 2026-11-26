@@ -19,6 +19,7 @@ final class COVISimulatorDiagnostics {
         case restaurantOrder = "restaurant-order"
         case restaurantReport = "restaurant-report"
         case restaurantKitchen = "restaurant-kitchen"
+        case restaurantMenu = "restaurant-menu"
         case restaurantTeam = "restaurant-team"
         case salonCatalog = "salon-catalog"
         case salonReport = "salon-report"
@@ -105,7 +106,7 @@ final class COVISimulatorDiagnostics {
         let kind: BusinessKind
         let name: String
         switch scenario {
-        case .restaurantTables, .restaurantTable, .restaurantOrder, .restaurantReport, .restaurantTeam, .restaurantKitchen:
+        case .restaurantTables, .restaurantTable, .restaurantOrder, .restaurantReport, .restaurantTeam, .restaurantKitchen, .restaurantMenu:
             kind = .restaurant
             name = "Restaurant de démonstration"
         case .salonCatalog, .salonReport, .salonMore, .salonSettings, .salonCheckout, .salonToday, .salonAgenda, .salonBooking, .salonBookingConflict, .salonClients, .salonProfile:
@@ -550,7 +551,8 @@ struct COVISimulatorDiagnosticView: View {
             // Le formulaire et la fiche Salon signalent leur propre apparition.
             if fixture.salonBooking == nil && fixture.salonProfileID == nil &&
                 fixture.scenario != .salonReport && fixture.scenario != .salonSettings &&
-                fixture.scenario != .restaurantReport && fixture.scenario != .restaurantTeam {
+                fixture.scenario != .restaurantReport && fixture.scenario != .restaurantTeam &&
+                fixture.scenario != .restaurantMenu {
                 await fixture.signalAfterPresentation()
             }
         }

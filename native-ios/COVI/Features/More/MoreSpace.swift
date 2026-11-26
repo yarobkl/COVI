@@ -82,7 +82,7 @@ struct MoreSpace: View {
     @Query private var restaurantOrders: [CommerceOrder]
     @Query private var restaurantPayments: [PaymentRecord]
     @Query private var restaurantRefunds: [Refund]
-    private enum Destination: Hashable { case settings, salonReport, restaurantReport, restaurantTeam }
+    private enum Destination: Hashable { case settings, salonReport, restaurantReport, restaurantTeam, restaurantMenu }
     @State private var destination: Destination?
 #if DEBUG && targetEnvironment(simulator)
     @Environment(\.coviSimulatorDiagnostics) private var diagnostics
@@ -141,11 +141,16 @@ struct MoreSpace: View {
                     COVISectionTitle("Gestion du restaurant")
                     COVICard {
                         VStack(spacing: 4) {
+                            Button { destination = .restaurantMenu } label: {
+                                COVIIconRow(symbol: "fork.knife", title: "Gestion de la carte", detail: nil)
+                            }
+                            .buttonStyle(.plain)
+                            Divider()
                             NavigationLink {
                                 RestaurantSetup(service: RestaurantService(shop: shop, actor: actor,
-                                    role: role, pin: pin, db: db), menu: salonMenu, tables: restaurantTables)
+                                    role: role, pin: pin, db: db), tables: restaurantTables)
                             } label: {
-                                COVIIconRow(symbol: "fork.knife", title: "Gestion de la carte & tables", detail: nil)
+                                COVIIconRow(symbol: "table.furniture", title: "Configuration des tables", detail: nil)
                             }
                             Divider()
                             Button { destination = .restaurantReport } label: {
@@ -234,6 +239,11 @@ struct MoreSpace: View {
                 if managesRestaurant {
                     RestaurantTeamAccess(shop: shop, actor: actor, pin: pin)
                 }
+            case .restaurantMenu:
+                if managesRestaurant {
+                    RestaurantMenuManagement(service: RestaurantService(shop: shop, actor: actor,
+                        role: role, pin: pin, db: db))
+                }
             }
         }
 #if DEBUG && targetEnvironment(simulator)
@@ -241,6 +251,7 @@ struct MoreSpace: View {
             if managesSalon, diagnostics?.scenario == .salonReport { destination = .salonReport }
             if managesRestaurant, diagnostics?.scenario == .restaurantReport { destination = .restaurantReport }
             if managesRestaurant, diagnostics?.scenario == .restaurantTeam { destination = .restaurantTeam }
+            if managesRestaurant, diagnostics?.scenario == .restaurantMenu { destination = .restaurantMenu }
             if shop.kind == .salon, diagnostics?.scenario == .salonSettings { destination = .settings }
         }
 #endif

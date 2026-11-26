@@ -939,6 +939,44 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertTrue(table.isOccupied)
     }
 
+    func testRestaurantMenuCreationAndAvailabilityRequireCurrentAdminAndValidItem() throws {
+        let db = try database(), owner = UUID(), manager = UUID()
+        let shop = Establishment(ownerID: owner, name: "Restaurant", kind: .restaurant, city: "Brazzaville")
+        let foreignShop = Establishment(ownerID: owner, name: "Autre", kind: .restaurant, city: "Dolisie")
+        let membership = Membership(accountID: manager, establishmentID: shop.id, role: .manager)
+        db.insert(shop)
+        db.insert(foreignShop)
+        db.insert(membership)
+        try db.save()
+        let pin = ownerPIN()
+        let service = RestaurantService(shop: shop, actor: owner, role: .owner, pin: pin, db: db)
+        let foreign = RestaurantService(shop: foreignShop, actor: owner, role: .owner, pin: pin, db: db)
+
+        try service.createMenuItem(title: "  Jus de bissap  ", price: 1_500, category: .drinks)
+        let item = try XCTUnwrap(db.fetch(FetchDescriptor<CatalogItem>()).first)
+        XCTAssertEqual(item.title, "Jus de bissap")
+        XCTAssertEqual(item.menuCategory, MenuGroup.drinks.rawValue)
+        XCTAssertThrowsError(try service.createMenuItem(title: "JUS DE BISSAP", price: 1_500, category: .food))
+        XCTAssertThrowsError(try foreign.setMenuAvailability(item, available: false))
+        XCTAssertFalse(item.soldOut)
+        try service.setMenuAvailability(item, available: false)
+        try service.setMenuAvailability(item, available: false)
+        XCTAssertTrue(item.soldOut)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 2)
+
+        try pin.configureCashierPIN("1234", for: manager, shopID: shop.id)
+        XCTAssertTrue(pin.verify("1234", scope: .cashier(staffID: manager, shopID: shop.id)))
+        let managerService = RestaurantService(shop: shop, actor: manager, role: .manager, pin: pin, db: db)
+        try managerService.setMenuAvailability(item, available: true)
+        membership.active = false
+        try db.save()
+        XCTAssertThrowsError(try managerService.setMenuAvailability(item, available: false))
+        XCTAssertThrowsError(try managerService.createMenuItem(title: "Infusion", price: 1_000, category: .drinks))
+        XCTAssertFalse(item.soldOut)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<CatalogItem>()), 1)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 3)
+    }
+
     func testRestaurantMenuEditPreservesAlreadySentKitchenTicket() throws {
         let db = try database(), owner = UUID()
         let shop = Establishment(ownerID: owner, name: "Restaurant", kind: .restaurant, city: "Douala")

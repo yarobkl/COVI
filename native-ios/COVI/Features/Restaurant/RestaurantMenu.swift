@@ -141,14 +141,10 @@ struct RestaurantComposer: View {
 @MainActor
 struct RestaurantSetup: View {
     let service: RestaurantService
-    let menu: [CatalogItem]
     let tables: [DiningTable]
     @Environment(\.dismiss) private var dismiss
     @State private var label = ""
     @State private var seats = 2
-    @State private var dish = ""
-    @State private var price = ""
-    @State private var category = MenuGroup.food
     @State private var message = ""
     var body: some View {
         NavigationStack {
@@ -176,32 +172,9 @@ struct RestaurantSetup: View {
                         }
                     }
                 }
-                Section("Carte du restaurant") {
-                    TextField("Nom de l’article", text: $dish)
-                    TextField("Prix en " + service.shop.currencyCode, text: $price).keyboardType(.numberPad)
-                    Picker("Catégorie", selection: $category) {
-                        ForEach(MenuGroup.allCases, id: \.self) { Text($0.rawValue).tag($0) }
-                    }
-                    Button("Ajouter à la carte") { change {
-                        let name = dish.trimmingCharacters(in: .whitespacesAndNewlines)
-                        guard !name.isEmpty, let value = Int64(price), value > 0 else { throw RestaurantFault.invalid }
-                        let item = CatalogItem(establishmentID: service.shop.id, title: name, priceMinor: value)
-                        item.menuCategory = category.rawValue
-                        service.db.insert(item)
-                        dish = ""; price = ""
-                        return ("restaurant.menu.created", item.id)
-                    } }
-                    ForEach(menu.filter { $0.menuCategory != nil }) { item in
-                        Toggle(item.title + (item.soldOut ? " · Rupture" : ""), isOn: Binding(get: { !item.soldOut }, set: { available in
-                            change {
-                                item.soldOut = !available
-                                item.updatedAt = .now
-                                return ("restaurant.menu.availability-changed", item.id)
-                            }
-                        }))
-                        NavigationLink("Modifier · " + item.title) {
-                            RestaurantMenuEditor(item: item, service: service)
-                        }
+                Section {
+                    NavigationLink("Gestion de la carte") {
+                        RestaurantMenuManagement(service: service)
                     }
                 }
                 if !message.isEmpty { Text(message) }
@@ -224,14 +197,188 @@ struct RestaurantSetup: View {
     }
 }
 
+struct RestaurantMenuManagement: View {
+    let service: RestaurantService
+    @Query private var items: [CatalogItem]
+    @Environment(\.dynamicTypeSize) private var textSize
+#if DEBUG && targetEnvironment(simulator)
+    @Environment(\.coviSimulatorDiagnostics) private var diagnostics
+#endif
+    @State private var category = MenuGroup.food
+    @State private var search = ""
+    @State private var adding = false
+    @State private var error = ""
+
+    init(service: RestaurantService) {
+        self.service = service
+        let shopID = service.shop.id
+        _items = Query(filter: #Predicate<CatalogItem> { $0.establishmentID == shopID }, sort: \.title)
+    }
+
+    var body: some View {
+        let selected = items.filter { $0.menuCategory == category.rawValue }
+        let query = search.trimmingCharacters(in: .whitespacesAndNewlines)
+        let visible = selected.filter { query.isEmpty || $0.title.localizedStandardContains(query) }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 15) {
+                categoryButtons
+                HStack(spacing: 10) {
+                    Image(systemName: "magnifyingglass").accessibilityHidden(true)
+                    TextField("Rechercher un plat ou une boisson", text: $search)
+                        .submitLabel(.search)
+                    if !search.isEmpty {
+                        Button { search = "" } label: {
+                            Image(systemName: "xmark.circle.fill").frame(width: 44, height: 44)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Effacer la recherche")
+                    }
+                }
+                .padding(.horizontal, 12)
+                .frame(minHeight: 44)
+                .background(COVITheme.navy.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+                if visible.isEmpty {
+                    if query.isEmpty {
+                        ContentUnavailableView("Aucun article", systemImage: "fork.knife",
+                            description: Text("Ajoutez un article dans cette catégorie."))
+                    } else {
+                        ContentUnavailableView.search(text: query)
+                    }
+                } else {
+                    COVICard {
+                        LazyVStack(alignment: .leading, spacing: 8) {
+                            ForEach(visible) { item in
+                                if item.id != visible.first?.id { Divider() }
+                                itemRow(item)
+                            }
+                        }
+                    }
+                }
+            }
+            .foregroundStyle(COVITheme.navy)
+            .padding(COVITheme.Metrics.screenPadding)
+        }
+        .background(COVIBackdrop())
+        .navigationTitle("Gestion de la carte")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { adding = true } label: {
+                    Label("Article", systemImage: "plus")
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(COVITheme.navy)
+                .accessibilityLabel("Ajouter un article")
+            }
+        }
+        .sheet(isPresented: $adding) {
+            NavigationStack {
+                RestaurantMenuEditor(item: nil, service: service, category: category)
+            }
+        }
+        .alert("Gestion de la carte", isPresented: Binding(get: { !error.isEmpty }, set: { if !$0 { error = "" } })) {
+            Button("OK") { error = "" }
+        } message: {
+            Text(error)
+        }
+#if DEBUG && targetEnvironment(simulator)
+        .task {
+            if let diagnostics, diagnostics.scenario == .restaurantMenu {
+                await diagnostics.signalAfterPresentation()
+            }
+        }
+#endif
+    }
+
+    private var categoryButtons: some View {
+        let layout = textSize.isAccessibilitySize ?
+            AnyLayout(VStackLayout(spacing: 3)) : AnyLayout(HStackLayout(spacing: 3))
+        return layout {
+            ForEach(MenuGroup.allCases, id: \.self) { group in
+                let selected = category == group
+                let count = items.filter { $0.menuCategory == group.rawValue }.count
+                Button { category = group } label: {
+                    Text("\(group.rawValue) (\(count))")
+                        .font(.subheadline.weight(.semibold))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 4).padding(.vertical, 6)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .foregroundStyle(selected ? .white : COVITheme.navy)
+                        .background(selected ? COVITheme.navy : .clear,
+                                    in: RoundedRectangle(cornerRadius: 11))
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(selected ? .isSelected : [])
+            }
+        }
+        .padding(3)
+        .background(.white, in: RoundedRectangle(cornerRadius: 14))
+    }
+
+    private func itemRow(_ item: CatalogItem) -> some View {
+        let layout = textSize.isAccessibilitySize ?
+            AnyLayout(VStackLayout(alignment: .leading, spacing: 6)) : AnyLayout(HStackLayout(spacing: 10))
+        return layout {
+            NavigationLink {
+                RestaurantMenuEditor(item: item, service: service,
+                    category: MenuGroup(rawValue: item.menuCategory ?? "") ?? category)
+            } label: {
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: item.menuCategory == MenuGroup.drinks.rawValue ? "cup.and.saucer" : "fork.knife")
+                        .font(.title3)
+                        .frame(width: 44, height: 44)
+                        .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 11))
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(item.title).font(.subheadline.bold())
+                        Text(COVIMoney.text(item.priceMinor, currency: service.shop.currencyCode))
+                            .font(.caption)
+                            .foregroundStyle(COVITheme.secondaryText)
+                        if item.soldOut {
+                            Text("Rupture")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.red)
+                                .padding(.horizontal, 7).padding(.vertical, 3)
+                                .background(COVITheme.dangerTint, in: Capsule())
+                        }
+                    }
+                    Spacer(minLength: 0)
+                }
+                .frame(minHeight: 48)
+                .multilineTextAlignment(.leading)
+                .contentShape(Rectangle())
+                .accessibilityElement(children: .combine)
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("Ouvre la fiche pour la modifier")
+            Toggle("Disponibilité de \(item.title)", isOn: Binding(
+                get: { !item.soldOut },
+                set: { available in
+                    do { try service.setMenuAvailability(item, available: available) }
+                    catch { self.error = error.localizedDescription }
+                }))
+                .labelsHidden()
+                .tint(COVITheme.success)
+        }
+    }
+}
+
 private struct RestaurantMenuEditor: View {
-    let item: CatalogItem
+    let item: CatalogItem?
     let service: RestaurantService
     @Environment(\.dismiss) private var dismiss
-    @State private var title = ""
-    @State private var price = ""
-    @State private var category = MenuGroup.food
+    @State private var title: String
+    @State private var price: String
+    @State private var category: MenuGroup
     @State private var error = ""
+
+    init(item: CatalogItem?, service: RestaurantService, category: MenuGroup) {
+        self.item = item
+        self.service = service
+        _title = State(initialValue: item?.title ?? "")
+        _price = State(initialValue: item.map { String($0.priceMinor) } ?? "")
+        _category = State(initialValue: category)
+    }
 
     var body: some View {
         Form {
@@ -240,21 +387,28 @@ private struct RestaurantMenuEditor: View {
             Picker("Catégorie", selection: $category) {
                 ForEach(MenuGroup.allCases, id: \.self) { Text($0.rawValue).tag($0) }
             }
-            Button("Enregistrer la carte") {
+            Button(item == nil ? "Ajouter à la carte" : "Enregistrer") {
                 do {
-                    try service.editMenu(item, title: title, price: Int64(price) ?? 0, category: category)
+                    if let item {
+                        try service.editMenu(item, title: title, price: Int64(price) ?? 0, category: category)
+                    } else {
+                        try service.createMenuItem(title: title, price: Int64(price) ?? 0, category: category)
+                    }
                     dismiss()
                 } catch { self.error = error.localizedDescription }
             }
             if !error.isEmpty { Text(error).foregroundStyle(.red) }
-            Text("Les commandes déjà envoyées conservent leur prix et leur libellé d’origine.")
-                .font(.footnote).foregroundStyle(.secondary)
+            if item != nil {
+                Text("Les commandes déjà envoyées conservent leur prix et leur libellé d’origine.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
         }
-        .navigationTitle("Modifier le menu")
-        .onAppear {
-            title = item.title
-            price = String(item.priceMinor)
-            category = MenuGroup(rawValue: item.menuCategory ?? "") ?? .food
+        .navigationTitle(item == nil ? "Nouvel article" : "Modifier l’article")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if item == nil {
+                ToolbarItem(placement: .cancellationAction) { Button("Annuler") { dismiss() } }
+            }
         }
     }
 }

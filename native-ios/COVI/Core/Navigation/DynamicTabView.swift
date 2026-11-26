@@ -124,7 +124,7 @@ struct DynamicTabView: View {
                 case .restaurantTables: selected = .tables
                 case .restaurantKitchen: selected = .kitchen
                 case .salonCheckout: selected = .checkout
-                case .salonReport, .salonMore, .salonSettings, .restaurantReport, .restaurantTeam: selected = .more
+                case .salonReport, .salonMore, .salonSettings, .restaurantReport, .restaurantTeam, .restaurantMenu: selected = .more
                 case .salonToday: selected = .today
                 case .salonClients, .salonProfile: selected = .clients
                 case .salonAgenda, .salonBooking, .salonBookingConflict: selected = .agenda

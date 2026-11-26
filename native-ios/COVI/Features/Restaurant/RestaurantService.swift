@@ -32,32 +32,60 @@ enum RestaurantFault: LocalizedError {
     func save() throws {
         do { try db.save() } catch { db.rollback(); throw error }
     }
+    func createMenuItem(title: String, price: Int64, category: MenuGroup) throws {
+        try authorize()
+        guard admin else { throw RestaurantFault.access }
+        let name = try validMenuTitle(title, price: price)
+        let item = CatalogItem(establishmentID: shop.id, title: name, priceMinor: price)
+        item.menuCategory = category.rawValue
+        db.insert(item)
+        try saveMenuChange("restaurant.menu.created", item: item)
+    }
+
     func editMenu(_ item: CatalogItem, title: String, price: Int64, category: MenuGroup) throws {
         try authorize()
-        guard admin, item.establishmentID == shop.id,
-              item.menuCategory != nil, price > 0 else { throw RestaurantFault.invalid }
-        let cleaned = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleaned.isEmpty else { throw RestaurantFault.invalid }
-        let sid = shop.id
-        let peers = try db.fetch(FetchDescriptor<CatalogItem>(predicate: #Predicate {
-            $0.establishmentID == sid
-        }))
-        guard !peers.contains(where: {
-            $0.id != item.id && $0.menuCategory != nil &&
-            $0.title.caseInsensitiveCompare(cleaned) == .orderedSame
-        }) else { throw RestaurantFault.invalid }
-        guard item.title != cleaned || item.priceMinor != price ||
-              item.menuCategory != category.rawValue else { return }
-        item.title = cleaned
+        guard admin, item.establishmentID == shop.id, item.menuCategory != nil
+        else { throw RestaurantFault.access }
+        let name = try validMenuTitle(title, price: price, ignoring: item.id)
+        guard name != item.title || price != item.priceMinor || category.rawValue != item.menuCategory else { return }
+        item.title = name
         item.priceMinor = price
         item.menuCategory = category.rawValue
+        try saveMenuChange("restaurant.menu.edited", item: item)
+    }
+
+    func setMenuAvailability(_ item: CatalogItem, available: Bool) throws {
+        try authorize()
+        guard admin, item.establishmentID == shop.id, item.menuCategory != nil
+        else { throw RestaurantFault.access }
+        guard item.soldOut == available else { return }
+        item.soldOut = !available
+        try saveMenuChange("restaurant.menu.availability-changed", item: item)
+    }
+
+    private func validMenuTitle(_ title: String, price: Int64, ignoring existingID: UUID? = nil) throws -> String {
+        let name = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty, price > 0 else { throw RestaurantFault.invalid }
+        let shopID = shop.id
+        let peers = try db.fetch(FetchDescriptor<CatalogItem>(predicate: #Predicate {
+            $0.establishmentID == shopID
+        }))
+        guard !peers.contains(where: {
+            $0.id != existingID && $0.menuCategory != nil &&
+            $0.title.caseInsensitiveCompare(name) == .orderedSame
+        }) else { throw RestaurantFault.invalid }
+        return name
+    }
+
+    private func saveMenuChange(_ event: String, item: CatalogItem) throws {
         item.updatedAt = .now
         do {
-            try BusinessOutbox.enqueue(kind: "restaurant.menu.edited", establishmentID: shop.id,
+            try BusinessOutbox.enqueue(kind: event, establishmentID: shop.id,
                 entityID: item.id, actorID: actor, in: db)
             try save()
         } catch { db.rollback(); throw error }
     }
+
     func editTable(_ table: DiningTable, label: String, capacity: Int) throws {
         try authorize()
         guard admin, table.establishmentID == shop.id, !table.isOccupied,

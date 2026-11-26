@@ -218,6 +218,20 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
 - La prise en charge distincte, les délais d’urgence, le paiement partiel
   et les incidents présentés sur la planche restent à intégrer.
 
+### Gestion de la carte du Restaurant
+
+- La planche `683EE982` a été inspectée. Plus ouvre un écran dédié
+  avec onglets Plats et Boissons, compteurs, recherche, ajout, fiche
+  d’édition et interrupteur de disponibilité. La configuration des
+  tables conserve sa propre entrée.
+- La création et la disponibilité passent par le service, qui relit
+  le rôle et contrôle le PIN, les doublons et l’établissement. Une
+  demande de disponibilité identique ne crée pas d’événement supplémentaire.
+- Un test couvre les doublons, l’isolement et la révocation. Le scénario
+  iPhone ouvre l’écran depuis Plus. Tests et comparaison restent à relever.
+- Les photos, les sous-catégories et le stock boissons avec réservation,
+  réassort et pertes restent à intégrer à leurs données métier.
+
 ### Contrôles iOS et limites
 
 Les premières compilations ont échoué sur une expression SwiftUI ; le découpage
