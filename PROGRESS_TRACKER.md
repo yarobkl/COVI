@@ -187,8 +187,21 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   sans espaces. La fiche groupe les préférences et notes, montre les
   trois prestations les plus récentes et fixe le bouton de réservation.
   Les statuts de fidélité et d’absence restent à modéliser.
-- Les scénarios Clients et Fiche client attendent les captures macOS et la
-  comparaison à `C0053217`.
+- Sur `86c3123`, Debug et Release compilent. Les journaux confirment
+  **118 XCTest exécutés, 0 échec** sur simulateur
+  ([GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45762835810)).
+- Les [captures Clients et Fiche client](https://github.com/yarobkl/COVI/actions/runs/45762835810/artifacts/15090249769)
+  ont été comparées à `C0053217`. La liste montre la recherche, les
+  initiales, une réservation à venir et les trois visites de Mireille.
+  La fiche affiche les préférences et notes, trois prestations pour
+  70 000 FCFA et le bouton de réservation fixe. La liste présente des
+  lignes blanches pleine largeur et des initiales de couleur uniforme.
+  L’onglet Clients reste visible sur la fiche. L’en-tête de compte est
+  hors capture. Les filtres et états de fidélité ou d’absence dépendent
+  de données métier supplémentaires. Recherche, modification et
+  réservation restent à vérifier en interaction sur appareil physique.
+- Prochain écran à rapprocher de sa référence : Caisse du Salon,
+  planche `6155DBBE`.
 
 ### Suite du lot 1
 
