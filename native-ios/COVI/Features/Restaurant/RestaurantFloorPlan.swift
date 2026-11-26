@@ -116,6 +116,16 @@ struct FloorTableDrawing {
     }
 }
 
+enum RestaurantFloorZoom {
+    static let limits: ClosedRange<CGFloat> = 1...2.5
+    static let step: CGFloat = 0.25
+
+    static func bounded(_ scale: CGFloat) -> CGFloat {
+        guard scale.isFinite else { return limits.lowerBound }
+        return min(limits.upperBound, max(limits.lowerBound, scale))
+    }
+}
+
 struct RestaurantFloorPlan<Detail: View>: View {
     let tables: [DiningTable]
     let orders: [CommerceOrder]
@@ -128,6 +138,8 @@ struct RestaurantFloorPlan<Detail: View>: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var selectedID: UUID?
+    @State private var zoom: CGFloat = 1
+    @GestureState private var pinchScale: CGFloat = 1
     @State private var roomID: UUID?
     @State private var renamingRoom: RestaurantFloorRoom?
     @State private var showingRoomEditor = false
@@ -154,33 +166,41 @@ struct RestaurantFloorPlan<Detail: View>: View {
     }
 
     var body: some View {
-        ScrollViewReader { scroll in
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    plan
-                }
-                .padding(18)
-            }
-            .onChange(of: selectedID) { _, id in
-                guard id != nil else { return }
-                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.24)) {
-                    scroll.scrollTo("restaurant-table-summary", anchor: .bottom)
-                }
-            }
-#if DEBUG && targetEnvironment(simulator)
-            .task {
-                if let diagnostics, [.restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace].contains(diagnostics.scenario),
-                   let sample = tables.first(where: { $0.label == "Table 10" }) {
-                    if let staged = try? sampleLayout(table: sample, terrace: diagnostics.scenario == .restaurantFloorTerrace) {
-                        diagnosticLayout = try? staged.encoded()
-                        roomID = staged.spaces.first?.id
+        let current = configuration
+        let room = current.spaces.first { $0.id == roomID }
+        VStack(spacing: 0) {
+            roomBar(active: room, spaces: current.spaces)
+                .padding(.horizontal, 18)
+                .padding(.vertical, 6)
+            ScrollViewReader { scroll in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        plan(configuration: current, room: room)
                     }
-                    selectedID = sample.id
-                    if diagnostics.scenario == .restaurantFloorEdit { editingTable = sample }
-                    else { await diagnostics.signalAfterPresentation() }
+                    .padding(18)
                 }
-            }
+                .onChange(of: selectedID) { _, id in
+                    guard id != nil else { return }
+                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.24)) {
+                        scroll.scrollTo("restaurant-table-summary", anchor: .bottom)
+                    }
+                }
+#if DEBUG && targetEnvironment(simulator)
+                .task {
+                    if let diagnostics, [.restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace, .restaurantFloorZoom].contains(diagnostics.scenario),
+                       let sample = tables.first(where: { $0.label == "Table 10" }) {
+                        if let staged = try? sampleLayout(table: sample, terrace: diagnostics.scenario == .restaurantFloorTerrace) {
+                            diagnosticLayout = try? staged.encoded()
+                            roomID = staged.spaces.first?.id
+                        }
+                        if diagnostics.scenario == .restaurantFloorZoom { zoom = 1.5 }
+                        else { selectedID = sample.id }
+                        if diagnostics.scenario == .restaurantFloorEdit { editingTable = sample }
+                        else { await diagnostics.signalAfterPresentation() }
+                    }
+                }
 #endif
+            }
         }
         .sheet(item: $editingTable) { table in
             let current = resolvedLayout
@@ -244,6 +264,7 @@ struct RestaurantFloorPlan<Detail: View>: View {
         }
         if roomID != placement.roomID {
             roomID = placement.roomID
+            zoom = 1
             highlightedState = nil
         }
     }
@@ -259,14 +280,13 @@ struct RestaurantFloorPlan<Detail: View>: View {
 
     private func selectRoom(_ id: UUID?) {
         roomID = id
+        zoom = 1
         highlightedState = nil
         selectedID = nil
     }
 
-    @ViewBuilder private var plan: some View {
-        let config = configuration
-        let positions = config.resolved(tables: orderedTables)
-        let room = config.spaces.first { $0.id == roomID }
+    @ViewBuilder private func plan(configuration: RestaurantFloorLayout, room: RestaurantFloorRoom?) -> some View {
+        let positions = configuration.resolved(tables: orderedTables)
         let displayed = tables.filter { positions[$0.id]?.roomID == room?.id }
         let ordersByID = Dictionary(grouping: orders, by: \.id)
         let ordersWithLines = Set(lines.map(\.orderID))
@@ -274,13 +294,12 @@ struct RestaurantFloorPlan<Detail: View>: View {
             let hasLines = table.activeSessionID.map { ordersWithLines.contains($0) } ?? false
             return (table.id, RestaurantFloorState(table: table, hasOrderLines: hasLines))
         })
-        roomBar(active: room, spaces: config.spaces)
         if displayed.isEmpty {
             ContentUnavailableView("Aucune table dans cet espace", systemImage: "table.furniture",
                 description: Text("Les nouvelles tables apparaissent en salle principale. Déplacez-les depuis leur résumé."))
         } else {
             filters(states)
-            floorGrid(states, tables: displayed, positions: positions)
+            floorViewport(states, tables: displayed, positions: positions)
                 .padding(8)
                 .background(COVITheme.champagne.opacity(0.30), in: RoundedRectangle(cornerRadius: 12))
                 .overlay {
@@ -314,6 +333,9 @@ struct RestaurantFloorPlan<Detail: View>: View {
             }
             .accessibilityHint("Choisir une salle ou une terrasse")
             Spacer(minLength: 0)
+            if !textSize.isAccessibilitySize {
+                zoomMenu
+            }
             if service.admin {
                 Menu {
                     Button("Ajouter un espace", systemImage: "plus") {
@@ -335,6 +357,57 @@ struct RestaurantFloorPlan<Detail: View>: View {
             }
         }
         .foregroundStyle(COVITheme.navy)
+    }
+
+    private var zoomMenu: some View {
+        Menu {
+            Button("Agrandir", systemImage: "plus.magnifyingglass") {
+                zoom = RestaurantFloorZoom.bounded(zoom + RestaurantFloorZoom.step)
+            }
+            .disabled(zoom >= RestaurantFloorZoom.limits.upperBound)
+            Button("Réduire", systemImage: "minus.magnifyingglass") {
+                zoom = RestaurantFloorZoom.bounded(zoom - RestaurantFloorZoom.step)
+            }
+            .disabled(zoom <= RestaurantFloorZoom.limits.lowerBound)
+            Button("Vue d’ensemble", systemImage: "arrow.up.left.and.down.right.magnifyingglass") {
+                zoom = 1
+            }
+            .disabled(zoom == 1)
+        } label: {
+            Label("\(Int((zoom * 100).rounded())) %", systemImage: "magnifyingglass")
+                .font(.caption.weight(.semibold))
+                .frame(minHeight: 44)
+        }
+        .accessibilityLabel("Zoom du plan")
+        .accessibilityValue("\(Int((zoom * 100).rounded())) pour cent")
+    }
+
+    @ViewBuilder private func floorViewport(_ states: [UUID: RestaurantFloorState], tables: [DiningTable],
+                                             positions: [UUID: RestaurantTablePlacement]) -> some View {
+        if textSize.isAccessibilitySize {
+            floorGrid(states, tables: tables, positions: positions)
+        } else {
+            let last = tables.compactMap { positions[$0.id]?.slot }.max() ?? 0
+            let rows = last / RestaurantFloorLayout.columns + 1
+            let baseHeight = CGFloat(rows) * 104 - 8
+            let scale = RestaurantFloorZoom.bounded(zoom * pinchScale)
+            GeometryReader { proxy in
+                let width = proxy.size.width
+                ScrollView([.horizontal, .vertical]) {
+                    floorGrid(states, tables: tables, positions: positions)
+                        .frame(width: width, height: baseHeight)
+                        .scaleEffect(scale, anchor: .topLeading)
+                        .frame(width: width * scale, height: baseHeight * scale, alignment: .topLeading)
+                }
+                .scrollDisabled(scale == 1)
+                .simultaneousGesture(
+                    MagnifyGesture()
+                        .updating($pinchScale) { value, scale, _ in scale = value.magnification }
+                        .onEnded { value in zoom = RestaurantFloorZoom.bounded(zoom * value.magnification) }
+                )
+            }
+            .frame(height: zoom == 1 ? baseHeight : min(baseHeight * zoom, 390))
+        }
     }
 
     private func floorGrid(_ states: [UUID: RestaurantFloorState], tables: [DiningTable],

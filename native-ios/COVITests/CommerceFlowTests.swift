@@ -382,6 +382,13 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertEqual(resolved[outside.id], .init(slot: 5, shape: .round, roomID: terrace.id))
     }
 
+    func testRestaurantFloorZoomClampsTheViewportScale() {
+        XCTAssertEqual(RestaurantFloorZoom.bounded(0.75), 1)
+        XCTAssertEqual(RestaurantFloorZoom.bounded(1.75), 1.75)
+        XCTAssertEqual(RestaurantFloorZoom.bounded(4), 2.5)
+        XCTAssertEqual(RestaurantFloorZoom.bounded(.nan), 1)
+    }
+
     func testRestaurantFloorUsesRealTableStateBeforeAndAfterBillRequest() {
         let table = DiningTable(establishmentID: UUID(), label: "Table 7", capacity: 4)
         XCTAssertEqual(RestaurantFloorState(table: table, hasOrderLines: false), .available)
