@@ -70,11 +70,26 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   Vendre affiche le panier sous la recherche et le total fixe de 35 000 FCFA.
   En espèces, la feuille affiche un montant reçu de 40 000 FCFA et une monnaie de
   5 000 FCFA. La commande de confirmation était sous la zone visible.
-- La confirmation reste maintenant visible au bas de la feuille pendant le
-  défilement. Sur `cf61665`, Debug, 118 XCTest et Release ont réussi ([diagnostics](https://github.com/yarobkl/COVI/actions/runs/45724727588)).
-  [La capture](https://github.com/yarobkl/COVI/actions/runs/45724727588/artifacts/15073324402) confirme le bouton visible dès l’ouverture. Les champs « Montant reçu » et « Monnaie à rendre » nécessitent encore un défilement avec la liste complète des moyens de paiement. L’en-tête de
-  l’établissement est hors cadrage des captures isolées. La couverture
-  iPad, grandes tailles de texte et iPhone physique reste à vérifier.
+- La confirmation reste visible au bas de la feuille pendant le défilement.
+  Sur `cf61665`, Debug, 118 XCTest et Release ont réussi ([diagnostics](https://github.com/yarobkl/COVI/actions/runs/45724727588)).
+  [Cette première capture du bouton fixe](https://github.com/yarobkl/COVI/actions/runs/45724727588/artifacts/15073324402)
+  confirmait sa visibilité dès l’ouverture ; les champs de réception des espèces
+  nécessitaient encore un défilement avec les six moyens de paiement.
+- Vérification du **26 novembre 2026**, révision `85b2e0` : compilation Debug,
+  **118 XCTest réussis, 0 échec**, puis compilation Release sur simulateur,
+  sans signature ([diagnostics](https://github.com/yarobkl/COVI/actions/runs/45725061764)).
+  Les deux [captures Boutique en français](https://github.com/yarobkl/COVI/actions/runs/45725061764/artifacts/15074478467)
+  ont été inspectées : panier regroupé dans une seule carte, total de 35 000 FCFA
+  avec action fixe, six moyens de paiement, montant reçu de 40 000 FCFA,
+  monnaie de 5 000 FCFA et bouton de confirmation visibles dès l’ouverture
+  sur le simulateur utilisé. Les lignes de paiement sont plus compactes et
+  l’icône des espèces s’affiche correctement.
+- Les captures utilisent exclusivement des données synthétiques en mémoire.
+  Elles n’incluent pas l’en-tête de compte ni le statut de synchronisation
+  de `RootView`. Elles vérifient le rendu, sans valider les gestes de paiement,
+  l’iPad, les grandes tailles de texte, les appareils physiques ni la
+  synchronisation multi-comptes. La conformité visuelle complète de COVI 2.0
+  et sa livraison TestFlight restent à valider.
 
 - Le commit `87232c4` regroupe les cartes du panier et de l’encaissement
   et ajoute des scénarios de capture avec des données synthétiques en mémoire.
