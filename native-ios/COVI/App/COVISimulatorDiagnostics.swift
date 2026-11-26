@@ -17,6 +17,8 @@ final class COVISimulatorDiagnostics {
         case restaurantTables = "restaurant-tables"
         case restaurantTable = "restaurant-table"
         case restaurantOrder = "restaurant-order"
+        case salonToday = "salon-today"
+        case salonAgenda = "salon-agenda"
     }
 
     struct RestaurantSample {
@@ -40,6 +42,7 @@ final class COVISimulatorDiagnostics {
     let due: Int64
     let cashReceived: Int64 = 40_000
     private(set) var restaurantSample: RestaurantSample?
+    private(set) var salonClock: Date?
 
     init(arguments: [String]) throws {
         guard let index = arguments.firstIndex(of: Self.argument),
@@ -70,16 +73,33 @@ final class COVISimulatorDiagnostics {
         session = AppSession(keychain: storage)
         pin = PINManager(keychain: storage)
         owner = UUID(uuidString: "00000000-0000-4000-8000-000000000001")!
-        let isRestaurant = [Scenario.restaurantTables, .restaurantTable, .restaurantOrder].contains(scenario)
+        let kind: BusinessKind
+        let name: String
+        switch scenario {
+        case .restaurantTables, .restaurantTable, .restaurantOrder:
+            kind = .restaurant
+            name = "Restaurant de démonstration"
+        case .salonToday, .salonAgenda:
+            kind = .salon
+            name = "Studio Élégance"
+        default:
+            kind = .boutique
+            name = "Boutique de démonstration"
+        }
         shop = Establishment(
             id: UUID(uuidString: "00000000-0000-4000-8000-000000000002")!,
-            ownerID: owner, name: isRestaurant ? "Restaurant de démonstration" : "Boutique de démonstration",
-            kind: isRestaurant ? .restaurant : .boutique, city: "Brazzaville", currencyCode: "XAF")
+            ownerID: owner, name: name, kind: kind, city: "Brazzaville", currencyCode: "XAF")
 
-        if isRestaurant {
+        if kind == .restaurant {
             basket = [:]
             due = 0
             restaurantSample = try seedRestaurantTables()
+            return
+        }
+        if kind == .salon {
+            basket = [:]
+            due = 0
+            try seedSalon()
             return
         }
 
@@ -176,6 +196,58 @@ final class COVISimulatorDiagnostics {
 
         return RestaurantSample(table: occupied, order: active, lines: lines,
             menu: menu, draft: draft, service: service)
+    }
+
+    private func seedSalon() throws {
+        let context = container.mainContext
+        guard let opening = Calendar.current.date(bySettingHour: 8, minute: 0, second: 0, of: .now) else {
+            throw Failure.invalidScenario
+        }
+        salonClock = opening.addingTimeInterval(25 * 60)
+        context.insert(shop)
+
+        let chloe = SalonStaff(shop: shop.id, name: "Chloé")
+        let brice = SalonStaff(shop: shop.id, name: "Brice")
+        let sarah = SalonStaff(shop: shop.id, name: "Sarah")
+        for person in [chloe, brice, sarah] { context.insert(person) }
+
+        let braids = CatalogItem(establishmentID: shop.id, title: "Tresses Box Braids",
+            priceMinor: 20_000, isService: true)
+        let haircut = CatalogItem(establishmentID: shop.id, title: "Coupe & Barbe VIP",
+            priceMinor: 12_000, isService: true)
+        let treatment = CatalogItem(establishmentID: shop.id, title: "Soin Kératine",
+            priceMinor: 15_000, isService: true)
+        for item in [braids, haircut, treatment] { context.insert(item) }
+
+        let appointments: [(name: String, service: CatalogItem, person: SalonStaff,
+            startsAfterOpening: Int, duration: Int, walkIn: Bool)] = [
+                ("Yannick M.", haircut, brice, 15, 45, true),
+                ("Mireille K.", braids, chloe, 30, 120, false),
+                ("Ornella B.", treatment, sarah, 60, 60, false)
+            ]
+        for appointment in appointments {
+            let client = SalonClient(shop: shop.id, name: appointment.name)
+            context.insert(client)
+            let start = opening.addingTimeInterval(TimeInterval(appointment.startsAfterOpening * 60))
+            context.insert(SalonVisit(shop: shop.id, client: client.id, service: appointment.service.id,
+                stylist: appointment.person.name, start: start,
+                end: start.addingTimeInterval(TimeInterval(appointment.duration * 60)), walkIn: appointment.walkIn))
+        }
+
+        let paidClient = SalonClient(shop: shop.id, name: "Grâce T.")
+        context.insert(paidClient)
+        let order = CommerceOrder(establishmentID: shop.id, createdByID: owner)
+        order.createdAt = opening
+        order.state = .completed
+        order.totalMinor = treatment.priceMinor
+        context.insert(order)
+        context.insert(SalonSaleLine(order: order, client: paidClient.id, stylist: sarah.name,
+            item: treatment, units: 1, gross: treatment.priceMinor))
+        let paid = SalonVisit(shop: shop.id, client: paidClient.id, service: treatment.id,
+            stylist: sarah.name, start: opening, end: opening.addingTimeInterval(20 * 60), walkIn: false)
+        paid.receipt = order.id
+        context.insert(paid)
+        try context.save()
     }
 
     /// Le workflow attend ce signal avant la capture ; aucun détail métier n'y figure.

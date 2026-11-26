@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import Combine
 
 struct SalonSpace: View {
     let shop: Establishment
@@ -14,6 +15,10 @@ struct SalonSpace: View {
     @Query var sales: [SalonSaleLine]
     @Query var team: [SalonStaff]
     @State private var day = Date()
+    @State private var now = Date()
+#if DEBUG && targetEnvironment(simulator)
+    @Environment(\.coviSimulatorDiagnostics) private var diagnostics
+#endif
     @State private var filter: String?
     @State private var booking = false
     @State private var bookingClientID: UUID?
@@ -32,6 +37,14 @@ struct SalonSpace: View {
         _team = Query(filter: #Predicate<SalonStaff> { $0.shop == id }, sort: \.name)
     }
     var admin: Bool { role == .owner || role == .manager }
+    private var activeTeam: [SalonStaff] { team.filter(\.active) }
+    private var selectedStylist: SalonStaff? { activeTeam.first { $0.name == filter } }
+    private var overviewDate: Date {
+#if DEBUG && targetEnvironment(simulator)
+        if let date = diagnostics?.salonClock { return date }
+#endif
+        return now
+    }
     var body: some View {
         Group {
             if tab == .checkout {
@@ -39,72 +52,10 @@ struct SalonSpace: View {
                               visits: visits, team: team)
             } else {
                 List {
-                    if tab == .today || tab == .agenda {
-                        if tab == .today {
-                            let todayVisits = visits.filter { !$0.cancelled && Calendar.current.isDateInToday($0.start) }
-                            let income = sales.filter { Calendar.current.isDateInToday($0.date) }
-                                .reduce(Int64(0)) { $0 + $1.gross }
-                            HStack(spacing: 15) {
-                                Image(systemName: "calendar")
-                                    .font(.largeTitle).foregroundStyle(COVITheme.sand)
-                                VStack(alignment: .leading, spacing: 5) {
-                                    Text("\(todayVisits.count) rendez-vous · Encaissé :")
-                                        .font(.headline)
-                                    Text(COVIMoney.text(income, currency: shop.currencyCode))
-                                        .font(.title2.bold())
-                                }
-                            }
-                            .foregroundStyle(.white)
-                            .padding(18)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(COVITheme.navy, in: RoundedRectangle(cornerRadius: 19))
-                        } else {
-                            DatePicker("Jour", selection: $day, displayedComponents: .date)
-                                .tint(COVITheme.navy)
-                        }
-                        ScrollView(.horizontal) {
-                            HStack(spacing: 9) {
-                                filterChip("Tous", name: nil)
-                                ForEach(team.filter(\.active)) { person in
-                                    filterChip(person.name, name: person.name)
-                                }
-                            }
-                        }
-                        .scrollIndicators(.hidden)
-                        COVIButton(tab == .today ? "+ RDV" : "Nouveau rendez-vous", systemImage: "calendar.badge.plus") {
-                            bookingClientID = nil
-                            booking = true
-                        }
-                        .disabled(team.filter(\.active).isEmpty)
-                        if team.filter(\.active).isEmpty {
-                            Text("Ajoutez un collaborateur depuis Plus pour ouvrir l’agenda.")
-                                .font(.footnote).foregroundStyle(.secondary)
-                        }
-                        let date = tab == .today ? Date.now : day
-                        let rows = visits.filter { Calendar.current.isDate($0.start, inSameDayAs: date) && (filter == nil || $0.stylist == filter) && !$0.cancelled }
-                        if rows.isEmpty { Text("Aucun rendez-vous sur cette journée.") }
-                        if tab == .agenda && !team.filter(\.active).isEmpty {
-                            SalonAgendaTimeline(day: day,
-                                team: team.filter { $0.active && (filter == nil || $0.name == filter) },
-                                visits: visits, clients: clients, menu: menu,
-                                shop: shop.id, actor: actor)
-                                .listRowInsets(EdgeInsets())
-                        } else {
-                            ForEach(rows) { v in
-                                Group {
-                                    if v.receipt == nil {
-                                        NavigationLink {
-                                            SalonAppointmentEditor(visit: v, shop: shop.id, actor: actor,
-                                                clients: clients, menu: menu, team: team)
-                                        } label: { appointmentSummary(v) }
-                                    } else { appointmentSummary(v) }
-                                }.swipeActions {
-                                    if v.receipt == nil {
-                                        Button("Annuler", role: .destructive) { cancellingVisit = v.id }
-                                    }
-                                }
-                            }
-                        }
+                    if tab == .today {
+                        todaySections
+                    } else if tab == .agenda {
+                        agendaSections
                     } else if tab == .clients {
                         Section {
                             COVISectionTitle("Clients (\(clients.count))")
@@ -146,9 +97,28 @@ struct SalonSpace: View {
             }
         }.navigationTitle(tab.title).scrollContentBackground(.hidden).background(COVIBackdrop())
         .toolbar {
+            if tab == .today || tab == .agenda {
+                Button {
+                    bookingClientID = nil
+                    booking = true
+                } label: {
+                    if tab == .today {
+                        Label("RDV", systemImage: "plus").labelStyle(.titleAndIcon)
+                    } else {
+                        Image(systemName: "plus")
+                    }
+                }
+                .accessibilityLabel("Nouveau rendez-vous")
+                .buttonStyle(.borderedProminent)
+                .tint(COVITheme.navy)
+                .disabled(activeTeam.isEmpty)
+            }
             if tab == .clients {
                 Button("Client", systemImage: "plus") { addingClient = true }
             }
+        }
+        .onReceive(Timer.publish(every: 60, on: .main, in: .common).autoconnect()) { current in
+            if tab == .today { now = current }
         }
         .sheet(isPresented: $addingClient) {
             NavigationStack {
@@ -169,9 +139,9 @@ struct SalonSpace: View {
         }
         .sheet(isPresented: $booking) {
             SalonBooking(shop: shop.id, actor: actor, currency: shop.currencyCode, clients: clients, menu: menu,
-                         team: team.filter(\.active), visits: visits,
+                         team: activeTeam, visits: visits,
                          day: tab == .today ? .now : day,
-                         personID: team.first(where: { $0.name == filter && $0.active })?.id,
+                         personID: selectedStylist?.id,
                          initialClient: bookingClientID)
         }
         .confirmationDialog("Annuler le rendez-vous ?", isPresented: Binding(
@@ -188,15 +158,123 @@ struct SalonSpace: View {
         }
     }
 
+    @ViewBuilder private var todaySections: some View {
+        let date = overviewDate
+        let appointments = visits.filter {
+            !$0.cancelled && Calendar.current.isDate($0.start, inSameDayAs: date)
+        }
+        let walkIns = appointments.filter { $0.walkIn && $0.receipt == nil }
+        let upcoming = appointments.filter { !$0.walkIn && $0.receipt == nil && $0.start >= date }
+        let history = appointments.filter {
+            $0.receipt != nil || (!$0.walkIn && $0.start < date)
+        }
+
+        HStack(spacing: 12) {
+            Image(systemName: "calendar")
+                .font(.title2).foregroundStyle(COVITheme.sand)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("\(appointments.count) rendez-vous").font(.headline)
+                if admin {
+                    let income = sales.filter { Calendar.current.isDate($0.date, inSameDayAs: date) }
+                        .reduce(Int64(0)) { $0 + $1.gross }
+                    Text("Encaissé · \(COVIMoney.text(income, currency: shop.currencyCode))")
+                        .font(.subheadline.weight(.semibold))
+                }
+            }
+        }
+        .foregroundStyle(.white)
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(COVITheme.navy, in: RoundedRectangle(cornerRadius: 16))
+        .accessibilityElement(children: .combine)
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+
+        if activeTeam.isEmpty { missingTeam }
+        if appointments.isEmpty {
+            Text("Aucun rendez-vous aujourd’hui.")
+                .foregroundStyle(COVITheme.secondaryText)
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+        }
+        appointmentSection("Passages spontanés", visits: walkIns)
+        appointmentSection("Prochains rendez-vous", visits: upcoming)
+        appointmentSection("Autres rendez-vous du jour", visits: history)
+    }
+
+    @ViewBuilder private var agendaSections: some View {
+        DatePicker("Jour", selection: $day, displayedComponents: .date)
+            .tint(COVITheme.navy)
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+        if activeTeam.isEmpty {
+            missingTeam
+        } else {
+            ScrollView(.horizontal) {
+                HStack(spacing: 9) {
+                    filterChip("Tous (\(activeTeam.count))", name: nil)
+                    ForEach(activeTeam) { person in
+                        filterChip(person.name, name: person.name)
+                    }
+                }
+            }
+            .scrollIndicators(.hidden)
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+            SalonAgendaTimeline(day: day, team: activeTeam, stylist: selectedStylist?.name,
+                visits: visits, clients: clients, menu: menu, shop: shop.id, actor: actor)
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+        }
+    }
+
+    private var missingTeam: some View {
+        Text("Ajoutez un collaborateur depuis Plus pour ouvrir l’agenda.")
+            .font(.footnote)
+            .foregroundStyle(COVITheme.secondaryText)
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+    }
+
+    @ViewBuilder private func appointmentSection(_ title: String, visits: [SalonVisit]) -> some View {
+        if !visits.isEmpty {
+            Section {
+                ForEach(visits) { visit in
+                    Group {
+                        if visit.receipt == nil {
+                            NavigationLink {
+                                SalonAppointmentEditor(visit: visit, shop: shop.id, actor: actor,
+                                    clients: clients, menu: menu, team: team)
+                            } label: { appointmentSummary(visit) }
+                        } else {
+                            appointmentSummary(visit)
+                        }
+                    }
+                    .listRowBackground(Color.white)
+                    .swipeActions {
+                        if visit.receipt == nil {
+                            Button("Annuler", role: .destructive) { cancellingVisit = visit.id }
+                        }
+                    }
+                }
+            } header: {
+                COVISectionTitle(title)
+            }
+        }
+    }
+
     private func filterChip(_ title: String, name: String?) -> some View {
         Button { filter = name } label: {
             Text(title)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(filter == name ? .white : COVITheme.navy)
+                .foregroundStyle(selectedStylist?.name == name ? .white : COVITheme.navy)
                 .padding(.horizontal, 16).padding(.vertical, 11)
-                .background(filter == name ? COVITheme.navy : .white, in: Capsule())
+                .background(selectedStylist?.name == name ? COVITheme.navy : .white, in: Capsule())
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(selectedStylist?.name == name ? .isSelected : [])
     }
 
     private func createClient() {
@@ -221,32 +299,38 @@ struct SalonSpace: View {
     }
 
     private func appointmentSummary(_ visit: SalonVisit) -> some View {
-        COVICard {
-            HStack(spacing: 12) {
-                Image(systemName: "scissors")
-                    .font(.title3).foregroundStyle(COVITheme.navy)
-                    .frame(width: 50, height: 55)
-                    .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 13))
-                VStack(alignment: .leading, spacing: 6) {
-                    Text((clients.first { $0.id == visit.client }?.name ?? "Client") + " · " +
-                         (menu.first { $0.id == visit.service }?.title ?? "Prestation"))
-                        .font(.subheadline.weight(.bold))
-                    Text("\(visit.stylist) · " + visit.start.formatted(date: .omitted, time: .shortened) +
-                         " – " + visit.end.formatted(date: .omitted, time: .shortened))
-                        .font(.caption).foregroundStyle(COVITheme.secondaryText)
-                }
-                Spacer(minLength: 2)
-                COVIBadge(title: visit.receipt != nil ? "Encaissé" : visit.walkIn ? "Arrivé" : "Confirmé",
-                    tint: visit.receipt != nil ? COVITheme.successTint : visit.walkIn ? COVITheme.champagne : COVITheme.warningTint)
+        let name = clients.first { $0.id == visit.client }?.name ?? "Client"
+        let service = menu.first { $0.id == visit.service }?.title ?? "Prestation"
+        return HStack(alignment: .top, spacing: 10) {
+            Image(systemName: visit.walkIn ? "scissors" : "calendar")
+                .font(.body)
+                .frame(width: 38, height: 38)
+                .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 11))
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(name).font(.subheadline.bold())
+                Text(service).font(.subheadline)
+                Text("\(visit.stylist) · " + visit.start.formatted(date: .omitted, time: .shortened) +
+                     " – " + visit.end.formatted(date: .omitted, time: .shortened))
+                    .font(.caption).foregroundStyle(COVITheme.secondaryText)
+                Text(visit.receipt != nil ? "Encaissé" : visit.walkIn ? "Arrivé" : "Confirmé")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(visit.walkIn && visit.receipt == nil ? COVITheme.warning : COVITheme.success)
+                    .padding(.horizontal, 8).padding(.vertical, 3)
+                    .background(visit.walkIn && visit.receipt == nil ? COVITheme.warningTint : COVITheme.successTint,
+                                in: Capsule())
             }
-            .foregroundStyle(COVITheme.navy)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .foregroundStyle(COVITheme.navy)
+        .accessibilityElement(children: .combine)
     }
 }
 
 private struct SalonAgendaTimeline: View {
     let day: Date
     let team: [SalonStaff]
+    let stylist: String?
     let visits: [SalonVisit]
     let clients: [SalonClient]
     let menu: [CatalogItem]
@@ -269,7 +353,7 @@ private struct SalonAgendaTimeline: View {
                             .frame(width: 52, height: halfHourHeight, alignment: .top)
                     }
                 }
-                ForEach(team) { person in
+                ForEach(team.filter { stylist == nil || $0.name == stylist }) { person in
                     VStack(spacing: 0) {
                         HStack(spacing: 6) {
                             Image(systemName: "scissors")

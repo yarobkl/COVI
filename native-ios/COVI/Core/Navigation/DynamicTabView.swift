@@ -118,6 +118,8 @@ struct DynamicTabView: View {
                 switch diagnostics.scenario {
                 case .sale, .checkout: selected = .sell
                 case .restaurantTables: selected = .tables
+                case .salonToday: selected = .today
+                case .salonAgenda: selected = .agenda
                 case .welcome, .boutiqueHome, .restaurantTable, .restaurantOrder: break
                 }
             }

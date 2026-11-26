@@ -141,6 +141,20 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   restent à vérifier ou à intégrer. Les deux vues en capture sont ouvertes
   directement sur simulateur avec des données synthétiques.
 
+### Lot 3 — Salon
+
+- La planche `058F98E6` a été inspectée. L’onglet Aujourd’hui affiche le
+  bandeau du jour, les passages spontanés, les rendez-vous à venir et
+  les autres rendez-vous du jour. Le chiffre encaissé est réservé au propriétaire et au
+  responsable. Agenda place la création en haut et conserve toute l’équipe
+  disponible dans l’éditeur lorsqu’un collaborateur est filtré.
+- Deux scénarios produisent les captures iPhone d’Aujourd’hui et Agenda avec
+  des rendez-vous fictifs et un encaissement en mémoire. Compilation, XCTest
+  et comparaison aux maquettes à confirmer par les diagnostics.
+- La gestion explicite des fauteuils, des arrivées, des absences et des
+  demandes en ligne reste à traiter dans les lots métier. Le formulaire de
+  réservation demande encore une capture et une comparaison.
+
 ### Suite du lot 1
 
 Le correctif d’annulation CloudKit `0872560` a également passé la compilation
