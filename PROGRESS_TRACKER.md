@@ -4,7 +4,12 @@
 
 - Capture en série et import groupé, avec sauvegarde locale à chaque photo et reprise de la file par origine.
 - Analyse Studio lors de la vérification de chaque fiche. Confirmation manuelle des prix et quantités, protection contre une double entrée de stock à la reprise.
-- Tests ajoutés pour 450 captures, le cloisonnement des files et la confirmation répétée. Validation macOS et essai caméra sur appareil à effectuer.
+- `032d2ba` : capture en série et import de 450 photos maximum, files persistantes par établissement et origine, création reprise avec un identifiant stable.
+- `07e63bc` et `66b5355` : droits propriétaire/responsable relus avant chaque réception, historique des coûts réservé aux rôles autorisés, tests de révocation et changement de rôle.
+- `8e80452` : scénario de capture Arrivages intégré à la navigation de diagnostic.
+- `ef646ed` : fin de capture gérée après confirmation de fin de l’opération caméra, y compris en cas d’erreur.
+- Diagnostic macOS [45877890499](https://github.com/yarobkl/COVI/actions/runs/45877890499) réussi sur `ef646ed` : **143 XCTest, zéro échec**, compilations Debug et Release pour simulateur, captures iPhone et iPad. Capture du nouvel écran Arrivages inspectée dans le diagnostic [45875670303](https://github.com/yarobkl/COVI/actions/runs/45875670303), 33 images produites.
+- Restent à réaliser : essai de la caméra en série sur iPhone physique, traitement automatique des fiches en arrière-plan, vrais lots commerciaux avec coûts et variantes, synchronisation des médias et conservation à J+30. Aucun nouvel envoi TestFlight. Les fichiers de captures en attente sont locaux et exclus de la sauvegarde de l’appareil.
 
 ## Boutique COVI 2.0 — Scan en caisse et Studio
 
