@@ -382,6 +382,30 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertEqual(resolved[outside.id], .init(slot: 5, shape: .round, roomID: terrace.id))
     }
 
+    func testRestaurantConfirmsPhysicalGuestsWithinCapacityBeforeBilling() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Restaurant", kind: .restaurant, city: "Brazzaville")
+        let table = DiningTable(establishmentID: shop.id, label: "Table 3", capacity: 4)
+        db.insert(shop)
+        db.insert(table)
+        try db.save()
+        let service = RestaurantService(shop: shop, actor: owner, role: .owner, pin: ownerPIN(), db: db)
+        XCTAssertThrowsError(try service.open(table, guestCount: 5))
+        XCTAssertFalse(table.isOccupied)
+        XCTAssertThrowsError(try service.open(table, guestCount: 0))
+        try service.open(table, guestCount: 2)
+        let order = try XCTUnwrap(db.fetch(FetchDescriptor<CommerceOrder>()).first)
+        XCTAssertEqual(order.restaurantGuestCount, 2)
+
+        try service.confirmGuests(3, at: table, order: order)
+        try service.confirmGuests(3, at: table, order: order)
+        XCTAssertThrowsError(try service.confirmGuests(0, at: table, order: order))
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 2)
+        try service.finish(table, order: order, paid: false)
+        XCTAssertThrowsError(try service.confirmGuests(4, at: table, order: order))
+        XCTAssertEqual(order.restaurantGuestCount, 3)
+    }
+
     func testRestaurantFloorZoomClampsTheViewportScale() {
         XCTAssertEqual(RestaurantFloorZoom.bounded(0.75), 1)
         XCTAssertEqual(RestaurantFloorZoom.bounded(1.75), 1.75)

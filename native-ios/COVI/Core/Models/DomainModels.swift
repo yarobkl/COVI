@@ -147,6 +147,7 @@ enum SupportedCurrency {
     var establishmentID: UUID
     var tableID: UUID?
     var customerID: UUID?
+    var restaurantGuestCount: Int?
     var createdByID: UUID
     var stateRaw: String
     var createdAt: Date

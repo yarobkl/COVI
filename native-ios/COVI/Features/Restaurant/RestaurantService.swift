@@ -4,7 +4,7 @@ import Foundation
 enum Prep: String, CaseIterable { case cooking = "En cuisine", ready = "Prêt", served = "Servi" }
 enum MenuGroup: String, CaseIterable { case food = "Plats", drinks = "Boissons" }
 enum RestaurantFault: LocalizedError {
-    case access, stale, unavailable, invalid, stock, balanceChanged, floorSlotOccupied, floorRoomName
+    case access, stale, unavailable, invalid, stock, balanceChanged, floorSlotOccupied, floorRoomName, guestCount
     var errorDescription: String? {
         switch self {
         case .access: "Vérifiez le rôle et déverrouillez la caisse."
@@ -15,6 +15,7 @@ enum RestaurantFault: LocalizedError {
         case .balanceChanged: "Le reste dû a changé. Vérifiez le montant et confirmez de nouveau."
         case .floorSlotOccupied: "Cette case est occupée dans l’espace de destination. Choisissez une case libre."
         case .floorRoomName: "Saisissez un nom d’espace unique de 1 à 40 caractères."
+        case .guestCount: "Le nombre de convives doit correspondre aux places disponibles à cette table."
         }
     }
 }
@@ -163,10 +164,12 @@ enum RestaurantBill {
             try save()
         } catch { db.rollback(); throw error }
     }
-    func open(_ table: DiningTable) throws {
+    func open(_ table: DiningTable, guestCount: Int? = nil) throws {
         try authorize()
         guard table.establishmentID == shop.id, table.activeSessionID == nil, !table.isOccupied else { throw RestaurantFault.stale }
+        if let guestCount { try validateGuests(guestCount, at: table) }
         let order = CommerceOrder(establishmentID: shop.id, createdByID: actor, tableID: table.id)
+        order.restaurantGuestCount = guestCount
         order.state = .accepted
         table.activeSessionID = order.id
         table.isOccupied = true
@@ -178,6 +181,24 @@ enum RestaurantBill {
             try save()
         } catch { db.rollback(); throw error }
     }
+    func confirmGuests(_ count: Int, at table: DiningTable, order: CommerceOrder) throws {
+        try authorize()
+        try check(table, order)
+        guard !table.billRequested else { throw RestaurantFault.stale }
+        try validateGuests(count, at: table)
+        guard order.restaurantGuestCount != count else { return }
+        order.restaurantGuestCount = count
+        do {
+            try BusinessOutbox.enqueue(kind: "restaurant.order.guests-confirmed", establishmentID: shop.id,
+                entityID: order.id, actorID: actor, relatedIDs: [table.id], in: db)
+            try save()
+        } catch { db.rollback(); throw error }
+    }
+
+    private func validateGuests(_ count: Int, at table: DiningTable) throws {
+        guard count > 0, count <= 100, count <= table.capacity else { throw RestaurantFault.guestCount }
+    }
+
     func check(_ table: DiningTable, _ order: CommerceOrder) throws {
         guard table.establishmentID == shop.id, order.establishmentID == shop.id,
               order.tableID == table.id, table.activeSessionID == order.id, order.state == .accepted

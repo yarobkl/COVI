@@ -28,6 +28,7 @@ struct ArchivedReceipt: Codable, Equatable {
     let orderID: UUID
     let tableID: UUID?
     let customerID: UUID?
+    let guestCount: Int?
     let createdByID: UUID
     let createdAt: Date
     let totalMinor: Int64
@@ -40,12 +41,17 @@ struct ArchivedReceipt: Codable, Equatable {
          payments: [PaymentRecord], catalog: [CatalogItem]) throws {
         _ = try ReceiptBuilder.create(order: order, shop: shop, lines: lines,
                                       products: catalog, payments: payments)
+        if let count = order.restaurantGuestCount {
+            guard shop.kind == .restaurant, order.tableID != nil, (1...100).contains(count)
+            else { throw SyncFault.invalidEvent }
+        }
         version = 1
         ownerID = shop.ownerID
         establishmentID = shop.id
         orderID = order.id
         tableID = order.tableID
         customerID = order.customerID
+        guestCount = order.restaurantGuestCount
         createdByID = order.createdByID
         createdAt = order.createdAt
         totalMinor = order.totalMinor
@@ -66,6 +72,10 @@ struct ArchivedReceipt: Codable, Equatable {
     func importIfNeeded(shop: Establishment, context: ModelContext) throws {
         guard version == 1, establishmentID == shop.id, ownerID == shop.ownerID,
               !articles.isEmpty, !confirmations.isEmpty else { throw SyncFault.invalidEvent }
+        if let guestCount {
+            guard shop.kind == .restaurant, tableID != nil, (1...100).contains(guestCount)
+            else { throw SyncFault.invalidEvent }
+        }
         let verifier = CommerceOrder(establishmentID: shop.id, createdByID: createdByID, tableID: tableID)
         verifier.id = orderID; verifier.customerID = customerID; verifier.createdAt = createdAt
         verifier.state = .completed; verifier.totalMinor = totalMinor; verifier.discountMinor = discountMinor
@@ -124,10 +134,13 @@ struct ArchivedReceipt: Codable, Equatable {
                 }
             }
             if existing.state == .completed {
+                guard guestCount == nil || existing.restaurantGuestCount == nil ||
+                      existing.restaurantGuestCount == guestCount else { throw SyncFault.journalChanged }
                 guard existing.totalMinor == totalMinor,
                       existing.discountMinor == discountMinor,
                       localLines.count == articles.count,
                       localPayments.count == confirmations.count else { throw SyncFault.journalChanged }
+                if let guestCount, existing.restaurantGuestCount == nil { existing.restaurantGuestCount = guestCount }
                 return
             }
             guard existing.state == .accepted || existing.state == .served ||
@@ -158,6 +171,7 @@ struct ArchivedReceipt: Codable, Equatable {
                 context.insert(payment)
             }
             existing.totalMinor = totalMinor
+            existing.restaurantGuestCount = guestCount ?? existing.restaurantGuestCount
             existing.discountMinor = discountMinor
             existing.state = .completed
             if let tableID {
@@ -175,6 +189,7 @@ struct ArchivedReceipt: Codable, Equatable {
         let order = CommerceOrder(establishmentID: shop.id, createdByID: createdByID, tableID: tableID)
         order.id = orderID
         order.customerID = customerID
+        order.restaurantGuestCount = guestCount
         order.createdAt = createdAt
         order.totalMinor = totalMinor
         order.discountMinor = discountMinor

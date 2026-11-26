@@ -24,8 +24,10 @@ libre et les commandes annexes de la maquette restent à intégrer.
 Le sélecteur des salles et terrasses reprend le nom d’espace de la
 planche. La [capture Terrasse](https://github.com/yarobkl/COVI/actions/runs/45871562740/artifacts/15144681293)
 montre deux tables, leurs chaises et les compteurs de l’espace. Le
-sélecteur est au-dessus du plan dans la zone de défilement. La planche
-le place dans l’en-tête. Les interactions sur appareil restent à essayer.
+sélecteur et le taux de zoom restent visibles au-dessus du défilement
+sur les [captures de contrôle](https://github.com/yarobkl/COVI/actions/runs/45883406937/artifacts/15149342069)
+comparées à la planche. À 150 %, le cadre montre une portion du plan.
+Les gestes et les interactions sur appareil restent à essayer.
 
 ## Reprise du lot visuel COVI 2.0
 

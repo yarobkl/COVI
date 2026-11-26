@@ -153,6 +153,7 @@ struct OperationalOrder: Codable, Equatable {
     let shop: UUID
     let table: UUID?
     let customer: UUID?
+    let guestCount: Int?
     let actor: UUID
     let state: String
     let created: Date
@@ -160,7 +161,7 @@ struct OperationalOrder: Codable, Equatable {
     let discount: Int64
     init(_ row: CommerceOrder) {
         id = row.id; shop = row.establishmentID; table = row.tableID
-        customer = row.customerID; actor = row.createdByID
+        customer = row.customerID; guestCount = row.restaurantGuestCount; actor = row.createdByID
         state = row.stateRaw; created = row.createdAt
         total = row.totalMinor; discount = row.discountMinor
     }
@@ -528,6 +529,10 @@ struct OperationalCloudAdapter {
             guard x.id == id, x.shop == sid, x.total >= 0, x.discount >= 0,
                   let state = OrderState(rawValue: x.state), state != .completed,
                   state != .cancelled else { throw SyncFault.invalidEvent }
+            if let count = x.guestCount {
+                guard shop.kind == .restaurant, x.table != nil, (1...100).contains(count)
+                else { throw SyncFault.invalidEvent }
+            }
             if try supersededByReceipt(row, context: context) { return }
             let order = try find(CommerceOrder.self, id: id, context: context) ??
                 CommerceOrder(establishmentID: sid, createdByID: x.actor, tableID: x.table)
@@ -535,6 +540,7 @@ struct OperationalCloudAdapter {
             if shop.kind == .restaurant, OperationalOrder(order) != x,
                try hasPayment(orderID: id, context: context) { throw SyncFault.journalChanged }
             order.id = id; order.tableID = x.table; order.customerID = x.customer
+            order.restaurantGuestCount = x.guestCount ?? order.restaurantGuestCount
             order.createdByID = x.actor; order.createdAt = x.created
             order.stateRaw = x.state; order.totalMinor = x.total; order.discountMinor = x.discount
             context.insert(order)

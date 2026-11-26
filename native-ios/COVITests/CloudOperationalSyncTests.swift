@@ -280,6 +280,7 @@ final class CloudOperationalSyncTests: XCTestCase {
         let table = DiningTable(establishmentID: shop.id, label: "T1", capacity: 4)
         let order = CommerceOrder(establishmentID: shop.id, createdByID: owner, tableID: table.id)
         order.state = .accepted
+        order.restaurantGuestCount = 3
         order.totalMinor = 4_000
         table.isOccupied = true; table.activeSessionID = order.id
         let line = OrderLine(orderID: order.id, catalogItemID: dish.id,
@@ -292,6 +293,7 @@ final class CloudOperationalSyncTests: XCTestCase {
             shop: copy, cloudUserID: "iCloud-A", context: target)
         try target.save()
         XCTAssertEqual(try target.fetch(FetchDescriptor<CommerceOrder>()).first?.state, .accepted)
+        XCTAssertEqual(try target.fetch(FetchDescriptor<CommerceOrder>()).first?.restaurantGuestCount, 3)
         XCTAssertEqual(try target.fetch(FetchDescriptor<DiningTable>()).first?.isOccupied, true)
 
         order.state = .completed; table.isOccupied = false; table.activeSessionID = nil
@@ -304,6 +306,8 @@ final class CloudOperationalSyncTests: XCTestCase {
         try target.save()
         try receipt.importIfNeeded(shop: copy, context: target)
         XCTAssertEqual(try target.fetch(FetchDescriptor<CommerceOrder>()).first?.state, .completed)
+        XCTAssertEqual(try target.fetch(FetchDescriptor<CommerceOrder>()).first?.restaurantGuestCount, 3)
+        XCTAssertEqual(try JSONDecoder().decode(ArchivedReceipt.self, from: JSONEncoder().encode(receipt)).guestCount, 3)
         XCTAssertEqual(try target.fetchCount(FetchDescriptor<PaymentRecord>()), 1)
         XCTAssertEqual(try target.fetch(FetchDescriptor<DiningTable>()).first?.isOccupied, false)
     }

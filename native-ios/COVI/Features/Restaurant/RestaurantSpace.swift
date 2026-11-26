@@ -166,6 +166,7 @@ struct RestaurantTable: View {
     let service: RestaurantService
     @State private var ordering = false
     @State private var closing = false
+    @State private var editingGuests = false
     @Query private var payments: [PaymentRecord]
 #if DEBUG && targetEnvironment(simulator)
     @Environment(\.coviSimulatorDiagnostics) private var diagnostics
@@ -188,19 +189,29 @@ struct RestaurantTable: View {
             VStack(alignment: .leading, spacing: 20) {
                 if let order {
                     COVICard {
-                        ViewThatFits(in: .horizontal) {
-                            HStack {
-                                Label("Ouverte à \(order.createdAt.formatted(date: .omitted, time: .shortened))",
-                                    systemImage: "clock")
-                                Spacer()
-                                Text("\(table.capacity) places")
+                        VStack(alignment: .leading, spacing: 10) {
+                            ViewThatFits(in: .horizontal) {
+                                HStack {
+                                    openingTime(order)
+                                    Spacer()
+                                    Text("\(table.capacity) places")
+                                }
+                                VStack(alignment: .leading, spacing: 6) {
+                                    openingTime(order)
+                                    Text("\(table.capacity) places")
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
                             }
-                            VStack(alignment: .leading, spacing: 6) {
-                                Label("Ouverte à \(order.createdAt.formatted(date: .omitted, time: .shortened))",
-                                    systemImage: "clock")
-                                Text("\(table.capacity) places")
+                            if let counts = order.restaurantGuestCount {
+                                Label("\(counts) convives", systemImage: "person.2")
+                            } else {
+                                Label("Convives non renseignés", systemImage: "person.2")
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                            if !table.billRequested && (service.admin || service.role == .waiter) {
+                                Button("Confirmer les convives") { editingGuests = true }
+                                    .fontWeight(.semibold)
+                                    .frame(minHeight: 44)
+                            }
                         }
                         .font(.subheadline)
                     }
@@ -274,7 +285,7 @@ struct RestaurantTable: View {
                             Text("Ouvrez une session pour prendre les commandes de cette table.")
                         }
                     }
-                    COVIButton("Ouvrir une session") { run { try service.open(table) } }
+                    COVIButton("Ouvrir une session") { editingGuests = true }
                 } else {
                     Text("Session à réconcilier.").foregroundStyle(.red)
                 }
@@ -298,9 +309,69 @@ struct RestaurantTable: View {
             if diagnostics?.scenario == .restaurantPayment { closing = true }
         }
 #endif
+        .sheet(isPresented: $editingGuests) {
+            RestaurantGuestEditor(table: table, existingCount: order?.restaurantGuestCount) { count in
+                if let order { try service.confirmGuests(count, at: table, order: order) }
+                else { try service.open(table, guestCount: count) }
+            }
+        }
         .sheet(isPresented: $ordering) { if let order { RestaurantComposer(menu: menu, table: table, order: order, service: service) } }
     }
+    private func openingTime(_ order: CommerceOrder) -> some View {
+        Label("Ouverte à \(order.createdAt.formatted(date: .omitted, time: .shortened))", systemImage: "clock")
+    }
+
     func run(_ work: () throws -> Void) {
         do { try work(); message = ""; HapticService.confirm() } catch { message = error.localizedDescription; HapticService.error() }
+    }
+}
+
+private struct RestaurantGuestEditor: View {
+    let table: DiningTable
+    let save: (Int) throws -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var count: Int
+    @State private var message = ""
+
+    init(table: DiningTable, existingCount: Int?, save: @escaping (Int) throws -> Void) {
+        self.table = table
+        self.save = save
+        _count = State(initialValue: min(max(1, table.capacity), max(1, existingCount ?? 1)))
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    LabeledContent("Capacité de la table", value: "\(table.capacity) places")
+                    Stepper("Convives présents : \(count)", value: $count, in: 1...max(1, min(table.capacity, 100)))
+                } footer: {
+                    Text("Indiquez le nombre de personnes réellement présentes.")
+                }
+                if !message.isEmpty { Text(message).foregroundStyle(.red) }
+            }
+            .scrollContentBackground(.hidden)
+            .background(COVITheme.cream)
+            .navigationTitle(table.label)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Annuler") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Confirmer") {
+                        do {
+                            try save(count)
+                            HapticService.confirm()
+                            dismiss()
+                        } catch {
+                            message = error.localizedDescription
+                            HapticService.error()
+                        }
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
     }
 }

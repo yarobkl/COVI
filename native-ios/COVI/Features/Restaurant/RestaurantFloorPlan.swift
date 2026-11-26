@@ -187,9 +187,10 @@ struct RestaurantFloorPlan<Detail: View>: View {
                 }
 #if DEBUG && targetEnvironment(simulator)
                 .task {
-                    if let diagnostics, [.restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace, .restaurantFloorZoom].contains(diagnostics.scenario),
-                       let sample = tables.first(where: { $0.label == "Table 10" }) {
-                        if let staged = try? sampleLayout(table: sample, terrace: diagnostics.scenario == .restaurantFloorTerrace) {
+                    if let diagnostics, [.restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace, .restaurantFloorZoom, .restaurantFloorGuests].contains(diagnostics.scenario),
+                       let sample = tables.first(where: { $0.label == (diagnostics.scenario == .restaurantFloorGuests ? "Table 3" : "Table 10") }) {
+                        if let layoutTable = tables.first(where: { $0.label == "Table 10" }),
+                           let staged = try? sampleLayout(table: layoutTable, terrace: diagnostics.scenario == .restaurantFloorTerrace) {
                             diagnosticLayout = try? staged.encoded()
                             roomID = staged.spaces.first?.id
                         }
@@ -532,6 +533,13 @@ struct RestaurantFloorPlan<Detail: View>: View {
                         Text(table.label).font(.title3.bold()).accessibilityAddTraits(.isHeader)
                         Label("Capacité : \(table.capacity) places", systemImage: "person")
                             .font(.subheadline)
+                        if let guests = order?.restaurantGuestCount ?? (table.isOccupied ? nil : 0) {
+                            Label("Places occupées : \(guests) / \(table.capacity)", systemImage: "person.2")
+                                .font(.subheadline)
+                        } else {
+                            Label("Convives non renseignés", systemImage: "person.2")
+                                .font(.subheadline)
+                        }
                     }
                     Spacer(minLength: 6)
                     Button { selectedID = nil } label: {

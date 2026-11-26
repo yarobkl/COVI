@@ -20,6 +20,7 @@ final class COVISimulatorDiagnostics {
         case restaurantFloorEdit = "restaurant-floor-edit"
         case restaurantFloorTerrace = "restaurant-floor-terrace"
         case restaurantFloorZoom = "restaurant-floor-zoom"
+        case restaurantFloorGuests = "restaurant-floor-guests"
         case restaurantTable = "restaurant-table"
         case restaurantOrder = "restaurant-order"
         case restaurantReport = "restaurant-report"
@@ -113,7 +114,7 @@ final class COVISimulatorDiagnostics {
         let kind: BusinessKind
         let name: String
         switch scenario {
-        case .restaurantTables, .restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace, .restaurantFloorZoom, .restaurantTable, .restaurantOrder, .restaurantReport, .restaurantTeam, .restaurantKitchen, .restaurantMenu, .restaurantDrinks, .restaurantPayment:
+        case .restaurantTables, .restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace, .restaurantFloorZoom, .restaurantFloorGuests, .restaurantTable, .restaurantOrder, .restaurantReport, .restaurantTeam, .restaurantKitchen, .restaurantMenu, .restaurantDrinks, .restaurantPayment:
             kind = .restaurant
             name = "Restaurant de démonstration"
         case .salonCatalog, .salonReport, .salonMore, .salonSettings, .salonCheckout, .salonToday, .salonAgenda, .salonBooking, .salonBookingConflict, .salonClients, .salonProfile:
@@ -134,7 +135,7 @@ final class COVISimulatorDiagnostics {
                 try seedRestaurantReport()
             } else if scenario == .restaurantTeam {
                 try seedRestaurantTeam()
-            } else if scenario == .restaurantFloorPlan || scenario == .restaurantFloorEdit || scenario == .restaurantFloorTerrace || scenario == .restaurantFloorZoom {
+            } else if scenario == .restaurantFloorPlan || scenario == .restaurantFloorEdit || scenario == .restaurantFloorTerrace || scenario == .restaurantFloorZoom || scenario == .restaurantFloorGuests {
                 try seedRestaurantFloorPlan()
             } else if scenario == .restaurantDrinks {
                 try seedRestaurantDrinks()
@@ -215,7 +216,7 @@ final class COVISimulatorDiagnostics {
         for number in [2, 3, 6] {
             guard let index = numbers.firstIndex(of: number) else { throw Failure.invalidScenario }
             let table = tables[index]
-            try service.open(table)
+            try service.open(table, guestCount: number == 3 ? 2 : nil)
             let id = table.activeSessionID
             guard let order = try context.fetch(FetchDescriptor<CommerceOrder>()).first(where: { $0.id == id }) else {
                 throw Failure.invalidScenario
@@ -623,7 +624,7 @@ struct COVISimulatorDiagnosticView: View {
                 fixture.scenario != .restaurantMenu && fixture.scenario != .restaurantDrinks &&
                 fixture.scenario != .restaurantPayment && fixture.scenario != .restaurantFloorPlan &&
                 fixture.scenario != .restaurantFloorEdit && fixture.scenario != .restaurantFloorTerrace &&
-                fixture.scenario != .restaurantFloorZoom {
+                fixture.scenario != .restaurantFloorZoom && fixture.scenario != .restaurantFloorGuests {
                 await fixture.signalAfterPresentation()
             }
         }

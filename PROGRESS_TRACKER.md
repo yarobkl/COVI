@@ -446,11 +446,28 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   conservent une liste lisible sur une colonne.
 - Sur `ccc1676`, les compilations Debug et Release et les **145 XCTest
   sans échec** ont réussi, dont le test des bornes du zoom. Les étapes de
-  capture iPhone et iPad ont réussi. La comparaison de la vue à 150 %
-  et du sélecteur avec la planche Salle reste à faire. Les gestes de
-  pincement et de déplacement restent à essayer sur appareil.
+  capture iPhone et iPad ont réussi. Les vues à 100 % et 150 % ont
+  ensuite été comparées à la planche Salle. Le sélecteur est visible
+  même lorsque le résumé est ouvert. À 150 %, les libellés et chaises
+  sont agrandis et le plan dépasse le cadre. Le changement de zone
+  et le pincement restent à tester en interaction sur appareil.
   [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45883406937) ·
   [Captures](https://github.com/yarobkl/COVI/actions/runs/45883406937/artifacts/15149342069)
+
+### Convives présents à une table
+
+- Le résumé Salle sépare capacité et places occupées, comme dans la
+  maquette. La salle montre zéro place occupée pour une table libre et
+  un nombre non renseigné pour une session historique sans décompte.
+- L’ouverture manuelle demande une confirmation de 1 à la capacité
+  enregistrée. Le personnel autorisé peut corriger le nombre avant la
+  demande d’addition. Le journal garde l’acteur de la confirmation.
+- Le nombre est un attribut SwiftData facultatif de la commande et
+  figure dans les instantanés et reçus CloudKit. Les anciens payloads
+  restent lisibles. La migration depuis une installation physique
+  et la synchronisation CloudKit en conditions réelles restent à vérifier.
+- Le diagnostic de Salle avec deux convives pour trois places et le
+  test du service doivent être vérifiés sur GitHub Actions.
 
 ### Contrôles iOS et limites
 
@@ -465,8 +482,7 @@ le lancement direct sous un délai global a livré les 20 captures. Les captures
 XXXL de la Caisse et du Catalogue confirment les lignes verticales et le bouton
 « Encaisser » lisible. Le détail de caisse demande un défilement à cette taille.
 
-Aucun modèle SwiftData existant n'a été modifié. La conservation d'une ancienne
-base installée, les appareils physiques, la synchronisation CloudKit réelle,
+La conservation d'une ancienne base installée, les appareils physiques, la synchronisation CloudKit réelle,
 les comptes collaborateurs distants et la livraison TestFlight restent non
 validés. Les lots Boutique Scan/Studio, QR Restaurant, paiements mixtes/crédit
 et les autres écarts du contrat produit ne sont pas déclarés terminés.
