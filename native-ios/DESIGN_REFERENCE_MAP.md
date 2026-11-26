@@ -30,7 +30,7 @@ Les pièces jointes accessibles dans ce lot comprennent **16 fichiers JPEG compo
 | `6906CB2C` | Connexion, Création de compte | `AppSession.swift` | Habillage avancé ; parcours de compte distant à intégrer |
 | `2A49F962` | Restaurant : Tables, Table 01, Commander | `RestaurantSpace.swift`, `RestaurantMenu.swift` | Tables, Table 01 et Commander comparés sur simulateur. En-tête, photos, QR et navigation complète à vérifier ou intégrer. |
 | `A30B3A65` | Restaurant : Équipe & Accès, Rapports service | `OwnerSettings.swift`, `MoreSpace.swift` | Fonctions existantes ; rendu à comparer |
-| `058F98E6` | Salon : Aujourd’hui, Agenda, Nouveau rendez-vous | `SalonSpace.swift` | Résumé du jour, grille et réservation reliés aux données |
+| `058F98E6` | Salon : Aujourd’hui, Agenda, Nouveau rendez-vous | `SalonSpace.swift` | Aujourd’hui et Agenda comparés sur [simulateur iPhone](https://github.com/yarobkl/COVI/actions/runs/45750702103/artifacts/15086390409). Densité, date, couleurs et états métier à rapprocher. Nouveau rendez-vous reste à capturer. |
 | `C0053217` | Salon : Clients, Fiche client | `SalonSpace.swift` | Liste, historique, modification et rendez-vous reliés aux données |
 | `6155DBBE` | Salon : Caisse, Catalogue | `SalonCheckout.swift` | Encaissement et catalogue existants ; rendu à comparer |
 | `A2188A03` | Restaurant : Cuisine, Encaissement partiel, Incident | `RestaurantSpace.swift`, `RestaurantService.swift` | Cuisine opérationnelle ; règlement partiel et incident à intégrer |

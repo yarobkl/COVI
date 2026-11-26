@@ -148,9 +148,18 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   les autres rendez-vous du jour. Le chiffre encaissé est réservé au propriétaire et au
   responsable. Agenda place la création en haut et conserve toute l’équipe
   disponible dans l’éditeur lorsqu’un collaborateur est filtré.
-- Deux scénarios produisent les captures iPhone d’Aujourd’hui et Agenda avec
-  des rendez-vous fictifs et un encaissement en mémoire. Compilation, XCTest
-  et comparaison aux maquettes à confirmer par les diagnostics.
+- Sur `29f60be`, Debug et Release compilent et les journaux confirment
+  **118 XCTest exécutés, 0 échec** sur simulateur
+  ([diagnostics macOS](https://github.com/yarobkl/COVI/actions/runs/45750702103)).
+- Les [captures iPhone d’Aujourd’hui et Agenda](https://github.com/yarobkl/COVI/actions/runs/45750702103/artifacts/15086390409)
+  ont été comparées à `058F98E6`. Aujourd’hui montre l’action RDV, le bandeau
+  avec 4 rendez-vous et 15 000 FCFA, le passage spontané et les deux rendez-vous
+  à venir. Agenda montre les filtres, les heures, les colonnes et les deux
+  premiers rendez-vous. Sarah est accessible par le filtre ou le défilement.
+  L’en-tête de compte est hors capture. Les lignes d’Aujourd’hui sont plus hautes
+  que sur la maquette ; sur Agenda, le titre, la date et les couleurs des cartes
+  diffèrent. Les deux écrans restent à rapprocher de la maquette et à vérifier
+  sur appareil physique.
 - La gestion explicite des fauteuils, des arrivées, des absences et des
   demandes en ligne reste à traiter dans les lots métier. Le formulaire de
   réservation demande encore une capture et une comparaison.
