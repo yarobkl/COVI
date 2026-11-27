@@ -244,7 +244,7 @@ final class COVISimulatorDiagnostics {
             .init(product: trousers, units: 1)
         ], discount: 0)
 
-        if scenario == .boutiquePhotoSearch {
+        if [.boutiquePhotoSearch, .shopHeader].contains(scenario) {
             let root = FileManager.default.temporaryDirectory.appendingPathComponent("covi-photo-" + UUID().uuidString)
             let size = CGSize(width: 360, height: 360)
             let image = UIGraphicsImageRenderer(size: size).image { context in

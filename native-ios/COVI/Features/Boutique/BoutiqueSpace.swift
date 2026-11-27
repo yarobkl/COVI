@@ -46,6 +46,15 @@ struct BoutiqueSpace: View {
     var lowStock: [CatalogItem] {
         goods.filter { !$0.soldOut && $0.stockOnHand - $0.stockReserved <= 2 }
     }
+
+    private var photoRoot: URL? {
+        #if DEBUG && targetEnvironment(simulator)
+        return diagnostics?.boutiquePhotoSample?.root
+        #else
+        return nil
+        #endif
+    }
+
     var body: some View {
         Group {
             if tab == .home { homeScreen }
@@ -66,13 +75,8 @@ struct BoutiqueSpace: View {
             }
         }
         .sheet(isPresented: $photoSearch) {
-            #if DEBUG && targetEnvironment(simulator)
-            let root = diagnostics?.boutiquePhotoSample?.root
-            #else
-            let root: URL? = nil
-            #endif
             BoutiqueSalePhotoSearch(shopID: shop.id, goods: goods, basket: basket,
-                currency: shop.currencyCode, photoRoot: root) { item in
+                currency: shop.currencyCode, photoRoot: photoRoot) { item in
                 photoSearch = false
                 add(item)
             }
@@ -274,14 +278,21 @@ struct BoutiqueSpace: View {
                                 ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
                                 : AnyLayout(HStackLayout(spacing: 10))
                             lineLayout {
-                                VStack(alignment: .leading, spacing: 5) {
-                                    Text(line.product.title).font(.subheadline.weight(.semibold))
-                                    if let subtotal = line.subtotal {
-                                        Text(COVIMoney.text(subtotal, currency: shop.currencyCode))
-                                            .font(.subheadline).foregroundStyle(COVITheme.secondaryText)
-                                    } else {
-                                        Text("Montant invalide").font(.subheadline).foregroundStyle(COVITheme.warning)
+                                HStack(spacing: 10) {
+                                    if !textSize.isAccessibilitySize {
+                                        BoutiqueProductThumbnail(shopID: shop.id, itemID: line.product.id,
+                                                                 root: photoRoot)
                                     }
+                                    VStack(alignment: .leading, spacing: 5) {
+                                        Text(line.product.title).font(.subheadline.weight(.semibold))
+                                        if let subtotal = line.subtotal {
+                                            Text(COVIMoney.text(subtotal, currency: shop.currencyCode))
+                                                .font(.subheadline).foregroundStyle(COVITheme.secondaryText)
+                                        } else {
+                                            Text("Montant invalide").font(.subheadline).foregroundStyle(COVITheme.warning)
+                                        }
+                                    }
+                                    .fixedSize(horizontal: false, vertical: true)
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 HStack(spacing: 0) {
@@ -336,7 +347,7 @@ struct BoutiqueSpace: View {
                     Button { add(item) } label: {
                         COVICard {
                             HStack(spacing: 12) {
-                                BoutiqueProductThumbnail(shopID: shop.id, itemID: item.id)
+                                BoutiqueProductThumbnail(shopID: shop.id, itemID: item.id, root: photoRoot)
                                 VStack(alignment: .leading, spacing: 7) {
                                     Text(item.title).font(.headline)
                                     Text(COVIMoney.text(item.priceMinor, currency: shop.currencyCode))
