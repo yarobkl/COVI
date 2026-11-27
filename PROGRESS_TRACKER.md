@@ -423,7 +423,21 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   la ligne. Les anciennes lignes sans réservation et les boissons
   sans suivi gardent leur parcours. Le miroir CloudKit transporte
   l’indicateur de réservation et le mouvement de service.
-- Les preuves de test et de rendu restent à consigner.
+- Sur `f33ab0a`, Debug, Release, **160 XCTest sans échec** et
+  45 captures. Les tests couvrent le refus d’une commande qui
+  dépasse le disponible, l’absence de double déduction et le
+  rejeu des mouvements sur une seconde base de test.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45965542345)
+- Les [captures iPhone](https://github.com/yarobkl/COVI/actions/runs/45965542345/artifacts/15183503965)
+  comparées à `683EE982` montrent le bandeau de réservation et
+  les quatre soldes calculés par les parcours. Le scénario Primus
+  donne 36 physiques après deux services, dont 4 réservées et
+  32 disponibles. Les autres articles affichent 9, 13 et 0 unités
+  disponibles comme sur la planche.
+- La liste utilise des pictogrammes et un ordre alphabétique.
+  Au réglage XXXL, le bandeau demande de défiler pour lire les
+  soldes. Le parcours et la synchronisation entre appareils
+  physiques restent à vérifier.
 
 ### Encaissement partiel du Restaurant
 
