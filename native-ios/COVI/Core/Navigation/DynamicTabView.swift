@@ -137,7 +137,7 @@ struct DynamicTabView: View {
                 case .salonToday: selected = .today
                 case .salonClients, .salonClientsUpcoming, .salonProfile: selected = .clients
                 case .salonAgenda, .salonAgendaGrid, .salonBooking, .salonBookingConflict: selected = .agenda
-                case .welcome, .spaces, .establishmentSetup, .cashierPIN, .boutiqueHome, .boutiqueArrivals, .restaurantTable, .restaurantOrder, .restaurantOrderDrinks,
+                case .welcome, .spaces, .establishmentSetup, .cashierPIN, .accountLogin, .accountRegistration, .boutiqueHome, .boutiqueArrivals, .restaurantTable, .restaurantOrder, .restaurantOrderDrinks,
                      .restaurantPayment, .restaurantPaidTable, .restaurantIncident, .salonCatalog: break
                 }
             }

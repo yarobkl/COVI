@@ -16,6 +16,8 @@ final class COVISimulatorDiagnostics {
         case establishmentSetup = "establishment-setup"
         case cashierPIN = "cashier-pin"
         case syncCentre = "sync-centre"
+        case accountLogin = "account-login"
+        case accountRegistration = "account-registration"
         case boutiqueHome = "boutique-home"
         case boutiqueArrivals = "boutique-arrivals"
         case boutiquePhotoSearch = "boutique-photo-search"
@@ -154,7 +156,7 @@ final class COVISimulatorDiagnostics {
             try pin.configureCashierPIN("1234", for: owner, shopID: shop.id)
             return
         }
-        if scenario == .establishmentSetup {
+        if [.establishmentSetup, .accountLogin, .accountRegistration].contains(scenario) {
             basket = [:]
             due = 0
             return
@@ -762,7 +764,7 @@ struct COVISimulatorDiagnosticView: View {
 
     var body: some View {
         Group {
-            if [.welcome, .establishmentSetup].contains(fixture.scenario) {
+            if [.welcome, .establishmentSetup, .accountLogin, .accountRegistration].contains(fixture.scenario) {
                 // RootView utilise une session mémoire, anonyme ou locale selon le scénario.
                 RootView()
             } else if fixture.scenario == .spaces {
@@ -804,6 +806,7 @@ struct COVISimulatorDiagnosticView: View {
             if fixture.salonBooking == nil && fixture.salonProfileID == nil &&
                 fixture.scenario != .establishmentSetup && fixture.scenario != .cashierPIN &&
                 fixture.scenario != .syncCentre &&
+                fixture.scenario != .accountLogin && fixture.scenario != .accountRegistration &&
                 fixture.scenario != .salonReport && fixture.scenario != .salonSettings &&
                 fixture.scenario != .boutiquePhotoSearch &&
                 fixture.scenario != .restaurantReport && fixture.scenario != .restaurantIncident && fixture.scenario != .restaurantTeam &&

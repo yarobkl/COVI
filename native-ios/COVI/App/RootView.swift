@@ -341,6 +341,9 @@ private struct COVILaunch: View {
 
 private struct COVIWelcome: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+#if DEBUG && targetEnvironment(simulator)
+    @Environment(\.coviSimulatorDiagnostics) private var diagnostics
+#endif
     @ScaledMetric(relativeTo: .largeTitle) private var headingSize: CGFloat = 36
     private enum Route: Hashable { case register, login }
     @State private var path: [Route] = []
@@ -388,11 +391,21 @@ private struct COVIWelcome: View {
             .background(COVIBackdrop())
             .navigationDestination(for: Route.self) { route in
                 switch route {
-                case .login: AccountLogin().navigationTitle("Se connecter")
+                case .login: AccountLogin(onRegistration: { path.append(.register) })
                 case .register: RegistrationView()
                 }
             }
         }
+#if DEBUG && targetEnvironment(simulator)
+        .task {
+            guard path.isEmpty else { return }
+            if diagnostics?.scenario == .accountLogin {
+                path = [.login]
+            } else if diagnostics?.scenario == .accountRegistration {
+                path = [.register]
+            }
+        }
+#endif
     }
 }
 
