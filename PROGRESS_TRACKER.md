@@ -831,10 +831,13 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   laissent place aux types et dates d’opérations. Un transfert d’un
   second commerce est exclu. Le bouton reste grisé sans connexion
   Apple du propriétaire. [Diagnostics](https://github.com/yarobkl/COVI/actions/runs/45997425277)
-  réussis avec 162 XCTest sans échec et 55 captures. En XXXL, le titre
-  de navigation est tronqué. Le correctif place le titre dans le
-  contenu et masque la commande indisponible à cette taille. La
-  nouvelle capture reste à contrôler.
+  réussis avec 162 XCTest sans échec et 55 captures. La première capture
+  XXXL tronquait le titre. Sur `2686ac2`, le titre s’affiche en entier
+  et le début du journal est visible après le bandeau. L’icône de ligne
+  reste serrée et les autres entrées demandent de défiler. La commande
+  indisponible est retirée à cette taille. Le lancement manuel et la
+  synchronisation entre appareils restent à essayer.
+  [Captures du correctif](https://github.com/yarobkl/COVI/actions/runs/46000296885/artifacts/15199270364)
 - La planche `6906CB2C` (SHA-256 `c1d74327…`) montre deux écrans
   d’entrée, avec titre, formulaires et liens de navigation. Sur
   `5a5636f`, la connexion et la création reprennent une structure
@@ -844,6 +847,21 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   de passe, Google et la confirmation e-mail attendent l’autorité
   de compte distante. L’accès au projet Supabase de préproduction
   est toujours refusé le 27 novembre.
+- Sur `5a5636f`, Debug, Release et **162 XCTest sans échec**, avec
+  59 captures. [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45997721716)
+- Les [captures](https://github.com/yarobkl/COVI/actions/runs/45997721716/artifacts/15197349314)
+  comparées à `6906CB2C` montrent le logo, les titres, le retour iOS
+  et le lien de création dans la connexion. La création affiche ses
+  deux champs locaux et l’action grisée avant la saisie du nom.
+  En XXXL, le titre et l’action Apple restent visibles et les options
+  locales demandent de défiler. Le bouton Google et les écrans de
+  mot de passe et de confirmation restent à intégrer. Les actions
+  Apple et locales sont à essayer sur appareil.
+- Le [diagnostic de `2686ac2`](https://github.com/yarobkl/COVI/actions/runs/46000296885)
+  confirme Debug, Release, **162 XCTest sans échec** et 59 captures.
+  Les trois vues ont été revues en taille standard et XXXL. Le test
+  du journal vérifie que seul le transfert iCloud en attente entre
+  dans le compteur, tandis que la vente reste dans le journal local.
 
 ### Lot 3 — Boutique
 
