@@ -122,8 +122,8 @@ struct RestaurantCheckout: View {
         }
 #if DEBUG && targetEnvironment(simulator)
         .task {
-            if let diagnostics, diagnostics.scenario == .restaurantPayment {
-                mode = .partial
+            if let diagnostics, [.restaurantPayment, .restaurantFloorCheckoutSheet].contains(diagnostics.scenario) {
+                if diagnostics.scenario == .restaurantPayment { mode = .partial }
                 await diagnostics.signalAfterPresentation()
             }
         }

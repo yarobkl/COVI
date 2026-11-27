@@ -212,7 +212,9 @@ struct DynamicTabView: View {
                role == .owner, pinManager.mayOperate(shop: establishment, actor: accountID) {
                 switch diagnostics.scenario {
                 case .sale, .checkout, .boutiquePhotoSearch, .shopHeader, .boutiqueCategory: selected = .sell
-                case .restaurantTables, .restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace, .restaurantFloorZoom, .restaurantFloorGuests: selected = .tables
+                case .restaurantTables, .restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace,
+                     .restaurantFloorZoom, .restaurantFloorGuests, .restaurantFloorCheckout,
+                     .restaurantFloorCheckoutSheet: selected = .tables
                 case .restaurantKitchen, .restaurantKitchenReady: selected = .kitchen
                 case .salonCheckout: selected = .checkout
                 case .salonReport, .salonReportAbsences, .salonMore, .salonSettings, .restaurantReport, .restaurantTeam, .restaurantMenu, .restaurantDrinks, .syncCentre: selected = .more

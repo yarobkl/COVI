@@ -31,6 +31,8 @@ final class COVISimulatorDiagnostics {
         case restaurantFloorTerrace = "restaurant-floor-terrace"
         case restaurantFloorZoom = "restaurant-floor-zoom"
         case restaurantFloorGuests = "restaurant-floor-guests"
+        case restaurantFloorCheckout = "restaurant-floor-checkout"
+        case restaurantFloorCheckoutSheet = "restaurant-floor-checkout-sheet"
         case restaurantTable = "restaurant-table"
         case restaurantOrder = "restaurant-order"
         case restaurantOrderDrinks = "restaurant-order-drinks"
@@ -60,7 +62,21 @@ final class COVISimulatorDiagnostics {
         case salonProfile = "salon-profile"
 
         var showsShopHeader: Bool {
-            [.shopHeader, .boutiqueCategory, .restaurantFloorPlan, .salonAgenda].contains(self)
+            [.shopHeader, .boutiqueCategory, .restaurantFloorPlan, .restaurantFloorCheckout,
+             .restaurantFloorCheckoutSheet, .salonAgenda].contains(self)
+        }
+
+        var isFloorPlan: Bool {
+            [.restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace, .restaurantFloorZoom,
+             .restaurantFloorGuests, .restaurantFloorCheckout, .restaurantFloorCheckoutSheet].contains(self)
+        }
+
+        var floorSampleLabel: String {
+            switch self {
+            case .restaurantFloorGuests: "Table 3"
+            case .restaurantFloorCheckout, .restaurantFloorCheckoutSheet: "Table 6"
+            default: "Table 10"
+            }
         }
     }
 
@@ -139,7 +155,11 @@ final class COVISimulatorDiagnostics {
         let kind: BusinessKind
         let name: String
         switch scenario {
-        case .restaurantTables, .restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace, .restaurantFloorZoom, .restaurantFloorGuests, .restaurantTable, .restaurantOrder, .restaurantOrderDrinks, .restaurantReport, .restaurantIncident, .restaurantTeam, .restaurantKitchen, .restaurantKitchenReady, .restaurantMenu, .restaurantDrinks, .restaurantPayment, .restaurantPaidTable:
+        case .restaurantTables, .restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace,
+             .restaurantFloorZoom, .restaurantFloorGuests, .restaurantFloorCheckout, .restaurantFloorCheckoutSheet,
+             .restaurantTable, .restaurantOrder, .restaurantOrderDrinks, .restaurantReport, .restaurantIncident,
+             .restaurantTeam, .restaurantKitchen, .restaurantKitchenReady, .restaurantMenu,
+             .restaurantDrinks, .restaurantPayment, .restaurantPaidTable:
             kind = .restaurant
             name = "Restaurant de démonstration"
         case .salonCatalog, .salonReport, .salonReportAbsences, .salonMore, .salonSettings, .salonCheckout, .salonToday, .salonAgenda, .salonAgendaGrid, .salonBooking, .salonBookingConflict, .salonClients, .salonClientsUpcoming, .salonClientsAbsences, .salonProfile:
@@ -197,7 +217,7 @@ final class COVISimulatorDiagnostics {
                 restaurantSample = try seedRestaurantIncidentOrder(label: "Table 01")
             } else if scenario == .restaurantTeam {
                 try seedRestaurantTeam()
-            } else if scenario == .restaurantFloorPlan || scenario == .restaurantFloorEdit || scenario == .restaurantFloorTerrace || scenario == .restaurantFloorZoom || scenario == .restaurantFloorGuests {
+            } else if scenario.isFloorPlan {
                 try seedRestaurantFloorPlan()
             } else if scenario == .restaurantDrinks {
                 try seedRestaurantDrinks()
@@ -321,7 +341,8 @@ final class COVISimulatorDiagnostics {
         for number in [2, 3, 6] {
             guard let index = numbers.firstIndex(of: number) else { throw Failure.invalidScenario }
             let table = tables[index]
-            try service.open(table, guestCount: number == 3 ? 2 : nil)
+            let checkoutSample = [.restaurantFloorCheckout, .restaurantFloorCheckoutSheet].contains(scenario)
+            try service.open(table, guestCount: number == 3 ? 2 : number == 6 && checkoutSample ? 3 : nil)
             let id = table.activeSessionID
             guard let order = try context.fetch(FetchDescriptor<CommerceOrder>()).first(where: { $0.id == id }) else {
                 throw Failure.invalidScenario
@@ -330,6 +351,14 @@ final class COVISimulatorDiagnostics {
                 try service.send([plate.id: 2], menu: [plate], table: table, order: order)
             }
             if number == 6 {
+                if checkoutSample {
+                    let orderID = order.id
+                    let lines = try context.fetch(FetchDescriptor<OrderLine>(
+                        predicate: #Predicate { $0.orderID == orderID }))
+                    for phase in [Prep.received, .cooking, .ready] {
+                        try service.advance(lines, from: phase, table: table, order: order)
+                    }
+                }
                 try service.finish(table, order: order, paid: false)
             }
         }

@@ -130,6 +130,12 @@ enum RestaurantFloorZoom {
 }
 
 struct RestaurantFloorPlan<Detail: View>: View {
+    private struct CheckoutTarget: Identifiable {
+        let table: DiningTable
+        let order: CommerceOrder
+        var id: UUID { order.id }
+    }
+
     let tables: [DiningTable]
     let orders: [CommerceOrder]
     let lines: [OrderLine]
@@ -148,6 +154,8 @@ struct RestaurantFloorPlan<Detail: View>: View {
     @State private var showingRoomEditor = false
     @State private var highlightedState: RestaurantFloorState?
     @State private var editingTable: DiningTable?
+    @State private var checkout: CheckoutTarget?
+    @State private var checkoutError = ""
 #if DEBUG && targetEnvironment(simulator)
     @Environment(\.coviSimulatorDiagnostics) private var diagnostics
     @State private var diagnosticLayout: Data?
@@ -190,8 +198,8 @@ struct RestaurantFloorPlan<Detail: View>: View {
                 }
 #if DEBUG && targetEnvironment(simulator)
                 .task {
-                    if let diagnostics, [.restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace, .restaurantFloorZoom, .restaurantFloorGuests].contains(diagnostics.scenario),
-                       let sample = tables.first(where: { $0.label == (diagnostics.scenario == .restaurantFloorGuests ? "Table 3" : "Table 10") }) {
+                    if let diagnostics, diagnostics.scenario.isFloorPlan,
+                       let sample = tables.first(where: { $0.label == diagnostics.scenario.floorSampleLabel }) {
                         if let layoutTable = tables.first(where: { $0.label == "Table 10" }),
                            let staged = try? sampleLayout(table: layoutTable, terrace: diagnostics.scenario == .restaurantFloorTerrace) {
                             diagnosticLayout = try? staged.encoded()
@@ -200,6 +208,10 @@ struct RestaurantFloorPlan<Detail: View>: View {
                         if diagnostics.scenario == .restaurantFloorZoom { zoom = 1.5 }
                         else { selectedID = sample.id }
                         if diagnostics.scenario == .restaurantFloorEdit { editingTable = sample }
+                        else if diagnostics.scenario == .restaurantFloorCheckoutSheet,
+                                let order = orders.first(where: { $0.id == sample.activeSessionID }) {
+                            presentCheckout(sample, order: order)
+                        }
                         else { await diagnostics.signalAfterPresentation() }
                     }
                 }
@@ -215,6 +227,11 @@ struct RestaurantFloorPlan<Detail: View>: View {
                 }
             }
         }
+        .sheet(item: $checkout) { target in
+            RestaurantCheckout(table: target.table, order: target.order, service: service)
+                .presentationDetents([.fraction(0.84), .large])
+                .presentationDragIndicator(.visible)
+        }
         .sheet(isPresented: $showingRoomEditor) {
             RestaurantFloorRoomEditor(existing: renamingRoom) { name, kind in
                 let added = try saveLayout { layout -> UUID? in
@@ -226,6 +243,21 @@ struct RestaurantFloorPlan<Detail: View>: View {
                 }
                 if let added { selectRoom(added) }
             }
+        }
+        .alert("Encaissement", isPresented: Binding(get: { !checkoutError.isEmpty },
+            set: { if !$0 { checkoutError = "" } })) {
+            Button("OK") {}
+        } message: {
+            Text(checkoutError)
+        }
+    }
+
+    private func presentCheckout(_ table: DiningTable, order: CommerceOrder) {
+        do {
+            guard try service.paymentBalance(table, order: order) > 0 else { throw RestaurantFault.invalid }
+            checkout = CheckoutTarget(table: table, order: order)
+        } catch {
+            checkoutError = error.localizedDescription
         }
     }
 
@@ -563,13 +595,22 @@ struct RestaurantFloorPlan<Detail: View>: View {
                         } ?? "À vérifier")
                         .font(.subheadline)
                 }
-                if service.admin {
-                    Button { editingTable = table } label: {
-                        Label("Déplacer ou orienter", systemImage: "arrow.up.and.down.and.arrow.left.and.right")
-                            .font(.subheadline.weight(.semibold))
-                            .frame(minHeight: 44)
+                let actionLayout = textSize.isAccessibilitySize
+                    ? AnyLayout(VStackLayout(spacing: 8))
+                    : AnyLayout(HStackLayout(spacing: 8))
+                actionLayout {
+                    if service.admin {
+                        COVIButton("Déplacer", systemImage: "arrow.up.and.down.and.arrow.left.and.right",
+                                   role: .secondary) { editingTable = table }
+                            .accessibilityLabel("Déplacer ou orienter")
                     }
-                    .buttonStyle(.plain)
+                    if let order, state == .checkout, order.state == .accepted,
+                       let due = try? RestaurantBill.checkoutBalance(order,
+                           lines: lines.filter { $0.orderID == order.id }, payments: payments), due > 0 {
+                        COVIButton("Encaisser", systemImage: "creditcard", role: .secondary) {
+                            presentCheckout(table, order: order)
+                        }
+                    }
                 }
                 NavigationLink {
                     detail(table)

@@ -1483,7 +1483,9 @@ final class CommerceFlowTests: XCTestCase {
         try service.open(table)
         let order = try XCTUnwrap(db.fetch(FetchDescriptor<CommerceOrder>()).first)
         try service.send([dish.id: 1], menu: [dish], table: table, order: order)
+        XCTAssertThrowsError(try service.paymentBalance(table, order: order))
         try service.finish(table, order: order, paid: false)
+        XCTAssertThrowsError(try service.paymentBalance(table, order: order))
         XCTAssertThrowsError(try service.finish(table, order: order, paid: true,
                                                tender: .cash, received: 3_000))
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<PaymentRecord>()), 0)
@@ -1491,6 +1493,8 @@ final class CommerceFlowTests: XCTestCase {
         try service.advance(line, from: .received, table: table, order: order)
         try service.advance(line, from: .cooking, table: table, order: order)
         try service.advance(line, from: .ready, table: table, order: order)
+        XCTAssertEqual(try service.paymentBalance(table, order: order), 2_500)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<PaymentRecord>()), 0)
         try service.finish(table, order: order, paid: true, tender: .cash, received: 3_000)
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<PaymentRecord>()), 1)
     }

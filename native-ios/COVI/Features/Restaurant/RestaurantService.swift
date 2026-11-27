@@ -80,6 +80,24 @@ enum RestaurantBill {
         }
         return due
     }
+
+    @MainActor
+    static func checkoutBalance(_ order: CommerceOrder, lines: [OrderLine],
+                                payments: [PaymentRecord]) throws -> Int64 {
+        guard !lines.isEmpty, lines.allSatisfy({ $0.preparation == Prep.served.rawValue }),
+              order.discountMinor >= 0 else { throw RestaurantFault.stale }
+        var subtotal: Int64 = 0
+        for line in lines {
+            let (value, invalid) = line.unitPriceMinor.multipliedReportingOverflow(by: Int64(line.quantity))
+            let (next, overflow) = subtotal.addingReportingOverflow(value)
+            guard line.quantity > 0, line.unitPriceMinor > 0, !invalid, !overflow
+            else { throw RestaurantFault.invalid }
+            subtotal = next
+        }
+        guard order.discountMinor <= subtotal, subtotal - order.discountMinor == order.totalMinor,
+              let due = remaining(order, payments: payments) else { throw RestaurantFault.balanceChanged }
+        return due
+    }
 }
 
 @MainActor struct RestaurantService {
@@ -375,33 +393,25 @@ enum RestaurantBill {
             confirmed: confirmed, partial: amount, expectedDue: expectedDue)
     }
 
-    private func takePayment(_ table: DiningTable, order: CommerceOrder, tender: Tender,
-                             received: Int64?, confirmed: Bool, partial: Int64?, expectedDue: Int64?) throws {
+    func paymentBalance(_ table: DiningTable, order: CommerceOrder) throws -> Int64 {
         try authorize()
         try check(table, order)
         guard table.billRequested else { throw RestaurantFault.stale }
         let orderID = order.id
         let lines = try db.fetch(FetchDescriptor<OrderLine>(predicate: #Predicate { $0.orderID == orderID }))
         let payments = try db.fetch(FetchDescriptor<PaymentRecord>(predicate: #Predicate { $0.orderID == orderID }))
-        guard !lines.isEmpty, lines.allSatisfy({ $0.preparation == Prep.served.rawValue }),
-              order.discountMinor >= 0 else { throw RestaurantFault.stale }
-        var subtotal: Int64 = 0
-        for line in lines {
-            let (value, invalid) = line.unitPriceMinor.multipliedReportingOverflow(by: Int64(line.quantity))
-            let (next, overflow) = subtotal.addingReportingOverflow(value)
-            guard line.quantity > 0, line.unitPriceMinor > 0, !invalid, !overflow
-            else { throw RestaurantFault.invalid }
-            subtotal = next
-        }
-        guard order.discountMinor <= subtotal, subtotal - order.discountMinor == order.totalMinor
-        else { throw RestaurantFault.balanceChanged }
-        guard let due = RestaurantBill.remaining(order, payments: payments),
-              expectedDue == nil || expectedDue == due else { throw RestaurantFault.balanceChanged }
+        return try RestaurantBill.checkoutBalance(order, lines: lines, payments: payments)
+    }
+
+    private func takePayment(_ table: DiningTable, order: CommerceOrder, tender: Tender,
+                             received: Int64?, confirmed: Bool, partial: Int64?, expectedDue: Int64?) throws {
+        let due = try paymentBalance(table, order: order)
+        guard expectedDue == nil || expectedDue == due else { throw RestaurantFault.balanceChanged }
         let amount = partial ?? due
         guard amount > 0, partial == nil || amount < due,
               (tender == .cash ? (received ?? -1) >= amount : confirmed) else { throw RestaurantFault.invalid }
 
-        let payment = PaymentRecord(orderID: orderID, establishmentID: shop.id, method: tender.rawValue,
+        let payment = PaymentRecord(orderID: order.id, establishmentID: shop.id, method: tender.rawValue,
                                     amountMinor: amount, confirmedByID: actor)
         payment.cashReceived = tender == .cash ? received : nil
         db.insert(payment)
