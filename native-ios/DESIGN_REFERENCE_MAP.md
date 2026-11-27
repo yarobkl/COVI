@@ -34,8 +34,15 @@ Le volet Boutique du concept a été comparé à [Vendre et Recherche par photo 
 Le bouton de reconnaissance jouxte la recherche. La feuille SwiftUI
 affiche la photo source, la fiche avec prix et stock, et le bouton
 de confirmation fixe. Le concept présente un panneau court avec le
-catalogue en arrière-plan. La photo réelle, les filtres, l’en-tête et
-les interactions sur appareil restent à vérifier ou intégrer.
+catalogue en arrière-plan. Les photos et les interactions restent à
+essayer sur appareil physique.
+
+Les [filtres du catalogue sur iPhone simulé](https://github.com/yarobkl/COVI/actions/runs/46066156390/artifacts/15231244356)
+reprennent « Tous », « Chemises », « Pantalons », « Vestes » et les
+autres familles dans un défilement horizontal. Le filtre « Chemises »
+affiche le seul article de cette famille dans le scénario. En XXXL,
+la sélection s’affiche dans un menu et le titre de la fiche nécessite
+encore une disposition adaptée.
 
 Le panier de [Vendre sur iPhone simulé](https://github.com/yarobkl/COVI/actions/runs/46061919245/artifacts/15229877678)
 a été comparé à `9BF220F7`. La miniature enregistrée s’affiche à

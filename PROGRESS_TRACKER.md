@@ -830,9 +830,15 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   vérifie le refus sans session, l’isolation du second compte avant
   l’invitation et l’apparition de son rôle après l’acceptation.
   [Tests PostgreSQL 17](https://github.com/yarobkl/COVI/actions/runs/46048544124)
-- L’accès à la préproduction était toujours refusé le 27 novembre.
-  La passerelle authentifiée, l’application de la migration hébergée et
-  le parcours SwiftUI d’invitation restent à intégrer et à vérifier.
+- Sur `1b52026`, la fonction HTTP native vérifie le jeton auprès de
+  Supabase Auth, puis appelle les quatre opérations du rôle PostgreSQL
+  privé. Le compte et la session vérifiés sont limités à la transaction.
+  Cinq tests HTTP isolés, le contrôle Deno et les assertions PostgreSQL 17,
+  dont les deux tests de concurrence, ont réussi.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/46066816162)
+- Le 27 novembre, l’accès à la cible de préproduction reste indisponible.
+  Le déploiement de la fonction et des migrations ainsi que l’essai avec
+  des comptes Supabase réels et le parcours SwiftUI d’invitation restent à faire.
 - Le profil de distribution corrigé a permis de signer et livrer la bêta technique 1.0.13 (10051), basée sur `6eb37ed` ([exécution signée](https://github.com/yarobkl/COVI/actions/runs/45706005104)). L’envoi de la refonte COVI 2.0 reste soumis à sa validation visuelle et fonctionnelle.
 
 ### Lot 3 — Parcours d’entrée
@@ -1020,6 +1026,26 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   `0eddcf7`, qui inclut les contrôles backend testés séparément.
 
 ### Lot 3 — Boutique
+
+- Sur `794303c`, les familles du catalogue utilisent la valeur confirmée
+  dans la fiche article. Les anciennes fiches restent accessibles dans
+  « Tous » et « Non classés ». Le filtre de famille combine son résultat
+  avec la recherche textuelle. La création et la modification restent
+  réservées aux rôles autorisés. Un ancien instantané iCloud conserve
+  la famille déjà enregistrée. Le test SQLite ouvre une base sans ce
+  champ et retrouve la famille après sauvegarde et réouverture.
+- Les [68 captures](https://github.com/yarobkl/COVI/actions/runs/46066156390/artifacts/15231244356)
+  ont été comparées au volet Vendre de `38512445…`. En taille
+  habituelle, « Chemises » sélectionné isole la chemise à 18 000 FCFA
+  avec son stock et son aperçu. Le panier plein affiche toujours
+  ses deux articles et le total de 35 000 FCFA. En XXXL, le filtre
+  reste lisible dans le menu, tandis que le titre de l’article se
+  coupe sur plusieurs lignes dans la fiche horizontale.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/46066156390)
+  a validé Debug, Release et **165 XCTest sans échec**.
+- Sur `f833900`, les fiches du catalogue passent en colonne aux
+  tailles d’accessibilité. La comparaison du nouveau rendu reste à
+  faire après le [diagnostic](https://github.com/yarobkl/COVI/actions/runs/46068899593).
 
 - Sur `62f6444`, le panier lit les miniatures enregistrées des
   articles. Un article sans photo conserve un pictogramme neutre.
