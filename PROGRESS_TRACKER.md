@@ -756,8 +756,19 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
 - Le résumé aligne les paiements en taille normale et les présente
   en colonne aux tailles d’accessibilité. Les agrégats utilisent
   des montants entiers stockés et une somme décimale.
-- Les captures de l’accueil et de la taille d’accessibilité XXXL
-  sont attendues dans les diagnostics natifs.
+- Sur `73d7a7c`, Debug et Release, **154 XCTest sans échec** et
+  43 captures. Le test de migration SQLite des anciens coûts et des
+  stocks liés a aussi réussi.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45940122915)
+- Les [captures iPhone](https://github.com/yarobkl/COVI/actions/runs/45940122915/artifacts/15172738754)
+  comparées à `9BF220F7` montrent le résumé à 53 500 FCFA, les deux
+  liens de suivi et les deux ventes récentes en entier. Le raccourci
+  Vendre est visible dans la barre de navigation. Au réglage XXXL,
+  la lecture des moyens de paiement se poursuit par défilement.
+- La maquette montre l’en-tête de compte et un arrivage en transit.
+  La capture de diagnostic commence à Accueil et présente le lien
+  Arrivages. La navigation avec PIN, VoiceOver et le rendu de l’en-tête
+  sur appareil physique restent à vérifier.
 
 ### Lot 3 — Restaurant
 
