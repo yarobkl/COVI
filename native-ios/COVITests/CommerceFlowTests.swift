@@ -133,16 +133,23 @@ final class CommerceFlowTests: XCTestCase {
         let shop = Establishment(ownerID: owner, name: "Épicerie", kind: .boutique, city: "Libreville")
         db.insert(shop)
         let item = try BoutiqueInventoryService.create(shop: shop, name: "Beignets", price: 250,
-                                                        actor: owner, context: db)
+                                                        actor: owner, context: db, family: .other)
         item.stockOnHand = 5
         try db.save()
         let sale = try BoutiqueLedger.sell([.init(product: item, units: 2)], discount: 0, quote: 500,
             tender: .cash, received: 1_000, confirmed: false, shop: shop,
             actor: owner, pin: ownerPIN(), context: db)
+        let cashier = UUID()
+        db.insert(Membership(accountID: cashier, establishmentID: shop.id, role: .cashier))
+        try db.save()
+        XCTAssertThrowsError(try BoutiqueInventoryService.edit(item, in: shop, name: item.title,
+            price: item.priceMinor, actor: cashier, context: db, family: .shirts))
+        XCTAssertEqual(item.boutiqueFamily, .other)
         try BoutiqueInventoryService.edit(item, in: shop, name: "Beignets maison", price: 300,
-                                          actor: owner, context: db)
+                                          actor: owner, context: db, family: .uncategorized)
         XCTAssertEqual(item.title, "Beignets maison")
         XCTAssertEqual(item.priceMinor, 300)
+        XCTAssertEqual(item.boutiqueFamily, .uncategorized)
         let lines = try db.fetch(FetchDescriptor<OrderLine>())
         let payments = try db.fetch(FetchDescriptor<PaymentRecord>())
         let receipt = try ReceiptBuilder.create(order: sale, shop: shop, lines: lines,

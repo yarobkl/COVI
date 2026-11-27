@@ -109,6 +109,23 @@ enum SupportedCurrency {
     }
 }
 
+enum BoutiqueFamily: String, CaseIterable, Hashable {
+    case shirts, trousers, jackets, dresses, footwear, accessories, other, uncategorized
+
+    var title: String {
+        switch self {
+        case .shirts: "Chemises"
+        case .trousers: "Pantalons"
+        case .jackets: "Vestes"
+        case .dresses: "Robes"
+        case .footwear: "Chaussures"
+        case .accessories: "Accessoires"
+        case .other: "Autres articles"
+        case .uncategorized: "Non classés"
+        }
+    }
+}
+
 @Model final class CatalogItem {
     @Attribute(.unique) var id: UUID
     var establishmentID: UUID
@@ -119,6 +136,11 @@ enum SupportedCurrency {
     var salonDurationMinutes: Int?
     var salonDurationWasCleared: Bool?
     var menuCategory: String?
+    var boutiqueFamilyCode: String?
+    var boutiqueFamily: BoutiqueFamily {
+        get { boutiqueFamilyCode.flatMap(BoutiqueFamily.init(rawValue:)) ?? .uncategorized }
+        set { boutiqueFamilyCode = newValue.rawValue }
+    }
     var soldOut: Bool = false
     var stockOnHand: Int
     var stockReserved: Int

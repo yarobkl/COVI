@@ -3,8 +3,36 @@ import SwiftData
 import XCTest
 @testable import COVI
 
-// Modèles antérieurs à l’ajout de costKnown et missedAt.
+// Modèles antérieurs au suivi du coût, de l’absence et de la famille boutique.
 private enum LegacyNativeStore {
+    @Model final class CatalogItem {
+        @Attribute(.unique) var id: UUID
+        var establishmentID: UUID
+        var title: String
+        var priceMinor: Int64
+        var isService: Bool
+        var salonPercent: Int = 0
+        var salonDurationMinutes: Int?
+        var salonDurationWasCleared: Bool?
+        var menuCategory: String?
+        var soldOut: Bool = false
+        var stockOnHand: Int
+        var stockReserved: Int
+        var updatedAt: Date
+
+        init(id: UUID = UUID(), establishmentID: UUID, title: String,
+             priceMinor: Int64, isService: Bool = false) {
+            self.id = id
+            self.establishmentID = establishmentID
+            self.title = title
+            self.priceMinor = priceMinor
+            self.isService = isService
+            self.stockOnHand = 0
+            self.stockReserved = 0
+            self.updatedAt = .now
+        }
+    }
+
     @Model final class Bale {
         @Attribute(.unique) var id: UUID
         var shop: UUID
@@ -76,7 +104,7 @@ final class LotCostMigrationTests: XCTestCase {
                 ExpenseCloudCheckpoint.self, ExpenseCloudMarker.self, PendingExpenseVoid.self,
                 OperationalCloudCheckpoint.self, OperationalCloudMarker.self,
                 Account.self, Establishment.self, Membership.self, ExpenseEntry.self,
-                CatalogItem.self, DiningTable.self, CommerceOrder.self,
+                LegacyNativeStore.CatalogItem.self, DiningTable.self, CommerceOrder.self,
                 Refund.self, OrderLine.self, PaymentRecord.self, StockMovement.self, OutboxEvent.self,
                 RestaurantIncident.self
             ])
@@ -87,8 +115,8 @@ final class LotCostMigrationTests: XCTestCase {
             db.insert(shop)
             db.insert(LegacyNativeStore.Bale(id: zeroID, shop: shopID, label: "Zéro confirmé", cost: 0, received: received))
             db.insert(LegacyNativeStore.Bale(id: paidID, shop: shopID, label: "Achat", cost: 12500, received: received))
-            let article = CatalogItem(establishmentID: shopID, title: "Veste", priceMinor: 3000)
-            article.id = itemID
+            let article = LegacyNativeStore.CatalogItem(id: itemID, establishmentID: shopID,
+                title: "Veste", priceMinor: 3000)
             article.stockOnHand = 2
             db.insert(article)
             let movement = StockMovement(establishmentID: shopID, itemID: itemID,
@@ -98,7 +126,8 @@ final class LotCostMigrationTests: XCTestCase {
             db.insert(movement)
             let salon = Establishment(id: salonID, ownerID: owner, name: "Salon", kind: .salon, city: "Brazzaville")
             let client = SalonClient(shop: salonID, name: "Mireille")
-            let service = CatalogItem(establishmentID: salonID, title: "Coupe", priceMinor: 5_000, isService: true)
+            let service = LegacyNativeStore.CatalogItem(establishmentID: salonID, title: "Coupe",
+                priceMinor: 5_000, isService: true)
             db.insert(salon); db.insert(client); db.insert(service)
             let openVisit = LegacyNativeStore.SalonVisit(id: openVisitID, shop: salonID, client: client.id,
                 service: service.id, start: received, end: appointmentEnd)
@@ -126,6 +155,8 @@ final class LotCostMigrationTests: XCTestCase {
                 predicate: #Predicate { $0.id == itemID })).first)
             XCTAssertEqual(article.id, itemID)
             XCTAssertEqual(article.stockOnHand, 2)
+            XCTAssertEqual(article.boutiqueFamily, .uncategorized)
+            article.boutiqueFamily = .jackets
             let movement = try XCTUnwrap(db.fetch(FetchDescriptor<StockMovement>()).first)
             XCTAssertEqual(movement.id, movementID)
             XCTAssertEqual(movement.baleID, paidID)
@@ -144,6 +175,10 @@ final class LotCostMigrationTests: XCTestCase {
         }
 
         let db = ModelContext(try PersistenceController.makeContainer(storeURL: url))
+        let article = try XCTUnwrap(db.fetch(FetchDescriptor<CatalogItem>(
+            predicate: #Predicate { $0.id == itemID })).first)
+        XCTAssertEqual(article.boutiqueFamily, .jackets)
+        XCTAssertEqual(article.stockOnHand, 2)
         let lots = try db.fetch(FetchDescriptor<COVI.Bale>())
         XCTAssertEqual(lots.count, 3)
         XCTAssertEqual(lots.first { $0.id == zeroID }?.knownCost, 0)

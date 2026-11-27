@@ -18,6 +18,7 @@ struct BoutiqueSpace: View {
     @Query private var sales: [CommerceOrder]
     @Query private var payments: [PaymentRecord]
     @State private var search = ""
+    @State private var selectedFamily: BoutiqueFamily?
     @State private var photoSearch = false
     @State private var basket: [UUID: Int] = [:]
     @State private var discount = ""
@@ -37,8 +38,11 @@ struct BoutiqueSpace: View {
     var rebate: Int64 { discount.isEmpty ? 0 : Int64(discount) ?? -1 }
     var total: Int64? { try? BoutiqueLedger.total(lines, discount: rebate) }
     var filtered: [CatalogItem] {
-        goods.filter { (tab == .stock || !$0.soldOut) &&
-            (search.isEmpty || $0.title.localizedCaseInsensitiveContains(search)) }
+        goods.filter { item in
+            let matchesSearch = search.isEmpty || item.title.localizedCaseInsensitiveContains(search)
+            let matchesFamily = selectedFamily.map { $0 == item.boutiqueFamily } ?? true
+            return matchesSearch && (tab == .stock || (!item.soldOut && matchesFamily))
+        }
     }
     var todaysSales: [CommerceOrder] {
         sales.filter { $0.state == .completed && Calendar.current.isDateInToday($0.createdAt) }
@@ -99,7 +103,9 @@ struct BoutiqueSpace: View {
             guard let diagnostics, diagnostics.shop.id == shop.id,
                   context.container === diagnostics.container, tab == .sell else { return }
             basket = diagnostics.basket
-            if diagnostics.scenario == .checkout {
+            if diagnostics.scenario == .boutiqueCategory {
+                selectedFamily = .shirts
+            } else if diagnostics.scenario == .checkout {
                 quote = Quote(due: diagnostics.due)
             } else if diagnostics.scenario == .boutiquePhotoSearch {
                 photoSearch = true
@@ -261,87 +267,17 @@ struct BoutiqueSpace: View {
                     .accessibilityLabel("Rechercher un article par photo")
                 }
 
-                COVICard {
-                    VStack(alignment: .leading, spacing: 14) {
-                        COVISectionTitle("Panier en cours (\(lines.reduce(0) { $0 + $1.units }) articles)")
-                        Divider()
-                        if textSize.isAccessibilitySize, let total {
-                            saleSummary(total)
-                            Divider()
-                        }
-                        if lines.isEmpty {
-                            Text("Touchez un produit pour l’ajouter au panier.")
-                                .foregroundStyle(COVITheme.secondaryText)
-                        }
-                        ForEach(lines, id: \.product.id) { line in
-                            let lineLayout = textSize.isAccessibilitySize
-                                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
-                                : AnyLayout(HStackLayout(spacing: 10))
-                            lineLayout {
-                                HStack(spacing: 10) {
-                                    if !textSize.isAccessibilitySize {
-                                        BoutiqueProductThumbnail(shopID: shop.id, itemID: line.product.id,
-                                                                 root: photoRoot)
-                                    }
-                                    VStack(alignment: .leading, spacing: 5) {
-                                        Text(line.product.title).font(.subheadline.weight(.semibold))
-                                        if let subtotal = line.subtotal {
-                                            Text(COVIMoney.text(subtotal, currency: shop.currencyCode))
-                                                .font(.subheadline).foregroundStyle(COVITheme.secondaryText)
-                                        } else {
-                                            Text("Montant invalide").font(.subheadline).foregroundStyle(COVITheme.warning)
-                                        }
-                                    }
-                                    .fixedSize(horizontal: false, vertical: true)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                HStack(spacing: 0) {
-                                    Button { basket[line.product.id] = line.units == 1 ? nil : line.units - 1 } label: {
-                                        Image(systemName: "minus")
-                                            .font(.system(size: 17, weight: .semibold))
-                                            .frame(width: 44, height: 44)
-                                            .contentShape(Rectangle())
-                                    }.accessibilityLabel("Retirer une unité de \(line.product.title)")
-                                    Text("\(line.units)")
-                                        .fontWeight(.semibold)
-                                        .monospacedDigit()
-                                        .frame(minWidth: 15)
-                                        .padding(.horizontal, textSize.isAccessibilitySize ? 6 : 0)
-                                        .accessibilityLabel("Quantité : \(line.units)")
-                                    Button { add(line.product) } label: {
-                                        Image(systemName: "plus")
-                                            .font(.system(size: 17, weight: .semibold))
-                                            .frame(width: 44, height: 44)
-                                            .contentShape(Rectangle())
-                                    }.accessibilityLabel("Ajouter une unité de \(line.product.title)")
-                                }
-                                .foregroundStyle(COVITheme.navy)
-                                .buttonStyle(.borderless)
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .stroke(COVITheme.navy.opacity(0.28), lineWidth: 1)
-                                        .allowsHitTesting(false)
-                                }
-                            }
-                            Divider()
-                        }
-                        HStack {
-                            Text("Remise (\(shop.currencyCode))")
-                            TextField("0", text: $discount).keyboardType(.numberPad)
-                                .multilineTextAlignment(.trailing)
-                                .accessibilityLabel("Montant de la remise")
-                        }
-                    }
-                }
+                if !lines.isEmpty { saleBasket }
                 if !lines.isEmpty && total == nil {
                     Text("Vérifiez la remise et le total à encaisser.").foregroundStyle(.red)
                 }
 
+                familyFilter
                 COVISectionTitle("Catalogue")
                 if filtered.isEmpty {
                     ContentUnavailableView(goods.isEmpty ? "Aucun article" : "Aucun résultat",
                         systemImage: "shippingbox",
-                        description: Text(goods.isEmpty ? "Ajoutez votre premier article dans Stock avant d’encaisser." : "Essayez un autre nom de produit."))
+                        description: Text(goods.isEmpty ? "Ajoutez votre premier article dans Stock avant d’encaisser." : "Essayez une autre famille ou un autre nom."))
                 }
                 ForEach(filtered) { item in
                     Button { add(item) } label: {
@@ -374,6 +310,117 @@ struct BoutiqueSpace: View {
                 .foregroundStyle(COVITheme.navy)
                 .padding(.horizontal, 18).padding(.vertical, 12)
                 .background(COVITheme.cream)
+            }
+        }
+    }
+
+    private var saleBasket: some View {
+        COVICard {
+            VStack(alignment: .leading, spacing: 14) {
+                COVISectionTitle("Panier en cours (\(lines.reduce(0) { $0 + $1.units }) articles)")
+                Divider()
+                if textSize.isAccessibilitySize, let total {
+                    saleSummary(total)
+                    Divider()
+                }
+                ForEach(lines, id: \.product.id) { line in
+                    let lineLayout = textSize.isAccessibilitySize
+                        ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+                        : AnyLayout(HStackLayout(spacing: 10))
+                    lineLayout {
+                        HStack(spacing: 10) {
+                            if !textSize.isAccessibilitySize {
+                                BoutiqueProductThumbnail(shopID: shop.id, itemID: line.product.id,
+                                                         root: photoRoot)
+                            }
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text(line.product.title).font(.subheadline.weight(.semibold))
+                                if let subtotal = line.subtotal {
+                                    Text(COVIMoney.text(subtotal, currency: shop.currencyCode))
+                                        .font(.subheadline).foregroundStyle(COVITheme.secondaryText)
+                                } else {
+                                    Text("Montant invalide").font(.subheadline).foregroundStyle(COVITheme.warning)
+                                }
+                            }
+                            .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        HStack(spacing: 0) {
+                            Button { removeUnit(line) } label: {
+                                Image(systemName: "minus")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Rectangle())
+                            }.accessibilityLabel("Retirer une unité de \(line.product.title)")
+                            Text("\(line.units)")
+                                .fontWeight(.semibold)
+                                .monospacedDigit()
+                                .frame(minWidth: 15)
+                                .padding(.horizontal, textSize.isAccessibilitySize ? 6 : 0)
+                                .accessibilityLabel("Quantité : \(line.units)")
+                            Button { add(line.product) } label: {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Rectangle())
+                            }.accessibilityLabel("Ajouter une unité de \(line.product.title)")
+                        }
+                        .foregroundStyle(COVITheme.navy)
+                        .buttonStyle(.borderless)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(COVITheme.navy.opacity(0.28), lineWidth: 1)
+                                .allowsHitTesting(false)
+                        }
+                    }
+                    Divider()
+                }
+                HStack {
+                    Text("Remise (\(shop.currencyCode))")
+                    TextField("0", text: $discount).keyboardType(.numberPad)
+                        .multilineTextAlignment(.trailing)
+                        .accessibilityLabel("Montant de la remise")
+                }
+            }
+        }
+    }
+
+    private var familyFilter: some View {
+        let choices: [BoutiqueFamily?] = [nil] + BoutiqueFamily.allCases.map(Optional.some)
+        return Group {
+            if textSize.isAccessibilitySize {
+                Menu {
+                    Picker("Famille d’articles", selection: $selectedFamily) {
+                        ForEach(choices, id: \.self) { family in
+                            Text(family?.title ?? "Tous").tag(family)
+                        }
+                    }
+                } label: {
+                    Label(selectedFamily?.title ?? "Tous", systemImage: "line.3.horizontal.decrease")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(10)
+                        .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 12))
+                }
+                .accessibilityLabel("Famille d’articles")
+                .accessibilityValue(selectedFamily?.title ?? "Tous")
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(choices, id: \.self) { family in
+                            let chosen = selectedFamily == family
+                            Button { selectedFamily = family } label: {
+                                Text(family?.title ?? "Tous")
+                                    .font(.subheadline.weight(.semibold))
+                                    .padding(.horizontal, 13)
+                                    .frame(minHeight: 44)
+                                    .foregroundStyle(chosen ? Color.white : COVITheme.navy)
+                                    .background(chosen ? COVITheme.navy : COVITheme.card, in: Capsule())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityAddTraits(chosen ? .isSelected : [])
+                        }
+                    }
+                }
             }
         }
     }
@@ -426,6 +473,11 @@ struct BoutiqueSpace: View {
         }
         .scrollContentBackground(.hidden)
     }
+    private func removeUnit(_ line: BoutiqueLedger.Line) {
+        basket[line.product.id] = line.units == 1 ? nil : line.units - 1
+        if basket.isEmpty { discount = "" }
+    }
+
     private func add(_ item: CatalogItem) {
         let units = basket[item.id] ?? 0
         guard !item.soldOut, item.stockReserved >= 0,

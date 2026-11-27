@@ -133,7 +133,8 @@ struct BoutiqueStockOverview: View {
     static func create(shop: Establishment, name: String, price: Int64,
                        actor: UUID, context: ModelContext, initialStock: Int = 0,
                        photo: BoutiquePhotoDraft? = nil, description: String = "",
-                       arrivalID: UUID? = nil, baleID: UUID? = nil) throws -> CatalogItem {
+                       arrivalID: UUID? = nil, baleID: UUID? = nil,
+                       family: BoutiqueFamily = .uncategorized) throws -> CatalogItem {
         try checkReceive(shop: shop, actor: actor, context: context)
         if let arrivalID {
             let matches = try context.fetch(FetchDescriptor<CatalogItem>(predicate: #Predicate {
@@ -153,6 +154,7 @@ struct BoutiqueStockOverview: View {
         guard initialStock >= 0 else { throw Fault.invalid }
         let cleaned = try validated(name, price, shopID: shop.id, excluding: nil, context: context)
         let item = CatalogItem(establishmentID: shop.id, title: cleaned, priceMinor: price)
+        item.boutiqueFamily = family
         item.stockOnHand = initialStock
         if let arrivalID {
             item.id = arrivalID
@@ -184,13 +186,15 @@ struct BoutiqueStockOverview: View {
     }
 
     static func edit(_ item: CatalogItem, in shop: Establishment, name: String, price: Int64,
-                     actor: UUID, context: ModelContext) throws {
-        guard shop.kind == .boutique, !shop.archived,
-              item.establishmentID == shop.id, !item.isService else { throw Fault.wrongShop }
+                     actor: UUID, context: ModelContext, family: BoutiqueFamily? = nil) throws {
+        try checkReceive(shop: shop, actor: actor, context: context)
+        guard item.establishmentID == shop.id, !item.isService else { throw Fault.wrongShop }
         let cleaned = try validated(name, price, shopID: shop.id, excluding: item.id, context: context)
-        guard cleaned != item.title || price != item.priceMinor else { return }
+        let changesFamily = family.map { $0 != item.boutiqueFamily } ?? false
+        guard cleaned != item.title || price != item.priceMinor || changesFamily else { return }
         item.title = cleaned
         item.priceMinor = price
+        if changesFamily, let family { item.boutiqueFamily = family }
         item.updatedAt = .now
         do {
             try BusinessOutbox.enqueue(kind: "boutique.product.edited", establishmentID: shop.id,
@@ -225,6 +229,7 @@ struct NewProduct: View {
     @Query private var bales: [Bale]
     @State private var selectedBale: UUID?
     @State private var title = ""
+    @State private var family: BoutiqueFamily = .uncategorized
     @State private var price = ""
     @State private var quantity = "0"
     @State private var description = ""
@@ -263,6 +268,11 @@ struct NewProduct: View {
             }
             Section("Fiche article") {
                 TextField("Nom", text: $title)
+                Picker("Famille", selection: $family) {
+                    ForEach(BoutiqueFamily.allCases, id: \.self) { option in
+                        Text(option.title).tag(option)
+                    }
+                }
                 TextField("Prix en " + shop.currencyCode, text: $price).keyboardType(.numberPad)
                 TextField("Quantité initiale", text: $quantity).keyboardType(.numberPad)
                 Picker("Lot d’achat", selection: $selectedBale) {
@@ -282,7 +292,8 @@ struct NewProduct: View {
                         guard let stock = Int(quantity), stock >= 0 else { throw BoutiqueInventoryService.Fault.invalid }
                         try BoutiqueInventoryService.create(shop: shop, name: title,
                             price: Int64(price) ?? 0, actor: actor, context: context,
-                            initialStock: stock, photo: draft, description: description, arrivalID: arrival?.id, baleID: selectedBale)
+                            initialStock: stock, photo: draft, description: description,
+                            arrivalID: arrival?.id, baleID: selectedBale, family: family)
                         if let arrival {
                             try? arrival.remove()
                             onArrivalSaved?()
@@ -338,6 +349,7 @@ struct ProductDetail: View {
     @State private var message = ""
     @State private var editedName = ""
     @State private var editedPrice = ""
+    @State private var editedFamily: BoutiqueFamily = .uncategorized
     @State private var availabilityChange = false
     init(shop: Establishment, item: CatalogItem, actor: UUID) {
         self.shop = shop; self.item = item; self.actor = actor
@@ -372,11 +384,16 @@ struct ProductDetail: View {
             }
             Section("Modifier l’article") {
                 TextField("Nom de l’article", text: $editedName)
+                Picker("Famille", selection: $editedFamily) {
+                    ForEach(BoutiqueFamily.allCases, id: \.self) { option in
+                        Text(option.title).tag(option)
+                    }
+                }
                 TextField("Prix " + shop.currencyCode, text: $editedPrice).keyboardType(.numberPad)
                 Button("Enregistrer les modifications") {
                     do {
                         try BoutiqueInventoryService.edit(item, in: shop, name: editedName,
-                            price: Int64(editedPrice) ?? 0, actor: actor, context: context)
+                            price: Int64(editedPrice) ?? 0, actor: actor, context: context, family: editedFamily)
                         message = "Fiche mise à jour. Les anciens reçus restent inchangés."
                     } catch { message = error.localizedDescription }
                 }
@@ -414,7 +431,11 @@ struct ProductDetail: View {
                 }
             }
         }.navigationTitle("Fiche produit").scrollContentBackground(.hidden).background(COVITheme.cream)
-            .onAppear { editedName = item.title; editedPrice = String(item.priceMinor) }
+            .onAppear {
+                editedName = item.title
+                editedPrice = String(item.priceMinor)
+                editedFamily = item.boutiqueFamily
+            }
             .confirmationDialog(item.soldOut ? "Remettre cet article en vente ?" : "Suspendre les ventes de cet article ?",
                                 isPresented: $availabilityChange) {
                 Button(item.soldOut ? "Remettre en vente" : "Suspendre les ventes") {

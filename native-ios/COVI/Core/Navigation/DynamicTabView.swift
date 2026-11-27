@@ -211,7 +211,7 @@ struct DynamicTabView: View {
             if let diagnostics, diagnostics.shop.id == establishment.id, diagnostics.owner == accountID,
                role == .owner, pinManager.mayOperate(shop: establishment, actor: accountID) {
                 switch diagnostics.scenario {
-                case .sale, .checkout, .boutiquePhotoSearch, .shopHeader: selected = .sell
+                case .sale, .checkout, .boutiquePhotoSearch, .shopHeader, .boutiqueCategory: selected = .sell
                 case .restaurantTables, .restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace, .restaurantFloorZoom, .restaurantFloorGuests: selected = .tables
                 case .restaurantKitchen, .restaurantKitchenReady: selected = .kitchen
                 case .salonCheckout: selected = .checkout

@@ -204,7 +204,7 @@ private struct COVIShopHeader: View {
         .accessibilityAddTraits(.isButton)
 #if DEBUG && targetEnvironment(simulator)
         .task {
-            if let diagnostics, [.shopHeader, .salonAgenda].contains(diagnostics.scenario),
+            if let diagnostics, [.shopHeader, .boutiqueCategory, .salonAgenda].contains(diagnostics.scenario),
                diagnostics.shop.id == shop.id {
                 await diagnostics.signalAfterPresentation()
             }

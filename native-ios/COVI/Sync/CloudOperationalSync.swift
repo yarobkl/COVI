@@ -56,16 +56,18 @@ struct OperationalCatalog: Codable, Equatable {
     // An absent flag identifies a legacy snapshot that cannot clear a duration.
     let durationIsTracked: Bool?
     let menuCategory: String?
+    let boutiqueFamilyCode: String?
     let unavailable: Bool
     let reserved: Int
     let updated: Date
-    init(_ row: CatalogItem, tracksSalonDuration: Bool) {
+    init(_ row: CatalogItem, tracksSalonDuration: Bool, tracksBoutiqueFamily: Bool) {
         id = row.id; shop = row.establishmentID; title = row.title
         price = row.priceMinor; service = row.isService; commission = row.salonPercent
         let hasDurationState = row.salonDurationMinutes != nil || row.salonDurationWasCleared == true
         durationIsTracked = tracksSalonDuration && hasDurationState ? true : nil
         durationMinutes = tracksSalonDuration ? row.salonDurationMinutes : nil
         menuCategory = row.menuCategory; unavailable = row.soldOut
+        boutiqueFamilyCode = tracksBoutiqueFamily ? row.boutiqueFamilyCode : nil
         reserved = row.stockReserved; updated = row.updatedAt
     }
 }
@@ -330,7 +332,8 @@ struct OperationalCloudAdapter {
         for item in try context.fetch(FetchDescriptor<CatalogItem>(predicate: #Predicate {
             $0.establishmentID == id
         })) {
-            let catalog = OperationalCatalog(item, tracksSalonDuration: shop.kind == .salon && item.isService)
+            let catalog = OperationalCatalog(item, tracksSalonDuration: shop.kind == .salon && item.isService,
+                tracksBoutiqueFamily: shop.kind == .boutique && !item.isService)
             rows.append(try make(catalog, kind: .catalog, id: item.id, shop: shop))
         }
         for bale in try context.fetch(FetchDescriptor<Bale>(predicate: #Predicate { $0.shop == id })) {
@@ -480,6 +483,9 @@ struct OperationalCloudAdapter {
                   x.price > 0, (0...100).contains(x.commission), x.reserved >= 0,
                   x.durationIsTracked != true || (shop.kind == .salon && x.service),
                   x.durationMinutes.map({ x.durationIsTracked == true && (5...720).contains($0) }) ?? true,
+                  x.boutiqueFamilyCode.map({
+                      shop.kind == .boutique && !x.service && BoutiqueFamily(rawValue: $0) != nil
+                  }) ?? true,
                   (x.menuCategory == nil || MenuGroup(rawValue: x.menuCategory!) != nil)
             else { throw SyncFault.invalidEvent }
             let item = try find(CatalogItem.self, id: id, context: context) ??
@@ -489,6 +495,7 @@ struct OperationalCloudAdapter {
             item.id = id
             item.title = x.title; item.priceMinor = x.price
             item.salonPercent = x.commission; item.menuCategory = x.menuCategory
+            if let family = x.boutiqueFamilyCode { item.boutiqueFamilyCode = family }
             if x.durationIsTracked == true {
                 item.salonDurationMinutes = x.durationMinutes
                 item.salonDurationWasCleared = x.durationMinutes == nil ? true : nil

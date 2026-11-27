@@ -22,6 +22,7 @@ final class COVISimulatorDiagnostics {
         case boutiqueHome = "boutique-home"
         case boutiqueArrivals = "boutique-arrivals"
         case boutiquePhotoSearch = "boutique-photo-search"
+        case boutiqueCategory = "boutique-category"
         case sale = "boutique-sale"
         case checkout = "boutique-checkout"
         case restaurantTables = "restaurant-tables"
@@ -59,7 +60,7 @@ final class COVISimulatorDiagnostics {
         case salonProfile = "salon-profile"
 
         var showsShopHeader: Bool {
-            [.shopHeader, .restaurantFloorPlan, .salonAgenda].contains(self)
+            [.shopHeader, .boutiqueCategory, .restaurantFloorPlan, .salonAgenda].contains(self)
         }
     }
 
@@ -153,7 +154,7 @@ final class COVISimulatorDiagnostics {
             ownerID: scenario == .cashierPIN ? UUID() : owner,
             name: scenario == .cashierPIN ? "Maison Kongo Style" : name,
             kind: kind, city: "Brazzaville", currencyCode: "XAF")
-        if scenario == .shopHeader { shop.name = "Maison Kaboum" }
+        if [.shopHeader, .boutiqueCategory].contains(scenario) { shop.name = "Maison Kaboum" }
 
         if scenario == .cashierPIN {
             basket = [:]
@@ -228,23 +229,25 @@ final class COVISimulatorDiagnostics {
             title: "Chemise Lin Noir (M)", priceMinor: 18_000)
         shirt.id = UUID(uuidString: "00000000-0000-4000-8000-000000000003")!
         shirt.stockOnHand = 4
+        shirt.boutiqueFamily = .shirts
         let trousers = CatalogItem(establishmentID: shop.id,
             title: "Pantalon Chino Beige", priceMinor: 17_000)
         trousers.id = UUID(uuidString: "00000000-0000-4000-8000-000000000004")!
         trousers.stockOnHand = 7
+        trousers.boutiqueFamily = .trousers
         let context = container.mainContext
         context.insert(shop)
         context.insert(shirt)
         context.insert(trousers)
         try context.save()
 
-        basket = scenario == .boutiquePhotoSearch ? [:] : [shirt.id: 1, trousers.id: 1]
+        basket = [.boutiquePhotoSearch, .boutiqueCategory].contains(scenario) ? [:] : [shirt.id: 1, trousers.id: 1]
         due = try BoutiqueLedger.total([
             .init(product: shirt, units: 1),
             .init(product: trousers, units: 1)
         ], discount: 0)
 
-        if [.boutiquePhotoSearch, .shopHeader].contains(scenario) {
+        if [.boutiquePhotoSearch, .shopHeader, .boutiqueCategory].contains(scenario) {
             let root = FileManager.default.temporaryDirectory.appendingPathComponent("covi-photo-" + UUID().uuidString)
             let size = CGSize(width: 360, height: 360)
             let image = UIGraphicsImageRenderer(size: size).image { context in

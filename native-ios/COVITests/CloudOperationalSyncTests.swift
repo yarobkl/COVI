@@ -111,6 +111,45 @@ final class CloudOperationalSyncTests: XCTestCase {
 
     }
 
+    func testBoutiqueFamilySurvivesLegacySnapshotsAndCanBeCleared() throws {
+        let source = try memory(), target = try memory()
+        let shop = Establishment(ownerID: UUID(), name: "Boutique", kind: .boutique, city: "Brazzaville")
+        let copy = clone(shop)
+        let product = CatalogItem(establishmentID: shop.id, title: "Chemise", priceMinor: 8_000)
+        product.boutiqueFamily = .shirts
+        source.insert(shop); source.insert(product); try source.save()
+        target.insert(copy); try target.save()
+
+        let current = try XCTUnwrap(CloudOperationalSync.capture(shop: shop, context: source).first)
+        try CloudOperationalSync.merge([(current.key, try current.bytes())], shop: copy,
+            cloudUserID: "iCloud-A", context: target)
+        try target.save()
+        let mirror = try XCTUnwrap(target.fetch(FetchDescriptor<CatalogItem>()).first)
+        XCTAssertEqual(mirror.boutiqueFamily, .shirts)
+
+        product.boutiqueFamily = .uncategorized
+        try CloudOperationalSync.merge(try export(source, shop: shop), shop: copy,
+            cloudUserID: "iCloud-A", context: target)
+        try target.save()
+        XCTAssertEqual(mirror.boutiqueFamily, .uncategorized)
+        try CloudOperationalSync.merge([(current.key, try current.bytes())], shop: copy,
+            cloudUserID: "iCloud-A", context: target)
+        try target.save()
+
+        var fields = try XCTUnwrap(JSONSerialization.jsonObject(with: current.state) as? [String: Any])
+        fields.removeValue(forKey: "boutiqueFamilyCode")
+        fields["price"] = 9_000
+        let legacy = OperationalCloudRow(version: current.version, ownerID: current.ownerID,
+            shopID: current.shopID, kind: .catalog, entityID: current.entityID,
+            state: try JSONSerialization.data(withJSONObject: fields))
+        try CloudOperationalSync.merge([(legacy.key, try legacy.bytes())], shop: copy,
+            cloudUserID: "iCloud-A", context: target)
+        try target.save()
+        XCTAssertEqual(mirror.priceMinor, 9_000)
+        XCTAssertEqual(mirror.boutiqueFamily, .shirts)
+
+    }
+
     func testInventoryAndBalesSyncOnceWithoutDuplicatingMovements() throws {
         let source = try memory(), target = try memory(), owner = UUID()
         let shop = Establishment(ownerID: owner, name: "Boutique", kind: .boutique, city: "Brazzaville")
