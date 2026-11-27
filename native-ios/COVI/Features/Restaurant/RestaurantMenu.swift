@@ -162,7 +162,7 @@ struct RestaurantComposer: View {
         return layout {
             HStack(spacing: 10) {
                 Image(systemName: category == .food ? "fork.knife" : "cup.and.saucer")
-                    .font(.title3)
+                    .font(.system(size: 20))
                     .frame(width: 44, height: 52)
                     .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 12))
                     .accessibilityHidden(true)
@@ -187,15 +187,24 @@ struct RestaurantComposer: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             HStack(spacing: 0) {
                 Button { basket[item.id] = count > 1 ? count - 1 : nil } label: {
-                    Image(systemName: "minus").frame(width: 44, height: 44).contentShape(Rectangle())
+                    Image(systemName: "minus")
+                        .font(.system(size: 17, weight: .semibold))
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
                 }
                 .accessibilityLabel("Retirer une unité de \(item.title)")
                 .disabled(count == 0)
                 .opacity(count == 0 ? 0.55 : 1)
-                Text("\(count)").monospacedDigit().frame(minWidth: 14)
+                Text("\(count)")
+                    .monospacedDigit()
+                    .frame(minWidth: 14)
+                    .padding(.horizontal, textSize.isAccessibilitySize ? 6 : 2)
                     .accessibilityLabel("Quantité : \(count)")
                 Button { basket[item.id] = count + 1 } label: {
-                    Image(systemName: "plus").frame(width: 44, height: 44).contentShape(Rectangle())
+                    Image(systemName: "plus")
+                        .font(.system(size: 17, weight: .semibold))
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
                 }
                 .accessibilityLabel("Ajouter une unité de \(item.title)")
                 .disabled(count >= limit)

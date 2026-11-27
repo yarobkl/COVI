@@ -482,6 +482,7 @@ private struct COVISyncCentre: View {
         return layout {
             HStack(alignment: .top, spacing: 10) {
                 Image(systemName: details.symbol)
+                    .font(.system(size: 18, weight: .medium))
                     .frame(width: 24)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 4) {
