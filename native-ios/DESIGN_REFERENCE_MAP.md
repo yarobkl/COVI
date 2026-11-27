@@ -21,6 +21,15 @@ de confirmation fixe. Le concept présente un panneau court avec le
 catalogue en arrière-plan. La photo réelle, les filtres, l’en-tête et
 les interactions sur appareil restent à vérifier ou intégrer.
 
+Le volet Agenda du concept a été comparé à la [liste du jour et au rendu d’accessibilité sur iPhone simulé](https://github.com/yarobkl/COVI/actions/runs/45929125528/artifacts/15168637216).
+La semaine, le jour sélectionné, les cartes colorées selon l’état
+et l’action fixe sont visibles en taille habituelle. Au réglage XXXL,
+l’action passe dans la barre de navigation et le premier rendez-vous
+reste entièrement visible. Les portraits et la disponibilité des
+créneaux requièrent les données et autorisations correspondantes.
+La grille par collaborateur a été comparée à la référence `058F98E6`
+et reste accessible depuis la barre de navigation.
+
 Les [captures de Salle et de son éditeur](https://github.com/yarobkl/COVI/actions/runs/45863543305/artifacts/15140357118)
 montrent le déplacement de Table 10 dans la grille et l’orientation de
 Table 6. La planche prévoit « Déplacer » dans le panneau contextuel.

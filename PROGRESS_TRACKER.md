@@ -853,8 +853,25 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   état. Les visites annulées sont exclues. Un rendez-vous futur
   ouvert depuis un jour sélectionné propose 9 h comme heure de
   départ éditable. La disponibilité reste vérifiée à l’enregistrement.
-- Les captures du mode liste, de la grille et du texte d’accessibilité
-  sont attendues dans les diagnostics natifs.
+- Sur `e36325c`, Debug, Release et **151 XCTest sans échec**.
+  Les [captures iPhone](https://github.com/yarobkl/COVI/actions/runs/45926818262/artifacts/15167189295)
+  montrent les sept jours en français, quatre visites avec des états
+  distincts et le bouton fixe. La grille présente les filtres et
+  colonnes de `058F98E6`. Les photos de clientes et les créneaux
+  disponibles dessinés sur la planche restent à traiter avec les
+  données et autorisations correspondantes.
+- La première capture au réglage XXXL a montré que le bouton fixe
+  prenait trop de place. Le correctif déplace l’action dans la
+  barre de navigation aux tailles d’accessibilité et rapproche
+  le calendrier du titre du jour. Les [nouvelles captures](https://github.com/yarobkl/COVI/actions/runs/45929125528/artifacts/15168637216)
+  confirment que l’action est en haut, que le jour actif est
+  centré dans la semaine défilante et que le premier rendez-vous
+  est visible en entier au réglage XXXL.
+- Sur `4cc5bcb`, les compilations Debug et Release, les **151 XCTest
+  sans échec** et les captures ont réussi. Les essais de navigation,
+  de geste horizontal et de VoiceOver sur iPhone physique restent
+  à faire.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45929125528)
 
 ### Suite du lot 1
 
