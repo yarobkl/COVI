@@ -1274,6 +1274,15 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 3)
     }
 
+    func testRestaurantDrinkBalanceDistinguishesEmptyStockFromAnUntrackedDrink() {
+        XCTAssertEqual(RestaurantDrinkBalance(onHand: 0, reserved: 0, hasMovements: false), .untracked)
+        XCTAssertEqual(RestaurantDrinkBalance(onHand: 0, reserved: 0, hasMovements: true), .tracked(0))
+        XCTAssertEqual(RestaurantDrinkBalance(onHand: 5, reserved: 3, hasMovements: false), .tracked(2))
+        XCTAssertEqual(RestaurantDrinkBalance(onHand: 3, reserved: 3, hasMovements: true), .tracked(0))
+        XCTAssertEqual(RestaurantDrinkBalance(onHand: 2, reserved: 3, hasMovements: true), .invalid)
+        XCTAssertEqual(RestaurantDrinkBalance(onHand: Int.max, reserved: -1, hasMovements: true), .invalid)
+    }
+
     func testRestaurantReservesOnlyTrackedDrinksAndConsumesThemOnceAtService() throws {
         let db = try database(), owner = UUID()
         let shop = Establishment(ownerID: owner, name: "Restaurant", kind: .restaurant, city: "Brazzaville")

@@ -17,6 +17,23 @@ enum Prep: String, CaseIterable {
     }
 }
 enum MenuGroup: String, CaseIterable { case food = "Plats", drinks = "Boissons" }
+
+enum RestaurantDrinkBalance: Equatable {
+    case untracked
+    case tracked(Int)
+    case invalid
+
+    init(onHand: Int, reserved: Int, hasMovements: Bool) {
+        if reserved < 0 || onHand < reserved {
+            self = .invalid
+        } else if hasMovements || onHand != 0 || reserved != 0 {
+            self = .tracked(onHand - reserved)
+        } else {
+            self = .untracked
+        }
+    }
+}
+
 enum RestaurantFault: LocalizedError {
     case access, stale, unavailable, invalid, stock, balanceChanged, floorSlotOccupied, floorRoomName, guestCount
     case incidentReason, incidentExists
@@ -241,11 +258,17 @@ enum RestaurantBill {
             line.dishName = item.title
             line.preparation = Prep.received.rawValue
             line.sentAt = .now
-            if item.menuCategory == MenuGroup.drinks.rawValue, try tracksDrinkStock(item) {
-                guard item.stockReserved >= 0, item.stockOnHand >= item.stockReserved,
-                      count <= item.stockOnHand - item.stockReserved else { throw RestaurantFault.stock }
-                line.restaurantUsesDrinkStock = true
-                reservations.append((item, count))
+            if item.menuCategory == MenuGroup.drinks.rawValue {
+                switch try drinkBalance(item) {
+                case .tracked(let available):
+                    guard count <= available else { throw RestaurantFault.stock }
+                    line.restaurantUsesDrinkStock = true
+                    reservations.append((item, count))
+                case .invalid:
+                    throw RestaurantFault.stock
+                case .untracked:
+                    break
+                }
             }
             lines.append(line)
             total = next
@@ -263,13 +286,16 @@ enum RestaurantBill {
         } catch { db.rollback(); throw error }
     }
 
-    private func tracksDrinkStock(_ item: CatalogItem) throws -> Bool {
-        if item.stockOnHand != 0 || item.stockReserved != 0 { return true }
+    private func drinkBalance(_ item: CatalogItem) throws -> RestaurantDrinkBalance {
+        if item.stockOnHand != 0 || item.stockReserved != 0 {
+            return RestaurantDrinkBalance(onHand: item.stockOnHand, reserved: item.stockReserved, hasMovements: false)
+        }
         let itemID = item.id
         let shopID = shop.id
-        return try db.fetchCount(FetchDescriptor<StockMovement>(predicate: #Predicate {
+        let hasMovements = try db.fetchCount(FetchDescriptor<StockMovement>(predicate: #Predicate {
             $0.itemID == itemID && $0.establishmentID == shopID
         })) > 0
+        return RestaurantDrinkBalance(onHand: 0, reserved: 0, hasMovements: hasMovements)
     }
     func advance(_ line: OrderLine, from expected: Prep, table: DiningTable, order: CommerceOrder) throws {
         try advance([line], from: expected, table: table, order: order)

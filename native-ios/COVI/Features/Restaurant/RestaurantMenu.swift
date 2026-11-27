@@ -7,6 +7,8 @@ struct RestaurantComposer: View {
     let order: CommerceOrder
     let service: RestaurantService
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var textSize
+    @Query private var stockMovements: [StockMovement]
     #if DEBUG && targetEnvironment(simulator)
     @Environment(\.modelContext) private var context
     @Environment(\.coviSimulatorDiagnostics) private var diagnostics
@@ -16,6 +18,15 @@ struct RestaurantComposer: View {
     @State private var basket: [UUID:Int] = [:]
     @State private var message = ""
     @State private var sent = false
+
+    init(menu: [CatalogItem], table: DiningTable, order: CommerceOrder, service: RestaurantService) {
+        self.menu = menu
+        self.table = table
+        self.order = order
+        self.service = service
+        let shopID = service.shop.id
+        _stockMovements = Query(filter: #Predicate<StockMovement> { $0.establishmentID == shopID })
+    }
     var total: Int64 {
         menu.reduce(Int64(0)) { partial, item in
             let (line, overflow) = item.priceMinor.multipliedReportingOverflow(by: Int64(basket[item.id] ?? 0))
@@ -28,6 +39,12 @@ struct RestaurantComposer: View {
     }
 
     var body: some View {
+        let countedItems = Set(stockMovements.map(\.itemID))
+        let unavailableDraft = menu.contains { item in
+            guard let count = basket[item.id] else { return false }
+            return count > quantityLimit(item, balance: drinkBalance(item, countedItems: countedItems))
+        }
+        let sendDisabled = sent || basket.isEmpty || unavailableDraft
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
@@ -59,44 +76,7 @@ struct RestaurantComposer: View {
                             VStack(spacing: 12) {
                                 ForEach(visibleItems) { item in
                                     if item.id != visibleItems.first?.id { Divider() }
-                                    HStack(spacing: 10) {
-                                        Image(systemName: category == .food ? "fork.knife" : "cup.and.saucer")
-                                            .font(.title3)
-                                            .frame(width: 44, height: 52)
-                                            .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 12))
-                                            .accessibilityHidden(true)
-                                        VStack(alignment: .leading, spacing: 6) {
-                                            Text(item.title).font(.headline)
-                                            if item.soldOut {
-                                                COVIBadge(title: "Épuisé", tint: COVITheme.dangerTint, foreground: .red)
-                                            }
-                                            Text(COVIMoney.text(item.priceMinor, currency: service.shop.currencyCode))
-                                                .font(.subheadline.weight(.semibold))
-                                        }
-                                        Spacer(minLength: 0)
-                                        HStack(spacing: 0) {
-                                            let count = basket[item.id] ?? 0
-                                            Button { basket[item.id] = count > 1 ? count - 1 : nil } label: {
-                                                Image(systemName: "minus").frame(width: 44, height: 44).contentShape(Rectangle())
-                                            }
-                                            .accessibilityLabel("Retirer une unité de \(item.title)")
-                                            .disabled(count == 0)
-                                            Text("\(count)").monospacedDigit().frame(minWidth: 14)
-                                                .accessibilityLabel("Quantité : \(count)")
-                                            Button { basket[item.id] = min(999, count + 1) } label: {
-                                                Image(systemName: "plus").frame(width: 44, height: 44).contentShape(Rectangle())
-                                            }
-                                            .accessibilityLabel("Ajouter une unité de \(item.title)")
-                                            .disabled(item.soldOut || count >= 999)
-                                        }
-                                        .buttonStyle(.borderless)
-                                        .overlay {
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .stroke(COVITheme.navy.opacity(0.28), lineWidth: 1)
-                                                .allowsHitTesting(false)
-                                        }
-                                    }
-                                    .foregroundStyle(COVITheme.navy)
+                                    menuRow(item, balance: drinkBalance(item, countedItems: countedItems))
                                 }
                             }
                         }
@@ -107,16 +87,27 @@ struct RestaurantComposer: View {
             }
             .background(COVIBackdrop())
             .safeAreaInset(edge: .bottom) {
-                COVIButton("Envoyer en cuisine (\(basket.values.reduce(0, +)) articles · \(COVIMoney.text(total, currency: service.shop.currencyCode)))") {
-                    guard !sent else { return }
-                    do {
-                        try service.send(basket, menu: menu, table: table, order: order)
-                        sent = true
-                        HapticService.confirm()
-                        dismiss()
-                    } catch { message = error.localizedDescription; HapticService.error() }
+                VStack(alignment: .leading, spacing: 8) {
+                    if unavailableDraft {
+                        Text("Réduisez les quantités signalées avant d’envoyer la commande.")
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                    }
+                    COVIButton("Envoyer en cuisine (\(basket.values.reduce(0, +)) articles · \(COVIMoney.text(total, currency: service.shop.currencyCode)))") {
+                        guard !sendDisabled else { return }
+                        do {
+                            try service.send(basket, menu: menu, table: table, order: order)
+                            sent = true
+                            HapticService.confirm()
+                            dismiss()
+                        } catch {
+                            message = error.localizedDescription
+                            HapticService.error()
+                        }
+                    }
+                    .disabled(sendDisabled)
+                    .opacity(sendDisabled ? 0.55 : 1)
                 }
-                .disabled(sent || basket.isEmpty)
                 .padding(18)
                 .background(COVITheme.cream)
             }
@@ -128,13 +119,88 @@ struct RestaurantComposer: View {
         }
         #if DEBUG && targetEnvironment(simulator)
         .task {
-            guard let diagnostics, diagnostics.scenario == .restaurantOrder,
+            guard let diagnostics, [.restaurantOrder, .restaurantOrderDrinks].contains(diagnostics.scenario),
                   let sample = diagnostics.restaurantSample,
                   sample.table.id == table.id, sample.order.id == order.id,
                   context.container === diagnostics.container else { return }
             basket = sample.draft
+            if diagnostics.scenario == .restaurantOrderDrinks {
+                category = .drinks
+            }
         }
         #endif
+    }
+
+    private func drinkBalance(_ item: CatalogItem, countedItems: Set<UUID>) -> RestaurantDrinkBalance {
+        guard item.menuCategory == MenuGroup.drinks.rawValue else { return .untracked }
+        return RestaurantDrinkBalance(onHand: item.stockOnHand, reserved: item.stockReserved,
+                                      hasMovements: countedItems.contains(item.id))
+    }
+
+    private func quantityLimit(_ item: CatalogItem, balance: RestaurantDrinkBalance) -> Int {
+        if item.soldOut { return 0 }
+        switch balance {
+        case .untracked: return 999
+        case .tracked(let available): return min(999, available)
+        case .invalid: return 0
+        }
+    }
+
+    private func menuRow(_ item: CatalogItem, balance: RestaurantDrinkBalance) -> some View {
+        let count = basket[item.id] ?? 0
+        let limit = quantityLimit(item, balance: balance)
+        let layout = textSize.isAccessibilitySize ?
+            AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 10))
+        return layout {
+            HStack(spacing: 10) {
+                Image(systemName: category == .food ? "fork.knife" : "cup.and.saucer")
+                    .font(.title3)
+                    .frame(width: 44, height: 52)
+                    .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 12))
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(item.title).font(.headline)
+                    if item.soldOut || balance == .tracked(0) {
+                        COVIBadge(title: "Épuisé", tint: COVITheme.dangerTint, foreground: .red)
+                    } else if balance == .invalid {
+                        COVIBadge(title: "Stock à vérifier", tint: COVITheme.dangerTint, foreground: .red)
+                    } else if case .tracked(let available) = balance {
+                        Text(available == 1 ? "1 disponible" : "\(available) disponibles")
+                            .font(.caption)
+                            .foregroundStyle(COVITheme.secondaryText)
+                    }
+                    if count > limit {
+                        Text("Quantité indisponible").font(.caption).foregroundStyle(.red)
+                    }
+                    Text(COVIMoney.text(item.priceMinor, currency: service.shop.currencyCode))
+                        .font(.subheadline.weight(.semibold))
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: 0) {
+                Button { basket[item.id] = count > 1 ? count - 1 : nil } label: {
+                    Image(systemName: "minus").frame(width: 44, height: 44).contentShape(Rectangle())
+                }
+                .accessibilityLabel("Retirer une unité de \(item.title)")
+                .disabled(count == 0)
+                .opacity(count == 0 ? 0.55 : 1)
+                Text("\(count)").monospacedDigit().frame(minWidth: 14)
+                    .accessibilityLabel("Quantité : \(count)")
+                Button { basket[item.id] = count + 1 } label: {
+                    Image(systemName: "plus").frame(width: 44, height: 44).contentShape(Rectangle())
+                }
+                .accessibilityLabel("Ajouter une unité de \(item.title)")
+                .disabled(count >= limit)
+                .opacity(count >= limit ? 0.55 : 1)
+            }
+            .buttonStyle(.borderless)
+            .overlay {
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(COVITheme.navy.opacity(0.28), lineWidth: 1)
+                    .allowsHitTesting(false)
+            }
+        }
+        .foregroundStyle(COVITheme.navy)
     }
 }
 

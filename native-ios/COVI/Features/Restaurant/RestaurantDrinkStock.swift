@@ -83,7 +83,8 @@ struct RestaurantDrinkStock: View {
     private func drinkRow(_ drink: CatalogItem, recorded: Bool) -> some View {
         let layout = textSize.isAccessibilitySize ?
             AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 10))
-        let known = recorded || drink.stockOnHand != 0 || drink.stockReserved != 0
+        let balance = RestaurantDrinkBalance(onHand: drink.stockOnHand, reserved: drink.stockReserved,
+                                            hasMovements: recorded)
         return layout {
             Image(systemName: "wineglass")
                 .font(.title3)
@@ -92,34 +93,29 @@ struct RestaurantDrinkStock: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
                 Text(drink.title).font(.subheadline.weight(.bold))
-                if known {
+                if balance != .untracked {
                     Text("Physique : \(drink.stockOnHand) · Réservées : \(drink.stockReserved)")
                         .font(.caption)
                         .foregroundStyle(COVITheme.secondaryText)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            if known {
-                if drink.stockReserved < 0 || drink.stockOnHand < drink.stockReserved {
-                    COVIBadge(title: "À vérifier", tint: COVITheme.dangerTint, foreground: .red)
-                } else {
-                    let available = drink.stockOnHand - drink.stockReserved
-                    switch available {
-                    case 0:
-                        COVIBadge(title: "0 disp.", tint: COVITheme.dangerTint, foreground: .red)
-                            .accessibilityLabel("0 disponible")
-                    case 1...10:
-                        COVIBadge(title: "\(available) disp. · Faible", tint: COVITheme.warningTint,
-                                  foreground: COVITheme.warning)
-                            .accessibilityLabel("\(available) disponibles. Stock faible.")
-                    default:
-                        COVIBadge(title: "\(available) disp.", tint: COVITheme.successTint,
-                                  foreground: COVITheme.success)
-                            .accessibilityLabel("\(available) disponibles")
-                    }
-                }
-            } else {
+            switch balance {
+            case .untracked:
                 COVIBadge(title: "Non suivi")
+            case .invalid:
+                COVIBadge(title: "À vérifier", tint: COVITheme.dangerTint, foreground: .red)
+            case .tracked(0):
+                COVIBadge(title: "0 disp.", tint: COVITheme.dangerTint, foreground: .red)
+                    .accessibilityLabel("0 disponible")
+            case .tracked(let available) where available <= 10:
+                COVIBadge(title: "\(available) disp. · Faible", tint: COVITheme.warningTint,
+                          foreground: COVITheme.warning)
+                    .accessibilityLabel("\(available) disponibles. Stock faible.")
+            case .tracked(let available):
+                COVIBadge(title: "\(available) disp.", tint: COVITheme.successTint,
+                          foreground: COVITheme.success)
+                    .accessibilityLabel("\(available) disponibles")
             }
         }
         .accessibilityElement(children: .combine)

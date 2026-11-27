@@ -25,6 +25,7 @@ final class COVISimulatorDiagnostics {
         case restaurantFloorGuests = "restaurant-floor-guests"
         case restaurantTable = "restaurant-table"
         case restaurantOrder = "restaurant-order"
+        case restaurantOrderDrinks = "restaurant-order-drinks"
         case restaurantReport = "restaurant-report"
         case restaurantIncident = "restaurant-incident"
         case restaurantKitchen = "restaurant-kitchen"
@@ -123,7 +124,7 @@ final class COVISimulatorDiagnostics {
         let kind: BusinessKind
         let name: String
         switch scenario {
-        case .restaurantTables, .restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace, .restaurantFloorZoom, .restaurantFloorGuests, .restaurantTable, .restaurantOrder, .restaurantReport, .restaurantIncident, .restaurantTeam, .restaurantKitchen, .restaurantKitchenReady, .restaurantMenu, .restaurantDrinks, .restaurantPayment, .restaurantPaidTable:
+        case .restaurantTables, .restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace, .restaurantFloorZoom, .restaurantFloorGuests, .restaurantTable, .restaurantOrder, .restaurantOrderDrinks, .restaurantReport, .restaurantIncident, .restaurantTeam, .restaurantKitchen, .restaurantKitchenReady, .restaurantMenu, .restaurantDrinks, .restaurantPayment, .restaurantPaidTable:
             kind = .restaurant
             name = "Restaurant de démonstration"
         case .salonCatalog, .salonReport, .salonMore, .salonSettings, .salonCheckout, .salonToday, .salonAgenda, .salonAgendaGrid, .salonBooking, .salonBookingConflict, .salonClients, .salonClientsUpcoming, .salonProfile:
@@ -277,7 +278,7 @@ final class COVISimulatorDiagnostics {
         let greens = CatalogItem(establishmentID: shop.id, title: "Saka-Saka et poisson salé", priceMinor: 5_500)
         let liboke = CatalogItem(establishmentID: shop.id, title: "Liboké de silure", priceMinor: 9_000)
         let juice = CatalogItem(establishmentID: shop.id, title: "Jus de bissap frais", priceMinor: 1_500)
-        let menu = [chicken, main, greens, liboke, juice]
+        var menu = [chicken, main, greens, liboke, juice]
         for item in menu {
             item.menuCategory = item.id == juice.id ? MenuGroup.drinks.rawValue : MenuGroup.food.rawValue
             context.insert(item)
@@ -297,7 +298,20 @@ final class COVISimulatorDiagnostics {
 
         let kitchen = [.restaurantKitchen, .restaurantKitchenReady].contains(scenario)
         let active = try open(occupied)
-        let draft = [chicken.id: 2, main.id: 1]
+        var draft = [chicken.id: 2, main.id: 1]
+        if scenario == .restaurantOrderDrinks {
+            let water = CatalogItem(establishmentID: shop.id, title: "Eau minérale", priceMinor: 1_000)
+            let infusion = CatalogItem(establishmentID: shop.id, title: "Infusion", priceMinor: 2_000)
+            for drink in [water, infusion] {
+                drink.menuCategory = MenuGroup.drinks.rawValue
+                context.insert(drink)
+            }
+            menu.append(contentsOf: [water, infusion])
+            try service.adjustDrinkStock(juice, operation: .restock, quantity: 4)
+            try service.adjustDrinkStock(water, operation: .restock, quantity: 1)
+            draft = [juice.id: 2, water.id: 1]
+            try service.adjustDrinkStock(water, operation: .loss, quantity: 1)
+        }
         for (dish, quantity) in [(chicken, 2), (main, 1), (juice, 2)] {
             try service.send([dish.id: quantity], menu: menu, table: occupied, order: active)
         }
@@ -690,7 +704,8 @@ struct COVISimulatorDiagnosticView: View {
                     RestaurantTable(table: sample.table, order: sample.order, menu: sample.menu,
                         lines: sample.lines, service: sample.service)
                 }
-            } else if let sample = fixture.restaurantSample, fixture.scenario == .restaurantOrder {
+            } else if let sample = fixture.restaurantSample,
+                      [.restaurantOrder, .restaurantOrderDrinks].contains(fixture.scenario) {
                 RestaurantComposer(menu: sample.menu, table: sample.table, order: sample.order,
                     service: sample.service)
             } else {
