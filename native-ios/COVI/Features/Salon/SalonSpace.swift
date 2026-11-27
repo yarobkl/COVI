@@ -315,7 +315,7 @@ struct SalonSpace: View {
             SalonBooking(shop: shop.id, actor: actor, currency: shop.currencyCode,
                 clients: clients, menu: menu, team: activeTeam, visits: visits,
                 day: sample.start, personID: sample.stylistID, initialClient: sample.clientID,
-                initialItem: sample.serviceID, initialMinutes: 120)
+                initialItem: sample.serviceID)
                 .task { await diagnostics.signalAfterPresentation() }
         } else {
             liveBooking
@@ -816,7 +816,8 @@ struct SalonBooking: View {
         _personID = State(initialValue: personID)
         _client = State(initialValue: initialClient)
         _item = State(initialValue: initialItem)
-        _minutes = State(initialValue: initialMinutes)
+        let configured = menu.first { $0.id == initialItem && $0.isService && !$0.soldOut }?.salonDurationMinutes
+        _minutes = State(initialValue: configured ?? initialMinutes)
     }
 
     private var offeredServices: [CatalogItem] { menu.filter { $0.isService && !$0.soldOut } }
@@ -934,6 +935,9 @@ struct SalonBooking: View {
             .background(COVIBackdrop())
             .navigationTitle("Nouveau rendez-vous")
             .navigationBarTitleDisplayMode(.inline)
+            .onChange(of: item) { _, _ in
+                minutes = chosenItem?.salonDurationMinutes ?? 30
+            }
             .safeAreaInset(edge: .bottom) {
                 COVIButton("Confirmer le rendez-vous") { saveBooking() }
                     .disabled(slotAvailable != true)

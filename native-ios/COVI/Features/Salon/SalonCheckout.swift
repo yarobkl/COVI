@@ -274,6 +274,7 @@ struct SalonCatalog: View {
     @State private var name = ""
     @State private var price = ""
     @State private var qty = ""
+    @State private var duration = ""
     @State private var percent = 0
     @State private var service = true
     @State private var message = ""
@@ -315,7 +316,7 @@ struct SalonCatalog: View {
                                             .accessibilityHidden(true)
                                         VStack(alignment: .leading, spacing: 6) {
                                             Text(item.title).font(.headline)
-                                            Text(item.soldOut ? "Suspendu" : (item.isService ? "Prestation" : "\(item.stockOnHand - item.stockReserved) disponible(s)"))
+                                            Text(catalogDetail(item))
                                                 .font(.caption).foregroundStyle(COVITheme.secondaryText)
                                         }
                                         if !textSize.isAccessibilitySize { Spacer(minLength: 0) }
@@ -343,21 +344,36 @@ struct SalonCatalog: View {
             }
         }
     }
+
+    private func catalogDetail(_ item: CatalogItem) -> String {
+        if item.soldOut { return "Suspendu" }
+        guard item.isService else { return "\(item.stockOnHand - item.stockReserved) disponible(s)" }
+        guard let minutes = item.salonDurationMinutes else { return "Durée à renseigner" }
+        if minutes < 60 { return "\(minutes) min" }
+        let rest = minutes % 60
+        return rest == 0 ? "\(minutes / 60) h" : "\(minutes / 60) h \(rest)"
+    }
+
     private var addForm: some View {
         Form {
             Section("Nouvelle référence") {
                 Picker("Type", selection: $service) { Text("Prestation").tag(true); Text("Produit").tag(false) }.pickerStyle(.segmented)
                 TextField("Libellé", text: $name)
                 TextField("Prix " + shop.currencyCode, text: $price).keyboardType(.numberPad)
-                if !service { TextField("Stock initial", text: $qty).keyboardType(.numberPad) }
+                if service {
+                    TextField("Durée en minutes (facultatif)", text: $duration).keyboardType(.numberPad)
+                } else {
+                    TextField("Stock initial", text: $qty).keyboardType(.numberPad)
+                }
                 Stepper("Commission : \(percent) %", value: $percent, in: 0...100)
                 Button("Ajouter au catalogue") {
                     guard let amount = Int64(price), amount > 0,
                           let count = Int(service ? "0" : qty), count >= 0 else { message = SalonFault.invalid.localizedDescription; return }
                     do {
                         try SalonLedger.createCatalog(shop: shop, actor: actor, title: name,
-                            price: amount, service: service, quantity: count, percent: percent, db: db)
-                        name = ""; price = ""; qty = ""; message = "Référence ajoutée."
+                            price: amount, service: service, quantity: count, percent: percent,
+                            duration: service && !duration.isEmpty ? Int(duration) ?? -1 : nil, db: db)
+                        name = ""; price = ""; qty = ""; duration = ""; message = "Référence ajoutée."
                     } catch { message = error.localizedDescription }
                 }
             }
@@ -375,6 +391,7 @@ private struct SalonCatalogEditor: View {
     @State private var title = ""
     @State private var price = ""
     @State private var percent = 0
+    @State private var duration = ""
     @State private var counted = ""
     @State private var reason = ""
     @State private var changingAvailability = false
@@ -392,11 +409,16 @@ private struct SalonCatalogEditor: View {
             Section(item.isService ? "Prestation" : "Produit de soin") {
                 TextField("Libellé", text: $title)
                 TextField("Prix " + shop.currencyCode, text: $price).keyboardType(.numberPad)
+                if item.isService {
+                    TextField("Durée en minutes (facultatif)", text: $duration).keyboardType(.numberPad)
+                }
                 Stepper("Commission : \(percent) %", value: $percent, in: 0...100)
                 Button("Enregistrer les modifications") {
                     do {
                         try SalonLedger.editCatalog(item, shop: shop, actor: actor,
-                            title: title, price: Int64(price) ?? 0, percent: percent, db: db)
+                            title: title, price: Int64(price) ?? 0, percent: percent,
+                            durationChange: item.isService ? .replace(duration.isEmpty ? nil : Int(duration) ?? -1) : .unchanged,
+                            db: db)
                         message = "Catalogue mis à jour. Les anciens reçus restent inchangés."
                     } catch { message = error.localizedDescription }
                 }
@@ -432,6 +454,7 @@ private struct SalonCatalogEditor: View {
         .navigationTitle("Fiche catalogue")
         .onAppear {
             title = item.title; price = String(item.priceMinor); percent = item.salonPercent
+            duration = item.salonDurationMinutes.map { String($0) } ?? ""
         }
         .confirmationDialog(item.soldOut ? "Réactiver cette référence ?" : "Suspendre cette référence ?",
                             isPresented: $changingAvailability) {

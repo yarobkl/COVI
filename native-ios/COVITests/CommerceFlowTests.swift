@@ -567,6 +567,27 @@ final class CommerceFlowTests: XCTestCase {
             title: "Sérum", price: 6_000, percent: 10, db: db))
     }
 
+    func testSalonServiceDurationCanBeSetAndClearedByCatalogEditor() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Salon", kind: .salon, city: "Brazzaville")
+        db.insert(shop); try db.save()
+        let service = try SalonLedger.createCatalog(shop: shop, actor: owner, title: "Tresses",
+            price: 5_000, service: true, quantity: 0, percent: 0, duration: 150, db: db)
+        XCTAssertEqual(service.salonDurationMinutes, 150)
+        XCTAssertThrowsError(try SalonLedger.createCatalog(shop: shop, actor: owner, title: "Sérum",
+            price: 1_000, service: false, quantity: 3, percent: 0, duration: 30, db: db))
+        XCTAssertThrowsError(try SalonLedger.editCatalog(service, shop: shop, actor: owner,
+            title: "Tresses", price: 5_000, percent: 0, durationChange: .replace(721), db: db))
+        XCTAssertEqual(service.salonDurationMinutes, 150)
+        try SalonLedger.editCatalog(service, shop: shop, actor: owner,
+            title: "Tresses", price: 6_000, percent: 0, db: db)
+        XCTAssertEqual(service.salonDurationMinutes, 150)
+        try SalonLedger.editCatalog(service, shop: shop, actor: owner,
+            title: "Tresses", price: 6_000, percent: 0, durationChange: .replace(nil), db: db)
+        XCTAssertNil(service.salonDurationMinutes)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 3)
+    }
+
     func testSalonCatalogValidatesNamesRatesAndShopOwnership() throws {
         let db = try database(), owner = UUID()
         let shop = Establishment(ownerID: owner, name: "Salon", kind: .salon, city: "Brazzaville")

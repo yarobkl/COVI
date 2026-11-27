@@ -866,6 +866,17 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
 - Prochain écran à rapprocher de sa référence : Caisse du Salon,
   planche `6155DBBE`.
 
+### Catalogue Salon — Durée des prestations
+
+- La planche `6155DBBE` affiche une durée à côté de chaque
+  prestation. Le catalogue affiche la durée configurée et la
+  suggère lors d’un nouveau rendez-vous. Les prestations
+  historiques peuvent rester sans durée configurée.
+- Les droits de modification du catalogue et le contrôle de
+  chevauchement s’appliquent. Les instantanés CloudKit savent
+  distinguer une durée supprimée et un ancien format sans durée.
+- Les preuves de rendu et de test restent à consigner.
+
 ### Salon — Répertoire et fiche client
 
 - La planche `C0053217` a été relue. Le répertoire reprend les

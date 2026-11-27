@@ -116,6 +116,8 @@ enum SupportedCurrency {
     var priceMinor: Int64
     var isService: Bool
     var salonPercent: Int = 0
+    var salonDurationMinutes: Int?
+    var salonDurationWasCleared: Bool?
     var menuCategory: String?
     var soldOut: Bool = false
     var stockOnHand: Int

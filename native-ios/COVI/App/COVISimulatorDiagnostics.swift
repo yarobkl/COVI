@@ -471,6 +471,9 @@ final class COVISimulatorDiagnostics {
 
         if scenario == .salonCheckout || scenario == .salonCatalog {
             braids.priceMinor = 25_000
+            braids.salonDurationMinutes = 150
+            haircut.salonDurationMinutes = 45
+            treatment.salonDurationMinutes = 60
             let serum = CatalogItem(establishmentID: shop.id, title: "Sérum Karité & Argan", priceMinor: 5_000)
             serum.stockOnHand = 5
             context.insert(serum)
@@ -515,6 +518,7 @@ final class COVISimulatorDiagnostics {
             client.phone = "+242 06 410 22 15"
             let service = CatalogItem(establishmentID: shop.id, title: "Tresses Knotless Moyennes",
                 priceMinor: 25_000, isService: true)
+            service.salonDurationMinutes = 120
             context.insert(client)
             context.insert(service)
             if scenario == .salonBookingConflict {

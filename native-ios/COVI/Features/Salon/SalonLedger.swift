@@ -123,14 +123,17 @@ enum SalonFault: String, LocalizedError {
     @discardableResult
     static func createCatalog(shop: Establishment, actor: UUID, title: String,
                               price: Int64, service: Bool, quantity: Int, percent: Int,
+                              duration: Int? = nil,
                               db: ModelContext) throws -> CatalogItem {
         try requireCatalogAccess(shop: shop, actor: actor, db: db)
         guard shop.kind == .salon, !shop.archived, price > 0, (0...100).contains(percent),
-              quantity >= 0, (!service || quantity == 0) else { throw SalonFault.invalid }
+              quantity >= 0, (!service || quantity == 0),
+              duration.map({ service && (5...720).contains($0) }) ?? true else { throw SalonFault.invalid }
         let name = try catalogTitle(title, shop: shop.id, excluding: nil, db: db)
         let item = CatalogItem(establishmentID: shop.id, title: name,
                                priceMinor: price, isService: service)
         item.salonPercent = percent
+        item.salonDurationMinutes = duration
         item.stockOnHand = quantity
         db.insert(item)
         var movementIDs: [UUID] = []
@@ -149,14 +152,30 @@ enum SalonFault: String, LocalizedError {
         } catch { db.rollback(); throw error }
     }
 
+    enum CatalogDurationChange {
+        case unchanged
+        case replace(Int?)
+    }
+
     static func editCatalog(_ item: CatalogItem, shop: Establishment, actor: UUID,
-                            title: String, price: Int64, percent: Int, db: ModelContext) throws {
+                            title: String, price: Int64, percent: Int,
+                            durationChange: CatalogDurationChange = .unchanged, db: ModelContext) throws {
         try requireCatalogAccess(shop: shop, actor: actor, db: db)
         guard shop.kind == .salon, !shop.archived, item.establishmentID == shop.id,
               price > 0, (0...100).contains(percent) else { throw SalonFault.invalid }
         let name = try catalogTitle(title, shop: shop.id, excluding: item.id, db: db)
-        guard name != item.title || price != item.priceMinor || percent != item.salonPercent else { return }
+        let duration = switch durationChange {
+        case .unchanged: item.salonDurationMinutes
+        case .replace(let minutes): minutes
+        }
+        guard duration.map({ item.isService && (5...720).contains($0) }) ?? true else { throw SalonFault.invalid }
+        guard name != item.title || price != item.priceMinor || percent != item.salonPercent ||
+              duration != item.salonDurationMinutes else { return }
+        if duration != item.salonDurationMinutes {
+            item.salonDurationWasCleared = duration == nil ? true : nil
+        }
         item.title = name; item.priceMinor = price; item.salonPercent = percent
+        item.salonDurationMinutes = duration
         item.updatedAt = .now
         do {
             try BusinessOutbox.enqueue(kind: "salon.catalog.edited", establishmentID: shop.id,

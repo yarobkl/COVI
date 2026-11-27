@@ -62,6 +62,54 @@ final class CloudOperationalSyncTests: XCTestCase {
         XCTAssertEqual(paid.knownCost, 12500)
     }
 
+    func testCatalogDurationSurvivesLegacyUpdatesAndCanBeClearedByNewSnapshots() throws {
+        let source = try memory(), target = try memory()
+        let shop = Establishment(ownerID: UUID(), name: "Salon", kind: .salon, city: "Brazzaville")
+        let copy = clone(shop)
+        let service = CatalogItem(establishmentID: shop.id, title: "Tresses", priceMinor: 5_000, isService: true)
+        source.insert(shop); source.insert(service); try source.save()
+        target.insert(copy); try target.save()
+
+        let initial = try XCTUnwrap(CloudOperationalSync.capture(shop: shop, context: source).first)
+        XCTAssertNil(try JSONDecoder().decode(OperationalCatalog.self, from: initial.state).durationIsTracked)
+        try CloudOperationalSync.merge([(initial.key, try initial.bytes())], shop: copy,
+            cloudUserID: "iCloud-A", context: target)
+        try target.save()
+        service.salonDurationMinutes = 150
+        let expected = try XCTUnwrap(CloudOperationalSync.capture(shop: shop, context: source).first)
+        try CloudOperationalSync.merge([(expected.key, try expected.bytes())], shop: copy,
+            cloudUserID: "iCloud-A", context: target)
+        try target.save()
+        let item = try XCTUnwrap(target.fetch(FetchDescriptor<CatalogItem>()).first)
+        XCTAssertEqual(item.salonDurationMinutes, 150)
+
+        service.salonDurationMinutes = nil
+        service.salonDurationWasCleared = true
+        let cleared = try XCTUnwrap(CloudOperationalSync.capture(shop: shop, context: source).first)
+        try CloudOperationalSync.merge([(cleared.key, try cleared.bytes())], shop: copy,
+            cloudUserID: "iCloud-A", context: target)
+        try target.save()
+        XCTAssertNil(item.salonDurationMinutes)
+        XCTAssertEqual(item.salonDurationWasCleared, true)
+        try CloudOperationalSync.merge([(expected.key, try expected.bytes())], shop: copy,
+            cloudUserID: "iCloud-A", context: target)
+        try target.save()
+
+        var state = try XCTUnwrap(JSONSerialization.jsonObject(with: expected.state) as? [String: Any])
+        state.removeValue(forKey: "durationMinutes")
+        state.removeValue(forKey: "durationIsTracked")
+        state["price"] = 6_000
+        let legacy = OperationalCloudRow(version: expected.version, ownerID: expected.ownerID,
+            shopID: expected.shopID, kind: .catalog, entityID: expected.entityID,
+            state: try JSONSerialization.data(withJSONObject: state))
+        try CloudOperationalSync.merge([(legacy.key, try legacy.bytes())], shop: copy,
+            cloudUserID: "iCloud-A", context: target)
+        try target.save()
+        XCTAssertEqual(item.priceMinor, 6_000)
+        XCTAssertEqual(item.salonDurationMinutes, 150)
+
+    }
+
     func testInventoryAndBalesSyncOnceWithoutDuplicatingMovements() throws {
         let source = try memory(), target = try memory(), owner = UUID()
         let shop = Establishment(ownerID: owner, name: "Boutique", kind: .boutique, city: "Brazzaville")
