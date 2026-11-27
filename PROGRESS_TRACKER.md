@@ -87,6 +87,9 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   visible pour ce projet. La référence de préproduction `stcsjwxmmxnjwisqkudz` reste inaccessible au connecteur.
   La vérification a été faite en lecture seule. Apple/Google, invitations
   et synchronisation d’équipe restent à intégrer.
+  Le 27 novembre, le contrôle en lecture seule confirme que le projet
+  COVI est actif et que sa seule branche visible est `main`. L’accès
+  au projet de préproduction reste refusé.
 
 ### Preuves visuelles et diagnostics récupérés
 
@@ -462,8 +465,10 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   et masque les lignes au premier affichage. La conformité reste ouverte.
 - Le correctif place l’avertissement et l’envoi dans le contenu défilant
   aux tailles d’accessibilité. Les catégories passent en colonne.
-  Une nouvelle capture XXXL reste à vérifier.
-  [Diagnostics du correctif `7d6f4e7`](https://github.com/yarobkl/COVI/actions/runs/45984619874)
+  Au réglage XXXL, elles s’affichent en entier et la première boisson
+  est lisible avec son stock et son prix. Les touches de quantité
+  restent serrées et l’envoi demande de défiler.
+  [Capture du correctif `7d6f4e7`](https://github.com/yarobkl/COVI/actions/runs/45984619874/artifacts/15192445040)
 
 ### Encaissement partiel du Restaurant
 
@@ -763,8 +768,15 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   de la planche sont représentés par des pictogrammes et des initiales.
   Le bouton fixe occupe une part excessive de la vue en XXXL.
 - Le correctif rend le bouton défilant avec les cartes aux tailles
-  d’accessibilité. Restent à vérifier la nouvelle capture XXXL, l’ouverture
-  du formulaire et le changement effectif d’espace sur iPhone.
+  d’accessibilité. Sur `2c25e22`, Debug, Release, **161 XCTest sans
+  échec** et 49 captures. [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45984917080)
+- Dans les [captures sur simulateur](https://github.com/yarobkl/COVI/actions/runs/45984917080/artifacts/15192541606),
+  le bouton demeure fixe en taille standard. En XXXL, le titre de groupe
+  et le début de la première carte sont visibles et la liste continue
+  par défilement. Commander montre aussi ses deux catégories et la
+  première boisson en XXXL. L’ouverture du formulaire, le changement
+  effectif d’espace et les interactions VoiceOver restent à essayer
+  sur iPhone physique.
 
 ### Lot 3 — Boutique
 
