@@ -125,24 +125,62 @@ struct ShopSyncStatus: View {
     @Environment(\.scenePhase) private var phase
     @Environment(\.dynamicTypeSize) private var textSize
     @State private var status = "Synchronisation en attente"
+    @State private var showingStatus = false
+
+    private var statusSymbol: String {
+        if status.contains("à jour") { return "checkmark.icloud" }
+        if status.contains("suspendue") || status.contains("bloquée") { return "icloud.slash" }
+        return "arrow.triangle.2.circlepath.icloud"
+    }
+
     var body: some View {
-        HStack(spacing: 7) {
-            Image(systemName: status.contains("à jour") ? "checkmark.icloud" :
-                  status.contains("suspendue") || status.contains("bloquée") ? "icloud.slash" : "arrow.triangle.2.circlepath.icloud")
-                .accessibilityHidden(true)
-            Text(status)
-                .lineLimit(textSize.isAccessibilitySize ? nil : 1)
-                .minimumScaleFactor(0.8)
-                .fixedSize(horizontal: false, vertical: true)
+        Group {
+            if textSize.isAccessibilitySize {
+                Button {
+                    showingStatus = true
+                } label: {
+                    Image(systemName: statusSymbol)
+                        .font(.system(size: 18, weight: .medium))
+                        .frame(width: 44, height: 44)
+                        .background(COVITheme.champagne.opacity(0.65), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("État de la synchronisation")
+                .accessibilityValue(status)
+            } else {
+                HStack(spacing: 7) {
+                    Image(systemName: statusSymbol).accessibilityHidden(true)
+                    Text(status)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+                .font(.caption2.weight(.medium))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(COVITheme.champagne.opacity(0.65), in: Capsule())
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .accessibilityLabel("Synchronisation : " + status)
+            }
         }
-            .font(.caption2.weight(.medium))
-            .foregroundStyle(COVITheme.navy)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(COVITheme.champagne.opacity(0.65), in: Capsule())
-            .frame(maxWidth: .infinity, alignment: .trailing)
-            .accessibilityLabel("Synchronisation : " + status)
-            .task(id: "\(shop.id)-\(phase)") {
+        .foregroundStyle(COVITheme.navy)
+        .sheet(isPresented: $showingStatus) {
+            NavigationStack {
+                ScrollView {
+                    Text(status)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(18)
+                }
+                .background(COVITheme.cream)
+                .navigationTitle("Synchronisation")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Fermer") { showingStatus = false }
+                    }
+                }
+            }
+        }
+        .task(id: "\(shop.id)-\(phase)") {
             guard phase == .active else { return }
             guard session.usesAppleAccount else {
                 status = "Enregistré sur cet iPhone · iCloud non activé"

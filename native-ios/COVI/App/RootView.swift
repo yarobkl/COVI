@@ -13,6 +13,7 @@ struct RootView: View {
     @Environment(AppSession.self) private var session
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var phase
+    @Environment(\.dynamicTypeSize) private var textSize
     @State private var selectedID: UUID?
     @State private var spaceSheet: SpaceSheet?
     private func selectShop(_ id: UUID, for account: UUID) {
@@ -42,14 +43,18 @@ struct RootView: View {
                 VStack(spacing: 0) {
                     if let shop = shops.first(where: { $0.id == preferred }) ?? shops.first,
                        let role = role(shop, account) {
-                        COVIShopHeader(shop: shop) { spaceSheet = .spaces }
-                        // La synchronisation appartient à l'en-tête de l'espace,
-                        // pas à une barre supplémentaire sous les onglets iOS.
-                        if role == .owner {
-                            ShopSyncStatus(shop: shop)
-                                .id(shop.id)
-                                .padding(.horizontal, 16)
-                                .padding(.bottom, 5)
+                        let headerLayout = textSize.isAccessibilitySize
+                            ? AnyLayout(HStackLayout(spacing: 0))
+                            : AnyLayout(VStackLayout(spacing: 0))
+                        headerLayout {
+                            COVIShopHeader(shop: shop) { spaceSheet = .spaces }
+                            if role == .owner {
+                                ShopSyncStatus(shop: shop)
+                                    .id(shop.id)
+                                    .padding(.trailing, 16)
+                                    .padding(.leading, textSize.isAccessibilitySize ? 0 : 16)
+                                    .padding(.bottom, textSize.isAccessibilitySize ? 0 : 5)
+                            }
                         }
                         DynamicTabView(establishment: shop, accountID: account, role: role,
                                        pinManager: pinManager, onSwitchShop: { spaceSheet = .spaces })
@@ -168,17 +173,21 @@ private struct COVIShopHeader: View {
                     .frame(width: 42, height: 42)
                     .background(COVITheme.navy, in: RoundedRectangle(cornerRadius: 12))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("COVI").font(.caption.weight(.bold))
+                    if !textSize.isAccessibilitySize {
+                        Text("COVI").font(.caption.weight(.bold))
+                    }
                     Text(shop.name)
                         .font(.subheadline.weight(.bold))
                         .lineLimit(textSize.isAccessibilitySize ? nil : 1)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text(activity)
-                        .font(.caption)
-                        .foregroundStyle(COVITheme.secondaryText)
+                    if !textSize.isAccessibilitySize {
+                        Text(activity)
+                            .font(.caption)
+                            .foregroundStyle(COVITheme.secondaryText)
+                    }
                 }
                 Image(systemName: "chevron.down")
-                    .font(.caption.weight(.semibold))
+                    .font(.system(size: 13, weight: .semibold))
                 Spacer(minLength: 0)
             }
             .frame(minHeight: 44)

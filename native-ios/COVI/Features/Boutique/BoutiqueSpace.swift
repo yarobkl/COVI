@@ -54,7 +54,7 @@ struct BoutiqueSpace: View {
         }
         .background(COVIBackdrop())
         .navigationTitle(tab.title)
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(tab == .sell && textSize.isAccessibilitySize ? .inline : .large)
         .toolbar {
             if tab == .home {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -230,8 +230,10 @@ struct BoutiqueSpace: View {
             VStack(alignment: .leading, spacing: 20) {
                 HStack(spacing: 8) {
                     HStack(spacing: 8) {
-                        Image(systemName: "magnifyingglass").accessibilityHidden(true)
-                        TextField("Rechercher un article…", text: $search)
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 18))
+                            .accessibilityHidden(true)
+                        TextField(textSize.isAccessibilitySize ? "Rechercher" : "Rechercher un article…", text: $search)
                             .autocorrectionDisabled()
                             .accessibilityLabel("Rechercher un article")
                     }
@@ -242,7 +244,7 @@ struct BoutiqueSpace: View {
 
                     Button { photoSearch = true } label: {
                         Image(systemName: "viewfinder")
-                            .font(.title3.weight(.semibold))
+                            .font(.system(size: 20, weight: .semibold))
                             .foregroundStyle(COVITheme.navy)
                             .frame(width: 44, height: 44)
                             .background(COVITheme.card, in: RoundedRectangle(cornerRadius: 12))
@@ -259,12 +261,19 @@ struct BoutiqueSpace: View {
                     VStack(alignment: .leading, spacing: 14) {
                         COVISectionTitle("Panier en cours (\(lines.reduce(0) { $0 + $1.units }) articles)")
                         Divider()
+                        if textSize.isAccessibilitySize, let total {
+                            saleSummary(total)
+                            Divider()
+                        }
                         if lines.isEmpty {
                             Text("Touchez un produit pour l’ajouter au panier.")
                                 .foregroundStyle(COVITheme.secondaryText)
                         }
                         ForEach(lines, id: \.product.id) { line in
-                            HStack(spacing: 10) {
+                            let lineLayout = textSize.isAccessibilitySize
+                                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+                                : AnyLayout(HStackLayout(spacing: 10))
+                            lineLayout {
                                 VStack(alignment: .leading, spacing: 5) {
                                     Text(line.product.title).font(.subheadline.weight(.semibold))
                                     if let subtotal = line.subtotal {
@@ -274,14 +283,25 @@ struct BoutiqueSpace: View {
                                         Text("Montant invalide").font(.subheadline).foregroundStyle(COVITheme.warning)
                                     }
                                 }
-                                Spacer()
+                                .frame(maxWidth: .infinity, alignment: .leading)
                                 HStack(spacing: 0) {
                                     Button { basket[line.product.id] = line.units == 1 ? nil : line.units - 1 } label: {
-                                        Image(systemName: "minus").frame(width: 44, height: 44).contentShape(Rectangle())
+                                        Image(systemName: "minus")
+                                            .font(.system(size: 17, weight: .semibold))
+                                            .frame(width: 44, height: 44)
+                                            .contentShape(Rectangle())
                                     }.accessibilityLabel("Retirer une unité de \(line.product.title)")
-                                    Text("\(line.units)").fontWeight(.semibold).frame(minWidth: 15)
+                                    Text("\(line.units)")
+                                        .fontWeight(.semibold)
+                                        .monospacedDigit()
+                                        .frame(minWidth: 15)
+                                        .padding(.horizontal, textSize.isAccessibilitySize ? 6 : 0)
+                                        .accessibilityLabel("Quantité : \(line.units)")
                                     Button { add(line.product) } label: {
-                                        Image(systemName: "plus").frame(width: 44, height: 44).contentShape(Rectangle())
+                                        Image(systemName: "plus")
+                                            .font(.system(size: 17, weight: .semibold))
+                                            .frame(width: 44, height: 44)
+                                            .contentShape(Rectangle())
                                     }.accessibilityLabel("Ajouter une unité de \(line.product.title)")
                                 }
                                 .foregroundStyle(COVITheme.navy)
@@ -336,22 +356,35 @@ struct BoutiqueSpace: View {
             .padding(18)
         }
         .safeAreaInset(edge: .bottom) {
-            if let total {
+            if !textSize.isAccessibilitySize, let total {
                 COVICard {
-                    VStack(spacing: 16) {
-                        HStack {
-                            Text("Total :").font(.headline)
-                            Spacer()
-                            Text(COVIMoney.text(total, currency: shop.currencyCode)).font(.title3.bold())
-                        }
-                        COVIButton("Encaisser \(COVIMoney.text(total, currency: shop.currencyCode))") {
-                            quote = Quote(due: total)
-                        }
-                    }
+                    saleSummary(total)
                 }
                 .foregroundStyle(COVITheme.navy)
                 .padding(.horizontal, 18).padding(.vertical, 12)
                 .background(COVITheme.cream)
+            }
+        }
+    }
+
+    private func saleSummary(_ total: Int64) -> some View {
+        let amount = COVIMoney.text(total, currency: shop.currencyCode)
+        let amountLayout = textSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+            : AnyLayout(HStackLayout(spacing: 10))
+        return VStack(alignment: .leading, spacing: textSize.isAccessibilitySize ? 8 : 16) {
+            amountLayout {
+                Text("Total :").font(.headline)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Text(amount).font(.title3.bold())
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .accessibilityElement(children: .combine)
+            if textSize.isAccessibilitySize {
+                COVIButton("Encaisser") { quote = Quote(due: total) }
+                    .accessibilityValue(amount)
+            } else {
+                COVIButton("Encaisser \(amount)") { quote = Quote(due: total) }
             }
         }
     }
