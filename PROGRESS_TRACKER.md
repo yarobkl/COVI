@@ -302,10 +302,27 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   ligne, l’auteur, le motif et l’heure. Rapports service affiche
   les incidents du mois sélectionné et ouvre leur détail. Le
   remboursement par ligne et le plafond journalier restent à intégrer.
-- Le modèle SwiftData ajoute une table locale. La migration depuis
-  une installation existante et la synchronisation entre appareils
-  restent à valider. Les preuves de compilation, tests et captures
-  sont attendues dans les diagnostics natifs.
+- La première compilation a signalé un cas simulateur absent
+  dans la navigation. Le correctif `4c31cd8` a réussi en Debug et
+  Release avec les tests et 39 captures.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45914872944)
+- Les [captures iPhone](https://github.com/yarobkl/COVI/actions/runs/45914872944/artifacts/15162655753)
+  ont été comparées à `A2188A03` et `A30B3A65`. Le formulaire
+  affiche Table 01, un poulet déjà servi à 8 000 FCFA, le motif
+  prérempli de démonstration et le bouton en zone sûre. Le badge
+  Propriétaire occupe une ligne sous la navigation. Le pictogramme
+  remplace la photo. Le formulaire consigne le motif et Rapports
+  service affiche une ligne avec un incident dans le mois.
+- Sur `3732908`, les compilations Debug et Release et les **151 XCTest
+  sans échec** ont réussi (journal `140232295505`). Le test d’incident
+  couvre les refus de rôle, de révocation, de plat non servi, de motif
+  invalide et de doublon. Le test SwiftData ouvre une base sur disque
+  créée avec le schéma précédent, retrouve la commande servie,
+  enregistre l’incident puis le relit après fermeture.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45915096006)
+- Les interactions tactiles, VoiceOver et la synchronisation entre
+  appareils restent à valider. Le test de migration utilise une
+  ancienne structure reconstruite et des données de test.
 
 ### Gestion de la carte du Restaurant
 
