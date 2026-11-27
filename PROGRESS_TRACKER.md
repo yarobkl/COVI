@@ -889,6 +889,16 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   par prestation, la migration et la synchronisation sur appareils
   physiques restent à traiter ou vérifier.
 
+### Salon — Durée sur le ticket et le rendez-vous
+
+- Les planches `6155DBBE` et `058F98E6` affichent la durée de
+  prestation dans la caisse et dans le formulaire de rendez-vous.
+  Le ticket importé lit la durée du créneau enregistré. Sur une
+  vente directe, la durée du catalogue est présentée comme estimation.
+- L’import de rendez-vous affiche le service et la durée du créneau.
+  La durée ajustée dans le formulaire apparaît à côté du tarif.
+  Les preuves de rendu et de test restent à consigner.
+
 ### Salon — Répertoire et fiche client
 
 - La planche `C0053217` a été relue. Le répertoire reprend les

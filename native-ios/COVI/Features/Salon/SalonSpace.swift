@@ -823,6 +823,10 @@ struct SalonBooking: View {
     private var offeredServices: [CatalogItem] { menu.filter { $0.isService && !$0.soldOut } }
     private var chosenClient: SalonClient? { clients.first { $0.id == client } }
     private var chosenItem: CatalogItem? { offeredServices.first { $0.id == item } }
+    private var servicePriceAndDuration: String? {
+        guard let chosenItem else { return nil }
+        return SalonDuration.label(minutes) + " · " + COVIMoney.text(chosenItem.priceMinor, currency: currency)
+    }
     private var chosenStylist: SalonStaff? { team.first { $0.id == personID && $0.active } }
     private var chosenStart: Date { walk ? .now : day }
     private var bookingWindow: ClosedRange<Date> {
@@ -888,7 +892,7 @@ struct SalonBooking: View {
                             } label: {
                                 bookingRow("Prestation", symbol: "scissors",
                                     detail: chosenItem?.title ?? "Choisir une prestation",
-                                    extra: chosenItem.map { COVIMoney.text($0.priceMinor, currency: currency) }, showsChevron: true)
+                                    extra: servicePriceAndDuration, showsChevron: true)
                             }
                             Divider()
                             Menu {

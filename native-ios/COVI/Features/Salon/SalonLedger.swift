@@ -33,9 +33,22 @@ import SwiftData
     var walkIn: Bool
     var cancelled = false
     var receipt: UUID?
+    var scheduledMinutes: Int? {
+        let seconds = end.timeIntervalSince(start)
+        guard seconds.isFinite, seconds >= 60, seconds <= 720 * 60 else { return nil }
+        return Int((seconds / 60).rounded())
+    }
     init(shop: UUID, client: UUID, service: UUID, stylist: String, start: Date, end: Date, walkIn: Bool) {
         id = UUID(); self.shop = shop; self.client = client; self.service = service
         self.stylist = stylist; self.start = start; self.end = end; self.walkIn = walkIn
+    }
+}
+
+enum SalonDuration {
+    static func label(_ minutes: Int) -> String {
+        if minutes < 60 { return "\(minutes) min" }
+        let rest = minutes % 60
+        return rest == 0 ? "\(minutes / 60) h" : "\(minutes / 60) h \(rest)"
     }
 }
 

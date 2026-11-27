@@ -129,7 +129,7 @@ struct SalonCheckout: View {
                                     .accessibilityHidden(true)
                                 VStack(alignment: .leading, spacing: 5) {
                                     Text(item.title).font(.subheadline.bold())
-                                    Text(item.isService ? "Collaborateur : \(stylist)" : "Quantité : \(basket[item.id] ?? 0) · \(item.stockOnHand - item.stockReserved) disponible(s)")
+                                    Text(ticketDetail(item))
                                         .font(.caption).foregroundStyle(COVITheme.secondaryText)
                                 }
                                 if !textSize.isAccessibilitySize { Spacer(minLength: 0) }
@@ -142,6 +142,19 @@ struct SalonCheckout: View {
                             .frame(minHeight: 44)
                     }
                 }
+    }
+
+    private func ticketDetail(_ item: CatalogItem) -> String {
+        guard item.isService else {
+            return "Quantité : \(basket[item.id] ?? 0) · \(item.stockOnHand - item.stockReserved) disponible(s)"
+        }
+        let collaborator = "Collaborateur : \(stylist)"
+        if let visit, visit.service == item.id {
+            guard let minutes = visit.scheduledMinutes else { return collaborator }
+            return collaborator + " · " + SalonDuration.label(minutes)
+        }
+        guard let minutes = item.salonDurationMinutes else { return collaborator }
+        return collaborator + " · Durée estimée : " + SalonDuration.label(minutes)
     }
 
     private var paymentCard: some View {
@@ -206,7 +219,12 @@ struct SalonCheckout: View {
                         } label: {
                             VStack(alignment: .leading) {
                                 Text(clients.first { $0.id == appointment.client }?.name ?? "Client")
-                                Text(appointment.start.formatted()).font(.caption)
+                                if let service = menu.first(where: { $0.id == appointment.service }) {
+                                    Text(service.title).font(.subheadline)
+                                }
+                                Text(appointment.start.formatted(date: .abbreviated, time: .shortened) +
+                                     (appointment.scheduledMinutes.map { " · " + SalonDuration.label($0) } ?? ""))
+                                    .font(.caption)
                             }
                         }
                     }
@@ -349,9 +367,7 @@ struct SalonCatalog: View {
         if item.soldOut { return "Suspendu" }
         guard item.isService else { return "\(item.stockOnHand - item.stockReserved) disponible(s)" }
         guard let minutes = item.salonDurationMinutes else { return "Durée à renseigner" }
-        if minutes < 60 { return "\(minutes) min" }
-        let rest = minutes % 60
-        return rest == 0 ? "\(minutes / 60) h" : "\(minutes / 60) h \(rest)"
+        return SalonDuration.label(minutes)
     }
 
     private var addForm: some View {

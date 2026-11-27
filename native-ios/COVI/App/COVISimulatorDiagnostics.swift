@@ -471,7 +471,7 @@ final class COVISimulatorDiagnostics {
 
         if scenario == .salonCheckout || scenario == .salonCatalog {
             braids.priceMinor = 25_000
-            braids.salonDurationMinutes = 150
+            braids.salonDurationMinutes = scenario == .salonCheckout ? 120 : 150
             haircut.salonDurationMinutes = 45
             treatment.salonDurationMinutes = 60
             let serum = CatalogItem(establishmentID: shop.id, title: "Sérum Karité & Argan", priceMinor: 5_000)
@@ -482,7 +482,7 @@ final class COVISimulatorDiagnostics {
         let appointments: [(name: String, service: CatalogItem, person: SalonStaff,
             startsAfterOpening: Int, duration: Int, walkIn: Bool)] = [
                 ("Yannick M.", haircut, brice, 15, 45, true),
-                ("Mireille K.", braids, chloe, 30, 120, false),
+                ("Mireille K.", braids, chloe, 30, scenario == .salonCheckout ? 150 : 120, false),
                 ("Ornella B.", treatment, sarah, 60, 60, false)
             ]
         for appointment in appointments {

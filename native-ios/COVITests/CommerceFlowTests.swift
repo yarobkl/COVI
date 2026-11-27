@@ -1423,6 +1423,18 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 1)
     }
 
+    func testSalonScheduledDurationUsesTheRecordedTimeRange() {
+        let start = Date(timeIntervalSince1970: 0)
+        let visit = SalonVisit(shop: UUID(), client: UUID(), service: UUID(), stylist: "Chloé",
+            start: start, end: start.addingTimeInterval(9_000), walkIn: false)
+        XCTAssertEqual(visit.scheduledMinutes, 150)
+        XCTAssertEqual(visit.scheduledMinutes.map(SalonDuration.label), "2 h 30")
+        visit.end = start.addingTimeInterval(2_700)
+        XCTAssertEqual(visit.scheduledMinutes.map(SalonDuration.label), "45 min")
+        visit.end = start
+        XCTAssertNil(visit.scheduledMinutes)
+    }
+
     func testSalonDirectoryKeepsFutureBookingsSeparateFromVisitHistory() {
         XCTAssertTrue(SalonDirectoryFilter.upcoming.includes(visits: 0, hasUpcoming: true))
         XCTAssertTrue(SalonDirectoryFilter.unvisited.includes(visits: 0, hasUpcoming: true))
