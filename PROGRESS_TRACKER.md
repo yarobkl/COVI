@@ -439,6 +439,31 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   soldes. Le parcours et la synchronisation entre appareils
   physiques restent à vérifier.
 
+### Restaurant — Disponibilité dans Commander
+
+- Sur `6fb2c70`, l’onglet Boissons affiche les quantités
+  disponibles calculées après déduction des réservations. Une boisson
+  suivie à zéro affiche « Épuisé ». Les boissons sans suivi restent
+  commandables. La même règle de disponibilité s’applique dans le
+  formulaire de commande, au stock et lors de l’enregistrement.
+- Quand le stock baisse sous la quantité d’un brouillon, l’envoi et
+  l’ajout sont désactivés pour protéger la commande. Le retrait reste
+  accessible. Le contrôle d’enregistrement vérifie de nouveau le stock.
+- Sur `6fb2c70`, Debug, Release, **161 XCTest sans échec** et 47 captures.
+  Le test distingue le stock nul suivi, la boisson sans suivi et un solde
+  incohérent. [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45981261560)
+- Les [captures sur iPhone simulé](https://github.com/yarobkl/COVI/actions/runs/45981261560/artifacts/15190561690)
+  ont été comparées à `2A49F962` et `657B79B7`. En taille standard,
+  Commander retrouve les deux catégories, les touches et l’envoi fixe.
+  La recherche est un champ natif et les pictogrammes remplacent les
+  photos. Le scénario boissons rend visibles les deux unités de bissap,
+  l’eau épuisée avec une unité en brouillon et l’infusion sans compteur.
+  L’envoi est grisé. En XXXL, le pied fixe prend presque tout l’écran
+  et masque les lignes au premier affichage. La conformité reste ouverte.
+- Le correctif place l’avertissement et l’envoi dans le contenu défilant
+  aux tailles d’accessibilité. Les catégories passent en colonne. Une
+  nouvelle capture XXXL reste à vérifier.
+
 ### Encaissement partiel du Restaurant
 
 - La planche `A2188A03` a été vérifiée. Le panneau central présente
@@ -721,6 +746,18 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
 - Comparaison de la capture d’accueil d’`aaebcf1` à la planche `5AD6CB67`. Les trois métiers, les titres et les deux actions sont visibles. Les écarts constatés portent sur la flèche placée avant « Commencer », le fond plat et la coupure sous la photo.
 - L’accueil réutilise désormais le fond de marque, place la flèche après « Commencer » et fond le bord inférieur de la photo. Les deux actions restent accessibles sous le contenu défilant. Sur [`1c40f85`](https://github.com/yarobkl/COVI/actions/runs/45714877928), 118 XCTest réussis. La capture du simulateur iPhone comparée à la planche confirme la flèche à droite, le fond champagne et le fondu sous la photo. La forme du motif et l’espace entre la photo et les boutons diffèrent encore de la planche. Le rendu aux grandes tailles de texte et sur les appareils physiques reste à contrôler.
 - Les planches retrouvées ont été relues et leurs intitulés corrigés dans `native-ios/DESIGN_REFERENCE_MAP.md`. La planche Boutique `9BF220F7` montre Accueil, Vendre et Encaissement. Le parcours Vendre doit garder le panier en haut après la recherche et le total avec son action au bas de l’écran.
+- La planche `17327825` (SHA-256 `b7212559…`) montre « Votre établissement »
+  et « Mes espaces ». Sur `dc48519`, « Mes espaces » place l’établissement
+  actif en tête de son groupe, sépare les accès par propriété et affiche
+  le rôle de la personne dans l’espace partagé. Le bouton du bas indique
+  le nombre de places restantes. Il ouvre le formulaire existant,
+  soumis à la limite par compte. Les cartes s’empilent aux tailles
+  d’accessibilité.
+- Debug, XCTest, Release non signé et l’étape de capture iPhone
+  ont réussi sur `dc48519`. L’artefact reste à récupérer.
+  Le scénario couvre deux espaces détenus, un accès caissier actif
+  et un accès révoqué. La comparaison iPhone reste à consigner.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45981887059)
 
 ### Lot 3 — Boutique
 

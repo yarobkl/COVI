@@ -45,10 +45,29 @@ struct RestaurantComposer: View {
             return count > quantityLimit(item, balance: drinkBalance(item, countedItems: countedItems))
         }
         let sendDisabled = sent || basket.isEmpty || unavailableDraft
+        let draftWarning = Text("Réduisez les quantités signalées avant d’envoyer la commande.")
+            .font(.footnote)
+            .foregroundStyle(.red)
+        let sendButton = COVIButton("Envoyer en cuisine (\(basket.values.reduce(0, +)) articles · \(COVIMoney.text(total, currency: service.shop.currencyCode)))") {
+            guard !sendDisabled else { return }
+            do {
+                try service.send(basket, menu: menu, table: table, order: order)
+                sent = true
+                HapticService.confirm()
+                dismiss()
+            } catch {
+                message = error.localizedDescription
+                HapticService.error()
+            }
+        }
+        .disabled(sendDisabled)
+        .opacity(sendDisabled ? 0.55 : 1)
+        let categories = textSize.isAccessibilitySize ?
+            AnyLayout(VStackLayout(spacing: 9)) : AnyLayout(HStackLayout(spacing: 9))
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    HStack(spacing: 9) {
+                    categories {
                         ForEach(MenuGroup.allCases, id: \.self) { option in
                             Button { category = option } label: {
                                 Text("\(option.rawValue) (\(menu.filter { $0.menuCategory == option.rawValue }.count))")
@@ -82,34 +101,23 @@ struct RestaurantComposer: View {
                         }
                     }
                     if !message.isEmpty { Text(message).foregroundStyle(.red) }
+                    if textSize.isAccessibilitySize {
+                        if unavailableDraft { draftWarning }
+                        sendButton
+                    }
                 }
                 .padding(18)
             }
             .background(COVIBackdrop())
             .safeAreaInset(edge: .bottom) {
-                VStack(alignment: .leading, spacing: 8) {
-                    if unavailableDraft {
-                        Text("Réduisez les quantités signalées avant d’envoyer la commande.")
-                            .font(.footnote)
-                            .foregroundStyle(.red)
+                if !textSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: 8) {
+                        if unavailableDraft { draftWarning }
+                        sendButton
                     }
-                    COVIButton("Envoyer en cuisine (\(basket.values.reduce(0, +)) articles · \(COVIMoney.text(total, currency: service.shop.currencyCode)))") {
-                        guard !sendDisabled else { return }
-                        do {
-                            try service.send(basket, menu: menu, table: table, order: order)
-                            sent = true
-                            HapticService.confirm()
-                            dismiss()
-                        } catch {
-                            message = error.localizedDescription
-                            HapticService.error()
-                        }
-                    }
-                    .disabled(sendDisabled)
-                    .opacity(sendDisabled ? 0.55 : 1)
+                    .padding(18)
+                    .background(COVITheme.cream)
                 }
-                .padding(18)
-                .background(COVITheme.cream)
             }
             .navigationTitle("Commander · " + table.label)
             .navigationBarTitleDisplayMode(.inline)
