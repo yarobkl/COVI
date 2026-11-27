@@ -13,12 +13,16 @@ tables vues de dessus, les chaises par capacité, les états et le panneau
 de sélection. Les positions réelles, les actions supplémentaires,
 l’en-tête et la barre de navigation ont leurs propres contrôles ci-dessous.
 
-L’[en-tête commun sur iPhone simulé](https://github.com/yarobkl/COVI/actions/runs/46036045193/artifacts/15217662981)
-a été comparé au concept `38512445…`. La Boutique montre le symbole
-métier, le nom « Maison Kaboum » et le sélecteur, qui ouvre Mes espaces.
-Le concept ajoute une cloche. Les captures montrent une barre d’onglets
-ivoire native et une sélection foncée. Sa forme et sa surbrillance
-diffèrent de la barre arrondie et de la capsule champagne du concept.
+L’[en-tête commun sur iPhone 16 Pro simulé](https://github.com/yarobkl/COVI/actions/runs/46038509254/artifacts/15219799965)
+a été comparé aux trois volets du concept `38512445…`. Vendre, Salle
+et Agenda montrent leur symbole métier, le nom de l’établissement
+et un sélecteur relié à Mes espaces. Le concept ajoute une cloche.
+La barre d’onglets ivoire native et sa sélection foncée diffèrent en
+forme et en surbrillance de la barre arrondie et de la capsule champagne.
+En XXXL, le statut local est lisible et demande quatre lignes.
+Le total de Vendre et l’espace disponible pour le contenu restent
+à corriger à cette taille. Le sélecteur et les parcours restent à
+essayer sur iPhone physique.
 
 Le volet Boutique du concept a été comparé à [Vendre et Recherche par photo sur iPhone simulé](https://github.com/yarobkl/COVI/actions/runs/45918257137/artifacts/15163907047).
 Le bouton de reconnaissance jouxte la recherche. La feuille SwiftUI

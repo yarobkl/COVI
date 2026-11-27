@@ -970,8 +970,17 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
 - Sur `55fd25a`, le statut du propriétaire accepte plusieurs lignes
   aux tailles d’accessibilité. Les diagnostics de Vendre, Salle et Agenda
   passent par l’en-tête réel avec un compte local et un gestionnaire de PIN
-  en mémoire. Les nouvelles captures sont à comparer après le
-  [diagnostic GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/46038509254).
+  en mémoire. [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/46038509254)
+  a validé Debug, Release et **164 XCTest sans échec**.
+- Les [66 captures](https://github.com/yarobkl/COVI/actions/runs/46038509254/artifacts/15219799965)
+  ont été comparées aux trois volets du concept sur iPhone 16 Pro simulé
+  sous iOS 18.5. Vendre, Salle et Agenda montrent chacun leur en-tête et
+  leur onglet actif. Le statut local est intégralement lisible en XXXL.
+  Cet en-tête fixe réduit la place disponible. Le total et le bouton de
+  Vendre se superposent et se tronquent à cette taille. La grille
+  hebdomadaire d’Agenda occupe le premier écran XXXL. Reprendre la densité
+  de l’en-tête et l’affichage du total XXXL, puis contrôler les interactions
+  sur appareil. La cloche et la capsule champagne restent des écarts.
 
 ### Lot 3 — Boutique
 
