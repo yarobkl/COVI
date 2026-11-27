@@ -29,6 +29,7 @@ struct SalonSpace: View {
     @State private var newClient = ""
     @State private var addingClient = false
     @State private var clientSearch = ""
+    @State private var directoryFilter = SalonDirectoryFilter.all
     @State private var clientProfileID: UUID?
     @State private var cancellingVisit: UUID?
     @State private var message = ""
@@ -151,6 +152,7 @@ struct SalonSpace: View {
         .task {
             if tab == .agenda, diagnostics?.salonBooking != nil { booking = true }
             if tab == .agenda, diagnostics?.scenario == .salonAgendaGrid { showsAgendaGrid = true }
+            if tab == .clients, diagnostics?.scenario == .salonClientsUpcoming { directoryFilter = .upcoming }
             if tab == .clients, let id = diagnostics?.salonProfileID { clientProfileID = id }
         }
 #endif
@@ -192,28 +194,36 @@ struct SalonSpace: View {
         let query = clientSearch.trimmingCharacters(in: .whitespacesAndNewlines)
         let phoneDigits = query.filter(\.isNumber)
         let isPhoneQuery = !phoneDigits.isEmpty && query.allSatisfy { $0.isNumber || " +()-.".contains($0) }
-        let matching = clients.filter {
-            query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) ||
-            (isPhoneQuery && $0.phone.filter(\.isNumber).contains(phoneDigits)) ||
-            $0.phone.localizedCaseInsensitiveContains(query)
-        }
         let historyByClient = Dictionary(grouping: sales.filter(\.service), by: \.client)
+        let visitCounts = historyByClient.mapValues { Set($0.map(\.order)).count }
         let upcomingByClient = Dictionary(grouping: visits.filter {
             !$0.cancelled && $0.receipt == nil && !$0.walkIn && $0.start >= now
         }, by: \.client)
+        let matching = clients.filter { client in
+            let matchesSearch = query.isEmpty || client.name.localizedCaseInsensitiveContains(query) ||
+                (isPhoneQuery && client.phone.filter(\.isNumber).contains(phoneDigits)) ||
+                client.phone.localizedCaseInsensitiveContains(query)
+            return matchesSearch && directoryFilter.includes(visits: visitCounts[client.id, default: 0],
+                hasUpcoming: upcomingByClient[client.id] != nil)
+        }
 
+        if !clients.isEmpty {
+            directoryFilters
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+        }
         if matching.isEmpty {
             ContentUnavailableView(clients.isEmpty ? "Aucun client" : "Aucun résultat",
                 systemImage: "person.crop.circle.badge.questionmark",
                 description: Text(clients.isEmpty ? "Créez une fiche client pour réserver et encaisser." :
-                    "Essayez un autre nom ou numéro de téléphone."))
+                    "Modifiez le filtre ou la recherche."))
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
         } else {
             Section {
                 ForEach(matching) { client in
                     let history = historyByClient[client.id] ?? []
-                    let count = Set(history.map(\.order)).count
+                    let count = visitCounts[client.id, default: 0]
                     let nextVisit = upcomingByClient[client.id]?.first
                     Button {
                         clientProfileID = client.id
@@ -221,21 +231,43 @@ struct SalonSpace: View {
                         clientRow(client, visitCount: count, latestService: history.first, nextVisit: nextVisit)
                     }
                     .buttonStyle(.plain)
-                    .listRowBackground(COVITheme.card)
+                    .listRowInsets(EdgeInsets(top: 3, leading: 17, bottom: 3, trailing: 17))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
                 }
-            } header: {
-                COVIBadge(title: query.isEmpty ? "Tous (\(clients.count))" : "\(matching.count) résultat(s)",
-                    tint: COVITheme.navy, foreground: .white)
-                    .padding(.vertical, 6)
-                    .textCase(nil)
             }
         }
+    }
+
+    private var directoryFilters: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 8) {
+                ForEach(SalonDirectoryFilter.allCases) { option in
+                    let selected = option == directoryFilter
+                    Button { directoryFilter = option } label: {
+                        Text(option == .all ? "Tous (\(clients.count))" : option.rawValue)
+                            .font(.caption.weight(.semibold))
+                            .fixedSize()
+                            .padding(.horizontal, 9)
+                            .frame(minHeight: 44)
+                            .foregroundStyle(selected ? .white : COVITheme.navy)
+                            .background(selected ? COVITheme.navy : COVITheme.card, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(selected ? .isSelected : [])
+                }
+            }
+        }
+        .scrollIndicators(.hidden)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Filtrer les clients")
     }
 
     private func clientRow(_ client: SalonClient, visitCount: Int,
                            latestService: SalonSaleLine?, nextVisit: SalonVisit?) -> some View {
         HStack(spacing: 10) {
-            SalonClientInitials(name: client.name)
+            SalonClientInitials(name: client.name,
+                tint: nextVisit != nil ? COVITheme.successTint : visitCount > 0 ? COVITheme.champagne : COVITheme.blue.opacity(0.10))
             VStack(alignment: .leading, spacing: 4) {
                 Text(client.name).font(.subheadline.bold())
                 if !client.phone.isEmpty {
@@ -249,13 +281,13 @@ struct SalonSpace: View {
                     Text("Dernière prestation · " + latestService.title)
                         .font(.caption).foregroundStyle(COVITheme.secondaryText)
                 }
+                if textSize.isAccessibilitySize && visitCount > 0 {
+                    visitCountLabel(visitCount)
+                }
             }
             Spacer(minLength: 4)
-            if visitCount > 0 {
-                Text(visitCount == 1 ? "1 visite" : "\(visitCount) visites")
-                    .font(.caption.weight(.semibold))
-                    .padding(.horizontal, 7).padding(.vertical, 4)
-                    .background(COVITheme.champagne, in: Capsule())
+            if !textSize.isAccessibilitySize && visitCount > 0 {
+                visitCountLabel(visitCount)
             }
             Image(systemName: "chevron.right")
                 .font(.caption.weight(.semibold))
@@ -263,8 +295,18 @@ struct SalonSpace: View {
         }
         .foregroundStyle(COVITheme.navy)
         .frame(minHeight: 48)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 4)
+        .background(COVITheme.card, in: RoundedRectangle(cornerRadius: 12))
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
+    }
+
+    private func visitCountLabel(_ count: Int) -> some View {
+        Text(count == 1 ? "1 visite" : "\(count) visites")
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 7).padding(.vertical, 4)
+            .background(COVITheme.champagne, in: Capsule())
     }
 
     @ViewBuilder private var bookingSheet: some View {
@@ -1039,9 +1081,28 @@ private struct SalonAppointmentEditor: View {
     }
 }
 
+enum SalonDirectoryFilter: String, CaseIterable, Identifiable {
+    case all = "Tous"
+    case visited = "Avec visites"
+    case unvisited = "Sans visite"
+    case upcoming = "RDV à venir"
+
+    var id: Self { self }
+
+    func includes(visits: Int, hasUpcoming: Bool) -> Bool {
+        switch self {
+        case .all: true
+        case .visited: visits > 0
+        case .unvisited: visits == 0
+        case .upcoming: hasUpcoming
+        }
+    }
+}
+
 private struct SalonClientInitials: View {
     let name: String
     var large = false
+    var tint: Color = COVITheme.champagne
 
     private var initials: String {
         let words = name.split(whereSeparator: \.isWhitespace)
@@ -1055,7 +1116,7 @@ private struct SalonClientInitials: View {
             .lineLimit(1)
             .minimumScaleFactor(0.5)
             .frame(width: large ? 68 : 40, height: large ? 68 : 40)
-            .background(COVITheme.champagne, in: Circle())
+            .background(tint, in: Circle())
             .accessibilityHidden(true)
     }
 }
@@ -1067,6 +1128,7 @@ private struct SalonProfile: View {
     let currency: String
     let onNewBooking: () -> Void
     @Environment(\.modelContext) private var db
+    @Environment(\.dynamicTypeSize) private var textSize
     @State private var notes = ""
     @State private var name = ""
     @State private var preferences = ""
@@ -1111,10 +1173,12 @@ private struct SalonProfile: View {
                                     }
                                     Spacer(minLength: 0)
                                 }
-                                HStack(spacing: 12) {
+                                let stats = textSize.isAccessibilitySize
+                                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
+                                    : AnyLayout(HStackLayout(spacing: 12))
+                                stats {
                                     stat("Visites", value: "\(Set(history.map(\.order)).count)", symbol: "calendar")
-                                    stat("Prestations", value: COVIMoney.text(history.reduce(0) { $0 + $1.gross },
-                                         currency: currency), symbol: "creditcard")
+                                    stat("Total des prestations", value: serviceTotal, symbol: "creditcard")
                                 }
                             }
                         }
@@ -1161,8 +1225,9 @@ private struct SalonProfile: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            if !editing {
-                COVIButton("Nouveau rendez-vous pour \(client.name)", systemImage: "plus", action: onNewBooking)
+            if !editing && !textSize.isAccessibilitySize {
+                COVIButton("Nouveau rendez-vous", systemImage: "plus", action: onNewBooking)
+                    .accessibilityHint("Pour \(client.name)")
                     .padding(.horizontal, 18).padding(.vertical, 10)
                     .background(COVITheme.cream)
             }
@@ -1170,7 +1235,13 @@ private struct SalonProfile: View {
         .background(COVIBackdrop())
         .navigationTitle(editing ? "Modifier la fiche" : "Fiche client")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
         .toolbar {
+            if !editing && textSize.isAccessibilitySize {
+                Button("Nouveau rendez-vous", systemImage: "plus", action: onNewBooking)
+                    .labelStyle(.iconOnly)
+                    .accessibilityHint("Pour \(client.name)")
+            }
             Button(editing ? "Annuler" : "Modifier") {
                 if !editing {
                     name = client.name
@@ -1191,13 +1262,18 @@ private struct SalonProfile: View {
 #endif
     }
 
+    private var serviceTotal: String {
+        let total = history.reduce(Decimal.zero) { $0 + Decimal($1.gross) }
+        return "\(total.formatted(.number.grouping(.automatic))) \(currency == "XAF" ? "FCFA" : currency)"
+    }
+
     private func stat(_ title: String, value: String, symbol: String) -> some View {
-        VStack(spacing: 4) {
+        VStack(alignment: textSize.isAccessibilitySize ? .leading : .center, spacing: 4) {
             Image(systemName: symbol).accessibilityHidden(true)
-            Text(value).font(.headline).multilineTextAlignment(.center)
+            Text(value).font(.headline)
             Text(title).font(.caption).foregroundStyle(COVITheme.secondaryText)
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: textSize.isAccessibilitySize ? .leading : .center)
         .accessibilityElement(children: .combine)
     }
 }

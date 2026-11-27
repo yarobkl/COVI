@@ -1402,6 +1402,16 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 1)
     }
 
+    func testSalonDirectoryKeepsFutureBookingsSeparateFromVisitHistory() {
+        XCTAssertTrue(SalonDirectoryFilter.upcoming.includes(visits: 0, hasUpcoming: true))
+        XCTAssertTrue(SalonDirectoryFilter.unvisited.includes(visits: 0, hasUpcoming: true))
+        XCTAssertFalse(SalonDirectoryFilter.visited.includes(visits: 0, hasUpcoming: true))
+        XCTAssertTrue(SalonDirectoryFilter.visited.includes(visits: 1, hasUpcoming: false))
+        XCTAssertFalse(SalonDirectoryFilter.unvisited.includes(visits: 1, hasUpcoming: false))
+        XCTAssertFalse(SalonDirectoryFilter.upcoming.includes(visits: 1, hasUpcoming: false))
+        XCTAssertTrue(SalonDirectoryFilter.all.includes(visits: 0, hasUpcoming: false))
+    }
+
     func testSalonClientNameAndPhoneAreEditableWithAuditHistory() throws {
         let db = try database(), owner = UUID(), shopID = UUID()
         let client = SalonClient(shop: shopID, name: "Ancien nom")

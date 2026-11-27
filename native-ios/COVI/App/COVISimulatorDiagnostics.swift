@@ -45,6 +45,7 @@ final class COVISimulatorDiagnostics {
         case salonBooking = "salon-booking"
         case salonBookingConflict = "salon-booking-conflict"
         case salonClients = "salon-clients"
+        case salonClientsUpcoming = "salon-clients-upcoming"
         case salonProfile = "salon-profile"
     }
 
@@ -125,7 +126,7 @@ final class COVISimulatorDiagnostics {
         case .restaurantTables, .restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace, .restaurantFloorZoom, .restaurantFloorGuests, .restaurantTable, .restaurantOrder, .restaurantReport, .restaurantIncident, .restaurantTeam, .restaurantKitchen, .restaurantKitchenReady, .restaurantMenu, .restaurantDrinks, .restaurantPayment, .restaurantPaidTable:
             kind = .restaurant
             name = "Restaurant de démonstration"
-        case .salonCatalog, .salonReport, .salonMore, .salonSettings, .salonCheckout, .salonToday, .salonAgenda, .salonAgendaGrid, .salonBooking, .salonBookingConflict, .salonClients, .salonProfile:
+        case .salonCatalog, .salonReport, .salonMore, .salonSettings, .salonCheckout, .salonToday, .salonAgenda, .salonAgendaGrid, .salonBooking, .salonBookingConflict, .salonClients, .salonClientsUpcoming, .salonProfile:
             kind = .salon
             name = "Studio Élégance"
         default:
@@ -162,7 +163,7 @@ final class COVISimulatorDiagnostics {
         if kind == .salon {
             basket = [:]
             due = 0
-            if scenario == .salonClients || scenario == .salonProfile {
+            if [.salonClients, .salonClientsUpcoming, .salonProfile].contains(scenario) {
                 try seedSalonDirectory()
             } else if scenario == .salonReport {
                 try seedSalonReport()

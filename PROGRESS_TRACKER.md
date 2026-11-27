@@ -866,6 +866,18 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
 - Prochain écran à rapprocher de sa référence : Caisse du Salon,
   planche `6155DBBE`.
 
+### Salon — Répertoire et fiche client
+
+- La planche `C0053217` a été relue. Le répertoire reprend les
+  filtres en capsules et les cartes indépendantes. Les filtres utilisent
+  les visites encaissées distinctes et les rendez-vous à venir. Les
+  règles de fidélité et le suivi des absences restent à définir.
+- La fiche reprend le bouton de rendez-vous en bas. Aux tailles
+  d’accessibilité, le bouton passe en haut et les indicateurs
+  s’empilent. La fiche laisse le lien de retour Clients visible.
+- Les captures du répertoire, de son filtre et de la fiche à la
+  taille d’accessibilité XXXL sont attendues dans les diagnostics.
+
 ### Agenda Salon — Semaine et liste du jour
 
 - Le volet Salon du concept « Trois écrans, une expérience fluide »
