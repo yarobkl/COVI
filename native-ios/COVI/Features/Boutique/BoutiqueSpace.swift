@@ -280,10 +280,15 @@ struct BoutiqueSpace: View {
                         description: Text(goods.isEmpty ? "Ajoutez votre premier article dans Stock avant d’encaisser." : "Essayez une autre famille ou un autre nom."))
                 }
                 ForEach(filtered) { item in
+                    let itemLayout = textSize.isAccessibilitySize
+                        ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+                        : AnyLayout(HStackLayout(spacing: 12))
                     Button { add(item) } label: {
                         COVICard {
-                            HStack(spacing: 12) {
-                                BoutiqueProductThumbnail(shopID: shop.id, itemID: item.id, root: photoRoot)
+                            itemLayout {
+                                if !textSize.isAccessibilitySize {
+                                    BoutiqueProductThumbnail(shopID: shop.id, itemID: item.id, root: photoRoot)
+                                }
                                 VStack(alignment: .leading, spacing: 7) {
                                     Text(item.title).font(.headline)
                                     Text(COVIMoney.text(item.priceMinor, currency: shop.currencyCode))
@@ -291,12 +296,17 @@ struct BoutiqueSpace: View {
                                     Text("\(item.stockOnHand - item.stockReserved) disponibles")
                                         .font(.caption).foregroundStyle(COVITheme.secondaryText)
                                 }
-                                Spacer(minLength: 4)
-                                Image(systemName: "plus.circle.fill").font(.title2)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 23, weight: .medium))
+                                    .accessibilityHidden(true)
                             }
                             .foregroundStyle(COVITheme.navy)
                         }
-                    }.buttonStyle(.plain)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Ajoute une unité au panier")
                 }
             }
             .foregroundStyle(COVITheme.navy)
