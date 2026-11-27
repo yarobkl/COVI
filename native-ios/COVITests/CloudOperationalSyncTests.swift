@@ -34,6 +34,34 @@ final class CloudOperationalSyncTests: XCTestCase {
         try CloudOperationalSync.capture(shop: shop, context: db).map { ($0.key, try $0.bytes()) }
     }
 
+    func testUnknownAndZeroBaleCostsRemainDistinctAfterRepeatedSync() throws {
+        let source = try memory()
+        let target = try memory()
+        let shop = Establishment(ownerID: UUID(), name: "Boutique", kind: .boutique, city: "Brazzaville")
+        let copy = clone(shop)
+        source.insert(shop)
+        source.insert(Bale(shop: shop.id, label: "Inconnu", cost: nil))
+        source.insert(Bale(shop: shop.id, label: "Gratuit", cost: 0))
+        source.insert(Bale(shop: shop.id, label: "Achat", cost: 12500))
+        try source.save()
+        target.insert(copy)
+        try target.save()
+        let batch = try export(source, shop: shop)
+        for _ in 0..<2 {
+            try CloudOperationalSync.merge(batch, shop: copy, cloudUserID: "iCloud-A", context: target)
+            try target.save()
+        }
+        let reopened = ModelContext(target.container)
+        let lots = try reopened.fetch(FetchDescriptor<Bale>())
+        XCTAssertEqual(lots.count, 3)
+        let unknown = try XCTUnwrap(lots.first { $0.label == "Inconnu" })
+        let free = try XCTUnwrap(lots.first { $0.label == "Gratuit" })
+        let paid = try XCTUnwrap(lots.first { $0.label == "Achat" })
+        XCTAssertNil(unknown.knownCost)
+        XCTAssertEqual(free.knownCost, 0)
+        XCTAssertEqual(paid.knownCost, 12500)
+    }
+
     func testInventoryAndBalesSyncOnceWithoutDuplicatingMovements() throws {
         let source = try memory(), target = try memory(), owner = UUID()
         let shop = Establishment(ownerID: owner, name: "Boutique", kind: .boutique, city: "Brazzaville")

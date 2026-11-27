@@ -99,6 +99,25 @@ final class BoutiquePhotoTests: XCTestCase {
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<StockMovement>()), 1)
     }
 
+    func testUnknownLotCostDiffersFromConfirmedZeroAndLegacyPayloadsDecode() throws {
+        let shop = UUID()
+        let unknown = Bale(shop: shop, label: "Inconnu", cost: nil)
+        let free = Bale(shop: shop, label: "Gratuit", cost: 0)
+        let paid = Bale(shop: shop, label: "Achat", cost: 12500)
+        XCTAssertNil(unknown.knownCost)
+        XCTAssertEqual(free.knownCost, 0)
+        XCTAssertEqual(paid.knownCost, 12500)
+        let encoder = JSONEncoder()
+        let decoder = JSONDecoder()
+        let legacy = OperationalBale(paid)
+        let oldJSON = try encoder.encode(legacy)
+        XCTAssertEqual(try decoder.decode(OperationalBale.self, from: oldJSON).cost, 12500)
+        let unknownJSON = try encoder.encode(OperationalBale(unknown))
+        XCTAssertNil(try decoder.decode(OperationalBale.self, from: unknownJSON).cost)
+        let zeroJSON = try encoder.encode(OperationalBale(free))
+        XCTAssertEqual(try decoder.decode(OperationalBale.self, from: zeroJSON).cost, 0)
+    }
+
     func testInitialStockLotMustBelongToShop() throws {
         let schema = Schema([Establishment.self, Membership.self, Bale.self, CatalogItem.self, StockMovement.self, OutboxEvent.self])
         let container = try ModelContainer(for: schema, configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)])

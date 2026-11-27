@@ -22,12 +22,15 @@ enum Tender: String, CaseIterable {
     var shop: UUID
     var label: String
     var cost: Int64
+    var costKnown: Bool = true
+    var knownCost: Int64? { costKnown ? cost : nil }
     var received: Date
-    init(shop: UUID, label: String, cost: Int64) {
+    init(shop: UUID, label: String, cost: Int64?) {
         id = UUID()
         self.shop = shop
         self.label = label
-        self.cost = cost
+        self.cost = cost ?? 0
+        self.costKnown = cost != nil
         received = .now
     }
 }

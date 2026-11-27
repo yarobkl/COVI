@@ -84,11 +84,11 @@ struct OperationalBale: Codable, Equatable {
     let id: UUID
     let shop: UUID
     let label: String
-    let cost: Int64
+    let cost: Int64?
     let received: Date
     init(_ row: Bale) {
         id = row.id; shop = row.shop; label = row.label
-        cost = row.cost; received = row.received
+        cost = row.knownCost; received = row.received
     }
 }
 
@@ -481,7 +481,7 @@ struct OperationalCloudAdapter {
             context.insert(item)
         case .bale:
             let x = try decode(row, as: OperationalBale.self)
-            guard x.id == id, x.shop == sid, !x.label.isEmpty, x.cost >= 0 else { throw SyncFault.invalidEvent }
+            guard x.id == id, x.shop == sid, !x.label.isEmpty, x.cost.map({ $0 >= 0 }) ?? true else { throw SyncFault.invalidEvent }
             if let prior = try find(Bale.self, id: id, context: context) {
                 guard OperationalBale(prior) == x else { throw SyncFault.journalChanged }
             } else {

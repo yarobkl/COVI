@@ -463,12 +463,14 @@ struct BaleList: View {
         List {
             Section("Nouvelle balle") {
                 TextField("Référence du lot", text: $label)
-                TextField("Coût du lot en " + shop.currencyCode, text: $cost).keyboardType(.numberPad)
+                TextField("Coût facultatif en " + shop.currencyCode, text: $cost).keyboardType(.numberPad)
                 Button("Réceptionner la balle") {
                     do { try BoutiqueInventoryService.checkReceive(shop: shop, actor: actor, context: context) }
                     catch { message = error.localizedDescription; return }
                     let ref = label.trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !ref.isEmpty, let value = Int64(cost), value >= 0,
+                    let enteredCost = cost.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let value = Int64(enteredCost)
+                    guard !ref.isEmpty, enteredCost.isEmpty || (value.map { $0 >= 0 } ?? false),
                           !bales.contains(where: { $0.shop == shop.id && $0.label.caseInsensitiveCompare(ref) == .orderedSame })
                     else { message = "Vérifiez la référence et le coût."; return }
                     let bale = Bale(shop: shop.id, label: ref, cost: value)
@@ -483,7 +485,9 @@ struct BaleList: View {
             ForEach(bales.filter { $0.shop == shop.id }.sorted { $0.received > $1.received }) { bale in
                 NavigationLink(bale.label) {
                     Form {
-                        LabeledContent("Coût du lot", value: "\(bale.cost) \(shop.currencyCode)")
+                        LabeledContent("Coût du lot", value: bale.knownCost.map {
+                            COVIMoney.text($0, currency: shop.currencyCode)
+                        } ?? "Non renseigné")
                         Picker("Article découvert", selection: $picked) {
                             Text("Choisir").tag(nil as UUID?)
                             ForEach(goods) { Text($0.title).tag(Optional($0.id)) }

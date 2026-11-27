@@ -29,3 +29,9 @@ Validation du lot : le diagnostic macOS 45881995888 a réussi sur le commit fe33
 Le formulaire de création d’article propose un lot existant de la boutique. Lorsque le stock initial est positif, son mouvement conserve le lien vers ce lot. Le service refuse un lot d’un autre établissement avant toute création. Le choix reste facultatif. La répartition du coût global du lot entre les articles, les coûts unitaires et les variantes restent à développer.
 
 Le diagnostic macOS 45883944148 a réussi sur ae59479, avec 146 XCTest sans échec, compilations Debug et Release pour simulateur et captures de régression iPhone/iPad. Le test dédié vérifie le rattachement au bon lot et le refus d’un lot étranger sans création d’article. Les interactions de ce formulaire sur appareil restent à vérifier.
+
+## Coût facultatif des lots
+
+Le coût du lot peut rester vide. La fiche affiche alors « Non renseigné ». Un zéro saisi reste un coût explicitement connu. Les montants historiques sont considérés comme connus via un indicateur persistant dont la valeur par défaut est vraie. Les calculs doivent utiliser knownCost pour tenir compte de l’absence de coût.
+
+Le format de synchronisation conserve les coûts entiers existants et accepte un coût absent pour les nouveaux lots. Les anciennes versions qui exigent ce champ ne peuvent pas importer les lots sans coût et nécessitent une mise à jour. Les essais de migration d’une ancienne base sur appareil et de synchronisation entre deux appareils restent nécessaires avant livraison. La répartition du coût global et les marges unitaires restent à développer.
