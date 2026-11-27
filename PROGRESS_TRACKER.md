@@ -778,6 +778,45 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   effectif d’espace et les interactions VoiceOver restent à essayer
   sur iPhone physique.
 
+### Lot 3 — Création d’établissement et saisie du PIN
+
+- La planche `17327825` montre le choix d’activité, les informations du
+  commerce et le bouton de création au bas de l’écran. Sur `a99e520`,
+  « Votre établissement » regroupe le nom, la ville et la devise. Les
+  activités s’empilent et le bouton défile aux tailles d’accessibilité.
+  Le formulaire présenté par Mes espaces a une action Retour. L’écran
+  d’un compte sans établissement s’ouvre par le parcours normal.
+  La création continue de sauvegarder l’établissement et l’adhésion
+  propriétaire dans la même transaction, avec la limite de trois espaces.
+- [Diagnostics de `a99e520`](https://github.com/yarobkl/COVI/actions/runs/45992972157)
+  en Debug et Release, **161 XCTest sans échec** et 51 captures.
+  Les [captures iPhone simulé](https://github.com/yarobkl/COVI/actions/runs/45992972157/artifacts/15195946751)
+  ont été comparées à `17327825`. Les trois activités, les valeurs du
+  formulaire et le bouton fixe sont visibles en taille standard. Au
+  réglage XXXL, les activités sont entières et les champs se lisent en
+  défilant. L’écran de première création s’ouvre directement sur le
+  formulaire et l’indicateur « Étape 1 sur 2 » a été retiré. Pays, adresse,
+  téléphone, GPS et création tactile restent à traiter ou vérifier.
+- La planche `13FF89C0` (SHA-256 `b0f4b0d7…`) montre la caisse avec
+  les touches rondes, les repères de saisie et le nom du caissier.
+  Sur `9dbc727`, la feuille de déverrouillage affiche le commerce et
+  le nom de la session lorsque celle-ci correspond au compte verrouillé.
+  Les repères masquent la valeur du PIN. Le clavier garde des touches
+  d’au moins 44 points. « Annuler » ferme la feuille. L’accès et le
+  verrouillage restent contrôlés par le service de PIN existant.
+- [Diagnostics de `9dbc727`](https://github.com/yarobkl/COVI/actions/runs/45993293913)
+  réussis en Debug et Release, avec **161 XCTest sans échec** et
+  53 captures. Les deux images de première création sont identiques
+  aux captures du diagnostic précédent.
+- Les [captures PIN sur iPhone simulé](https://github.com/yarobkl/COVI/actions/runs/45993293913/artifacts/15196700381)
+  ont été comparées à `13FF89C0`. La feuille native montre le titre
+  « Code PIN de Marc », deux ronds remplis sur quatre, le clavier
+  entier avec ses lettres et l’annulation en taille standard. En
+  XXXL, les touches agrandies se lisent sans lettres et les dernières
+  lignes demandent de défiler. Le sélecteur de collaborateurs de la
+  planche reste à intégrer avec les sessions d’équipe. La saisie,
+  les retours haptiques et VoiceOver restent à essayer sur appareil.
+
 ### Lot 3 — Boutique
 
 - La planche `9BF220F7` a été inspectée. Sur Vendre, le panier apparaît dans
