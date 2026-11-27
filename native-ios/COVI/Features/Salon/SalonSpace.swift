@@ -10,6 +10,7 @@ struct SalonSpace: View {
     let pin: PINManager
     @Environment(\.modelContext) private var db
     @Environment(\.calendar) private var calendar
+    @Environment(\.dynamicTypeSize) private var textSize
     @Query var visits: [SalonVisit]
     @Query var clients: [SalonClient]
     @Query var menu: [CatalogItem]
@@ -74,11 +75,8 @@ struct SalonSpace: View {
                 .modifier(SalonClientSearch(enabled: tab == .clients, text: $clientSearch))
                 .listStyle(.plain)
                 .safeAreaInset(edge: .bottom) {
-                    if tab == .agenda {
-                        COVIButton("Nouveau rendez-vous", systemImage: "plus.circle") {
-                            bookingClientID = nil
-                            booking = true
-                        }
+                    if tab == .agenda && !textSize.isAccessibilitySize {
+                        COVIButton("Nouveau rendez-vous", systemImage: "plus.circle", action: startAgendaBooking)
                         .disabled(activeTeam.isEmpty)
                         .padding(.horizontal, COVITheme.Metrics.screenPadding)
                         .padding(.vertical, 8)
@@ -105,6 +103,13 @@ struct SalonSpace: View {
                     Image(systemName: showsAgendaGrid ? "list.bullet" : "rectangle.split.3x1")
                 }
                 .accessibilityLabel(showsAgendaGrid ? "Afficher la liste du jour" : "Afficher le planning par collaborateur")
+                if textSize.isAccessibilitySize {
+                    Button(action: startAgendaBooking) {
+                        Image(systemName: "plus.circle")
+                    }
+                    .accessibilityLabel("Nouveau rendez-vous")
+                    .disabled(activeTeam.isEmpty)
+                }
             }
             if tab == .clients {
                 Button("Client", systemImage: "plus") { addingClient = true }
@@ -291,6 +296,11 @@ struct SalonSpace: View {
         return calendar.date(bySettingHour: 9, minute: 0, second: 0, of: day) ?? day
     }
 
+    private func startAgendaBooking() {
+        bookingClientID = nil
+        booking = true
+    }
+
     @ViewBuilder private var todaySections: some View {
         let date = overviewDate
         let appointments = visits.filter {
@@ -340,16 +350,11 @@ struct SalonSpace: View {
         SalonAgendaWeek(selectedDay: $day)
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
-        ViewThatFits(in: .horizontal) {
-            HStack {
-                agendaDayTitle.fixedSize()
-                Spacer()
-                agendaDatePicker
-            }
-            VStack(alignment: .leading, spacing: 6) {
-                agendaDayTitle
-                agendaDatePicker
-            }
+        HStack {
+            agendaDayTitle
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            agendaDatePicker
         }
         .listRowBackground(Color.clear)
         .listRowSeparator(.hidden)
@@ -590,11 +595,13 @@ private struct SalonAgendaAppointmentRow: View {
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 5))
             : AnyLayout(HStackLayout(alignment: .top, spacing: 9))
         layout {
-            Text(start, style: .time)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(COVITheme.secondaryText)
-                .padding(.top, 9)
-                .accessibilityHidden(true)
+            if !textSize.isAccessibilitySize {
+                Text(start, style: .time)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(COVITheme.secondaryText)
+                    .padding(.top, 9)
+                    .accessibilityHidden(true)
+            }
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(title).font(.subheadline.bold())
