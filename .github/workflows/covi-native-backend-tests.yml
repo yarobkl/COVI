@@ -32,6 +32,12 @@ jobs:
       PGDATABASE: covi_test
     steps:
       - uses: actions/checkout@v4
+      - name: Verify the native team HTTP gateway
+        run: |
+          node --test native-ios/backend/tests/team_gateway_http.test.mjs
+          cd native-ios/backend/functions/covi-native-team
+          npm ci --ignore-scripts --no-audit --no-fund
+          npx --yes deno@2.6.0 check --node-modules-dir=manual index.ts
       - name: Validate isolated native authority without any hosted project
         run: |
           set -euo pipefail
