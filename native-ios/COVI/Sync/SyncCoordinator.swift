@@ -123,6 +123,7 @@ struct ShopSyncStatus: View {
     @Environment(AppSession.self) private var session
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var phase
+    @Environment(\.dynamicTypeSize) private var textSize
     @State private var status = "Synchronisation en attente"
     var body: some View {
         HStack(spacing: 7) {
@@ -130,8 +131,9 @@ struct ShopSyncStatus: View {
                   status.contains("suspendue") || status.contains("bloquée") ? "icloud.slash" : "arrow.triangle.2.circlepath.icloud")
                 .accessibilityHidden(true)
             Text(status)
-                .lineLimit(1)
+                .lineLimit(textSize.isAccessibilitySize ? nil : 1)
                 .minimumScaleFactor(0.8)
+                .fixedSize(horizontal: false, vertical: true)
         }
             .font(.caption2.weight(.medium))
             .foregroundStyle(COVITheme.navy)

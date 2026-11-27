@@ -57,6 +57,10 @@ final class COVISimulatorDiagnostics {
         case salonClientsUpcoming = "salon-clients-upcoming"
         case salonClientsAbsences = "salon-clients-absences"
         case salonProfile = "salon-profile"
+
+        var showsShopHeader: Bool {
+            [.shopHeader, .restaurantFloorPlan, .salonAgenda].contains(self)
+        }
     }
 
     struct RestaurantSample {
@@ -123,7 +127,8 @@ final class COVISimulatorDiagnostics {
         let simulatorSession = AppSession(keychain: storage)
         session = simulatorSession
         pin = PINManager(keychain: storage)
-        if [.salonMore, .salonSettings, .restaurantTeam, .establishmentSetup, .cashierPIN, .syncCentre, .shopHeader].contains(scenario) {
+        if scenario.showsShopHeader ||
+            [.salonMore, .salonSettings, .restaurantTeam, .establishmentSetup, .cashierPIN, .syncCentre].contains(scenario) {
             try simulatorSession.createLocalAccount(name: scenario == .cashierPIN ? "Marc" : "Camille Démo")
             guard let accountID = simulatorSession.accountID else { throw Failure.invalidScenario }
             owner = accountID
@@ -782,9 +787,10 @@ struct COVISimulatorDiagnosticView: View {
 
     var body: some View {
         Group {
-            if [.welcome, .establishmentSetup, .accountLogin, .accountRegistration, .shopHeader].contains(fixture.scenario) {
+            if fixture.scenario.showsShopHeader ||
+                [.welcome, .establishmentSetup, .accountLogin, .accountRegistration].contains(fixture.scenario) {
                 // RootView utilise une session mémoire, anonyme ou locale selon le scénario.
-                RootView()
+                RootView(pinManager: fixture.pin)
             } else if fixture.scenario == .spaces {
                 COVISpaces(account: fixture.owner, accountName: "Camille Démo", activeID: fixture.shop.id,
                            onSelect: { _ in }, onAdd: {})
@@ -811,8 +817,7 @@ struct COVISimulatorDiagnosticView: View {
                     service: sample.service)
             } else {
                 // Navigation et onglets réels, avec les contrôles de rôle/PIN normaux.
-                // Le header RootView/ShopSyncStatus est volontairement hors capture :
-                // sa création démarrerait la synchronisation du propriétaire.
+                // Ces scénarios cadrent directement les vues métier.
                 DynamicTabView(establishment: fixture.shop, accountID: fixture.owner,
                     role: .owner, pinManager: fixture.pin, onSwitchShop: {})
             }
@@ -823,7 +828,7 @@ struct COVISimulatorDiagnosticView: View {
             // Le formulaire et la fiche Salon signalent leur propre apparition.
             if fixture.salonBooking == nil && fixture.salonProfileID == nil &&
                 fixture.scenario != .establishmentSetup && fixture.scenario != .cashierPIN &&
-                fixture.scenario != .shopHeader &&
+                !fixture.scenario.showsShopHeader &&
                 fixture.scenario != .syncCentre &&
                 fixture.scenario != .accountLogin && fixture.scenario != .accountRegistration &&
                 fixture.scenario != .salonReport && fixture.scenario != .salonReportAbsences &&
@@ -832,7 +837,7 @@ struct COVISimulatorDiagnosticView: View {
                 fixture.scenario != .restaurantReport && fixture.scenario != .restaurantIncident && fixture.scenario != .restaurantTeam &&
                 fixture.scenario != .restaurantKitchenReady &&
                 fixture.scenario != .restaurantMenu && fixture.scenario != .restaurantDrinks &&
-                fixture.scenario != .restaurantPayment && fixture.scenario != .restaurantFloorPlan &&
+                fixture.scenario != .restaurantPayment &&
                 fixture.scenario != .restaurantFloorEdit && fixture.scenario != .restaurantFloorTerrace &&
                 fixture.scenario != .restaurantFloorZoom && fixture.scenario != .restaurantFloorGuests {
                 await fixture.signalAfterPresentation()

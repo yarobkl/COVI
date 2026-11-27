@@ -20,10 +20,14 @@ struct RootView: View {
         selectedID = id
         UserDefaults.standard.set(id.uuidString, forKey: "covi.shop." + account.uuidString)
     }
-    @State private var pinManager = PINManager()
+    @State private var pinManager: PINManager
     @State private var restoring = true
     @State private var importingDirectory = false
     @State private var directoryError = ""
+
+    init(pinManager: PINManager? = nil) {
+        _pinManager = State(initialValue: pinManager ?? PINManager())
+    }
 
     private func role(_ shop: Establishment, _ account: UUID) -> StaffRole? {
         StaffAccess.role(for: account, in: shop, memberships: memberships)
@@ -191,7 +195,8 @@ private struct COVIShopHeader: View {
         .accessibilityAddTraits(.isButton)
 #if DEBUG && targetEnvironment(simulator)
         .task {
-            if let diagnostics, diagnostics.scenario == .shopHeader, diagnostics.shop.id == shop.id {
+            if let diagnostics, [.shopHeader, .salonAgenda].contains(diagnostics.scenario),
+               diagnostics.shop.id == shop.id {
                 await diagnostics.signalAfterPresentation()
             }
         }
