@@ -391,12 +391,21 @@ private struct COVISyncCentre: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                summary
-                COVIButton("Synchroniser maintenant", systemImage: "arrow.triangle.2.circlepath") {
-                    Task { await syncNow() }
+                if textSize.isAccessibilitySize {
+                    Text("Synchronisation")
+                        .font(.title2.bold())
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .accessibilityAddTraits(.isHeader)
                 }
-                .disabled(syncing || !canSync)
-                .opacity(syncing || !canSync ? 0.55 : 1)
+                summary
+                if canSync || !textSize.isAccessibilitySize {
+                    COVIButton("Synchroniser maintenant", systemImage: "arrow.triangle.2.circlepath") {
+                        Task { await syncNow() }
+                    }
+                    .disabled(syncing || !canSync)
+                    .opacity(syncing || !canSync ? 0.55 : 1)
+                }
                 if syncing { ProgressView("Synchronisation en cours…") }
                 if !result.isEmpty { Text(result) }
                 COVICard {
@@ -420,8 +429,8 @@ private struct COVISyncCentre: View {
             .frame(maxWidth: .infinity)
         }
         .background(COVIBackdrop())
-        .navigationTitle("Synchronisation")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationTitle(textSize.isAccessibilitySize ? "" : "Synchronisation")
+        .navigationBarTitleDisplayMode(textSize.isAccessibilitySize ? .inline : .large)
         .toolbar(.hidden, for: .tabBar)
 #if DEBUG && targetEnvironment(simulator)
         .task {
@@ -440,7 +449,7 @@ private struct COVISyncCentre: View {
         let title = canSync ? "Sauvegarde iCloud" : "Mode hors ligne actif"
         return layout {
             Image(systemName: canSync ? "icloud" : "icloud.slash")
-                .font(.title2)
+                .font(.system(size: 22))
                 .foregroundStyle(COVITheme.warning)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
@@ -448,7 +457,7 @@ private struct COVISyncCentre: View {
                 Text(waiting == 1 ? "1 transfert iCloud en attente" : "\(waiting) transferts iCloud en attente")
                     .font(.subheadline).foregroundStyle(COVITheme.secondaryText)
                 if !canSync {
-                    Text("La sauvegarde iCloud est accessible au propriétaire connecté avec Apple.")
+                    Text("Connexion Apple du propriétaire requise.")
                         .font(.caption).foregroundStyle(COVITheme.secondaryText)
                 }
             }

@@ -817,6 +817,34 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   planche reste à intégrer avec les sessions d’équipe. La saisie,
   les retours haptiques et VoiceOver restent à essayer sur appareil.
 
+### Lot 3 — Synchronisation, connexion et création de compte
+
+- Le centre de synchronisation se rapproche de la planche `13FF89C0`.
+  Sur `5061f12`, il sépare les transferts iCloud en attente des
+  opérations enregistrées dans le journal local. Il traduit les
+  opérations connues et distingue leurs états par un libellé et une
+  couleur. Le bouton manuel est disponible pour le propriétaire
+  connecté avec Apple dans son établissement actif.
+- Les [captures iPhone](https://github.com/yarobkl/COVI/actions/runs/45997425277/artifacts/15196764467)
+  comparées à `13FF89C0` montrent le bandeau hors ligne, le journal
+  et les états de transfert. Les montants et les noms de la planche
+  laissent place aux types et dates d’opérations. Un transfert d’un
+  second commerce est exclu. Le bouton reste grisé sans connexion
+  Apple du propriétaire. [Diagnostics](https://github.com/yarobkl/COVI/actions/runs/45997425277)
+  réussis avec 162 XCTest sans échec et 55 captures. En XXXL, le titre
+  de navigation est tronqué. Le correctif place le titre dans le
+  contenu et masque la commande indisponible à cette taille. La
+  nouvelle capture reste à contrôler.
+- La planche `6906CB2C` (SHA-256 `c1d74327…`) montre deux écrans
+  d’entrée, avec titre, formulaires et liens de navigation. Sur
+  `5a5636f`, la connexion et la création reprennent une structure
+  commune, le bouton Apple natif, les actions locales et une route
+  réelle de « Se connecter » à « Créer un compte ». L’option locale
+  indique que l’espace reste sur l’iPhone. Les formulaires de mot
+  de passe, Google et la confirmation e-mail attendent l’autorité
+  de compte distante. L’accès au projet Supabase de préproduction
+  est toujours refusé le 27 novembre.
+
 ### Lot 3 — Boutique
 
 - La planche `9BF220F7` a été inspectée. Sur Vendre, le panier apparaît dans
