@@ -2,6 +2,7 @@
 import Foundation
 import SwiftUI
 import SwiftData
+import UIKit
 
 /// Captures de composants réels, avec des données éphémères entièrement isolées.
 /// Ce fichier et ses points d'entrée n'existent ni en Release ni sur un iPhone physique.
@@ -13,6 +14,7 @@ final class COVISimulatorDiagnostics {
         case welcome
         case boutiqueHome = "boutique-home"
         case boutiqueArrivals = "boutique-arrivals"
+        case boutiquePhotoSearch = "boutique-photo-search"
         case sale = "boutique-sale"
         case checkout = "boutique-checkout"
         case restaurantTables = "restaurant-tables"
@@ -73,6 +75,7 @@ final class COVISimulatorDiagnostics {
     let due: Int64
     let cashReceived: Int64 = 40_000
     private(set) var restaurantSample: RestaurantSample?
+    private(set) var boutiquePhotoSample: (photo: Data, root: URL)?
     private(set) var salonCatalogItems: [CatalogItem] = []
     private(set) var salonClock: Date?
     private(set) var salonBooking: SalonBookingSample?
@@ -188,11 +191,26 @@ final class COVISimulatorDiagnostics {
         context.insert(trousers)
         try context.save()
 
-        basket = [shirt.id: 1, trousers.id: 1]
+        basket = scenario == .boutiquePhotoSearch ? [:] : [shirt.id: 1, trousers.id: 1]
         due = try BoutiqueLedger.total([
             .init(product: shirt, units: 1),
             .init(product: trousers, units: 1)
         ], discount: 0)
+
+        if scenario == .boutiquePhotoSearch {
+            let root = FileManager.default.temporaryDirectory.appendingPathComponent("covi-photo-" + UUID().uuidString)
+            let size = CGSize(width: 360, height: 360)
+            let image = UIGraphicsImageRenderer(size: size).image { context in
+                UIColor(red: 0.96, green: 0.92, blue: 0.86, alpha: 1).setFill()
+                context.fill(CGRect(origin: .zero, size: size))
+                UIImage(systemName: "tshirt.fill")?.withTintColor(.darkGray, renderingMode: .alwaysOriginal)
+                    .draw(in: CGRect(x: 52, y: 48, width: 256, height: 264))
+            }
+            guard let photo = image.jpegData(compressionQuality: 0.9) else { throw Failure.invalidScenario }
+            let draft = BoutiquePhotoDraft(original: photo, preview: photo, studio: nil, suggestion: nil, color: nil)
+            try BoutiquePhotoStore.save(draft, description: "", shopID: shop.id, itemID: shirt.id, root: root)
+            boutiquePhotoSample = (photo, root)
+        }
 
         if scenario == .boutiqueHome {
             let whiteShirt = CatalogItem(establishmentID: shop.id,
@@ -665,6 +683,7 @@ struct COVISimulatorDiagnosticView: View {
             // Le formulaire et la fiche Salon signalent leur propre apparition.
             if fixture.salonBooking == nil && fixture.salonProfileID == nil &&
                 fixture.scenario != .salonReport && fixture.scenario != .salonSettings &&
+                fixture.scenario != .boutiquePhotoSearch &&
                 fixture.scenario != .restaurantReport && fixture.scenario != .restaurantIncident && fixture.scenario != .restaurantTeam &&
                 fixture.scenario != .restaurantKitchenReady &&
                 fixture.scenario != .restaurantMenu && fixture.scenario != .restaurantDrinks &&

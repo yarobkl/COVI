@@ -71,7 +71,7 @@ jobs:
           xcrun simctl status_bar "$DEVICE_ID" override --time "9:41" --batteryState charged --batteryLevel 100
           trap 'xcrun simctl status_bar "$DEVICE_ID" clear' EXIT
           # Give the newest diagnostic an opportunity to render before the regression sweep.
-          for SCENARIO in restaurant-incident restaurant-kitchen restaurant-kitchen-ready restaurant-paid-table restaurant-floor-guests restaurant-floor-zoom boutique-arrivals restaurant-floor-terrace restaurant-floor-plan restaurant-floor-edit restaurant-payment restaurant-drinks restaurant-menu restaurant-team restaurant-report salon-more salon-settings salon-report salon-checkout salon-catalog welcome boutique-home boutique-sale boutique-checkout restaurant-tables restaurant-table restaurant-order salon-today salon-agenda salon-booking salon-booking-conflict salon-clients salon-profile; do
+          for SCENARIO in boutique-photo-search restaurant-incident restaurant-kitchen restaurant-kitchen-ready restaurant-paid-table restaurant-floor-guests restaurant-floor-zoom boutique-arrivals restaurant-floor-terrace restaurant-floor-plan restaurant-floor-edit restaurant-payment restaurant-drinks restaurant-menu restaurant-team restaurant-report salon-more salon-settings salon-report salon-checkout salon-catalog welcome boutique-home boutique-sale boutique-checkout restaurant-tables restaurant-table restaurant-order salon-today salon-agenda salon-booking salon-booking-conflict salon-clients salon-profile; do
             MARKER="$APP_DATA/tmp/covi-diagnostic-$SCENARIO.ready"
             rm -f "$MARKER"
             xcrun simctl launch --terminate-running-process "$DEVICE_ID" com.covi.app --covi-diagnostic-scenario "$SCENARIO" -AppleLanguages '(fr)' -AppleLocale fr_FR
@@ -104,6 +104,7 @@ jobs:
             "Debug iPhone simulator; synthetic data stored in memory only; no network or TestFlight upload." \
             "welcome: actual RootView with an empty in-memory session." \
             "boutique-home: BoutiqueSpace with two completed in-memory sales (cash and Airtel Money), and low stock." \
+            "boutique-photo-search: actual Vision search using an isolated synthetic photo and a preselected catalog candidate." \
             "boutique-sale/checkout: actual DynamicTabView, BoutiqueSpace and Checkout." \
             "restaurant-tables: actual DynamicTabView and RestaurantSpace with four in-memory tables." \
             "restaurant-table/order: actual RestaurantTable and RestaurantComposer using saved in-memory lines and an unsent draft." \

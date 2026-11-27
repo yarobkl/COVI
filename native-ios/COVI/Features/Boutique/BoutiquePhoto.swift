@@ -230,13 +230,22 @@ enum BoutiquePhotoStore {
 }
 
 enum BoutiquePhotoSearch {
-    static func matches(photo: Data, shopID: UUID, itemIDs: [UUID]) throws -> [UUID] {
-        let query = try featurePrint(photo)
+    struct Result: Sendable {
+        let preview: Data
+        let itemIDs: [UUID]
+    }
+
+    static func analyze(photo: Data, shopID: UUID, itemIDs: [UUID], root: URL? = nil) throws -> Result {
+        let image = try thumbnail(photo)
+        let query = try featurePrint(image)
+        guard let preview = UIImage(cgImage: image).jpegData(compressionQuality: 0.86) else {
+            throw BoutiquePhotoFault.encoding
+        }
         var distances: [(id: UUID, distance: Float)] = []
         for itemID in itemIDs {
             try Task.checkCancellation()
-            guard let data = BoutiquePhotoStore.data(shopID: shopID, itemID: itemID),
-                  let candidate = try? featurePrint(data) else { continue }
+            guard let data = BoutiquePhotoStore.data(shopID: shopID, itemID: itemID, root: root),
+                  let image = try? thumbnail(data), let candidate = try? featurePrint(image) else { continue }
             var distance: Float = 0
             try query.computeDistance(&distance, to: candidate)
             if distance.isFinite {
@@ -245,13 +254,14 @@ enum BoutiquePhotoSearch {
         }
         // Apple does not define a universal matching threshold for these distances.
         // Rank candidates for human confirmation, without claiming an identification.
-        return distances.sorted {
+        let matches = distances.sorted {
             if $0.distance == $1.distance { return $0.id.uuidString < $1.id.uuidString }
             return $0.distance < $1.distance
         }.prefix(8).map { $0.id }
+        return Result(preview: preview, itemIDs: matches)
     }
 
-    private static func featurePrint(_ data: Data) throws -> VNFeaturePrintObservation {
+    private static func thumbnail(_ data: Data) throws -> CGImage {
         guard data.count <= 30 * 1024 * 1024 else { throw BoutiquePhotoFault.tooLarge }
         guard let source = CGImageSourceCreateWithData(data as CFData, nil),
               let image = CGImageSourceCreateThumbnailAtIndex(source, 0, [
@@ -259,6 +269,10 @@ enum BoutiquePhotoSearch {
                   kCGImageSourceCreateThumbnailWithTransform: true,
                   kCGImageSourceThumbnailMaxPixelSize: 512
               ] as CFDictionary) else { throw BoutiquePhotoFault.unreadable }
+        return image
+    }
+
+    private static func featurePrint(_ image: CGImage) throws -> VNFeaturePrintObservation {
         let request = VNGenerateImageFeaturePrintRequest()
         try VNImageRequestHandler(cgImage: image, options: [:]).perform([request])
         guard let feature = request.results?.first else { throw BoutiquePhotoFault.unreadable }
@@ -371,6 +385,7 @@ struct BoutiquePhotoPreview: View {
 struct BoutiqueProductThumbnail: View {
     let shopID: UUID
     let itemID: UUID
+    var root: URL? = nil
     @State private var data: Data?
     var body: some View {
         Group {
@@ -386,7 +401,7 @@ struct BoutiqueProductThumbnail: View {
         .accessibilityHidden(true)
         .task(id: itemID) {
             data = await Task.detached(priority: .utility) {
-                BoutiquePhotoStore.data(shopID: shopID, itemID: itemID)
+                BoutiquePhotoStore.data(shopID: shopID, itemID: itemID, root: root)
             }.value
         }
     }

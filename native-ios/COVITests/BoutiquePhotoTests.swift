@@ -28,7 +28,7 @@ final class BoutiquePhotoTests: XCTestCase {
     }
 
     func testPhotoSearchRejectsUnreadableInput() {
-        XCTAssertThrowsError(try BoutiquePhotoSearch.matches(
+        XCTAssertThrowsError(try BoutiquePhotoSearch.analyze(
             photo: Data([0, 1, 2]), shopID: UUID(), itemIDs: [UUID()]
         )) { error in
             XCTAssertEqual(error.localizedDescription, BoutiquePhotoFault.unreadable.localizedDescription)

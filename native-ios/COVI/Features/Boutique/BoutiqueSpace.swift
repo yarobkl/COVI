@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UIKit
 
 @MainActor
 struct BoutiqueSpace: View {
@@ -54,8 +55,13 @@ struct BoutiqueSpace: View {
         .navigationTitle(tab.title)
         .navigationBarTitleDisplayMode(.large)
         .sheet(isPresented: $photoSearch) {
+            #if DEBUG && targetEnvironment(simulator)
+            let root = diagnostics?.boutiquePhotoSample?.root
+            #else
+            let root: URL? = nil
+            #endif
             BoutiqueSalePhotoSearch(shopID: shop.id, goods: goods, basket: basket,
-                currency: shop.currencyCode) { item in
+                currency: shop.currencyCode, photoRoot: root) { item in
                 photoSearch = false
                 add(item)
             }
@@ -80,6 +86,8 @@ struct BoutiqueSpace: View {
             basket = diagnostics.basket
             if diagnostics.scenario == .checkout {
                 quote = Quote(due: diagnostics.due)
+            } else if diagnostics.scenario == .boutiquePhotoSearch {
+                photoSearch = true
             }
         }
         #endif
@@ -189,18 +197,32 @@ struct BoutiqueSpace: View {
     private var sellScreen: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                    TextField("Rechercher un produit...", text: $search).autocorrectionDisabled()
-                    Button { photoSearch = true } label: {
-                        Image(systemName: "camera")
-                            .frame(width: 44, height: 44)
-                            .contentShape(Rectangle())
+                HStack(spacing: 8) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "magnifyingglass").accessibilityHidden(true)
+                        TextField("Rechercher un article…", text: $search)
+                            .autocorrectionDisabled()
+                            .accessibilityLabel("Rechercher un article")
                     }
+                    .padding(.horizontal, 12)
+                    .frame(minHeight: 44)
+                    .foregroundStyle(COVITheme.secondaryText)
+                    .background(COVITheme.navy.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+
+                    Button { photoSearch = true } label: {
+                        Image(systemName: "viewfinder")
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(COVITheme.navy)
+                            .frame(width: 44, height: 44)
+                            .background(COVITheme.card, in: RoundedRectangle(cornerRadius: 12))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 12)
+                                    .strokeBorder(COVITheme.separator, lineWidth: 1)
+                            }
+                    }
+                    .buttonStyle(.plain)
                     .accessibilityLabel("Rechercher un article par photo")
                 }
-                .padding(15).foregroundStyle(COVITheme.secondaryText)
-                .background(COVITheme.navy.opacity(0.07), in: RoundedRectangle(cornerRadius: 15))
 
                 COVICard {
                     VStack(alignment: .leading, spacing: 14) {
@@ -347,10 +369,16 @@ private struct BoutiqueSalePhotoSearch: View {
     let goods: [CatalogItem]
     let basket: [UUID: Int]
     let currency: String
+    let photoRoot: URL?
     let select: (CatalogItem) -> Void
     @Environment(\.dismiss) private var dismiss
-    @State private var work: Task<[UUID], Error>?
-    @State private var matches: [UUID]?
+    @Environment(\.dynamicTypeSize) private var textSize
+    #if DEBUG && targetEnvironment(simulator)
+    @Environment(\.coviSimulatorDiagnostics) private var diagnostics
+    #endif
+    @State private var work: Task<BoutiquePhotoSearch.Result, Error>?
+    @State private var result: BoutiquePhotoSearch.Result?
+    @State private var selectedID: UUID?
     @State private var error = ""
 
     private var available: [CatalogItem] {
@@ -360,35 +388,26 @@ private struct BoutiqueSalePhotoSearch: View {
         }
     }
 
+    private var selected: CatalogItem? {
+        available.first { $0.id == selectedID }
+    }
+
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    BoutiquePhotoInput(busy: work != nil, onPhoto: search)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    COVICard {
+                        BoutiquePhotoInput(busy: work != nil, onPhoto: search)
+                    }
+                    if let result {
+                        review(result)
+                    }
                     if !error.isEmpty { Text(error).foregroundStyle(COVITheme.warning) }
                 }
-                if let matches {
-                    let items = matches.compactMap { id in available.first { $0.id == id } }
-                    Section("Articles à vérifier") {
-                        if items.isEmpty {
-                            Text("Aucun article disponible avec une photo locale. Essayez la recherche par nom.")
-                        }
-                        ForEach(items) { item in
-                            Button { select(item) } label: {
-                                HStack {
-                                    BoutiqueProductThumbnail(shopID: shopID, itemID: item.id)
-                                    VStack(alignment: .leading) {
-                                        Text(item.title)
-                                        Text(COVIMoney.text(item.priceMinor, currency: currency))
-                                            .font(.subheadline)
-                                    }
-                                }
-                            }
-                            .accessibilityHint("Ajoute une unité au panier")
-                        }
-                    }
-                }
+                .padding(COVITheme.Metrics.screenPadding)
             }
+            .foregroundStyle(COVITheme.navy)
+            .background(COVIBackdrop())
             .navigationTitle("Recherche par photo")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -396,23 +415,118 @@ private struct BoutiqueSalePhotoSearch: View {
                     Button("Fermer") { dismiss() }
                 }
             }
+            .safeAreaInset(edge: .bottom) {
+                if let selected {
+                    COVIButton("Confirmer et ajouter", systemImage: "checkmark") {
+                        if let current = self.selected { select(current) }
+                    }
+                    .accessibilityHint("Ajoute une unité de \(selected.title) au panier")
+                    .padding(COVITheme.Metrics.screenPadding)
+                    .background(COVITheme.cream)
+                }
+            }
         }
         .onDisappear { work?.cancel() }
+        #if DEBUG && targetEnvironment(simulator)
+        .task {
+            if let sample = diagnostics?.boutiquePhotoSample { search(sample.photo) }
+        }
+        #endif
+    }
+
+    private func review(_ result: BoutiquePhotoSearch.Result) -> some View {
+        let itemsByID = Dictionary(uniqueKeysWithValues: available.map { ($0.id, $0) })
+        let items = result.itemIDs.compactMap { itemsByID[$0] }
+        let layout = textSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: 14))
+
+        return VStack(alignment: .leading, spacing: 12) {
+            COVISectionTitle("Reconnaissance visuelle")
+            COVICard {
+                layout {
+                    if let photo = UIImage(data: result.preview) {
+                        Image(uiImage: photo).resizable().scaledToFit()
+                            .frame(width: 78, height: 78)
+                            .clipShape(RoundedRectangle(cornerRadius: 11))
+                            .accessibilityLabel("Photo utilisée pour la recherche")
+                    }
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Photo de recherche").font(.headline)
+                        Text(items.isEmpty
+                             ? "Aucun article disponible avec une photo locale."
+                             : "Choisissez l’article qui correspond.")
+                            .font(.subheadline).foregroundStyle(COVITheme.secondaryText)
+                    }
+                }
+            }
+            if !items.isEmpty {
+                COVISectionTitle("Articles à vérifier")
+                ForEach(items) { item in
+                    candidate(item)
+                }
+            }
+        }
+    }
+
+    private func candidate(_ item: CatalogItem) -> some View {
+        let chosen = item.id == selectedID
+        let stock = item.stockOnHand - item.stockReserved - basket[item.id, default: 0]
+        let layout = textSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(spacing: 12))
+        return Button { selectedID = item.id } label: {
+            COVICard {
+                layout {
+                    BoutiqueProductThumbnail(shopID: shopID, itemID: item.id, root: photoRoot)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(item.title).font(.headline)
+                        Text(COVIMoney.text(item.priceMinor, currency: currency))
+                            .font(.subheadline.weight(.semibold))
+                        Text("Stock disponible : \(stock)").font(.caption)
+                            .foregroundStyle(COVITheme.secondaryText)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    Image(systemName: chosen ? "checkmark.circle.fill" : "circle")
+                        .font(.title3).accessibilityHidden(true)
+                }
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: COVITheme.Metrics.cardRadius)
+                    .strokeBorder(chosen ? COVITheme.navy : .clear, lineWidth: 1.5)
+                    .allowsHitTesting(false)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(chosen ? .isSelected : [])
     }
 
     private func search(_ photo: Data) {
+        guard work == nil else { return }
         let ids = available.map(\.id)
         let establishment = shopID
+        let root = photoRoot
         error = ""
-        matches = nil
+        result = nil
+        selectedID = nil
         let task = Task.detached(priority: .userInitiated) {
-            try BoutiquePhotoSearch.matches(photo: photo, shopID: establishment, itemIDs: ids)
+            try BoutiquePhotoSearch.analyze(photo: photo, shopID: establishment, itemIDs: ids, root: root)
         }
         work = task
         Task { @MainActor in
             defer { work = nil }
             do {
-                matches = try await task.value
+                let found = try await task.value
+                guard !task.isCancelled else { return }
+                result = found
+                #if DEBUG && targetEnvironment(simulator)
+                if let diagnostics, diagnostics.scenario == .boutiquePhotoSearch,
+                   let first = found.itemIDs.first {
+                    selectedID = first
+                    work = nil
+                    await diagnostics.signalAfterPresentation()
+                }
+                #endif
             } catch is CancellationError {
                 return
             } catch {

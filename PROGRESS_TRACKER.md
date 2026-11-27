@@ -17,6 +17,18 @@
 - Recherche locale par photo dans Vendre, avec sélection manuelle d’un article disponible et maintien de la recherche textuelle.
 - Studio recentre le sujet détouré en conservant ses proportions et l’original. Essais visuels sur des vêtements réels et mesures des temps de recherche sur de gros catalogues restent à réaliser.
 
+### Recherche photo en caisse
+
+- Le concept « Trois écrans, une expérience fluide » a été relu.
+  Dans Vendre, le bouton de reconnaissance figure à droite du champ
+  de recherche et ouvre une comparaison photo/catalogue.
+- La feuille SwiftUI montre la photo analysée, puis les articles
+  disponibles avec leur prix et leur stock catalogue. Le commerçant
+  choisit la fiche et confirme avant l’ajout d’une unité au panier.
+- Le diagnostic utilise Vision sur une image synthétique et un
+  catalogue isolé. Les preuves de compilation et de rendu restent
+  à consigner.
+
 ## Reprise exécutée — 26 novembre 2026, matin
 
 Base vérifiée `766dc77` sur `feature/covi-2-native`. Les recherches de contexte
