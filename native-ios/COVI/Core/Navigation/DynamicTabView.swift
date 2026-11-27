@@ -4,17 +4,19 @@ import UIKit
 
 @MainActor
 enum COVITabAppearance {
-    static func install() {
+    private static let selectionImage = UIGraphicsImageRenderer(
+        size: CGSize(width: 52, height: 38)).image { _ in
+        UIColor(COVITheme.champagne).setFill()
+        UIBezierPath(roundedRect: CGRect(x: 0, y: 0, width: 52, height: 38),
+                     cornerRadius: 12).fill()
+    }.withRenderingMode(.alwaysOriginal)
+
+    private static let standard: UITabBarAppearance = {
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = UIColor(COVITheme.cream)
         appearance.shadowColor = UIColor(COVITheme.separator)
-        appearance.selectionIndicatorImage = UIGraphicsImageRenderer(
-            size: CGSize(width: 52, height: 38)).image { _ in
-            UIColor(COVITheme.champagne).setFill()
-            UIBezierPath(roundedRect: CGRect(x: 0, y: 0, width: 52, height: 38),
-                         cornerRadius: 12).fill()
-        }.withRenderingMode(.alwaysOriginal)
+        appearance.selectionIndicatorImage = selectionImage
         let selected = UIColor(COVITheme.navy)
         let unselected = UIColor(COVITheme.secondaryText)
         for item in [appearance.stackedLayoutAppearance, appearance.inlineLayoutAppearance,
@@ -24,9 +26,52 @@ enum COVITabAppearance {
             item.normal.iconColor = unselected
             item.normal.titleTextAttributes = [.foregroundColor: unselected]
         }
+        return appearance
+    }()
+
+    static func install() {
         let bar = UITabBar.appearance()
-        bar.standardAppearance = appearance
-        bar.scrollEdgeAppearance = appearance
+        bar.standardAppearance = standard
+        bar.scrollEdgeAppearance = standard
+    }
+
+    static func apply(to bar: UITabBar) {
+        if bar.selectionIndicatorImage != selectionImage {
+            bar.standardAppearance = standard
+            bar.scrollEdgeAppearance = standard
+            bar.selectionIndicatorImage = selectionImage
+        }
+        // SwiftUI can assign an appearance to the items after it creates the bar.
+        for item in bar.items ?? [] where item.standardAppearance?.selectionIndicatorImage != selectionImage {
+            item.standardAppearance = standard
+            item.scrollEdgeAppearance = standard
+        }
+    }
+}
+
+private struct COVITabAppearanceHost: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> Controller { Controller() }
+
+    func updateUIViewController(_ controller: Controller, context: Context) {
+        controller.applyAppearance()
+    }
+
+    final class Controller: UIViewController {
+        override func didMove(toParent parent: UIViewController?) {
+            super.didMove(toParent: parent)
+            applyAppearance()
+        }
+
+        override func viewWillAppear(_ animated: Bool) {
+            super.viewWillAppear(animated)
+            applyAppearance()
+        }
+
+        func applyAppearance() {
+            guard traitCollection.horizontalSizeClass == .compact,
+                  let bar = tabBarController?.tabBar else { return }
+            COVITabAppearance.apply(to: bar)
+        }
     }
 }
 
@@ -132,6 +177,11 @@ struct DynamicTabView: View {
                         ContentUnavailableView("Section indisponible", systemImage: "exclamationmark.triangle",
                                                description: Text("Vérifiez le type d’établissement sélectionné."))
                     }
+                }
+                .background {
+                    COVITabAppearanceHost()
+                        .frame(width: 0, height: 0)
+                        .accessibilityHidden(true)
                 }
                 .tabItem { Label(tab.title, systemImage: tab.symbol) }
                 .tag(tab)
