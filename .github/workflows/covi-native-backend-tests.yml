@@ -49,5 +49,12 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f native-ios/backend/tests/team_authority.sql
           psql -v ON_ERROR_STOP=1 -f native-ios/backend/tests/team_invitations.sql
           psql -v ON_ERROR_STOP=1 -f native-ios/backend/tests/team_gateway.sql
+      - name: Exercise the HTTP gateway with the restricted PostgreSQL login
+        env:
+          COVI_TEAM_TEST_DATABASE_URL: postgres://covi_http_test_login:covi-http-disposable-only@localhost:5432/covi_test
+        run: |
+          psql -v ON_ERROR_STOP=1 -f native-ios/backend/tests/team_gateway_http_integration.sql
+          cd native-ios/backend/functions/covi-native-team
+          npx --yes deno@2.6.0 test --node-modules-dir=manual --allow-env --allow-net=localhost:5432 integration.test.ts
       - name: Check establishment creation and invitation use across two PostgreSQL connections
         run: python3 native-ios/backend/tests/concurrent_limit.py
