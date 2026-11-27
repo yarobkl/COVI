@@ -37,6 +37,8 @@ jobs:
           set -euo pipefail
           psql -v ON_ERROR_STOP=1 -f native-ios/backend/tests/bootstrap.sql
           psql -v ON_ERROR_STOP=1 -f native-ios/backend/migrations/20261125220000_team_authority.sql
+          psql -v ON_ERROR_STOP=1 -f native-ios/backend/migrations/20261127152713_native_team_invitations.sql
           psql -v ON_ERROR_STOP=1 -f native-ios/backend/tests/team_authority.sql
-      - name: Reject concurrent fourth establishment across two PostgreSQL connections
+          psql -v ON_ERROR_STOP=1 -f native-ios/backend/tests/team_invitations.sql
+      - name: Check establishment creation and invitation use across two PostgreSQL connections
         run: python3 native-ios/backend/tests/concurrent_limit.py
