@@ -124,7 +124,7 @@ jobs:
             "restaurant-floor-terrace: real room selector showing only its two assigned tables and their live statuses." \
             "restaurant-floor-plan/floor-edit: real Salle and position editor, eight in-memory tables, Table 10 moved to column 3, Table 6 turned 90 degrees." \
             "restaurant-payment: actual Table checkout sheet with a 28500 XAF bill and 15000 XAF entered but unconfirmed." \
-            "restaurant-drinks: actual Plus destination with four balances, journaled restocks and simulated reservations." \
+            "restaurant-drinks: actual Plus destination with four balances, recorded reservations and a journaled service deduction." \
             "Account header and ShopSyncStatus are outside the business captures." \
             "Basket: 18,000 + 17,000 XAF; cash received: 40,000 XAF; change: 5,000 XAF." \
             "Restaurant drinks and Salon checkout/catalog include iPhone accessibility XXXL. The iPad step records separate proof; physical devices, interaction and cross-account sync remain unverified." \

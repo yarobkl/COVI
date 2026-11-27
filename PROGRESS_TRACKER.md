@@ -413,6 +413,18 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   à la commande, la déduction au service et la synchronisation sur deux
   appareils restent à tester ou à intégrer. Le lot 3 se poursuit.
 
+### Restaurant — Réservation et service des boissons
+
+- La planche `683EE982` prévoit une réservation à la commande
+  et une déduction au service. Les boissons ayant un stock suivi
+  réservent leurs unités en même temps que l’enregistrement du
+  ticket. La quantité réservée protège le stock déjà engagé.
+- Le service déduit ces unités et journalise un mouvement lié à
+  la ligne. Les anciennes lignes sans réservation et les boissons
+  sans suivi gardent leur parcours. Le miroir CloudKit transporte
+  l’indicateur de réservation et le mouvement de service.
+- Les preuves de test et de rendu restent à consigner.
+
 ### Encaissement partiel du Restaurant
 
 - La planche `A2188A03` a été vérifiée. Le panneau central présente

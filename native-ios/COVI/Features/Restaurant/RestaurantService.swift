@@ -97,6 +97,9 @@ enum RestaurantBill {
         guard admin, item.establishmentID == shop.id, item.menuCategory != nil
         else { throw RestaurantFault.access }
         let name = try validMenuTitle(title, price: price, ignoring: item.id)
+        guard item.menuCategory != MenuGroup.drinks.rawValue || category == .drinks || item.stockReserved == 0 else {
+            throw RestaurantFault.stock
+        }
         guard name != item.title || price != item.priceMinor || category.rawValue != item.menuCategory else { return }
         item.title = name
         item.priceMinor = price
@@ -227,6 +230,7 @@ enum RestaurantBill {
         guard !table.billRequested, !basket.isEmpty else { throw RestaurantFault.stale }
         var total = order.totalMinor
         var lines: [OrderLine] = []
+        var reservations: [(item: CatalogItem, count: Int)] = []
         for (id, count) in basket {
             guard let item = menu.first(where: { $0.id == id && $0.establishmentID == shop.id }),
                   !item.soldOut, MenuGroup(rawValue: item.menuCategory ?? "") != nil else { throw RestaurantFault.unavailable }
@@ -237,8 +241,18 @@ enum RestaurantBill {
             line.dishName = item.title
             line.preparation = Prep.received.rawValue
             line.sentAt = .now
+            if item.menuCategory == MenuGroup.drinks.rawValue, try tracksDrinkStock(item) {
+                guard item.stockReserved >= 0, item.stockOnHand >= item.stockReserved,
+                      count <= item.stockOnHand - item.stockReserved else { throw RestaurantFault.stock }
+                line.restaurantUsesDrinkStock = true
+                reservations.append((item, count))
+            }
             lines.append(line)
             total = next
+        }
+        for entry in reservations {
+            entry.item.stockReserved += entry.count
+            entry.item.updatedAt = .now
         }
         for line in lines { db.insert(line) }
         order.totalMinor = total
@@ -247,6 +261,15 @@ enum RestaurantBill {
                 entityID: order.id, actorID: actor, relatedIDs: lines.map { $0.id }, in: db)
             try save()
         } catch { db.rollback(); throw error }
+    }
+
+    private func tracksDrinkStock(_ item: CatalogItem) throws -> Bool {
+        if item.stockOnHand != 0 || item.stockReserved != 0 { return true }
+        let itemID = item.id
+        let shopID = shop.id
+        return try db.fetchCount(FetchDescriptor<StockMovement>(predicate: #Predicate {
+            $0.itemID == itemID && $0.establishmentID == shopID
+        })) > 0
     }
     func advance(_ line: OrderLine, from expected: Prep, table: DiningTable, order: CommerceOrder) throws {
         try advance([line], from: expected, table: table, order: order)
@@ -261,13 +284,43 @@ enum RestaurantBill {
 
         do {
             for line in lines {
+                var related = [order.id]
+                if next == .served, line.restaurantUsesDrinkStock == true {
+                    let movementID = try consumeReservedDrink(line)
+                    related.append(movementID)
+                }
                 line.preparation = next.rawValue
                 try BusinessOutbox.enqueue(kind: expected == .received ? "restaurant.line.claimed" : "restaurant.line.advanced",
                     establishmentID: shop.id,
-                    entityID: line.id, actorID: actor, relatedIDs: [order.id], in: db)
+                    entityID: line.id, actorID: actor, relatedIDs: related, in: db)
             }
             try save()
         } catch { db.rollback(); throw error }
+    }
+
+    private func consumeReservedDrink(_ line: OrderLine) throws -> UUID {
+        let itemID = line.catalogItemID
+        let shopID = shop.id
+        guard line.quantity > 0,
+              let drink = try db.fetch(FetchDescriptor<CatalogItem>(predicate: #Predicate {
+                  $0.id == itemID && $0.establishmentID == shopID
+              })).first,
+              drink.menuCategory == MenuGroup.drinks.rawValue,
+              drink.stockReserved >= line.quantity, drink.stockOnHand >= drink.stockReserved else {
+            throw RestaurantFault.stock
+        }
+        let movementID = line.id
+        guard try db.fetchCount(FetchDescriptor<StockMovement>(predicate: #Predicate {
+            $0.id == movementID
+        })) == 0 else { throw RestaurantFault.stale }
+        let movement = StockMovement(establishmentID: shopID, itemID: itemID,
+            delta: -line.quantity, reason: "Boisson servie", actorID: actor)
+        movement.id = movementID
+        db.insert(movement)
+        drink.stockReserved -= line.quantity
+        drink.stockOnHand -= line.quantity
+        drink.updatedAt = .now
+        return movementID
     }
 
     func finish(_ table: DiningTable, order: CommerceOrder, paid: Bool,

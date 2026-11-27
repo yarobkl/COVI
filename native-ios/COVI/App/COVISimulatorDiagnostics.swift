@@ -375,6 +375,13 @@ final class COVISimulatorDiagnostics {
         context.insert(shop)
         try context.save()
         let service = RestaurantService(shop: shop, actor: owner, role: .owner, pin: pin, db: context)
+        let table = DiningTable(establishmentID: shop.id, label: "Table 01", capacity: 4)
+        context.insert(table)
+        try service.open(table)
+        guard let orderID = table.activeSessionID,
+              let order = try context.fetch(FetchDescriptor<CommerceOrder>(predicate: #Predicate {
+                  $0.id == orderID
+              })).first else { throw Failure.invalidScenario }
         let stock: [(name: String, physical: Int, reserved: Int)] = [
             ("Primus 65 cl (Casier)", 36, 4),
             ("Ngok 65 cl", 12, 3),
@@ -385,8 +392,19 @@ final class COVISimulatorDiagnostics {
             let item = CatalogItem(establishmentID: shop.id, title: drink.name, priceMinor: 1_500)
             item.menuCategory = MenuGroup.drinks.rawValue
             context.insert(item)
-            try service.adjustDrinkStock(item, operation: .restock, quantity: drink.physical)
-            item.stockReserved = drink.reserved
+            let served = drink.name == stock.first?.name ? 2 : 0
+            try service.adjustDrinkStock(item, operation: .restock, quantity: drink.physical + served)
+            if served > 0 {
+                try service.send([item.id: served], menu: [item], table: table, order: order)
+                let itemID = item.id
+                guard let line = try context.fetch(FetchDescriptor<OrderLine>(predicate: #Predicate {
+                    $0.orderID == orderID && $0.catalogItemID == itemID
+                })).first else { throw Failure.invalidScenario }
+                for phase in [Prep.received, .cooking, .ready] {
+                    try service.advance(line, from: phase, table: table, order: order)
+                }
+            }
+            try service.send([item.id: drink.reserved], menu: [item], table: table, order: order)
         }
         try context.save()
     }

@@ -24,7 +24,7 @@ struct RestaurantDrinkStock: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                Label("Le stock physique est mis à jour après chaque réassort ou perte déclarée.",
+                Label("Les boissons suivies sont réservées à la commande et déduites du stock au service.",
                       systemImage: "info.circle")
                     .font(.subheadline)
                     .frame(maxWidth: .infinity, alignment: .leading)

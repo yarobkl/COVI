@@ -184,6 +184,7 @@ struct OperationalKitchenLine: Codable, Equatable {
     let name: String?
     let preparation: String?
     let awaitingClaim: Bool?
+    let usesDrinkStock: Bool?
     let sentAt: Date?
 
     var localPreparation: String? { awaitingClaim == true ? Prep.received.rawValue : preparation }
@@ -195,6 +196,7 @@ struct OperationalKitchenLine: Codable, Equatable {
         let received = row.preparation == Prep.received.rawValue
         preparation = received ? Prep.cooking.rawValue : row.preparation
         awaitingClaim = received ? true : nil
+        usesDrinkStock = row.restaurantUsesDrinkStock == true ? true : nil
         sentAt = row.sentAt
     }
 }
@@ -632,12 +634,25 @@ struct OperationalCloudAdapter {
                 OrderLine(orderID: x.order, catalogItemID: x.item,
                           quantity: x.quantity, unitPriceMinor: x.price)
             guard line.orderID == x.order else { throw SyncFault.journalChanged }
+            if x.usesDrinkStock == true {
+                guard shop.kind == .restaurant, x.preparation != nil,
+                      let drink = try find(CatalogItem.self, id: x.item, context: context),
+                      drink.establishmentID == sid,
+                      x.localPreparation == Prep.served.rawValue || drink.menuCategory == MenuGroup.drinks.rawValue
+                else { throw SyncFault.invalidEvent }
+            }
+            if line.restaurantUsesDrinkStock == true {
+                guard line.catalogItemID == x.item, line.quantity == x.quantity,
+                      x.localPreparation != Prep.served.rawValue || x.usesDrinkStock == true
+                else { throw SyncFault.journalChanged }
+            }
             if x.awaitingClaim == true, let state = line.preparation.flatMap(Prep.init(rawValue:)),
                state != .received { return }
             if shop.kind == .restaurant, OperationalKitchenLine(line) != x,
                try hasPayment(orderID: x.order, context: context) { throw SyncFault.journalChanged }
             line.id = id; line.catalogItemID = x.item; line.quantity = x.quantity
             line.unitPriceMinor = x.price; line.dishName = x.name
+            if x.usesDrinkStock == true { line.restaurantUsesDrinkStock = true }
             line.preparation = x.localPreparation; line.sentAt = x.sentAt; context.insert(line)
         case .salonSale:
             let x = try decode(row, as: OperationalSalonSale.self)

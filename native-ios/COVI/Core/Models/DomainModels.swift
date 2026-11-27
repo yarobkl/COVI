@@ -173,6 +173,7 @@ enum SupportedCurrency {
     var unitPriceMinor: Int64
     var dishName: String?
     var preparation: String?
+    var restaurantUsesDrinkStock: Bool?
     var sentAt: Date?
     init(orderID: UUID, catalogItemID: UUID, quantity: Int, unitPriceMinor: Int64) {
         self.id = UUID(); self.orderID = orderID; self.catalogItemID = catalogItemID

@@ -1274,6 +1274,46 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), 3)
     }
 
+    func testRestaurantReservesOnlyTrackedDrinksAndConsumesThemOnceAtService() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Restaurant", kind: .restaurant, city: "Brazzaville")
+        let table = DiningTable(establishmentID: shop.id, label: "Table 01", capacity: 4)
+        let tracked = CatalogItem(establishmentID: shop.id, title: "Eau", priceMinor: 1_000)
+        let legacy = CatalogItem(establishmentID: shop.id, title: "Bissap", priceMinor: 2_000)
+        for drink in [tracked, legacy] {
+            drink.menuCategory = MenuGroup.drinks.rawValue
+            db.insert(drink)
+        }
+        db.insert(shop); db.insert(table); try db.save()
+        let service = RestaurantService(shop: shop, actor: owner, role: .owner, pin: ownerPIN(), db: db)
+        try service.adjustDrinkStock(tracked, operation: .restock, quantity: 3)
+        try service.open(table)
+        let order = try XCTUnwrap(db.fetch(FetchDescriptor<CommerceOrder>()).first)
+        let menu = [tracked, legacy]
+        try service.send([tracked.id: 3, legacy.id: 1], menu: menu, table: table, order: order)
+        XCTAssertEqual(tracked.stockOnHand, 3)
+        XCTAssertEqual(tracked.stockReserved, 3)
+        XCTAssertEqual(legacy.stockReserved, 0)
+        XCTAssertThrowsError(try service.send([tracked.id: 1, legacy.id: 1], menu: menu, table: table, order: order))
+        XCTAssertThrowsError(try service.editMenu(tracked, title: tracked.title, price: tracked.priceMinor, category: .food))
+        let lines = try db.fetch(FetchDescriptor<OrderLine>())
+        XCTAssertEqual(lines.count, 2)
+        XCTAssertEqual(order.totalMinor, 5_000)
+        let trackedLine = try XCTUnwrap(lines.first { $0.catalogItemID == tracked.id })
+        XCTAssertEqual(trackedLine.restaurantUsesDrinkStock, true)
+        for phase in [Prep.received, .cooking, .ready] {
+            try service.advance(lines, from: phase, table: table, order: order)
+        }
+        XCTAssertEqual(tracked.stockReserved, 0)
+        XCTAssertEqual(tracked.stockOnHand, 0)
+        let movements = try db.fetch(FetchDescriptor<StockMovement>())
+        XCTAssertEqual(movements.count, 2)
+        XCTAssertEqual(movements.first { $0.id == trackedLine.id }?.delta, -3)
+        XCTAssertThrowsError(try service.advance(lines, from: .ready, table: table, order: order))
+        XCTAssertThrowsError(try service.send([tracked.id: 1], menu: menu, table: table, order: order))
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<StockMovement>()), 2)
+    }
+
     func testRestaurantDrinkStockJournalsAdjustmentsAndProtectsReservedUnits() throws {
         let db = try database(), owner = UUID(), manager = UUID()
         let shop = Establishment(ownerID: owner, name: "Restaurant", kind: .restaurant, city: "Brazzaville")

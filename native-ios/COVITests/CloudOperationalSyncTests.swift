@@ -17,7 +17,8 @@ final class CloudOperationalSyncTests: XCTestCase {
             Establishment.self, CatalogItem.self, Bale.self, StockMovement.self,
             SalonClient.self, SalonStaff.self, SalonVisit.self, SalonSaleLine.self,
             DiningTable.self, CommerceOrder.self, OrderLine.self, PaymentRecord.self,
-            Membership.self, OperationalCloudMarker.self, OperationalCloudCheckpoint.self
+            Membership.self, OperationalCloudMarker.self, OperationalCloudCheckpoint.self,
+            OutboxEvent.self
         ])
         let container = try ModelContainer(for: schema, configurations: [
             ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
@@ -141,6 +142,45 @@ final class CloudOperationalSyncTests: XCTestCase {
         try target.save()
         XCTAssertEqual(try target.fetchCount(FetchDescriptor<StockMovement>()), 2)
         XCTAssertEqual(try target.fetch(FetchDescriptor<CatalogItem>()).first?.stockOnHand, 3)
+    }
+
+    func testRestaurantDrinkReservationAndServiceMovementSurviveRepeatedSync() throws {
+        let source = try memory(), target = try memory(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Restaurant", kind: .restaurant, city: "Brazzaville")
+        let copy = clone(shop)
+        let table = DiningTable(establishmentID: shop.id, label: "Table 01", capacity: 4)
+        let drink = CatalogItem(establishmentID: shop.id, title: "Eau", priceMinor: 1_000)
+        drink.menuCategory = MenuGroup.drinks.rawValue
+        source.insert(shop); source.insert(table); source.insert(drink); try source.save()
+        target.insert(copy); try target.save()
+        let service = RestaurantService(shop: shop, actor: owner, role: .owner,
+            pin: PINManager(keychain: InMemorySecureStore()), db: source)
+        try service.adjustDrinkStock(drink, operation: .restock, quantity: 4)
+        try service.open(table)
+        let order = try XCTUnwrap(source.fetch(FetchDescriptor<CommerceOrder>()).first)
+        try service.send([drink.id: 2], menu: [drink], table: table, order: order)
+
+        try CloudOperationalSync.merge(try export(source, shop: shop), shop: copy,
+            cloudUserID: "iCloud-A", context: target)
+        try target.save()
+        let mirror = try XCTUnwrap(target.fetch(FetchDescriptor<CatalogItem>()).first)
+        XCTAssertEqual(mirror.stockReserved, 2)
+        XCTAssertEqual(mirror.stockOnHand, 4)
+        XCTAssertEqual(try target.fetch(FetchDescriptor<OrderLine>()).first?.restaurantUsesDrinkStock, true)
+
+        let line = try XCTUnwrap(source.fetch(FetchDescriptor<OrderLine>()).first)
+        for phase in [Prep.received, .cooking, .ready] {
+            try service.advance(line, from: phase, table: table, order: order)
+        }
+        let batch = try export(source, shop: shop)
+        for _ in 0..<2 {
+            try CloudOperationalSync.merge(batch, shop: copy, cloudUserID: "iCloud-A", context: target)
+            try CloudOperationalSync.validateStock(shop: copy, context: target)
+            try target.save()
+        }
+        XCTAssertEqual(mirror.stockReserved, 0)
+        XCTAssertEqual(mirror.stockOnHand, 2)
+        XCTAssertEqual(try target.fetchCount(FetchDescriptor<StockMovement>()), 2)
     }
 
     func testClientStaffAndBookingImportWithStableIdentifiers() throws {
