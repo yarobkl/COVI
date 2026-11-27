@@ -823,6 +823,13 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   directe par `anon` ou `authenticated`. Les essais concurrents de
   création et d’utilisation d’une invitation passent toujours.
   [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/46044620538)
+- Sur `0eddcf7`, le rôle PostgreSQL privé destiné à la passerelle peut
+  appeler le répertoire, émettre, révoquer et utiliser une invitation
+  sans accès direct aux tables ni au registre Auth. Les opérations
+  relisent la session et le rôle du propriétaire. Le test sous ce rôle
+  vérifie le refus sans session, l’isolation du second compte avant
+  l’invitation et l’apparition de son rôle après l’acceptation.
+  [Tests PostgreSQL 17](https://github.com/yarobkl/COVI/actions/runs/46048544124)
 - L’accès à la préproduction était toujours refusé le 27 novembre.
   La passerelle authentifiée, l’application de la migration hébergée et
   le parcours SwiftUI d’invitation restent à intégrer et à vérifier.
@@ -1003,6 +1010,14 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   appareil restent à vérifier.
   [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/46044396272)
   a validé Debug, Release et **164 XCTest sans échec**.
+- Sur `abdff19`, l’indicateur champagne est appliqué à la barre native
+  et à ses onglets sur iPhone. La [comparaison des 66 captures](https://github.com/yarobkl/COVI/actions/runs/46048544151/artifacts/15224108014)
+  avec `38512445…` montre la capsule derrière Vendre, Tables et Agenda
+  et sous Vendre en XXXL. La barre iOS conserve toute la largeur. La
+  forme arrondie du conteneur et la cloche du concept restent à étudier.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/46048544151)
+  a validé Debug, Release et **164 XCTest sans échec** sur la révision
+  `0eddcf7`, qui inclut les contrôles backend testés séparément.
 
 ### Lot 3 — Boutique
 

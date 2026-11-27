@@ -17,8 +17,10 @@ L’[en-tête commun sur iPhone 16 Pro simulé](https://github.com/yarobkl/COVI/
 a été comparé aux trois volets du concept `38512445…`. Vendre, Salle
 et Agenda montrent leur symbole métier, le nom de l’établissement
 et un sélecteur relié à Mes espaces. Le concept ajoute une cloche.
-La barre d’onglets ivoire native et sa sélection foncée diffèrent en
-forme et en surbrillance de la barre arrondie et de la capsule champagne.
+Les [captures de la barre native](https://github.com/yarobkl/COVI/actions/runs/46048544151/artifacts/15224108014)
+montrent la capsule champagne derrière Vendre, Tables et Agenda, et
+derrière Vendre en XXXL. La barre reste pleine largeur sur iPhone.
+Le concept présente un conteneur arrondi.
 Les [captures du correctif](https://github.com/yarobkl/COVI/actions/runs/46044396272/artifacts/15222004025)
 montrent l’en-tête compact en XXXL, avec le nom du commerce et le bouton
 de statut propriétaire. Dans Vendre, le total de 35 000 FCFA et l’action
