@@ -14,6 +14,13 @@ de sélection. Les positions réelles, les actions supplémentaires,
 l’en-tête et la barre de navigation des concepts restent à intégrer ou
 à vérifier.
 
+Le volet Boutique du concept a été comparé à [Vendre et Recherche par photo sur iPhone simulé](https://github.com/yarobkl/COVI/actions/runs/45918257137/artifacts/15163907047).
+Le bouton de reconnaissance jouxte la recherche. La feuille SwiftUI
+affiche la photo source, la fiche avec prix et stock, et le bouton
+de confirmation fixe. Le concept présente un panneau court avec le
+catalogue en arrière-plan. La photo réelle, les filtres, l’en-tête et
+les interactions sur appareil restent à vérifier ou intégrer.
+
 Les [captures de Salle et de son éditeur](https://github.com/yarobkl/COVI/actions/runs/45863543305/artifacts/15140357118)
 montrent le déplacement de Table 10 dans la grille et l’orientation de
 Table 6. La planche prévoit « Déplacer » dans le panneau contextuel.

@@ -25,9 +25,20 @@
 - La feuille SwiftUI montre la photo analysée, puis les articles
   disponibles avec leur prix et leur stock catalogue. Le commerçant
   choisit la fiche et confirme avant l’ajout d’une unité au panier.
-- Le diagnostic utilise Vision sur une image synthétique et un
-  catalogue isolé. Les preuves de compilation et de rendu restent
-  à consigner.
+- Sur `bef987f`, Debug, Release et **151 XCTest sans échec**.
+  Le diagnostic utilise Vision sur une image synthétique et une
+  photo de catalogue isolée. Il ouvre la feuille réelle, affiche
+  le résultat et sélectionne la fiche pour la capture.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45918257137)
+- Les [captures iPhone](https://github.com/yarobkl/COVI/actions/runs/45918257137/artifacts/15163907047)
+  ont été comparées au concept. Le bouton de reconnaissance est à droite
+  du champ de recherche. La feuille montre le visuel analysé, une
+  chemise à 18 000 FCFA, quatre unités disponibles et l’action fixe
+  « Confirmer et ajouter ». La maquette montre un panneau court au-dessus
+  du catalogue. La feuille native est plus haute et affiche la photo de
+  recherche séparément. L’illustration de test sert au contrôle du rendu.
+- La prise de vue, le choix manuel et l’ajout effectif au panier restent
+  à essayer sur iPhone physique, avec des photos de vêtements réels.
 
 ## Reprise exécutée — 26 novembre 2026, matin
 
