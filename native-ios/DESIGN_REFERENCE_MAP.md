@@ -94,8 +94,10 @@ cet état. La confirmation tactile reste à essayer sur appareil.
 Le [raccourci Encaisser dans Salle](https://github.com/yarobkl/COVI/actions/runs/46073417621/artifacts/15234009981)
 reprend l’action du volet Restaurant de `38512445…`. Le résumé du
 scénario montre Table 6 à encaisser et sa feuille affiche le même reste
-dû de 16 000 FCFA. La disposition XXXL et le toucher sur appareil
-restent à vérifier. Les commandes annexes du concept restent ouvertes.
+dû de 16 000 FCFA. En [XXXL](https://github.com/yarobkl/COVI/actions/runs/46076063399/artifacts/15235182759),
+la salle et le début du résumé sont visibles. Le libellé des places
+occupées se coupe et les actions demandent de défiler. Les appuis
+sur appareil et les autres commandes du concept restent à traiter.
 
 ## Reprise du lot visuel COVI 2.0
 

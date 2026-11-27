@@ -727,10 +727,15 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   d’encaissement se coupent et le défilement masque le haut du résumé.
   [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/46073417621)
   a validé Debug, Release et **165 XCTest sans échec**.
-- Sur `9032fa4`, Salle garde son titre et son sélecteur plus compacts
-  en accessibilité, affiche d’abord le haut du résumé et empile le
-  montant et les actions. Le [diagnostic](https://github.com/yarobkl/COVI/actions/runs/46076063399)
-  doit confirmer le rendu XXXL.
+- Sur `9032fa4`, les [71 captures](https://github.com/yarobkl/COVI/actions/runs/46076063399/artifacts/15235182759)
+  montrent « Salle principale » en entier et le haut du résumé
+  de Table 6 en XXXL. Le nom long du restaurant est abrégé dans
+  l’en-tête et reste complet pour VoiceOver. « Places occupées »
+  se coupe encore, et le solde et les raccourcis demandent de défiler.
+  La taille habituelle conserve le solde et les boutons de la table.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/46076063399)
+  a validé Debug, Release et **165 XCTest sans échec**. Les appuis
+  en complément des captures et le parcours physique restent à tester.
 
 ### Table réglée et départ des clients
 
