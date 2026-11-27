@@ -9,6 +9,7 @@ struct SalonSpace: View {
     let role: StaffRole
     let pin: PINManager
     @Environment(\.modelContext) private var db
+    @Environment(\.calendar) private var calendar
     @Query var visits: [SalonVisit]
     @Query var clients: [SalonClient]
     @Query var menu: [CatalogItem]
@@ -20,6 +21,8 @@ struct SalonSpace: View {
     @Environment(\.coviSimulatorDiagnostics) private var diagnostics
 #endif
     @State private var filter: String?
+    @State private var showsAgendaGrid = false
+    @State private var choosingAgendaDate = false
     @State private var booking = false
     @State private var bookingClientID: UUID?
     @State private var newClient = ""
@@ -70,24 +73,38 @@ struct SalonSpace: View {
                 }
                 .modifier(SalonClientSearch(enabled: tab == .clients, text: $clientSearch))
                 .listStyle(.plain)
+                .safeAreaInset(edge: .bottom) {
+                    if tab == .agenda {
+                        COVIButton("Nouveau rendez-vous", systemImage: "plus.circle") {
+                            bookingClientID = nil
+                            booking = true
+                        }
+                        .disabled(activeTeam.isEmpty)
+                        .padding(.horizontal, COVITheme.Metrics.screenPadding)
+                        .padding(.vertical, 8)
+                        .background(COVITheme.cream)
+                    }
+                }
             }
         }.navigationTitle(tab.title).scrollContentBackground(.hidden).background(COVIBackdrop())
         .toolbar {
-            if tab == .today || tab == .agenda {
+            if tab == .today {
                 Button {
                     bookingClientID = nil
                     booking = true
                 } label: {
-                    if tab == .today {
-                        Label("RDV", systemImage: "plus").labelStyle(.titleAndIcon)
-                    } else {
-                        Image(systemName: "plus")
-                    }
+                    Label("RDV", systemImage: "plus").labelStyle(.titleAndIcon)
                 }
                 .accessibilityLabel("Nouveau rendez-vous")
                 .buttonStyle(.borderedProminent)
                 .tint(COVITheme.navy)
                 .disabled(activeTeam.isEmpty)
+            }
+            if tab == .agenda {
+                Button { showsAgendaGrid.toggle() } label: {
+                    Image(systemName: showsAgendaGrid ? "list.bullet" : "rectangle.split.3x1")
+                }
+                .accessibilityLabel(showsAgendaGrid ? "Afficher la liste du jour" : "Afficher le planning par collaborateur")
             }
             if tab == .clients {
                 Button("Client", systemImage: "plus") { addingClient = true }
@@ -128,11 +145,29 @@ struct SalonSpace: View {
 #if DEBUG && targetEnvironment(simulator)
         .task {
             if tab == .agenda, diagnostics?.salonBooking != nil { booking = true }
+            if tab == .agenda, diagnostics?.scenario == .salonAgendaGrid { showsAgendaGrid = true }
             if tab == .clients, let id = diagnostics?.salonProfileID { clientProfileID = id }
         }
 #endif
         .sheet(isPresented: $booking) {
             bookingSheet.presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $choosingAgendaDate) {
+            NavigationStack {
+                ScrollView {
+                    DatePicker("Choisir une date", selection: $day, displayedComponents: .date)
+                        .datePickerStyle(.graphical)
+                        .padding()
+                }
+                .navigationTitle("Date de l’agenda")
+                .navigationBarTitleDisplayMode(.inline)
+                .tint(COVITheme.navy)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Terminé") { choosingAgendaDate = false }
+                    }
+                }
+            }
         }
         .confirmationDialog("Annuler le rendez-vous ?", isPresented: Binding(
             get: { cancellingVisit != nil }, set: { if !$0 { cancellingVisit = nil } }
@@ -246,8 +281,14 @@ struct SalonSpace: View {
     private var liveBooking: some View {
         SalonBooking(shop: shop.id, actor: actor, currency: shop.currencyCode,
             clients: clients, menu: menu, team: activeTeam, visits: visits,
-            day: tab == .today ? .now : day, personID: selectedStylist?.id,
+            day: tab == .agenda ? agendaBookingDate : .now,
+            personID: showsAgendaGrid ? selectedStylist?.id : nil,
             initialClient: bookingClientID)
+    }
+
+    private var agendaBookingDate: Date {
+        if calendar.isDateInToday(day) { return .now }
+        return calendar.date(bySettingHour: 9, minute: 0, second: 0, of: day) ?? day
     }
 
     @ViewBuilder private var todaySections: some View {
@@ -296,13 +337,25 @@ struct SalonSpace: View {
     }
 
     @ViewBuilder private var agendaSections: some View {
-        DatePicker("Jour", selection: $day, displayedComponents: .date)
-            .tint(COVITheme.navy)
+        SalonAgendaWeek(selectedDay: $day)
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
-        if activeTeam.isEmpty {
-            missingTeam
-        } else {
+        ViewThatFits(in: .horizontal) {
+            HStack {
+                agendaDayTitle.fixedSize()
+                Spacer()
+                agendaDatePicker
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                agendaDayTitle
+                agendaDatePicker
+            }
+        }
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+
+        if activeTeam.isEmpty { missingTeam }
+        if showsAgendaGrid && !activeTeam.isEmpty {
             ScrollView(.horizontal) {
                 HStack(spacing: 9) {
                     filterChip("Tous (\(activeTeam.count))", name: nil)
@@ -319,7 +372,55 @@ struct SalonSpace: View {
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
+        } else {
+            let appointments = visits.filter {
+                !$0.cancelled && calendar.isDate($0.start, inSameDayAs: day)
+            }
+            if appointments.isEmpty {
+                ContentUnavailableView("Aucun rendez-vous ce jour", systemImage: "calendar")
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+            }
+            ForEach(appointments) { visit in
+                Group {
+                    if visit.receipt == nil {
+                        NavigationLink {
+                            SalonAppointmentEditor(visit: visit, shop: shop.id, actor: actor,
+                                clients: clients, menu: menu, team: activeTeam)
+                        } label: { agendaAppointment(visit) }
+                    } else {
+                        agendaAppointment(visit)
+                    }
+                }
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+            }
         }
+    }
+
+    private var agendaDayTitle: some View {
+        let title = day.formatted(.dateTime.weekday(.wide).day().month(.wide))
+        return Text(title.prefix(1).uppercased() + String(title.dropFirst()))
+            .font(.headline)
+            .accessibilityAddTraits(.isHeader)
+    }
+
+    private var agendaDatePicker: some View {
+        Button { choosingAgendaDate = true } label: {
+            Image(systemName: "calendar")
+                .frame(width: 44, height: 44)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Choisir une date")
+    }
+
+    private func agendaAppointment(_ visit: SalonVisit) -> some View {
+        let client = clients.first { $0.id == visit.client }?.name ?? "Client"
+        let service = menu.first { $0.id == visit.service }?.title ?? "Prestation"
+        let status = visit.receipt != nil ? "Encaissé" : visit.walkIn ? "Arrivé" : "Confirmé"
+        let accent = visit.receipt != nil ? COVITheme.success : visit.walkIn ? COVITheme.warning : COVITheme.blue
+        return SalonAgendaAppointmentRow(start: visit.start, end: visit.end, title: "\(service) · \(client)",
+            stylist: visit.stylist, status: status, accent: accent)
     }
 
     private var missingTeam: some View {
@@ -413,6 +514,107 @@ struct SalonSpace: View {
                                 in: Capsule())
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .foregroundStyle(COVITheme.navy)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct SalonAgendaWeek: View {
+    @Binding var selectedDay: Date
+    @Environment(\.calendar) private var calendar
+    @Environment(\.dynamicTypeSize) private var textSize
+
+    var body: some View {
+        let first = calendar.dateInterval(of: .weekOfYear, for: selectedDay)?.start
+            ?? calendar.startOfDay(for: selectedDay)
+        let days = (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: first) }
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 5) {
+                ForEach(days, id: \.self) { day in
+                    dayButton(day)
+                }
+            }
+            ScrollViewReader { scroll in
+                ScrollView(.horizontal) {
+                    HStack(spacing: 6) {
+                        ForEach(days, id: \.self) { day in
+                            dayButton(day).id(day)
+                        }
+                    }
+                }
+                .scrollIndicators(.hidden)
+                .onAppear { scroll.scrollTo(calendar.startOfDay(for: selectedDay), anchor: .center) }
+                .onChange(of: selectedDay) { _, day in
+                    scroll.scrollTo(calendar.startOfDay(for: day), anchor: .center)
+                }
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Jours de la semaine")
+    }
+
+    private func dayButton(_ day: Date) -> some View {
+        let selected = calendar.isDate(day, inSameDayAs: selectedDay)
+        return Button { selectedDay = day } label: {
+            VStack(spacing: 4) {
+                Text(day.formatted(.dateTime.weekday(.abbreviated)))
+                    .font(.caption2)
+                Text(day.formatted(.dateTime.day()))
+                    .font(.subheadline.weight(.semibold))
+            }
+            .fixedSize()
+            .padding(.horizontal, 4)
+            .padding(.vertical, 7)
+            .frame(minWidth: textSize.isAccessibilitySize ? 64 : 34, maxWidth: .infinity, minHeight: 48)
+            .foregroundStyle(selected ? .white : COVITheme.navy)
+            .background(selected ? COVITheme.navy : COVITheme.card, in: RoundedRectangle(cornerRadius: 11))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(day.formatted(.dateTime.weekday(.wide).day().month(.wide)))
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+}
+
+private struct SalonAgendaAppointmentRow: View {
+    let start: Date
+    let end: Date
+    let title: String
+    let stylist: String
+    let status: String
+    let accent: Color
+    @Environment(\.dynamicTypeSize) private var textSize
+
+    var body: some View {
+        let layout = textSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 5))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: 9))
+        layout {
+            Text(start, style: .time)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(COVITheme.secondaryText)
+                .padding(.top, 9)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(title).font(.subheadline.bold())
+                Text(start.formatted(date: .omitted, time: .shortened) + " – " +
+                     end.formatted(date: .omitted, time: .shortened))
+                    .font(.caption)
+                    .foregroundStyle(COVITheme.secondaryText)
+                Text("\(stylist) · \(status)")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(COVITheme.navy)
+            }
+            .padding(.vertical, 9)
+            .padding(.leading, 12)
+            .padding(.trailing, 8)
+            .frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
+            .background(accent.opacity(0.11))
+            .overlay(alignment: .leading) {
+                Rectangle().fill(accent).frame(width: 3).accessibilityHidden(true)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 10))
         }
         .foregroundStyle(COVITheme.navy)
         .accessibilityElement(children: .combine)

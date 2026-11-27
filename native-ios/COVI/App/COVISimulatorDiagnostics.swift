@@ -41,6 +41,7 @@ final class COVISimulatorDiagnostics {
         case salonCheckout = "salon-checkout"
         case salonToday = "salon-today"
         case salonAgenda = "salon-agenda"
+        case salonAgendaGrid = "salon-agenda-grid"
         case salonBooking = "salon-booking"
         case salonBookingConflict = "salon-booking-conflict"
         case salonClients = "salon-clients"
@@ -124,7 +125,7 @@ final class COVISimulatorDiagnostics {
         case .restaurantTables, .restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace, .restaurantFloorZoom, .restaurantFloorGuests, .restaurantTable, .restaurantOrder, .restaurantReport, .restaurantIncident, .restaurantTeam, .restaurantKitchen, .restaurantKitchenReady, .restaurantMenu, .restaurantDrinks, .restaurantPayment, .restaurantPaidTable:
             kind = .restaurant
             name = "Restaurant de démonstration"
-        case .salonCatalog, .salonReport, .salonMore, .salonSettings, .salonCheckout, .salonToday, .salonAgenda, .salonBooking, .salonBookingConflict, .salonClients, .salonProfile:
+        case .salonCatalog, .salonReport, .salonMore, .salonSettings, .salonCheckout, .salonToday, .salonAgenda, .salonAgendaGrid, .salonBooking, .salonBookingConflict, .salonClients, .salonProfile:
             kind = .salon
             name = "Studio Élégance"
         default:

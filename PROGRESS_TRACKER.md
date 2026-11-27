@@ -842,6 +842,20 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
 - Prochain écran à rapprocher de sa référence : Caisse du Salon,
   planche `6155DBBE`.
 
+### Agenda Salon — Semaine et liste du jour
+
+- Le volet Salon du concept « Trois écrans, une expérience fluide »
+  présente les sept jours, une liste chronologique et une action
+  de création fixe. Ces éléments sont repris dans Agenda. La
+  planche `058F98E6` conserve la vue par collaborateur, accessible
+  depuis la barre de navigation.
+- La liste montre les rendez-vous enregistrés, leur heure et leur
+  état. Les visites annulées sont exclues. Un rendez-vous futur
+  ouvert depuis un jour sélectionné propose 9 h comme heure de
+  départ éditable. La disponibilité reste vérifiée à l’enregistrement.
+- Les captures du mode liste, de la grille et du texte d’accessibilité
+  sont attendues dans les diagnostics natifs.
+
 ### Suite du lot 1
 
 Le correctif d’annulation CloudKit `0872560` a également passé la compilation
