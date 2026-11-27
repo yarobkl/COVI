@@ -178,7 +178,8 @@ private struct COVIShopHeader: View {
                     }
                     Text(shop.name)
                         .font(.subheadline.weight(.bold))
-                        .lineLimit(textSize.isAccessibilitySize ? nil : 1)
+                        .lineLimit(textSize.isAccessibilitySize ? 2 : 1)
+                        .minimumScaleFactor(textSize.isAccessibilitySize ? 0.85 : 1)
                         .fixedSize(horizontal: false, vertical: true)
                     if !textSize.isAccessibilitySize {
                         Text(activity)
