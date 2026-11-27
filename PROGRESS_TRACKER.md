@@ -875,8 +875,20 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
 - La fiche reprend le bouton de rendez-vous en bas. Aux tailles
   d’accessibilité, le bouton passe en haut et les indicateurs
   s’empilent. La fiche laisse le lien de retour Clients visible.
-- Les captures du répertoire, de son filtre et de la fiche à la
-  taille d’accessibilité XXXL sont attendues dans les diagnostics.
+- Sur `de4a367`, les compilations Debug et Release et les **155 XCTest
+  sans échec** ont réussi. Le test distingue le rendez-vous futur
+  de l’historique encaissé.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45942581991)
+- Les [captures iPhone](https://github.com/yarobkl/COVI/actions/runs/45942581991/artifacts/15173594071)
+  ont été comparées à `C0053217`. Les capsules et cartes sont
+  visibles. « RDV à venir » isole Grâce dans le scénario de test.
+  La fiche masque la barre des onglets et affiche le bouton en bas.
+  Au réglage XXXL, le bouton plus rejoint « Modifier » en haut et
+  les indicateurs s’affichent en colonne. Les notes et l’historique
+  demandent alors un défilement.
+- L’en-tête complet du salon, les critères de fidélité et le
+  suivi des absences restent à traiter. Recherche, édition,
+  réservation et VoiceOver restent à essayer sur iPhone physique.
 
 ### Agenda Salon — Semaine et liste du jour
 
