@@ -37,6 +37,14 @@ de confirmation fixe. Le concept présente un panneau court avec le
 catalogue en arrière-plan. La photo réelle, les filtres, l’en-tête et
 les interactions sur appareil restent à vérifier ou intégrer.
 
+Le panier de [Vendre sur iPhone simulé](https://github.com/yarobkl/COVI/actions/runs/46061919245/artifacts/15229877678)
+a été comparé à `9BF220F7`. La miniature enregistrée s’affiche à
+gauche de l’article à la taille habituelle. Le deuxième article du
+scénario montre le pictogramme prévu sans photo. Les prix, les
+quantités et le total fixe sont visibles. En XXXL, le prix total et
+l’action restent dans le panier défilant. Restent les essais avec
+les photos du commerçant sur iPhone physique.
+
 Le volet Agenda du concept a été comparé à la [liste du jour et au rendu d’accessibilité sur iPhone simulé](https://github.com/yarobkl/COVI/actions/runs/45929125528/artifacts/15168637216).
 La semaine, le jour sélectionné, les cartes colorées selon l’état
 et l’action fixe sont visibles en taille habituelle. Au réglage XXXL,

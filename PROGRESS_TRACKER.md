@@ -1021,6 +1021,20 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
 
 ### Lot 3 — Boutique
 
+- Sur `62f6444`, le panier lit les miniatures enregistrées des
+  articles. Un article sans photo conserve un pictogramme neutre.
+  En XXXL, le panier privilégie le nom, le prix et les quantités.
+- Les [66 captures](https://github.com/yarobkl/COVI/actions/runs/46061919245/artifacts/15229877678)
+  ont été comparées au volet Vendre de `9BF220F7` sur iPhone 16 Pro
+  simulé. Dans la capture standard, le premier article affiche la
+  miniature synthétique du scénario, le second le pictogramme de
+  remplacement, et les deux quantités ainsi que le total de
+  35 000 FCFA restent lisibles. En XXXL, le même total et le libellé
+  « Encaisser » restent visibles. Les photos réelles du commerçant
+  et le parcours tactile sur appareil restent à essayer.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/46061919245)
+  a validé Debug, Release et **164 XCTest sans échec**.
+
 - La planche `9BF220F7` a été inspectée. Sur Vendre, le panier apparaît dans
   une carte juste sous la recherche, au-dessus du catalogue. L’action
   d’encaissement reste au bas de l’écran. Le bandeau qui répétait le titre
