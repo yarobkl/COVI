@@ -461,8 +461,9 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   L’envoi est grisé. En XXXL, le pied fixe prend presque tout l’écran
   et masque les lignes au premier affichage. La conformité reste ouverte.
 - Le correctif place l’avertissement et l’envoi dans le contenu défilant
-  aux tailles d’accessibilité. Les catégories passent en colonne. Une
-  nouvelle capture XXXL reste à vérifier.
+  aux tailles d’accessibilité. Les catégories passent en colonne.
+  Une nouvelle capture XXXL reste à vérifier.
+  [Diagnostics du correctif `7d6f4e7`](https://github.com/yarobkl/COVI/actions/runs/45984619874)
 
 ### Encaissement partiel du Restaurant
 
@@ -753,11 +754,17 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   le nombre de places restantes. Il ouvre le formulaire existant,
   soumis à la limite par compte. Les cartes s’empilent aux tailles
   d’accessibilité.
-- Debug, XCTest, Release non signé et l’étape de capture iPhone
-  ont réussi sur `dc48519`. L’artefact reste à récupérer.
-  Le scénario couvre deux espaces détenus, un accès caissier actif
-  et un accès révoqué. La comparaison iPhone reste à consigner.
+- Sur `dc48519`, Debug, Release, **161 XCTest sans échec** et 49 captures.
   [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45981887059)
+- Les [captures iPhone simulé](https://github.com/yarobkl/COVI/actions/runs/45981887059/artifacts/15191780285)
+  comparées à `17327825` montrent deux espaces détenus, l’état sélectionné,
+  le rôle Caissier dans l’espace partagé et une place restante. L’ancienne
+  adhésion révoquée est absente. Les photos de commerce et le portrait
+  de la planche sont représentés par des pictogrammes et des initiales.
+  Le bouton fixe occupe une part excessive de la vue en XXXL.
+- Le correctif rend le bouton défilant avec les cartes aux tailles
+  d’accessibilité. Restent à vérifier la nouvelle capture XXXL, l’ouverture
+  du formulaire et le changement effectif d’espace sur iPhone.
 
 ### Lot 3 — Boutique
 

@@ -189,6 +189,9 @@ struct COVISpaces: View {
             return (shop, role)
         }
         let remaining = max(0, EstablishmentPolicy.maximumActivePerOwner - owned.count)
+        let canAdd = EstablishmentPolicy.canCreate(owner: account, in: establishments)
+        let addButton = COVIButton("Ajouter un établissement\n\(remaining == 1 ? "1 place restante" : "\(remaining) places restantes")",
+                                   systemImage: "plus", role: .secondary, action: onAdd)
 
         NavigationStack {
             ScrollView {
@@ -229,6 +232,9 @@ struct COVISpaces: View {
                             }
                         }
                     }
+                    if canAdd && textSize.isAccessibilitySize {
+                        addButton
+                    }
                 }
                 .foregroundStyle(COVITheme.navy)
                 .padding(.horizontal, COVITheme.Metrics.screenPadding)
@@ -238,9 +244,8 @@ struct COVISpaces: View {
             }
             .background(COVIBackdrop())
             .safeAreaInset(edge: .bottom) {
-                if EstablishmentPolicy.canCreate(owner: account, in: establishments) {
-                    COVIButton("Ajouter un établissement\n\(remaining == 1 ? "1 place restante" : "\(remaining) places restantes")",
-                               systemImage: "plus", role: .secondary, action: onAdd)
+                if canAdd && !textSize.isAccessibilitySize {
+                    addButton
                         .padding(.horizontal, COVITheme.Metrics.screenPadding)
                         .padding(.vertical, 10)
                         .frame(maxWidth: 560)
