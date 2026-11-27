@@ -197,7 +197,7 @@ struct SalonSpace: View {
         let historyByClient = Dictionary(grouping: sales.filter(\.service), by: \.client)
         let visitCounts = historyByClient.mapValues { Set($0.map(\.order)).count }
         let upcomingByClient = Dictionary(grouping: visits.filter {
-            !$0.cancelled && $0.receipt == nil && !$0.walkIn && $0.start >= now
+            $0.isOpen && !$0.walkIn && $0.start >= now
         }, by: \.client)
         let matching = clients.filter { client in
             let matchesSearch = query.isEmpty || client.name.localizedCaseInsensitiveContains(query) ||
@@ -349,7 +349,7 @@ struct SalonSpace: View {
             !$0.cancelled && Calendar.current.isDate($0.start, inSameDayAs: date)
         }
         let walkIns = appointments.filter { $0.walkIn && $0.receipt == nil }
-        let upcoming = appointments.filter { !$0.walkIn && $0.receipt == nil && $0.start >= date }
+        let upcoming = appointments.filter { !$0.walkIn && $0.isOpen && $0.start >= date }
         let history = appointments.filter {
             $0.receipt != nil || (!$0.walkIn && $0.start < date)
         }
@@ -430,7 +430,7 @@ struct SalonSpace: View {
             }
             ForEach(appointments) { visit in
                 Group {
-                    if visit.receipt == nil {
+                    if visit.isOpen {
                         NavigationLink {
                             SalonAppointmentEditor(visit: visit, shop: shop.id, actor: actor,
                                 clients: clients, menu: menu, team: activeTeam)
@@ -464,8 +464,9 @@ struct SalonSpace: View {
     private func agendaAppointment(_ visit: SalonVisit) -> some View {
         let client = clients.first { $0.id == visit.client }?.name ?? "Client"
         let service = menu.first { $0.id == visit.service }?.title ?? "Prestation"
-        let status = visit.receipt != nil ? "Encaissé" : visit.walkIn ? "Arrivé" : "Confirmé"
-        let accent = visit.receipt != nil ? COVITheme.success : visit.walkIn ? COVITheme.warning : COVITheme.blue
+        let status = visit.missedAt != nil ? "Absent" : visit.receipt != nil ? "Encaissé" : visit.walkIn ? "Arrivé" : "Confirmé"
+        let accent = visit.missedAt != nil ? Color.red : visit.receipt != nil ? COVITheme.success :
+            visit.walkIn ? COVITheme.warning : COVITheme.blue
         return SalonAgendaAppointmentRow(start: visit.start, end: visit.end, title: "\(service) · \(client)",
             stylist: visit.stylist, status: status, accent: accent)
     }
@@ -483,7 +484,7 @@ struct SalonSpace: View {
             Section {
                 ForEach(visits) { visit in
                     Group {
-                        if visit.receipt == nil {
+                        if visit.isOpen {
                             NavigationLink {
                                 SalonAppointmentEditor(visit: visit, shop: shop.id, actor: actor,
                                     clients: clients, menu: menu, team: team)
@@ -494,7 +495,7 @@ struct SalonSpace: View {
                     }
                     .listRowBackground(Color.white)
                     .swipeActions {
-                        if visit.receipt == nil {
+                        if visit.isOpen {
                             Button("Annuler", role: .destructive) { cancellingVisit = visit.id }
                         }
                     }
@@ -553,11 +554,13 @@ struct SalonSpace: View {
                 Text("\(visit.stylist) · " + visit.start.formatted(date: .omitted, time: .shortened) +
                      " – " + visit.end.formatted(date: .omitted, time: .shortened))
                     .font(.caption).foregroundStyle(COVITheme.secondaryText)
-                Text(visit.receipt != nil ? "Encaissé" : visit.walkIn ? "Arrivé" : "Confirmé")
+                Text(visit.missedAt != nil ? "Absent" : visit.receipt != nil ? "Encaissé" : visit.walkIn ? "Arrivé" : "Confirmé")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(visit.walkIn && visit.receipt == nil ? COVITheme.warning : COVITheme.success)
+                    .foregroundStyle(visit.missedAt != nil ? .red :
+                        visit.walkIn && visit.receipt == nil ? COVITheme.warning : COVITheme.success)
                     .padding(.horizontal, 8).padding(.vertical, 3)
-                    .background(visit.walkIn && visit.receipt == nil ? COVITheme.warningTint : COVITheme.successTint,
+                    .background(visit.missedAt != nil ? COVITheme.dangerTint :
+                                visit.walkIn && visit.receipt == nil ? COVITheme.warningTint : COVITheme.successTint,
                                 in: Capsule())
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -716,7 +719,7 @@ private struct SalonAgendaTimeline: View {
                                 }
                             }
                             ForEach(visits.filter {
-                                !$0.cancelled && $0.stylist == person.name &&
+                                !$0.cancelled && $0.missedAt == nil && $0.stylist == person.name &&
                                 Calendar.current.isDate($0.start, inSameDayAs: day)
                             }) { visit in
                                 if visit.receipt == nil {
@@ -840,7 +843,7 @@ struct SalonBooking: View {
         guard start >= window.lowerBound.addingTimeInterval(-60), start <= window.upperBound else { return false }
         let end = start.addingTimeInterval(TimeInterval(minutes * 60))
         return !visits.contains {
-            !$0.cancelled && $0.shop == shop &&
+            !$0.cancelled && $0.missedAt == nil && $0.shop == shop &&
             ($0.client == chosenClient.id || $0.stylist == chosenStylist.name) &&
             $0.start < end && $0.end > start
         }
@@ -1034,6 +1037,7 @@ private struct SalonAppointmentEditor: View {
     @State private var start: Date
     @State private var minutes: Int
     @State private var message = ""
+    @State private var confirmingAbsence = false
 
     init(visit: SalonVisit, shop: UUID, actor: UUID, clients: [SalonClient],
          menu: [CatalogItem], team: [SalonStaff]) {
@@ -1079,13 +1083,30 @@ private struct SalonAppointmentEditor: View {
                             start: start, minutes: minutes, db: db)
                         dismiss()
                     } catch { message = error.localizedDescription }
-                }.disabled(visit.cancelled || visit.receipt != nil || team.filter(\.active).isEmpty)
+                }.disabled(!visit.isOpen || team.filter(\.active).isEmpty)
                 if !message.isEmpty { Text(message).foregroundStyle(.red) }
             } footer: {
                 Text("Le changement libère l’ancien créneau et contrôle les disponibilités du client et du collaborateur.")
             }
+            if visit.canMarkMissed(at: .now) {
+                Section {
+                    Button("Marquer le client absent", role: .destructive) {
+                        confirmingAbsence = true
+                    }
+                }
+            }
         }
         .navigationTitle("Modifier le rendez-vous")
+        .confirmationDialog("Confirmer l’absence ?", isPresented: $confirmingAbsence, titleVisibility: .visible) {
+            Button("Enregistrer l’absence", role: .destructive) {
+                do {
+                    try SalonLedger.markMissed(visit, shop: shop, actor: actor, db: db)
+                    dismiss()
+                } catch { message = error.localizedDescription }
+            }
+        } message: {
+            Text("Le rendez-vous restera dans l’historique avec le statut Absent.")
+        }
     }
 }
 

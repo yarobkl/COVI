@@ -71,7 +71,7 @@ jobs:
           xcrun simctl status_bar "$DEVICE_ID" override --time "9:41" --batteryState charged --batteryLevel 100
           trap 'xcrun simctl status_bar "$DEVICE_ID" clear' EXIT
           # Give the newest diagnostic an opportunity to render before the regression sweep.
-          for SCENARIO in account-login account-registration sync-centre cashier-pin establishment-setup spaces restaurant-order-drinks salon-agenda salon-agenda-grid boutique-photo-search restaurant-incident restaurant-kitchen restaurant-kitchen-ready restaurant-paid-table restaurant-floor-guests restaurant-floor-zoom boutique-arrivals restaurant-floor-terrace restaurant-floor-plan restaurant-floor-edit restaurant-payment restaurant-drinks restaurant-menu restaurant-team restaurant-report salon-more salon-settings salon-report salon-checkout salon-catalog welcome boutique-home boutique-sale boutique-checkout restaurant-tables restaurant-table restaurant-order salon-today salon-booking salon-booking-conflict salon-clients salon-clients-upcoming salon-profile; do
+          for SCENARIO in salon-report account-login account-registration sync-centre cashier-pin establishment-setup spaces restaurant-order-drinks salon-agenda salon-agenda-grid boutique-photo-search restaurant-incident restaurant-kitchen restaurant-kitchen-ready restaurant-paid-table restaurant-floor-guests restaurant-floor-zoom boutique-arrivals restaurant-floor-terrace restaurant-floor-plan restaurant-floor-edit restaurant-payment restaurant-drinks restaurant-menu restaurant-team restaurant-report salon-more salon-settings salon-checkout salon-catalog welcome boutique-home boutique-sale boutique-checkout restaurant-tables restaurant-table restaurant-order salon-today salon-booking salon-booking-conflict salon-clients salon-clients-upcoming salon-profile; do
             MARKER="$APP_DATA/tmp/covi-diagnostic-$SCENARIO.ready"
             rm -f "$MARKER"
             xcrun simctl launch --terminate-running-process "$DEVICE_ID" com.covi.app --covi-diagnostic-scenario "$SCENARIO" -AppleLanguages '(fr)' -AppleLocale fr_FR
@@ -87,7 +87,7 @@ jobs:
           done
           # Validate the same native views with iPhone accessibility text.
           run_bounded xcrun simctl ui "$DEVICE_ID" content_size accessibility-extra-extra-extra-large
-          for SCENARIO in account-login account-registration sync-centre cashier-pin establishment-setup spaces restaurant-order-drinks salon-profile boutique-home salon-agenda restaurant-kitchen restaurant-drinks salon-checkout salon-catalog; do
+          for SCENARIO in salon-report account-login account-registration sync-centre cashier-pin establishment-setup spaces restaurant-order-drinks salon-profile boutique-home salon-agenda restaurant-kitchen restaurant-drinks salon-checkout salon-catalog; do
             MARKER="$APP_DATA/tmp/covi-diagnostic-$SCENARIO.ready"
             rm -f "$MARKER"
             xcrun simctl launch --terminate-running-process "$DEVICE_ID" com.covi.app --covi-diagnostic-scenario "$SCENARIO" -AppleLanguages '(fr)' -AppleLocale fr_FR
@@ -117,7 +117,7 @@ jobs:
             "salon-today/agenda/agenda-grid: actual Salon day list and staff planning with three staff members and four in-memory appointments." \
             "salon-booking and salon-booking-conflict: actual Agenda sheet with a prefilled appointment and an overlapping stylist appointment in the conflict scenario." \
             "salon-clients/profile: actual directory and navigation destination with four synthetic clients, three service receipts and one upcoming booking." \
-            "salon-report: Plus navigation with four receipts and three Salon appointments in memory." \
+            "salon-report: Plus navigation with four receipts and one absence recorded by SalonLedger in memory." \
             "salon-more/settings: normal Plus tab and settings route with a local synthetic owner and two in-memory establishments." \
             "restaurant-report: actual Plus destination with synthetic receipts, a recorded refund and a locally saved incident." \
             "restaurant-team: Plus team screen with a local test owner, three enabled members and one inactive membership." \

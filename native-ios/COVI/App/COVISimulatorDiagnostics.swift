@@ -720,6 +720,13 @@ final class COVISimulatorDiagnostics {
                 context.insert(visit)
             }
         }
+        let plan = CatalogItem(establishmentID: shop.id, title: "Rendez-vous de démonstration",
+                               priceMinor: 12_000, isService: true)
+        context.insert(plan)
+        let missed = SalonVisit(shop: shop.id, client: client.id, service: plan.id, stylist: "Chloé M.",
+            start: start.addingTimeInterval(-7_200), end: start.addingTimeInterval(-3_600), walkIn: false)
+        context.insert(missed)
+        try SalonLedger.markMissed(missed, shop: shop.id, actor: owner, at: start, db: context)
         try context.save()
     }
 

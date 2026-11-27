@@ -354,6 +354,8 @@ enum SyncJournal {
                 return ("Ajustement de stock", "shippingbox")
             case "restaurant.order.sent":
                 return ("Commande envoyée", "fork.knife")
+            case "salon.appointment.missed":
+                return ("Absence enregistrée", "calendar")
             case "salon.appointment.created", "salon.appointment.rescheduled", "salon.appointment.cancelled":
                 return ("Rendez-vous mis à jour", "calendar")
             default:

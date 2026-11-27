@@ -99,7 +99,7 @@ struct SalonCheckout: View {
 #if DEBUG && targetEnvironment(simulator)
             if let diagnostics, diagnostics.scenario == .salonCheckout,
                db.container === diagnostics.container, let sample = visits.first(where: { appointment in
-                   !appointment.cancelled && appointment.receipt == nil && clients.first(where: { $0.id == appointment.client })?.name == "Mireille K."
+                   appointment.isOpen && clients.first(where: { $0.id == appointment.client })?.name == "Mireille K."
                }) {
                 importVisit(sample)
                 for item in menu where !item.isService { basket[item.id] = 1 }
@@ -213,7 +213,7 @@ struct SalonCheckout: View {
                     Button("Vente directe") {
                         visitID = nil; basket = [:]; received = ""; verified = false; importing = false
                     }
-                    ForEach(visits.filter { !$0.cancelled && $0.receipt == nil }) { appointment in
+                    ForEach(visits.filter(\.isOpen)) { appointment in
                         Button {
                             importVisit(appointment); importing = false
                         } label: {
@@ -487,6 +487,19 @@ private struct SalonCatalogEditor: View {
     }
 }
 
+struct SalonAttendanceSummary {
+    let missed: Int
+    let resolved: Int
+
+    init(visits: [SalonVisit]) {
+        let scheduled = visits.filter { !$0.cancelled && !$0.walkIn }
+        missed = scheduled.filter { $0.missedAt != nil }.count
+        resolved = scheduled.filter { $0.missedAt != nil || $0.receipt != nil }.count
+    }
+
+    var rate: Double? { resolved == 0 ? nil : Double(missed) / Double(resolved) }
+}
+
 struct SalonReport: View {
     let sales: [SalonSaleLine]
     let visits: [SalonVisit]
@@ -515,7 +528,8 @@ struct SalonReport: View {
                 summaryCard(services: services, products: products)
                 COVISectionTitle("Activité et commissions de l’équipe")
                 teamCard(salesByPerson: Dictionary(grouping: rows, by: \.stylist),
-                         visitsByPerson: Dictionary(grouping: periodVisits, by: \.stylist))
+                         visitsByPerson: Dictionary(grouping: periodVisits.filter { $0.missedAt == nil }, by: \.stylist))
+                attendanceCard(SalonAttendanceSummary(visits: periodVisits))
                 COVICard {
                     VStack(alignment: .leading, spacing: 10) {
                         LabeledContent("Commissions équipe", value: money(commissions))
@@ -563,6 +577,26 @@ struct SalonReport: View {
             }
         }
 #endif
+    }
+
+    private func attendanceCard(_ summary: SalonAttendanceSummary) -> some View {
+        let layout = textSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(spacing: 8))
+        let detail = summary.resolved == 0 ? "Aucun rendez-vous clôturé" :
+            "\(summary.missed) sur \(summary.resolved) rendez-vous clôturés"
+        return COVICard {
+            layout {
+                COVIIconRow(symbol: "calendar.badge.exclamationmark", title: "Absences clients",
+                            detail: detail, tint: COVITheme.dangerTint, accessory: nil)
+                if let rate = summary.rate {
+                    COVIBadge(title: rate.formatted(.percent.precision(.fractionLength(0))),
+                              tint: COVITheme.dangerTint, foreground: .red)
+                        .accessibilityLabel("Taux d’absences")
+                        .accessibilityValue(rate.formatted(.percent.precision(.fractionLength(0))))
+                }
+            }
+        }
     }
 
     private var periodButton: some View {

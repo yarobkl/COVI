@@ -237,6 +237,37 @@ final class CloudOperationalSyncTests: XCTestCase {
         XCTAssertEqual(try target.fetchCount(FetchDescriptor<SalonVisit>()), 1)
     }
 
+    func testSalonAbsenceReplicatesAndSurvivesLegacyVisitReplay() throws {
+        let source = try memory(), target = try memory(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Salon", kind: .salon, city: "Brazzaville")
+        let copy = clone(shop)
+        let client = SalonClient(shop: shop.id, name: "Cliente")
+        let service = CatalogItem(establishmentID: shop.id, title: "Coupe", priceMinor: 3_000, isService: true)
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let visit = SalonVisit(shop: shop.id, client: client.id, service: service.id,
+            stylist: "Chloé", start: now.addingTimeInterval(-3_600), end: now.addingTimeInterval(-1_800), walkIn: false)
+        source.insert(shop); source.insert(client); source.insert(service); source.insert(visit); try source.save()
+        target.insert(copy); try target.save()
+        let baseline = try export(source, shop: shop)
+        try CloudOperationalSync.merge(baseline, shop: copy, cloudUserID: "iCloud-A", context: target)
+        try target.save()
+        try SalonLedger.markMissed(visit, shop: shop.id, actor: owner, at: now, db: source)
+        try CloudOperationalSync.merge(try export(source, shop: shop), shop: copy,
+            cloudUserID: "iCloud-A", context: target)
+        try target.save()
+        let mirrored = try XCTUnwrap(target.fetch(FetchDescriptor<SalonVisit>()).first)
+        XCTAssertEqual(mirrored.missedAt, now)
+        XCTAssertNil(mirrored.receipt)
+        XCTAssertFalse(mirrored.cancelled)
+        try CloudOperationalSync.merge(baseline, shop: copy, cloudUserID: "iCloud-A", context: target)
+        try target.save()
+        XCTAssertEqual(mirrored.missedAt, now)
+        let legacyRows = try baseline.map { try JSONDecoder().decode(OperationalCloudRow.self, from: $0.1) }
+        let legacyVisit = try XCTUnwrap(legacyRows.first { $0.kind == .visit })
+        try CloudOperationalSync.apply(legacyVisit, shop: copy, context: target)
+        XCTAssertEqual(mirrored.missedAt, now)
+    }
+
     func testTwoDevicesCannotSilentlyDoubleBookSameStylist() throws {
         let source = try memory(), target = try memory(), owner = UUID()
         let shop = Establishment(ownerID: owner, name: "Salon", kind: .salon, city: "Pointe-Noire")

@@ -132,10 +132,11 @@ struct OperationalVisit: Codable, Equatable {
     let walkIn: Bool
     let cancelled: Bool
     let receipt: UUID?
+    let missedAt: Date?
     init(_ row: SalonVisit) {
         id = row.id; shop = row.shop; client = row.client; service = row.service
         stylist = row.stylist; start = row.start; end = row.end
-        walkIn = row.walkIn; cancelled = row.cancelled; receipt = row.receipt
+        walkIn = row.walkIn; cancelled = row.cancelled; receipt = row.receipt; missedAt = row.missedAt
     }
 }
 
@@ -543,18 +544,32 @@ struct OperationalCloudAdapter {
                   try find(SalonClient.self, id: x.client, context: context)?.shop == sid,
                   try find(CatalogItem.self, id: x.service, context: context)?.establishmentID == sid
             else { throw SyncFault.invalidEvent }
-            let otherVisits = try context.fetch(FetchDescriptor<SalonVisit>(predicate: #Predicate { $0.shop == sid }))
-            guard x.cancelled || otherVisits.allSatisfy({ prior in
-                prior.id == id || prior.cancelled || prior.start >= x.end || prior.end <= x.start ||
-                (prior.stylist != x.stylist && prior.client != x.client)
-            }) else { throw SyncFault.journalChanged }
+            if let missedAt = x.missedAt {
+                guard missedAt >= x.end, !x.walkIn, !x.cancelled, x.receipt == nil else {
+                    throw SyncFault.invalidEvent
+                }
+            }
             let visit = try find(SalonVisit.self, id: id, context: context) ??
                 SalonVisit(shop: sid, client: x.client, service: x.service,
                     stylist: x.stylist, start: x.start, end: x.end, walkIn: x.walkIn)
             guard visit.shop == sid else { throw SyncFault.journalChanged }
+            if visit.missedAt != nil || x.missedAt != nil {
+                guard visit.receipt == nil, x.receipt == nil, !visit.cancelled, !x.cancelled,
+                      visit.client == x.client, visit.service == x.service, visit.stylist == x.stylist,
+                      visit.start == x.start, visit.end == x.end, !visit.walkIn, !x.walkIn else {
+                    throw SyncFault.journalChanged
+                }
+            }
+            let missedAt = [visit.missedAt, x.missedAt].compactMap { $0 }.min()
+            let otherVisits = try context.fetch(FetchDescriptor<SalonVisit>(predicate: #Predicate { $0.shop == sid }))
+            guard x.cancelled || missedAt != nil || otherVisits.allSatisfy({ prior in
+                prior.id == id || prior.cancelled || prior.missedAt != nil || prior.start >= x.end || prior.end <= x.start ||
+                (prior.stylist != x.stylist && prior.client != x.client)
+            }) else { throw SyncFault.journalChanged }
             visit.id = id; visit.client = x.client; visit.service = x.service
             visit.stylist = x.stylist; visit.start = x.start; visit.end = x.end
             visit.walkIn = x.walkIn; visit.cancelled = x.cancelled; visit.receipt = x.receipt
+            visit.missedAt = missedAt
             context.insert(visit)
         case .activeOrder:
             let x = try decode(row, as: OperationalOrder.self)

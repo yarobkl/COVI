@@ -908,6 +908,46 @@ final class CommerceFlowTests: XCTestCase {
         })
     }
 
+    func testSalonAbsenceRequiresAnEndedAppointmentAndAnActiveRole() throws {
+        let db = try database(), owner = UUID(), stylist = UUID()
+        let shop = Establishment(ownerID: owner, name: "Salon", kind: .salon, city: "Brazzaville")
+        let membership = Membership(accountID: stylist, establishmentID: shop.id, role: .stylist)
+        membership.active = false
+        let now = Date.now
+        let visit = SalonVisit(shop: shop.id, client: UUID(), service: UUID(), stylist: "Chloé",
+            start: now.addingTimeInterval(-3_600), end: now.addingTimeInterval(-60), walkIn: false)
+        let paid = SalonVisit(shop: shop.id, client: UUID(), service: UUID(), stylist: "Chloé",
+            start: visit.start, end: visit.end, walkIn: false)
+        paid.receipt = UUID()
+        let walkIn = SalonVisit(shop: shop.id, client: UUID(), service: UUID(), stylist: "Chloé",
+            start: visit.start, end: visit.end, walkIn: true)
+        walkIn.receipt = UUID()
+        let pending = SalonVisit(shop: shop.id, client: UUID(), service: UUID(), stylist: "Chloé",
+            start: now, end: now.addingTimeInterval(1_800), walkIn: false)
+        db.insert(shop); db.insert(membership); db.insert(visit); db.insert(paid)
+        db.insert(walkIn); db.insert(pending); try db.save()
+
+        XCTAssertThrowsError(try SalonLedger.markMissed(visit, shop: shop.id, actor: stylist, at: now, db: db))
+        XCTAssertThrowsError(try SalonLedger.markMissed(paid, shop: shop.id, actor: owner, at: now, db: db))
+        XCTAssertThrowsError(try SalonLedger.markMissed(pending, shop: shop.id, actor: owner, at: now, db: db))
+        XCTAssertThrowsError(try SalonLedger.markMissed(walkIn, shop: shop.id, actor: owner, at: now, db: db))
+        try SalonLedger.markMissed(visit, shop: shop.id, actor: owner, at: now, db: db)
+        XCTAssertFalse(visit.isOpen)
+        XCTAssertFalse(visit.cancelled)
+        XCTAssertEqual(visit.missedAt, now)
+        XCTAssertThrowsError(try SalonLedger.markMissed(visit, shop: shop.id, actor: owner, at: now, db: db))
+        XCTAssertThrowsError(try SalonLedger.cancel(shop: shop.id, actor: owner, visit: visit, db: db))
+        let entries = try db.fetch(FetchDescriptor<OutboxEvent>())
+        XCTAssertEqual(entries.count, 1)
+        let event = try JSONDecoder().decode(BusinessEventPayload.self, from: try XCTUnwrap(entries.first).payloadJSON)
+        XCTAssertEqual(event.kind, "salon.appointment.missed")
+        XCTAssertEqual(event.actorID, owner)
+        let report = SalonAttendanceSummary(visits: [visit, paid, walkIn, pending])
+        XCTAssertEqual(report.missed, 1)
+        XCTAssertEqual(report.resolved, 2)
+        XCTAssertEqual(report.rate, 0.5)
+    }
+
     func testPaidSalonAppointmentCannotBeCancelled() throws {
         let db = try database(), owner = UUID()
         let visit = SalonVisit(shop: UUID(), client: UUID(), service: UUID(),

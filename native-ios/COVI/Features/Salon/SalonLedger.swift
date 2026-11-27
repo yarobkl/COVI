@@ -33,6 +33,9 @@ import SwiftData
     var walkIn: Bool
     var cancelled = false
     var receipt: UUID?
+    var missedAt: Date?
+    var isOpen: Bool { !cancelled && receipt == nil && missedAt == nil }
+    func canMarkMissed(at date: Date) -> Bool { isOpen && !walkIn && end <= date }
     var scheduledMinutes: Int? {
         let seconds = end.timeIntervalSince(start)
         guard seconds.isFinite, seconds >= 60, seconds <= 720 * 60 else { return nil }
@@ -88,7 +91,8 @@ enum SalonFault: String, LocalizedError {
     case invalid = "Vérifiez la sélection, le prix et les quantités."
     case stock = "Stock disponible insuffisant."
     case access = "Déverrouillez la caisse avec votre PIN."
-    case stale = "Ce rendez-vous a été annulé ou déjà encaissé."
+    case stale = "Ce rendez-vous est déjà clôturé."
+    case absenceUnavailable = "Seul un rendez-vous terminé et encore ouvert peut être marqué absent."
     var errorDescription: String? { rawValue }
 }
 
@@ -243,7 +247,8 @@ enum SalonFault: String, LocalizedError {
         let end = start.addingTimeInterval(Double(minutes * 60))
         let person = team.name, cid = client.id
         let matches = FetchDescriptor<SalonVisit>(predicate: #Predicate {
-            $0.shop == shop && !$0.cancelled && ($0.stylist == person || $0.client == cid) && $0.start < end && $0.end > start
+            $0.shop == shop && !$0.cancelled && $0.missedAt == nil &&
+            ($0.stylist == person || $0.client == cid) && $0.start < end && $0.end > start
         })
         guard try db.fetchCount(matches) == 0 else { throw SalonFault.clash }
         let visit = SalonVisit(shop: shop, client: cid, service: item.id,
@@ -258,7 +263,7 @@ enum SalonFault: String, LocalizedError {
     }
 
     static func cancel(shop: UUID, actor: UUID, visit: SalonVisit, db: ModelContext) throws {
-        guard visit.shop == shop, !visit.cancelled, visit.receipt == nil else { throw SalonFault.stale }
+        guard visit.shop == shop, visit.isOpen else { throw SalonFault.stale }
         visit.cancelled = true
         do {
             try BusinessOutbox.enqueue(kind: "salon.appointment.cancelled", establishmentID: shop,
@@ -267,10 +272,26 @@ enum SalonFault: String, LocalizedError {
         } catch { db.rollback(); throw error }
     }
 
+    static func markMissed(_ visit: SalonVisit, shop: UUID, actor: UUID,
+                           at date: Date = .now, db: ModelContext) throws {
+        guard visit.shop == shop, let establishment = try db.fetch(FetchDescriptor<Establishment>(
+                predicate: #Predicate { $0.id == shop })).first,
+              establishment.kind == .salon,
+              let role = try StaffAccess.role(for: actor, in: establishment, context: db),
+              [.owner, .manager, .stylist].contains(role) else { throw SalonFault.access }
+        guard visit.canMarkMissed(at: date) else { throw SalonFault.absenceUnavailable }
+        visit.missedAt = date
+        do {
+            try BusinessOutbox.enqueue(kind: "salon.appointment.missed", establishmentID: shop,
+                entityID: visit.id, actorID: actor, relatedIDs: [visit.client], in: db)
+            try save(db)
+        } catch { db.rollback(); throw error }
+    }
+
     static func reschedule(_ visit: SalonVisit, shop: UUID, actor: UUID,
                            client: SalonClient, item: CatalogItem, team: SalonStaff,
                            start: Date, minutes: Int, db: ModelContext) throws {
-        guard visit.shop == shop, !visit.cancelled, visit.receipt == nil else { throw SalonFault.stale }
+        guard visit.shop == shop, visit.isOpen else { throw SalonFault.stale }
         guard client.shop == shop, item.establishmentID == shop, item.isService, !item.soldOut,
               team.shop == shop, team.active, !team.name.isEmpty,
               (5...720).contains(minutes), start >= Date.now.addingTimeInterval(-60),
@@ -279,7 +300,7 @@ enum SalonFault: String, LocalizedError {
         let end = start.addingTimeInterval(Double(minutes * 60))
         let visitID = visit.id, person = team.name, clientID = client.id
         let competing = FetchDescriptor<SalonVisit>(predicate: #Predicate {
-            $0.shop == shop && $0.id != visitID && !$0.cancelled &&
+            $0.shop == shop && $0.id != visitID && !$0.cancelled && $0.missedAt == nil &&
             ($0.stylist == person || $0.client == clientID) && $0.start < end && $0.end > start
         })
         guard try db.fetchCount(competing) == 0 else { throw SalonFault.clash }
@@ -323,7 +344,7 @@ enum SalonFault: String, LocalizedError {
         }))
         guard workers.count == 1, workers[0].active || visit != nil else { throw SalonFault.invalid }
         if let visit {
-            guard visit.shop == shop.id, visit.receipt == nil, !visit.cancelled, visit.client == client.id,
+            guard visit.shop == shop.id, visit.isOpen, visit.client == client.id,
                   visit.stylist == team, basket[visit.service] == 1 else { throw SalonFault.stale }
         }
         let due = try total(basket: basket, menu: menu, shop: shop.id)
