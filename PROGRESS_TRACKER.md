@@ -707,6 +707,31 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   haut du plan reste partiellement masqué. Les captures utilisent
   des données synthétiques et ne valident pas les appuis sur appareil.
 
+### Encaissement depuis Salle
+
+- Le volet Restaurant de `38512445…` prévoit l’action « Encaisser »
+  dans le résumé de table. Sur `0e46a5b`, elle ouvre la feuille
+  native d’encaissement quand l’addition est demandée, tous les plats
+  sont servis et le reste dû est positif.
+- Le service relit le rôle, le PIN, la table, la session, les lignes et
+  le solde à l’ouverture. L’aperçu ne crée aucun paiement. La confirmation
+  utilise la même vérification et enregistre le règlement dans le parcours
+  existant. Le test vérifie le refus sans addition ou avant le service,
+  puis le montant de 2 500 FCFA sans création de paiement à l’ouverture.
+- Les [71 captures](https://github.com/yarobkl/COVI/actions/runs/46073417621/artifacts/15234009981)
+  ont été comparées aux concepts `38512445…` et `e5113fe8…` sur iPhone
+  simulé. En taille habituelle, Table 6 affiche 3 places occupées sur
+  6, 16 000 FCFA de reste dû et les accès « Déplacer » et « Encaisser ».
+  La feuille du raccourci affiche le même solde. Table 10 disponible
+  garde son action de déplacement. À XXXL, les libellés de salle et
+  d’encaissement se coupent et le défilement masque le haut du résumé.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/46073417621)
+  a validé Debug, Release et **165 XCTest sans échec**.
+- Sur `9032fa4`, Salle garde son titre et son sélecteur plus compacts
+  en accessibilité, affiche d’abord le haut du résumé et empile le
+  montant et les actions. Le [diagnostic](https://github.com/yarobkl/COVI/actions/runs/46076063399)
+  doit confirmer le rendu XXXL.
+
 ### Table réglée et départ des clients
 
 - Le solde ferme la commande et conserve l’occupation de la table.
@@ -836,6 +861,13 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   Cinq tests HTTP isolés, le contrôle Deno et les assertions PostgreSQL 17,
   dont les deux tests de concurrence, ont réussi.
   [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/46066816162)
+- Sur `db1e462`, un test relie le gestionnaire HTTP et les requêtes
+  Deno de production à PostgreSQL 17 jetable. Les deux comptes passent
+  par le même pilote avec une seule connexion. Le second ne voit
+  l’établissement qu’après avoir accepté l’invitation. Il ne peut
+  ni émettre d’invitation ni rejouer un code. La révocation est vérifiée
+  depuis le même point d’entrée. L’authentification reste simulée
+  dans cet essai. [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/46073682601)
 - Le 27 novembre, l’accès à la cible de préproduction reste indisponible.
   Le déploiement de la fonction et des migrations ainsi que l’essai avec
   des comptes Supabase réels et le parcours SwiftUI d’invitation restent à faire.

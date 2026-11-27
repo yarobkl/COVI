@@ -91,6 +91,12 @@ reprend la carte d’état de Salle et le montant de l’encaissement
 le contrat produit. Les références n’incluent pas de planche dédiée à
 cet état. La confirmation tactile reste à essayer sur appareil.
 
+Le [raccourci Encaisser dans Salle](https://github.com/yarobkl/COVI/actions/runs/46073417621/artifacts/15234009981)
+reprend l’action du volet Restaurant de `38512445…`. Le résumé du
+scénario montre Table 6 à encaisser et sa feuille affiche le même reste
+dû de 16 000 FCFA. La disposition XXXL et le toucher sur appareil
+restent à vérifier. Les commandes annexes du concept restent ouvertes.
+
 ## Reprise du lot visuel COVI 2.0
 
 - Le build TestFlight 1.0.13 (10051), issu du commit `6eb37ed`, valide la
