@@ -1043,9 +1043,15 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   coupe sur plusieurs lignes dans la fiche horizontale.
   [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/46066156390)
   a validé Debug, Release et **165 XCTest sans échec**.
-- Sur `f833900`, les fiches du catalogue passent en colonne aux
-  tailles d’accessibilité. La comparaison du nouveau rendu reste à
-  faire après le [diagnostic](https://github.com/yarobkl/COVI/actions/runs/46068899593).
+- Sur `f833900`, les fiches passent en colonne aux tailles d’accessibilité.
+  La [capture XXXL](https://github.com/yarobkl/COVI/actions/runs/46068899593/artifacts/15233046929)
+  montre le titre entier sur deux lignes, 18 000 FCFA et les quatre
+  unités disponibles. Le pictogramme d’ajout demande de défiler.
+  La comparaison en taille habituelle retrouve la miniature et les
+  capsules du concept. Les gestes et les photos réelles restent à
+  vérifier sur iPhone physique. Le
+  [diagnostic](https://github.com/yarobkl/COVI/actions/runs/46068899593)
+  a validé Debug, Release, **165 XCTest sans échec** et 68 captures.
 
 - Sur `62f6444`, le panier lit les miniatures enregistrées des
   articles. Un article sans photo conserve un pictogramme neutre.

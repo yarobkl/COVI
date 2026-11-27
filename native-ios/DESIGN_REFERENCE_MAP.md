@@ -40,9 +40,11 @@ essayer sur appareil physique.
 Les [filtres du catalogue sur iPhone simulé](https://github.com/yarobkl/COVI/actions/runs/46066156390/artifacts/15231244356)
 reprennent « Tous », « Chemises », « Pantalons », « Vestes » et les
 autres familles dans un défilement horizontal. Le filtre « Chemises »
-affiche le seul article de cette famille dans le scénario. En XXXL,
-la sélection s’affiche dans un menu et le titre de la fiche nécessite
-encore une disposition adaptée.
+affiche le seul article de cette famille dans le scénario. La
+[capture XXXL](https://github.com/yarobkl/COVI/actions/runs/46068899593/artifacts/15233046929)
+montre la sélection dans un menu, le titre entier, le prix et le stock
+dans la fiche verticale. Le toucher pour ajouter un article et le
+défilement des filtres restent à essayer sur iPhone physique.
 
 Le panier de [Vendre sur iPhone simulé](https://github.com/yarobkl/COVI/actions/runs/46061919245/artifacts/15229877678)
 a été comparé à `9BF220F7`. La miniature enregistrée s’affiche à
