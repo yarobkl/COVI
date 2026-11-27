@@ -19,10 +19,14 @@ et Agenda montrent leur symbole métier, le nom de l’établissement
 et un sélecteur relié à Mes espaces. Le concept ajoute une cloche.
 La barre d’onglets ivoire native et sa sélection foncée diffèrent en
 forme et en surbrillance de la barre arrondie et de la capsule champagne.
-En XXXL, le statut local est lisible et demande quatre lignes.
-Le total de Vendre et l’espace disponible pour le contenu restent
-à corriger à cette taille. Le sélecteur et les parcours restent à
-essayer sur iPhone physique.
+Les [captures du correctif](https://github.com/yarobkl/COVI/actions/runs/46044396272/artifacts/15222004025)
+montrent l’en-tête compact en XXXL, avec le nom du commerce et le bouton
+de statut propriétaire. Dans Vendre, le total de 35 000 FCFA et l’action
+« Encaisser » s’affichent dans le panier défilant. La taille habituelle
+conserve le bloc fixe bas de la planche `9BF220F7`. Dans Agenda, le
+premier rendez-vous et son horaire apparaissent sous la semaine en XXXL.
+Le sélecteur, le détail du statut et les parcours restent à essayer
+sur iPhone physique.
 
 Le volet Boutique du concept a été comparé à [Vendre et Recherche par photo sur iPhone simulé](https://github.com/yarobkl/COVI/actions/runs/45918257137/artifacts/15163907047).
 Le bouton de reconnaissance jouxte la recherche. La feuille SwiftUI

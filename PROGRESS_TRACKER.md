@@ -815,6 +815,14 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   Deux connexions concurrentes obtiennent une seule adhésion pour le
   même code. La limite concurrente de trois établissements passe aussi.
   [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/46025343476)
+- Sur `a641a15`, le répertoire privé renvoie les établissements actifs
+  et le rôle actuel pour la session vérifiée. Il relit le rôle et
+  retire les adhésions révoquées et les établissements archivés.
+  PostgreSQL 17 jetable confirme l’isolation entre établissements,
+  le refus des sessions expirées ou révoquées et l’absence d’exécution
+  directe par `anon` ou `authenticated`. Les essais concurrents de
+  création et d’utilisation d’une invitation passent toujours.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/46044620538)
 - L’accès à la préproduction était toujours refusé le 27 novembre.
   La passerelle authentifiée, l’application de la migration hébergée et
   le parcours SwiftUI d’invitation restent à intégrer et à vérifier.
@@ -981,6 +989,20 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   hebdomadaire d’Agenda occupe le premier écran XXXL. Reprendre la densité
   de l’en-tête et l’affichage du total XXXL, puis contrôler les interactions
   sur appareil. La cloche et la capsule champagne restent des écarts.
+- Sur `de93823`, l’en-tête XXXL garde le nom et le sélecteur. Le
+  propriétaire peut ouvrir le statut iCloud complet depuis un bouton
+  dans l’en-tête. Vendre place le total et « Encaisser » en haut du panier
+  défilant aux tailles d’accessibilité, et affiche les quantités sous
+  les articles. À la taille habituelle, le total reste fixe en bas.
+- Comparaison des [66 captures](https://github.com/yarobkl/COVI/actions/runs/46044396272/artifacts/15222004025)
+  sur iPhone 16 Pro simulé avec `9BF220F7` et `38512445…`. Le total
+  de 35 000 FCFA et le libellé « Encaisser » sont lisibles en XXXL.
+  Le bas du bouton et les lignes du panier demandent de défiler. Dans
+  Agenda, le premier rendez-vous et son horaire réapparaissent sous
+  la semaine. L’ouverture du détail iCloud et les interactions sur
+  appareil restent à vérifier.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/46044396272)
+  a validé Debug, Release et **164 XCTest sans échec**.
 
 ### Lot 3 — Boutique
 
