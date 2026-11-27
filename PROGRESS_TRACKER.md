@@ -151,6 +151,38 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   (Équipe et Rapports service du Restaurant) ont été retrouvées et vérifiées
   par leur contenu. Après Plus et Paramètres, poursuivre les écrans Restaurant de la planche `A30B3A65`.
 
+### Salon — Absences dans l’agenda et le rapport
+
+- La planche `57D4B495` (SHA-256 `d586dc35…`) place le compteur et le
+  taux d’absence sous l’activité de l’équipe. Sur `5a266ca`, le
+  propriétaire, un responsable ou un coiffeur actif peut confirmer
+  une absence depuis un rendez-vous terminé et ouvert. L’agenda
+  conserve le rendez-vous et journalise l’action avec son auteur.
+  La caisse exclut les absences des rendez-vous à encaisser.
+- Le taux porte sur les rendez-vous clôturés de la période, encaissés
+  ou marqués absents. Les annulations, passages spontanés et rendez-vous
+  encore ouverts sont exclus. Le miroir opérationnel transporte la date
+  d’absence et conserve l’état lors du rejeu d’un ancien enregistrement
+  compatible. Les décisions contradictoires restent des conflits.
+- [Diagnostics de `5a266ca`](https://github.com/yarobkl/COVI/actions/runs/46015398661)
+  réussis en Debug et Release, **164 XCTest sans échec** et 60 captures.
+  Les tests couvrent le rôle révoqué, le rendez-vous futur ou encaissé,
+  l’enregistrement sans doublon et le rejeu sur un second magasin SwiftData.
+- Les [captures iPhone simulé](https://github.com/yarobkl/COVI/actions/runs/46015398661/artifacts/15207271005)
+  ont été comparées à `57D4B495`. À taille standard, la carte d’absences
+  s’affiche sous les commissions, avec une absence sur quatre rendez-vous
+  clôturés et un taux de 25 % calculé à partir du scénario. À taille XXXL,
+  le début du rapport est lisible et le compteur se trouve plus bas.
+  L’action de confirmation et le défilement VoiceOver restent à essayer
+  sur iPhone physique. Les demandes publiques restent ouvertes.
+- Sur `abfcbd4`, **164 XCTest sans échec**, Debug, Release et 60 captures.
+  Le test de migration ouvre un magasin SQLite avec les anciens modèles,
+  conserve le rendez-vous encaissé et son reçu, puis enregistre et relit
+  une absence après réouverture. Le rapport de cette révision a été
+  revu en taille standard et XXXL.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/46015687275)
+  · [Captures](https://github.com/yarobkl/COVI/actions/runs/46015687275/artifacts/15207253504)
+
 ### Plus et Paramètres
 
 - La référence `D2C012FF` a été vérifiée. Plus ouvre Paramètres depuis
