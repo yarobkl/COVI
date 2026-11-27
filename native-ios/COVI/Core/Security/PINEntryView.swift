@@ -4,7 +4,14 @@ import SwiftUI
 struct PINEntryView: View {
     @Bindable var pinManager: PINManager
     let scope: PINScope
+    var shopName: String? = nil
+    var staffName: String? = nil
     let onCompletion: (Bool) -> Void
+    @Environment(\.dynamicTypeSize) private var textSize
+#if DEBUG && targetEnvironment(simulator)
+    @Environment(\.coviSimulatorDiagnostics) private var diagnostics
+#endif
+    @ScaledMetric(relativeTo: .title) private var digitSize: CGFloat = 30
     @State private var entered = ""
     @State private var clock = Date.now
 
@@ -17,26 +24,43 @@ struct PINEntryView: View {
         ["1", "2", "3"], ["4", "5", "6"], ["7", "8", "9"], ["", "0", "delete.left"]
     ]
 
+    private let letters = ["2": "ABC", "3": "DEF", "4": "GHI", "5": "JKL",
+                           "6": "MNO", "7": "PQRS", "8": "TUV", "9": "WXYZ"]
+
     var body: some View {
         GeometryReader { geo in
+            let keySize = min(76, max(44, (geo.size.width - 64) / 3))
+            let keySpacing = min(23, max(8, (geo.size.width - 3 * keySize - 28) / 2))
             ScrollView {
-                VStack(spacing: 32) {
-                    VStack(spacing: 8) {
-                        Image(systemName: "lock.shield")
-                            .font(.title).foregroundStyle(COVITheme.navy)
+                VStack(spacing: 22) {
+                    VStack(spacing: 10) {
+                        if let shopName, !shopName.isEmpty {
+                            Image("WelcomeMark")
+                                .resizable().scaledToFit().frame(width: 106)
+                                .accessibilityLabel("COVI, Commerce & Vie")
+                            Text(shopName)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(COVITheme.secondaryText)
+                        } else {
+                            Image(systemName: "lock.shield")
+                                .font(.title)
+                                .accessibilityHidden(true)
+                        }
                         Text(prompt)
-                            .font(.system(size: 29, weight: .bold))
-                            .foregroundStyle(COVITheme.navy)
-                            .multilineTextAlignment(.center)
+                            .font(.title.bold())
+                            .accessibilityAddTraits(.isHeader)
                         Text("Saisissez votre code personnel à 4 chiffres")
-                            .font(.subheadline).foregroundStyle(COVITheme.secondaryText)
+                            .font(.subheadline)
+                            .foregroundStyle(COVITheme.secondaryText)
                     }
-                    HStack(spacing: 28) {
+                    .multilineTextAlignment(.center)
+
+                    HStack(spacing: 22) {
                         ForEach(0..<4, id: \.self) { index in
                             Circle()
                                 .fill(index < entered.count ? COVITheme.navy : .clear)
-                                .frame(width: 19, height: 19)
-                                .overlay(Circle().stroke(COVITheme.navy, lineWidth: 2))
+                                .frame(width: 18, height: 18)
+                                .overlay(Circle().strokeBorder(COVITheme.navy, lineWidth: 2))
                         }
                     }
                     .accessibilityElement(children: .ignore)
@@ -48,47 +72,31 @@ struct PINEntryView: View {
                             .multilineTextAlignment(.center)
                     }
 
-                    VStack(spacing: 16) {
+                    VStack(spacing: 13) {
                         ForEach(keys.indices, id: \.self) { row in
-                            HStack(spacing: 30) {
+                            HStack(spacing: keySpacing) {
                                 ForEach(keys[row], id: \.self) { key in
                                     if key.isEmpty {
-                                        Color.clear.frame(width: 75, height: 75)
+                                        Color.clear.frame(width: keySize, height: keySize)
+                                            .accessibilityHidden(true)
                                     } else {
-                                        Button {
-                                            press(key)
-                                        } label: {
-                                            Group {
-                                                if key == "delete.left" {
-                                                    Image(systemName: "delete.left")
-                                                        .font(.system(size: 29))
-                                                } else {
-                                                    Text(key)
-                                                        .font(.system(size: 38, weight: .medium, design: .rounded))
-                                                }
-                                            }
-                                            .foregroundStyle(COVITheme.navy)
-                                            .frame(width: 75, height: 75)
-                                            .background(.white.opacity(0.88), in: Circle())
-                                            .shadow(color: COVITheme.navy.opacity(0.09), radius: 9, y: 4)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .disabled(locked)
-                                        .accessibilityLabel(key == "delete.left" ? "Effacer le dernier chiffre" : key)
+                                        keypadButton(key, size: keySize)
                                     }
                                 }
                             }
                         }
                     }
-                    Button("Changer de compte") { onCompletion(false) }
+
+                    Button("Annuler") { onCompletion(false) }
                         .foregroundStyle(COVITheme.blue)
                         .font(.headline)
-                        .padding(.top, 8)
+                        .frame(minHeight: 44)
                 }
+                .foregroundStyle(COVITheme.navy)
                 .frame(maxWidth: .infinity)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 18)
                 .frame(minHeight: geo.size.height, alignment: .center)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 30)
             }
         }
         .background(COVIBackdrop())
@@ -99,14 +107,61 @@ struct PINEntryView: View {
                 clock = .now
             }
         }
+#if DEBUG && targetEnvironment(simulator)
+        .task {
+            guard let diagnostics, diagnostics.scenario == .cashierPIN,
+                  pinManager === diagnostics.pin,
+                  case .cashier(let staffID, let shopID) = scope,
+                  staffID == diagnostics.owner, shopID == diagnostics.shop.id else { return }
+            entered = "12"
+            await diagnostics.signalAfterPresentation()
+        }
+#endif
+    }
+
+    private func keypadButton(_ key: String, size: CGFloat) -> some View {
+        Button { press(key) } label: {
+            Group {
+                if key == "delete.left" {
+                    Image(systemName: "delete.left")
+                        .font(.system(size: min(digitSize, size * 0.43)))
+                } else {
+                    VStack(spacing: 1) {
+                        Text(key)
+                            .font(.system(size: min(digitSize, size * 0.58), weight: .medium, design: .rounded))
+                        if let hint = letters[key], !textSize.isAccessibilitySize {
+                            Text(hint)
+                                .font(.system(size: 9, weight: .semibold))
+                                .tracking(1)
+                                .accessibilityHidden(true)
+                        }
+                    }
+                }
+            }
+            .foregroundStyle(COVITheme.navy)
+            .frame(width: size, height: size)
+            .background(.white.opacity(0.92), in: Circle())
+            .shadow(color: COVITheme.navy.opacity(0.09), radius: 8, y: 3)
+            .contentShape(Circle())
+            .opacity(locked ? 0.5 : 1)
+        }
+        .buttonStyle(.plain)
+        .disabled(locked)
+        .accessibilityLabel(key == "delete.left" ? "Effacer le dernier chiffre" : key)
     }
 
     private var prompt: String {
         switch scope {
         case .master: "Code PIN propriétaire"
-        case .cashier: "Code PIN de la caisse"
+        case .cashier:
+            if let staffName, !staffName.isEmpty {
+                "Code PIN de \(staffName)"
+            } else {
+                "Code PIN de la caisse"
+            }
         }
     }
+
     private func press(_ key: String) {
         guard !locked else { return }
         if key == "delete.left" {

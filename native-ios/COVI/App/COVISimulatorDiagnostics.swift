@@ -14,6 +14,7 @@ final class COVISimulatorDiagnostics {
         case welcome
         case spaces
         case establishmentSetup = "establishment-setup"
+        case cashierPIN = "cashier-pin"
         case boutiqueHome = "boutique-home"
         case boutiqueArrivals = "boutique-arrivals"
         case boutiquePhotoSearch = "boutique-photo-search"
@@ -116,8 +117,8 @@ final class COVISimulatorDiagnostics {
         let simulatorSession = AppSession(keychain: storage)
         session = simulatorSession
         pin = PINManager(keychain: storage)
-        if [.salonMore, .salonSettings, .restaurantTeam, .establishmentSetup].contains(scenario) {
-            try simulatorSession.createLocalAccount(name: "Camille Démo")
+        if [.salonMore, .salonSettings, .restaurantTeam, .establishmentSetup, .cashierPIN].contains(scenario) {
+            try simulatorSession.createLocalAccount(name: scenario == .cashierPIN ? "Marc" : "Camille Démo")
             guard let accountID = simulatorSession.accountID else { throw Failure.invalidScenario }
             owner = accountID
         } else {
@@ -138,8 +139,20 @@ final class COVISimulatorDiagnostics {
         }
         shop = Establishment(
             id: UUID(uuidString: "00000000-0000-4000-8000-000000000002")!,
-            ownerID: owner, name: name, kind: kind, city: "Brazzaville", currencyCode: "XAF")
+            ownerID: scenario == .cashierPIN ? UUID() : owner,
+            name: scenario == .cashierPIN ? "Maison Kongo Style" : name,
+            kind: kind, city: "Brazzaville", currencyCode: "XAF")
 
+        if scenario == .cashierPIN {
+            basket = [:]
+            due = 0
+            let context = container.mainContext
+            context.insert(shop)
+            context.insert(Membership(accountID: owner, establishmentID: shop.id, role: .cashier))
+            try context.save()
+            try pin.configureCashierPIN("1234", for: owner, shopID: shop.id)
+            return
+        }
         if scenario == .establishmentSetup {
             basket = [:]
             due = 0
@@ -722,6 +735,9 @@ struct COVISimulatorDiagnosticView: View {
             } else if fixture.scenario == .spaces {
                 COVISpaces(account: fixture.owner, accountName: "Camille Démo", activeID: fixture.shop.id,
                            onSelect: { _ in }, onAdd: {})
+            } else if fixture.scenario == .cashierPIN {
+                DynamicTabView(establishment: fixture.shop, accountID: fixture.owner,
+                               role: .cashier, pinManager: fixture.pin, onSwitchShop: {})
             } else if fixture.scenario == .boutiqueArrivals {
                 NavigationStack {
                     BoutiqueArrivals(shop: fixture.shop, actor: fixture.owner, goods: [])
@@ -753,7 +769,7 @@ struct COVISimulatorDiagnosticView: View {
         .task {
             // Le formulaire et la fiche Salon signalent leur propre apparition.
             if fixture.salonBooking == nil && fixture.salonProfileID == nil &&
-                fixture.scenario != .establishmentSetup &&
+                fixture.scenario != .establishmentSetup && fixture.scenario != .cashierPIN &&
                 fixture.scenario != .salonReport && fixture.scenario != .salonSettings &&
                 fixture.scenario != .boutiquePhotoSearch &&
                 fixture.scenario != .restaurantReport && fixture.scenario != .restaurantIncident && fixture.scenario != .restaurantTeam &&

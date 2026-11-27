@@ -53,6 +53,7 @@ struct DynamicTabView: View {
     let role: StaffRole
     @Bindable var pinManager: PINManager
     let onSwitchShop: () -> Void
+    @Environment(AppSession.self) private var session
     @State private var selected: BusinessTab = .home
     @State private var pending: BusinessTab?
     @State private var showingPIN = false
@@ -106,7 +107,9 @@ struct DynamicTabView: View {
         }
         .tint(COVITheme.navy)
         .sheet(isPresented: $showingPIN) {
-            PINEntryView(pinManager: pinManager, scope: .cashier(staffID: accountID, shopID: establishment.id)) { success in
+            PINEntryView(pinManager: pinManager, scope: .cashier(staffID: accountID, shopID: establishment.id),
+                         shopName: establishment.name,
+                         staffName: session.accountID == accountID ? session.displayName : nil) { success in
                 showingPIN = false
                 if success, let pending { selected = pending }
                 pending = nil
@@ -117,6 +120,12 @@ struct DynamicTabView: View {
         .onAppear {
 #if DEBUG && targetEnvironment(simulator)
             selected = tabs[0]
+            if let diagnostics, diagnostics.scenario == .cashierPIN, diagnostics.shop.id == establishment.id,
+               diagnostics.owner == accountID, role == .cashier,
+               !pinManager.mayOperate(shop: establishment, actor: accountID) {
+                pending = .sell
+                showingPIN = true
+            }
             if let diagnostics, diagnostics.shop.id == establishment.id, diagnostics.owner == accountID,
                role == .owner, pinManager.mayOperate(shop: establishment, actor: accountID) {
                 switch diagnostics.scenario {
@@ -128,7 +137,7 @@ struct DynamicTabView: View {
                 case .salonToday: selected = .today
                 case .salonClients, .salonClientsUpcoming, .salonProfile: selected = .clients
                 case .salonAgenda, .salonAgendaGrid, .salonBooking, .salonBookingConflict: selected = .agenda
-                case .welcome, .spaces, .establishmentSetup, .boutiqueHome, .boutiqueArrivals, .restaurantTable, .restaurantOrder, .restaurantOrderDrinks,
+                case .welcome, .spaces, .establishmentSetup, .cashierPIN, .boutiqueHome, .boutiqueArrivals, .restaurantTable, .restaurantOrder, .restaurantOrderDrinks,
                      .restaurantPayment, .restaurantPaidTable, .restaurantIncident, .salonCatalog: break
                 }
             }
