@@ -897,7 +897,18 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   vente directe, la durée du catalogue est présentée comme estimation.
 - L’import de rendez-vous affiche le service et la durée du créneau.
   La durée ajustée dans le formulaire apparaît à côté du tarif.
-  Les preuves de rendu et de test restent à consigner.
+  Sur `237280a`, Debug, Release et **158 XCTest sans échec**.
+  Le test couvre la durée lue sur le créneau et le rejet d’un
+  intervalle vide. [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45952983866)
+- Les [captures iPhone](https://github.com/yarobkl/COVI/actions/runs/45952983866/artifacts/15178945141)
+  montrent 2 h 30 sur le ticket importé (catalogue de test à 2 h),
+  un total de 30 000 FCFA et 5 000 FCFA de monnaie. Le formulaire
+  affiche 2 h et 25 000 FCFA, avec confirmation disponible ou
+  désactivée selon le chevauchement, comme vérifié sur les deux
+  scénarios. Au réglage XXXL, le ticket demande un défilement et
+  le bouton Encaisser reste visible.
+- L’en-tête de commerce et les interactions de sélection, de
+  modification et d’encaissement restent à essayer sur appareil.
 
 ### Salon — Répertoire et fiche client
 
