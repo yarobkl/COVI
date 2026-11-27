@@ -10,6 +10,7 @@ struct BoutiqueSpace: View {
     let pin: PINManager
     let startSale: () -> Void
     @Environment(\.modelContext) private var context
+    @Environment(\.dynamicTypeSize) private var textSize
     #if DEBUG && targetEnvironment(simulator)
     @Environment(\.coviSimulatorDiagnostics) private var diagnostics
     #endif
@@ -54,6 +55,16 @@ struct BoutiqueSpace: View {
         .background(COVIBackdrop())
         .navigationTitle(tab.title)
         .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            if tab == .home {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: startSale) {
+                        Image(systemName: "cart")
+                    }
+                    .accessibilityLabel("Vendre")
+                }
+            }
+        }
         .sheet(isPresented: $photoSearch) {
             #if DEBUG && targetEnvironment(simulator)
             let root = diagnostics?.boutiquePhotoSample?.root
@@ -95,55 +106,17 @@ struct BoutiqueSpace: View {
 
     private var homeScreen: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
-                VStack(alignment: .leading, spacing: 16) {
-                    HStack(spacing: 14) {
-                        Image(systemName: "chart.bar.fill")
-                            .font(.title).foregroundStyle(COVITheme.sand)
-                            .frame(width: 65, height: 65)
-                            .background(.white.opacity(0.13), in: Circle())
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Ventes du jour").font(.headline)
-                            Text(COVIMoney.text(todaysSales.reduce(Int64(0)) { $0 + $1.totalMinor }, currency: shop.currencyCode))
-                                .font(.system(size: 27, weight: .bold))
-                                .minimumScaleFactor(0.72).lineLimit(1)
-                            Text("\(todaysSales.count) ventes").font(.subheadline)
-                        }
-                    }
-                    Rectangle().fill(.white.opacity(0.58)).frame(height: 1)
-                    let todaysPayments = payments.filter { Calendar.current.isDateInToday($0.confirmedAt) }
-                    let nonCash = todaysPayments.filter { $0.method != Tender.cash.rawValue }
-                    let mobilePayments = nonCash.filter { Tender(rawValue: $0.method)?.isMobileMoney == true }
-                    let otherPayments = nonCash.filter { Tender(rawValue: $0.method)?.isMobileMoney != true }
-                    HStack {
-                        amountSummary("Espèces", symbol: "banknote",
-                            amount: todaysPayments.filter { $0.method == Tender.cash.rawValue }
-                                .reduce(Int64(0)) { $0 + $1.amountMinor })
-                        Rectangle().fill(.white.opacity(0.45)).frame(width: 1, height: 42)
-                        amountSummary("Mobile Money", symbol: "iphone",
-                            amount: mobilePayments.reduce(Int64(0)) { $0 + $1.amountMinor })
-                    }
-                    if !otherPayments.isEmpty {
-                        amountSummary("Autres moyens", symbol: "creditcard",
-                            amount: otherPayments.reduce(Int64(0)) { $0 + $1.amountMinor })
-                    }
-                }
-                .foregroundStyle(.white)
-                .padding(20)
-                .background(LinearGradient(colors: [COVITheme.navy, Color(red: 0.02, green: 0.21, blue: 0.31)],
-                                           startPoint: .topLeading, endPoint: .bottomTrailing),
-                            in: RoundedRectangle(cornerRadius: 20))
-
-                COVIButton("Vendre", systemImage: "cart") { startSale() }
-
-                VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 16) {
+                todaySummary
+                VStack(alignment: .leading, spacing: 8) {
                     COVISectionTitle("À suivre")
                     COVICard {
-                        VStack(spacing: 12) {
+                        VStack(spacing: 4) {
                             NavigationLink { BoutiqueStockOverview(shop: shop, goods: goods) } label: {
+                                let label = lowStock.count == 1 ? "1 article" : "\(lowStock.count) articles"
                                 COVIIconRow(symbol: "exclamationmark.triangle",
-                                    title: "Stock faible · \(lowStock.count) articles",
-                                    detail: lowStock.first.map { "\($0.title) — \($0.stockOnHand - $0.stockReserved) restant(s)" } ?? "Aucune alerte")
+                                    title: "Stock faible · \(label)",
+                                    detail: lowStock.first.map { "\($0.title) · \($0.stockOnHand - $0.stockReserved) en stock" } ?? "Aucune alerte")
                             }
                             Divider()
                             NavigationLink { BoutiqueArrivals(shop: shop, actor: actor, goods: goods) } label: {
@@ -153,10 +126,10 @@ struct BoutiqueSpace: View {
                     }
                 }
 
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 8) {
                     COVISectionTitle("Dernières ventes")
                     COVICard {
-                        VStack(alignment: .leading, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 4) {
                             let completed = sales.filter { $0.state == .completed }
                             let paymentsByOrder = Dictionary(grouping: payments, by: \.orderID)
                             if completed.isEmpty {
@@ -181,17 +154,75 @@ struct BoutiqueSpace: View {
         }
     }
 
-    private func amountSummary(_ title: String, symbol: String, amount: Int64) -> some View {
-        HStack(spacing: 10) {
+    private var todaySummary: some View {
+        let completed = todaysSales
+        let count = completed.count
+        let total = completed.reduce(Decimal.zero) { $0 + Decimal($1.totalMinor) }
+        let todaysPayments = payments.filter { Calendar.current.isDateInToday($0.confirmedAt) }
+        let cash = todaysPayments.filter { $0.method == Tender.cash.rawValue }
+        let mobile = todaysPayments.filter { Tender(rawValue: $0.method)?.isMobileMoney == true }
+        let other = todaysPayments.filter {
+            $0.method != Tender.cash.rawValue && Tender(rawValue: $0.method)?.isMobileMoney != true
+        }
+        let paymentLayout = textSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: 8))
+
+        return VStack(alignment: .leading, spacing: 12) {
+            paymentLayout {
+                Image(systemName: "chart.bar.fill")
+                    .font(.title2).foregroundStyle(COVITheme.sand)
+                    .frame(width: 56, height: 56)
+                    .background(.white.opacity(0.13), in: Circle())
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Ventes du jour").font(.headline)
+                    Text(homeMoney(total)).font(.title2.bold())
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(count == 1 ? "1 vente" : "\(count) ventes").font(.subheadline)
+                }
+                .accessibilityElement(children: .combine)
+            }
+            Rectangle().fill(.white.opacity(0.58)).frame(height: 1).accessibilityHidden(true)
+            paymentLayout {
+                amountSummary("Espèces", symbol: "banknote", payments: cash)
+                if !textSize.isAccessibilitySize {
+                    Rectangle().fill(.white.opacity(0.45)).frame(width: 1, height: 38)
+                        .accessibilityHidden(true)
+                }
+                amountSummary("Mobile Money", symbol: "iphone", payments: mobile)
+            }
+            if !other.isEmpty {
+                amountSummary("Autres moyens", symbol: "creditcard", payments: other)
+            }
+        }
+        .foregroundStyle(.white)
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(LinearGradient(colors: [COVITheme.navy, Color(red: 0.02, green: 0.21, blue: 0.31)],
+                                   startPoint: .topLeading, endPoint: .bottomTrailing),
+                    in: RoundedRectangle(cornerRadius: 20))
+    }
+
+    private func amountSummary(_ title: String, symbol: String, payments: [PaymentRecord]) -> some View {
+        let amount = payments.reduce(Decimal.zero) { $0 + Decimal($1.amountMinor) }
+        return HStack(alignment: .top, spacing: 8) {
             Image(systemName: symbol).font(.title3).foregroundStyle(COVITheme.sand)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
                 Text(title).font(.caption)
-                Text(COVIMoney.text(amount, currency: shop.currencyCode))
+                Text(homeMoney(amount))
                     .font(.subheadline.weight(.bold))
-                    .minimumScaleFactor(0.7).lineLimit(1)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
         }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func homeMoney(_ amount: Decimal) -> String {
+        let currency = shop.currencyCode == "XAF" ? "FCFA" : shop.currencyCode
+        return "\(amount.formatted(.number.grouping(.automatic))) \(currency)"
     }
 
     private var sellScreen: some View {

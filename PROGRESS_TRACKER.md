@@ -9,6 +9,7 @@
 - `8e80452` : scénario de capture Arrivages intégré à la navigation de diagnostic.
 - `ef646ed` : fin de capture gérée après confirmation de fin de l’opération caméra, y compris en cas d’erreur.
 - Diagnostic macOS [45877890499](https://github.com/yarobkl/COVI/actions/runs/45877890499) réussi sur `ef646ed` : **143 XCTest, zéro échec**, compilations Debug et Release pour simulateur, captures iPhone et iPad. Capture du nouvel écran Arrivages inspectée dans le diagnostic [45875670303](https://github.com/yarobkl/COVI/actions/runs/45875670303), 33 images produites.
+- `2412a66` : distinction entre coût inconnu et coût nul confirmé, conservée par le miroir CloudKit. **153 XCTest sans échec**. [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45937968779)
 - Restent à réaliser : essai de la caméra en série sur iPhone physique, traitement automatique des fiches en arrière-plan, vrais lots commerciaux avec coûts et variantes, synchronisation des médias et conservation à J+30. Aucun nouvel envoi TestFlight. Les fichiers de captures en attente sont locaux et exclus de la sauvegarde de l’appareil.
 
 ## Boutique COVI 2.0 — Scan en caisse et Studio
@@ -745,6 +746,18 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   cet écran avec deux ventes créées par le service de caisse dans un stockage
   en mémoire. Debug, 118 XCTest sans échec et Release sur simulateur réussis ([diagnostic](https://github.com/yarobkl/COVI/actions/runs/45731281847)).
 - La [capture de l’Accueil Boutique](https://github.com/yarobkl/COVI/actions/runs/45731281847/artifacts/15077287578) a été comparée à `9BF220F7`. Elle confirme la carte de ventes (53 500 FCFA, dont 35 000 en espèces et 18 500 en Mobile Money), l’alerte stock et le moyen de paiement de la première vente visible. Le raccourci Vendre et l’espacement repoussent la seconde vente sous la ligne de flottaison. L’en-tête complet, la densité et la conformité physique iPhone/iPad restent à vérifier.
+
+### Accueil Boutique — Densité et lisibilité
+
+- La planche `9BF220F7` montre le bilan du jour, le suivi et deux
+  ventes récentes au-dessus de la barre basse. La mise en page
+  rapproche ces blocs. Le raccourci Vendre passe dans la barre
+  de navigation et utilise le contrôle PIN existant.
+- Le résumé aligne les paiements en taille normale et les présente
+  en colonne aux tailles d’accessibilité. Les agrégats utilisent
+  des montants entiers stockés et une somme décimale.
+- Les captures de l’accueil et de la taille d’accessibilité XXXL
+  sont attendues dans les diagnostics natifs.
 
 ### Lot 3 — Restaurant
 
