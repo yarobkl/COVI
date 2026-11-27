@@ -43,6 +43,7 @@ final class COVISimulatorDiagnostics {
         case restaurantTeam = "restaurant-team"
         case salonCatalog = "salon-catalog"
         case salonReport = "salon-report"
+        case salonReportAbsences = "salon-report-absences"
         case salonMore = "salon-more"
         case salonSettings = "salon-settings"
         case salonCheckout = "salon-checkout"
@@ -53,6 +54,7 @@ final class COVISimulatorDiagnostics {
         case salonBookingConflict = "salon-booking-conflict"
         case salonClients = "salon-clients"
         case salonClientsUpcoming = "salon-clients-upcoming"
+        case salonClientsAbsences = "salon-clients-absences"
         case salonProfile = "salon-profile"
     }
 
@@ -133,7 +135,7 @@ final class COVISimulatorDiagnostics {
         case .restaurantTables, .restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace, .restaurantFloorZoom, .restaurantFloorGuests, .restaurantTable, .restaurantOrder, .restaurantOrderDrinks, .restaurantReport, .restaurantIncident, .restaurantTeam, .restaurantKitchen, .restaurantKitchenReady, .restaurantMenu, .restaurantDrinks, .restaurantPayment, .restaurantPaidTable:
             kind = .restaurant
             name = "Restaurant de démonstration"
-        case .salonCatalog, .salonReport, .salonMore, .salonSettings, .salonCheckout, .salonToday, .salonAgenda, .salonAgendaGrid, .salonBooking, .salonBookingConflict, .salonClients, .salonClientsUpcoming, .salonProfile:
+        case .salonCatalog, .salonReport, .salonReportAbsences, .salonMore, .salonSettings, .salonCheckout, .salonToday, .salonAgenda, .salonAgendaGrid, .salonBooking, .salonBookingConflict, .salonClients, .salonClientsUpcoming, .salonClientsAbsences, .salonProfile:
             kind = .salon
             name = "Studio Élégance"
         default:
@@ -199,9 +201,9 @@ final class COVISimulatorDiagnostics {
         if kind == .salon {
             basket = [:]
             due = 0
-            if [.salonClients, .salonClientsUpcoming, .salonProfile].contains(scenario) {
+            if [.salonClients, .salonClientsUpcoming, .salonClientsAbsences, .salonProfile].contains(scenario) {
                 try seedSalonDirectory()
-            } else if scenario == .salonReport {
+            } else if [.salonReport, .salonReportAbsences].contains(scenario) {
                 try seedSalonReport()
             } else if scenario == .salonMore || scenario == .salonSettings {
                 let context = container.mainContext
@@ -686,6 +688,13 @@ final class COVISimulatorDiagnostics {
             stylist: chloe.name, start: start, end: start.addingTimeInterval(7_200), walkIn: false))
         if scenario == .salonProfile { salonProfileID = mireille.id }
         try context.save()
+        for daysAgo in [3, 10] {
+            let date = now.addingTimeInterval(-TimeInterval(daysAgo * 86_400))
+            let visit = SalonVisit(shop: shop.id, client: cedric.id, service: braids.id,
+                stylist: chloe.name, start: date, end: date.addingTimeInterval(3_600), walkIn: false)
+            context.insert(visit)
+            try SalonLedger.markMissed(visit, shop: shop.id, actor: owner, at: now, db: context)
+        }
     }
 
     private func seedSalonReport() throws {
@@ -814,7 +823,8 @@ struct COVISimulatorDiagnosticView: View {
                 fixture.scenario != .establishmentSetup && fixture.scenario != .cashierPIN &&
                 fixture.scenario != .syncCentre &&
                 fixture.scenario != .accountLogin && fixture.scenario != .accountRegistration &&
-                fixture.scenario != .salonReport && fixture.scenario != .salonSettings &&
+                fixture.scenario != .salonReport && fixture.scenario != .salonReportAbsences &&
+                fixture.scenario != .salonSettings &&
                 fixture.scenario != .boutiquePhotoSearch &&
                 fixture.scenario != .restaurantReport && fixture.scenario != .restaurantIncident && fixture.scenario != .restaurantTeam &&
                 fixture.scenario != .restaurantKitchenReady &&

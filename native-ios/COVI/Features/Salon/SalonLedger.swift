@@ -34,6 +34,7 @@ import SwiftData
     var cancelled = false
     var receipt: UUID?
     var missedAt: Date?
+    var isMissed: Bool { missedAt != nil && !cancelled && !walkIn && receipt == nil }
     var isOpen: Bool { !cancelled && receipt == nil && missedAt == nil }
     func canMarkMissed(at date: Date) -> Bool { isOpen && !walkIn && end <= date }
     var scheduledMinutes: Int? {

@@ -1551,6 +1551,9 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertFalse(SalonDirectoryFilter.unvisited.includes(visits: 1, hasUpcoming: false))
         XCTAssertFalse(SalonDirectoryFilter.upcoming.includes(visits: 1, hasUpcoming: false))
         XCTAssertTrue(SalonDirectoryFilter.all.includes(visits: 0, hasUpcoming: false))
+        XCTAssertTrue(SalonDirectoryFilter.absences.includes(visits: 0, hasUpcoming: false, absences: 2))
+        XCTAssertTrue(SalonDirectoryFilter.absences.includes(visits: 1, hasUpcoming: true, absences: 1))
+        XCTAssertFalse(SalonDirectoryFilter.absences.includes(visits: 1, hasUpcoming: true, absences: 0))
     }
 
     func testSalonClientNameAndPhoneAreEditableWithAuditHistory() throws {

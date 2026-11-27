@@ -488,13 +488,14 @@ private struct SalonCatalogEditor: View {
 }
 
 struct SalonAttendanceSummary {
-    let missed: Int
+    let missedVisits: [SalonVisit]
     let resolved: Int
+    var missed: Int { missedVisits.count }
 
     init(visits: [SalonVisit]) {
         let scheduled = visits.filter { !$0.cancelled && !$0.walkIn }
-        missed = scheduled.filter { $0.missedAt != nil }.count
-        resolved = scheduled.filter { $0.missedAt != nil || $0.receipt != nil }.count
+        missedVisits = scheduled.filter(\.isMissed).sorted { $0.start > $1.start }
+        resolved = scheduled.filter { $0.isMissed || $0.receipt != nil }.count
     }
 
     var rate: Double? { resolved == 0 ? nil : Double(missed) / Double(resolved) }
@@ -503,6 +504,8 @@ struct SalonAttendanceSummary {
 struct SalonReport: View {
     let sales: [SalonSaleLine]
     let visits: [SalonVisit]
+    let clients: [SalonClient]
+    let menu: [CatalogItem]
     let currency: String
     @Environment(\.dynamicTypeSize) private var textSize
 #if DEBUG && targetEnvironment(simulator)
@@ -511,6 +514,7 @@ struct SalonReport: View {
     @State private var date = Date()
     @State private var monthly = true
     @State private var choosingPeriod = false
+    @State private var showingAbsences = false
 
     var body: some View {
         let granularity: Calendar.Component = monthly ? .month : .day
@@ -521,6 +525,7 @@ struct SalonReport: View {
         let services = total(rows.filter(\.service), by: \.gross)
         let products = total(rows.filter { !$0.service }, by: \.gross)
         let commissions = total(rows, by: \.commission)
+        let attendance = SalonAttendanceSummary(visits: periodVisits)
 
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -529,7 +534,15 @@ struct SalonReport: View {
                 COVISectionTitle("Activité et commissions de l’équipe")
                 teamCard(salesByPerson: Dictionary(grouping: rows, by: \.stylist),
                          visitsByPerson: Dictionary(grouping: periodVisits.filter { $0.missedAt == nil }, by: \.stylist))
-                attendanceCard(SalonAttendanceSummary(visits: periodVisits))
+                if attendance.missed > 0 {
+                    Button { showingAbsences = true } label: {
+                        attendanceCard(attendance)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityHint("Affiche les rendez-vous marqués absents sur la période")
+                } else {
+                    attendanceCard(attendance)
+                }
                 COVICard {
                     VStack(alignment: .leading, spacing: 10) {
                         LabeledContent("Commissions équipe", value: money(commissions))
@@ -545,6 +558,9 @@ struct SalonReport: View {
         .background(COVIBackdrop())
         .navigationTitle("Rapports salon")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(isPresented: $showingAbsences) {
+            absenceDetails(attendance)
+        }
         .toolbar {
             if !textSize.isAccessibilitySize {
                 ToolbarItem(placement: .topBarTrailing) { periodButton }
@@ -575,6 +591,7 @@ struct SalonReport: View {
             if let diagnostics, diagnostics.scenario == .salonReport {
                 await diagnostics.signalAfterPresentation()
             }
+            if diagnostics?.scenario == .salonReportAbsences { showingAbsences = true }
         }
 #endif
     }
@@ -595,8 +612,54 @@ struct SalonReport: View {
                         .accessibilityLabel("Taux d’absences")
                         .accessibilityValue(rate.formatted(.percent.precision(.fractionLength(0))))
                 }
+                if summary.missed > 0 {
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .accessibilityHidden(true)
+                }
             }
         }
+    }
+
+    private func absenceDetails(_ summary: SalonAttendanceSummary) -> some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                Text(periodTitle).font(.subheadline.weight(.semibold))
+                    .foregroundStyle(COVITheme.secondaryText)
+                if summary.missedVisits.isEmpty {
+                    ContentUnavailableView("Aucune absence", systemImage: "calendar")
+                }
+                ForEach(summary.missedVisits) { visit in
+                    COVICard {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(clients.first { $0.id == visit.client }?.name ?? "Client")
+                                .font(.headline)
+                            if let service = menu.first(where: { $0.id == visit.service }) {
+                                Text(service.title).font(.subheadline)
+                            }
+                            Text(visit.start.formatted(date: .abbreviated, time: .shortened))
+                                .font(.subheadline)
+                            Text(visit.stylist)
+                                .font(.caption).foregroundStyle(COVITheme.secondaryText)
+                        }
+                        .accessibilityElement(children: .combine)
+                    }
+                }
+            }
+            .foregroundStyle(COVITheme.navy)
+            .padding(COVITheme.Metrics.screenPadding)
+        }
+        .background(COVIBackdrop())
+        .navigationTitle("Absences clients")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
+#if DEBUG && targetEnvironment(simulator)
+        .task {
+            if let diagnostics, diagnostics.scenario == .salonReportAbsences {
+                await diagnostics.signalAfterPresentation()
+            }
+        }
+#endif
     }
 
     private var periodButton: some View {

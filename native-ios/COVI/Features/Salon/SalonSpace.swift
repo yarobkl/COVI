@@ -65,8 +65,10 @@ struct SalonSpace: View {
                     } else if tab == .clients {
                         clientSections
                     } else if admin {
-                        NavigationLink("Rapports du salon") { SalonReport(sales: sales, visits: visits,
-                                                                              currency: shop.currencyCode) }
+                        NavigationLink("Rapports du salon") {
+                            SalonReport(sales: sales, visits: visits, clients: clients,
+                                        menu: menu, currency: shop.currencyCode)
+                        }
                         NavigationLink("Catalogue du salon") { SalonCatalog(shop: shop, menu: menu, actor: actor) }
                         NavigationLink("Équipe du salon") { SalonTeamSettings(shop: shop, actor: actor) }
                         if role == .owner { NavigationLink("Paramètres propriétaire") { OwnerSettings(shop: shop, pinManager: pin) } }
@@ -122,6 +124,7 @@ struct SalonSpace: View {
             if let client = clients.first(where: { $0.id == id }) {
                 SalonProfile(client: client, actor: actor,
                     history: sales.filter { $0.client == id && $0.service },
+                    absenceCount: visits.filter { $0.client == id && $0.isMissed }.count,
                     currency: shop.currencyCode) {
                         bookingClientID = id
                         booking = true
@@ -153,6 +156,7 @@ struct SalonSpace: View {
             if tab == .agenda, diagnostics?.salonBooking != nil { booking = true }
             if tab == .agenda, diagnostics?.scenario == .salonAgendaGrid { showsAgendaGrid = true }
             if tab == .clients, diagnostics?.scenario == .salonClientsUpcoming { directoryFilter = .upcoming }
+            if tab == .clients, diagnostics?.scenario == .salonClientsAbsences { directoryFilter = .absences }
             if tab == .clients, let id = diagnostics?.salonProfileID { clientProfileID = id }
         }
 #endif
@@ -196,6 +200,7 @@ struct SalonSpace: View {
         let isPhoneQuery = !phoneDigits.isEmpty && query.allSatisfy { $0.isNumber || " +()-.".contains($0) }
         let historyByClient = Dictionary(grouping: sales.filter(\.service), by: \.client)
         let visitCounts = historyByClient.mapValues { Set($0.map(\.order)).count }
+        let absencesByClient = Dictionary(grouping: visits.filter(\.isMissed), by: \.client)
         let upcomingByClient = Dictionary(grouping: visits.filter {
             $0.isOpen && !$0.walkIn && $0.start >= now
         }, by: \.client)
@@ -204,7 +209,7 @@ struct SalonSpace: View {
                 (isPhoneQuery && client.phone.filter(\.isNumber).contains(phoneDigits)) ||
                 client.phone.localizedCaseInsensitiveContains(query)
             return matchesSearch && directoryFilter.includes(visits: visitCounts[client.id, default: 0],
-                hasUpcoming: upcomingByClient[client.id] != nil)
+                hasUpcoming: upcomingByClient[client.id] != nil, absences: absencesByClient[client.id]?.count ?? 0)
         }
 
         if !clients.isEmpty {
@@ -228,7 +233,8 @@ struct SalonSpace: View {
                     Button {
                         clientProfileID = client.id
                     } label: {
-                        clientRow(client, visitCount: count, latestService: history.first, nextVisit: nextVisit)
+                        clientRow(client, visitCount: count, latestService: history.first,
+                                  nextVisit: nextVisit, absences: absencesByClient[client.id]?.count ?? 0)
                     }
                     .buttonStyle(.plain)
                     .listRowInsets(EdgeInsets(top: 3, leading: 17, bottom: 3, trailing: 17))
@@ -264,7 +270,7 @@ struct SalonSpace: View {
     }
 
     private func clientRow(_ client: SalonClient, visitCount: Int,
-                           latestService: SalonSaleLine?, nextVisit: SalonVisit?) -> some View {
+                           latestService: SalonSaleLine?, nextVisit: SalonVisit?, absences: Int) -> some View {
         HStack(spacing: 10) {
             SalonClientInitials(name: client.name,
                 tint: nextVisit != nil ? COVITheme.successTint : visitCount > 0 ? COVITheme.champagne : COVITheme.blue.opacity(0.10))
@@ -281,13 +287,13 @@ struct SalonSpace: View {
                     Text("Dernière prestation · " + latestService.title)
                         .font(.caption).foregroundStyle(COVITheme.secondaryText)
                 }
-                if textSize.isAccessibilitySize && visitCount > 0 {
-                    visitCountLabel(visitCount)
+                if textSize.isAccessibilitySize {
+                    directoryBadges(visits: visitCount, absences: absences)
                 }
             }
             Spacer(minLength: 4)
-            if !textSize.isAccessibilitySize && visitCount > 0 {
-                visitCountLabel(visitCount)
+            if !textSize.isAccessibilitySize {
+                directoryBadges(visits: visitCount, absences: absences)
             }
             Image(systemName: "chevron.right")
                 .font(.caption.weight(.semibold))
@@ -300,6 +306,21 @@ struct SalonSpace: View {
         .background(COVITheme.card, in: RoundedRectangle(cornerRadius: 12))
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder private func directoryBadges(visits: Int, absences: Int) -> some View {
+        if visits > 0 || absences > 0 {
+            VStack(alignment: textSize.isAccessibilitySize ? .leading : .trailing, spacing: 4) {
+                if absences > 0 {
+                    Text(absences == 1 ? "1 absence" : "\(absences) absences")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.red)
+                        .padding(.horizontal, 7).padding(.vertical, 4)
+                        .background(COVITheme.dangerTint, in: Capsule())
+                }
+                if visits > 0 { visitCountLabel(visits) }
+            }
+        }
     }
 
     private func visitCountLabel(_ count: Int) -> some View {
@@ -1114,15 +1135,17 @@ enum SalonDirectoryFilter: String, CaseIterable, Identifiable {
     case all = "Tous"
     case visited = "Avec visites"
     case unvisited = "Sans visite"
+    case absences = "Absences"
     case upcoming = "RDV à venir"
 
     var id: Self { self }
 
-    func includes(visits: Int, hasUpcoming: Bool) -> Bool {
+    func includes(visits: Int, hasUpcoming: Bool, absences: Int = 0) -> Bool {
         switch self {
         case .all: true
         case .visited: visits > 0
         case .unvisited: visits == 0
+        case .absences: absences > 0
         case .upcoming: hasUpcoming
         }
     }
@@ -1154,6 +1177,7 @@ private struct SalonProfile: View {
     let client: SalonClient
     let actor: UUID
     let history: [SalonSaleLine]
+    let absenceCount: Int
     let currency: String
     let onNewBooking: () -> Void
     @Environment(\.modelContext) private var db
@@ -1208,6 +1232,8 @@ private struct SalonProfile: View {
                                 stats {
                                     stat("Visites", value: "\(Set(history.map(\.order)).count)", symbol: "calendar")
                                     stat("Total des prestations", value: serviceTotal, symbol: "creditcard")
+                                    stat(absenceCount > 1 ? "Absences" : "Absence", value: "\(absenceCount)",
+                                         symbol: "calendar.badge.exclamationmark")
                                 }
                             }
                         }

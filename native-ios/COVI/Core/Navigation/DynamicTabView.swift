@@ -133,9 +133,9 @@ struct DynamicTabView: View {
                 case .restaurantTables, .restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace, .restaurantFloorZoom, .restaurantFloorGuests: selected = .tables
                 case .restaurantKitchen, .restaurantKitchenReady: selected = .kitchen
                 case .salonCheckout: selected = .checkout
-                case .salonReport, .salonMore, .salonSettings, .restaurantReport, .restaurantTeam, .restaurantMenu, .restaurantDrinks, .syncCentre: selected = .more
+                case .salonReport, .salonReportAbsences, .salonMore, .salonSettings, .restaurantReport, .restaurantTeam, .restaurantMenu, .restaurantDrinks, .syncCentre: selected = .more
                 case .salonToday: selected = .today
-                case .salonClients, .salonClientsUpcoming, .salonProfile: selected = .clients
+                case .salonClients, .salonClientsUpcoming, .salonClientsAbsences, .salonProfile: selected = .clients
                 case .salonAgenda, .salonAgendaGrid, .salonBooking, .salonBookingConflict: selected = .agenda
                 case .welcome, .spaces, .establishmentSetup, .cashierPIN, .accountLogin, .accountRegistration, .boutiqueHome, .boutiqueArrivals, .restaurantTable, .restaurantOrder, .restaurantOrderDrinks,
                      .restaurantPayment, .restaurantPaidTable, .restaurantIncident, .salonCatalog: break

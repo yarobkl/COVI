@@ -78,6 +78,7 @@ struct MoreSpace: View {
     @Query private var salonMenu: [CatalogItem]
     @Query private var salonSales: [SalonSaleLine]
     @Query private var salonVisits: [SalonVisit]
+    @Query private var salonClients: [SalonClient]
     @Query private var restaurantTables: [DiningTable]
     @Query private var restaurantOrders: [CommerceOrder]
     @Query private var restaurantPayments: [PaymentRecord]
@@ -101,6 +102,7 @@ struct MoreSpace: View {
         _salonMenu = Query(filter: #Predicate<CatalogItem> { $0.establishmentID == id }, sort: \.title)
         _salonSales = Query(filter: #Predicate<SalonSaleLine> { $0.shop == id }, sort: \.date, order: .reverse)
         _salonVisits = Query(filter: #Predicate<SalonVisit> { $0.shop == id }, sort: \.start, order: .reverse)
+        _salonClients = Query(filter: #Predicate<SalonClient> { $0.shop == id })
         _restaurantTables = Query(filter: #Predicate<DiningTable> { $0.establishmentID == id }, sort: \.label)
         _restaurantOrders = Query(filter: #Predicate<CommerceOrder> { $0.establishmentID == id }, sort: \.createdAt, order: .reverse)
         _restaurantPayments = Query(filter: #Predicate<PaymentRecord> { $0.establishmentID == id })
@@ -239,7 +241,8 @@ struct MoreSpace: View {
                 SystemSettings(shop: shop, actor: actor, pin: pin)
             case .salonReport:
                 if managesSalon {
-                    SalonReport(sales: salonSales, visits: salonVisits, currency: shop.currencyCode)
+                    SalonReport(sales: salonSales, visits: salonVisits, clients: salonClients,
+                                menu: salonMenu, currency: shop.currencyCode)
                 }
             case .restaurantReport:
                 if managesRestaurant {
@@ -265,7 +268,8 @@ struct MoreSpace: View {
 #if DEBUG && targetEnvironment(simulator)
         .task {
             if diagnostics?.scenario == .syncCentre { destination = .sync }
-            if managesSalon, diagnostics?.scenario == .salonReport { destination = .salonReport }
+            if managesSalon, let diagnostics,
+               [.salonReport, .salonReportAbsences].contains(diagnostics.scenario) { destination = .salonReport }
             if managesRestaurant, diagnostics?.scenario == .restaurantReport { destination = .restaurantReport }
             if managesRestaurant, diagnostics?.scenario == .restaurantTeam { destination = .restaurantTeam }
             if managesRestaurant, diagnostics?.scenario == .restaurantMenu { destination = .restaurantMenu }
