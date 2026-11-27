@@ -199,8 +199,16 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   comparées à `57D4B495` et `C0053217` montrent le chevron du rapport,
   une absence dans le détail, le filtre qui isole Cédric avec deux
   absences et la fiche de Mireille à zéro. En XXXL, les capsules
-  défilantes masquaient le filtre actif. Le correctif affiche la
-  sélection dans un menu natif. La nouvelle capture reste à contrôler.
+  défilantes masquaient le filtre actif.
+- Sur `0eb1131`, le menu natif affiche « Absences » en entier en XXXL
+  et la ligne de Cédric conserve sa pastille. Le détail du rapport
+  montre le client, la prestation, la date et le collaborateur en
+  taille standard et XXXL. Sur la fiche XXXL, le compteur d’absences
+  demande de défiler. Les interactions sur appareil et la fidélité
+  restent à traiter ou vérifier.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/46028308054)
+  a validé Debug, Release et **164 XCTest sans échec**.
+  [64 captures](https://github.com/yarobkl/COVI/actions/runs/46028308054/artifacts/15214451723)
 
 ### Plus et Paramètres
 
