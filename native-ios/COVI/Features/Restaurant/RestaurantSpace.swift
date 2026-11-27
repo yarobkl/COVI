@@ -173,7 +173,9 @@ struct RestaurantTable: View {
     @State private var closing = false
     @State private var editingGuests = false
     @State private var confirmingDeparture = false
+    @State private var incidentLine: OrderLine?
     @Query private var payments: [PaymentRecord]
+    @Query private var incidents: [RestaurantIncident]
 #if DEBUG && targetEnvironment(simulator)
     @Environment(\.coviSimulatorDiagnostics) private var diagnostics
 #endif
@@ -188,6 +190,10 @@ struct RestaurantTable: View {
         self.service = service
         let orderID = order?.id ?? UUID()
         _payments = Query(filter: #Predicate<PaymentRecord> { $0.orderID == orderID })
+        let shopID = service.shop.id
+        _incidents = Query(filter: #Predicate<RestaurantIncident> {
+            $0.establishmentID == shopID && $0.orderID == orderID
+        })
     }
 
     var body: some View {
@@ -258,6 +264,9 @@ struct RestaurantTable: View {
                                             COVIBadge(title: status?.rawValue ?? "Commandé",
                                                 tint: status == .served ? COVITheme.successTint : COVITheme.blue.opacity(0.1),
                                                 foreground: status == .served ? COVITheme.success : COVITheme.blue)
+                                            if status == .served && service.admin {
+                                                incidentAction(for: line)
+                                            }
                                         }
                                     }
                                     Spacer(minLength: 0)
@@ -306,6 +315,11 @@ struct RestaurantTable: View {
         .background(COVIBackdrop())
         .navigationTitle(table.label)
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(item: $incidentLine) { line in
+            if let order {
+                RestaurantIncidentEditor(line: line, table: table, order: order, service: service)
+            }
+        }
         .confirmationDialog("Confirmer le départ des convives", isPresented: $confirmingDeparture,
                             titleVisibility: .visible) {
             Button("Libérer la table") {
@@ -325,6 +339,9 @@ struct RestaurantTable: View {
 #if DEBUG && targetEnvironment(simulator)
         .task {
             if diagnostics?.scenario == .restaurantPayment { closing = true }
+            if diagnostics?.scenario == .restaurantIncident {
+                incidentLine = lines.first { $0.preparation == Prep.served.rawValue }
+            }
         }
 #endif
         .sheet(isPresented: $editingGuests) {
@@ -334,6 +351,19 @@ struct RestaurantTable: View {
             }
         }
         .sheet(isPresented: $ordering) { if let order { RestaurantComposer(menu: menu, table: table, order: order, service: service) } }
+    }
+    private func incidentAction(for line: OrderLine) -> some View {
+        Group {
+            if incidents.contains(where: { $0.lineID == line.id }) {
+                Label("Incident consigné", systemImage: "checkmark.circle")
+                    .foregroundStyle(COVITheme.secondaryText)
+            } else {
+                Button("Déclarer un incident") { incidentLine = line }
+                    .foregroundStyle(COVITheme.blue)
+                    .frame(minHeight: 44)
+            }
+        }
+        .font(.subheadline.weight(.semibold))
     }
     private func paidTable(_ order: CommerceOrder) -> some View {
         VStack(alignment: .leading, spacing: 16) {

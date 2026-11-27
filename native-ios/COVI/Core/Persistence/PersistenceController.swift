@@ -12,7 +12,8 @@ enum PersistenceController {
             OperationalCloudCheckpoint.self, OperationalCloudMarker.self,
             Account.self, Establishment.self, Membership.self, ExpenseEntry.self,
             CatalogItem.self, DiningTable.self, CommerceOrder.self,
-            Refund.self, OrderLine.self, PaymentRecord.self, StockMovement.self, OutboxEvent.self
+            Refund.self, OrderLine.self, PaymentRecord.self, StockMovement.self, OutboxEvent.self,
+            RestaurantIncident.self
         ])
         // SwiftData reste local-first. La réplication iCloud passe par les
         // journaux et miroirs CloudKit explicites, vérifiés et isolés par boutique.

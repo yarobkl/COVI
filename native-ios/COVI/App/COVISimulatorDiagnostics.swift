@@ -24,6 +24,7 @@ final class COVISimulatorDiagnostics {
         case restaurantTable = "restaurant-table"
         case restaurantOrder = "restaurant-order"
         case restaurantReport = "restaurant-report"
+        case restaurantIncident = "restaurant-incident"
         case restaurantKitchen = "restaurant-kitchen"
         case restaurantKitchenReady = "restaurant-kitchen-ready"
         case restaurantMenu = "restaurant-menu"
@@ -96,7 +97,8 @@ final class COVISimulatorDiagnostics {
             OperationalCloudCheckpoint.self, OperationalCloudMarker.self,
             Account.self, Establishment.self, Membership.self, ExpenseEntry.self,
             CatalogItem.self, DiningTable.self, CommerceOrder.self,
-            Refund.self, OrderLine.self, PaymentRecord.self, StockMovement.self, OutboxEvent.self
+            Refund.self, OrderLine.self, PaymentRecord.self, StockMovement.self, OutboxEvent.self,
+            RestaurantIncident.self
         ])
         let configuration = ModelConfiguration(schema: schema,
             isStoredInMemoryOnly: true, cloudKitDatabase: .none)
@@ -116,7 +118,7 @@ final class COVISimulatorDiagnostics {
         let kind: BusinessKind
         let name: String
         switch scenario {
-        case .restaurantTables, .restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace, .restaurantFloorZoom, .restaurantFloorGuests, .restaurantTable, .restaurantOrder, .restaurantReport, .restaurantTeam, .restaurantKitchen, .restaurantKitchenReady, .restaurantMenu, .restaurantDrinks, .restaurantPayment, .restaurantPaidTable:
+        case .restaurantTables, .restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace, .restaurantFloorZoom, .restaurantFloorGuests, .restaurantTable, .restaurantOrder, .restaurantReport, .restaurantIncident, .restaurantTeam, .restaurantKitchen, .restaurantKitchenReady, .restaurantMenu, .restaurantDrinks, .restaurantPayment, .restaurantPaidTable:
             kind = .restaurant
             name = "Restaurant de démonstration"
         case .salonCatalog, .salonReport, .salonMore, .salonSettings, .salonCheckout, .salonToday, .salonAgenda, .salonBooking, .salonBookingConflict, .salonClients, .salonProfile:
@@ -135,6 +137,13 @@ final class COVISimulatorDiagnostics {
             due = 0
             if scenario == .restaurantReport {
                 try seedRestaurantReport()
+                let sample = try seedRestaurantIncidentOrder(label: "Table 03")
+                guard let line = sample.lines.first else { throw Failure.invalidScenario }
+                try sample.service.recordIncident(lineID: line.id, table: sample.table,
+                    order: sample.order, reason: "Plat servi froid")
+            } else if scenario == .restaurantIncident {
+                container.mainContext.insert(shop)
+                restaurantSample = try seedRestaurantIncidentOrder(label: "Table 01")
             } else if scenario == .restaurantTeam {
                 try seedRestaurantTeam()
             } else if scenario == .restaurantFloorPlan || scenario == .restaurantFloorEdit || scenario == .restaurantFloorTerrace || scenario == .restaurantFloorZoom || scenario == .restaurantFloorGuests {
@@ -315,6 +324,30 @@ final class COVISimulatorDiagnostics {
 
         return RestaurantSample(table: occupied, order: active, lines: lines,
             menu: menu, draft: draft, service: service)
+    }
+
+    private func seedRestaurantIncidentOrder(label: String) throws -> RestaurantSample {
+        let context = container.mainContext
+        let service = RestaurantService(shop: shop, actor: owner, role: .owner, pin: pin, db: context)
+        let table = DiningTable(establishmentID: shop.id, label: label, capacity: 4)
+        let dish = CatalogItem(establishmentID: shop.id, title: "Poulet braisé entier", priceMinor: 8_000)
+        dish.menuCategory = MenuGroup.food.rawValue
+        context.insert(table)
+        context.insert(dish)
+        try context.save()
+        try service.open(table)
+        guard let orderID = table.activeSessionID,
+              let order = try context.fetch(FetchDescriptor<CommerceOrder>(predicate: #Predicate {
+                  $0.id == orderID
+              })).first else { throw Failure.invalidScenario }
+        try service.send([dish.id: 1], menu: [dish], table: table, order: order)
+        guard let line = try context.fetch(FetchDescriptor<OrderLine>(predicate: #Predicate {
+            $0.orderID == orderID
+        })).first else { throw Failure.invalidScenario }
+        try service.advance(line, from: .received, table: table, order: order)
+        try service.advance(line, from: .cooking, table: table, order: order)
+        try service.advance(line, from: .ready, table: table, order: order)
+        return RestaurantSample(table: table, order: order, lines: [line], menu: [dish], draft: [:], service: service)
     }
 
     private func seedRestaurantDrinks() throws {
@@ -610,7 +643,7 @@ struct COVISimulatorDiagnosticView: View {
                     SalonCatalog(shop: fixture.shop, menu: fixture.salonCatalogItems, actor: fixture.owner)
                 }
             } else if let sample = fixture.restaurantSample,
-                      [.restaurantTable, .restaurantPayment, .restaurantPaidTable].contains(fixture.scenario) {
+                      [.restaurantTable, .restaurantPayment, .restaurantPaidTable, .restaurantIncident].contains(fixture.scenario) {
                 NavigationStack {
                     RestaurantTable(table: sample.table, order: sample.order, menu: sample.menu,
                         lines: sample.lines, service: sample.service)
@@ -632,7 +665,7 @@ struct COVISimulatorDiagnosticView: View {
             // Le formulaire et la fiche Salon signalent leur propre apparition.
             if fixture.salonBooking == nil && fixture.salonProfileID == nil &&
                 fixture.scenario != .salonReport && fixture.scenario != .salonSettings &&
-                fixture.scenario != .restaurantReport && fixture.scenario != .restaurantTeam &&
+                fixture.scenario != .restaurantReport && fixture.scenario != .restaurantIncident && fixture.scenario != .restaurantTeam &&
                 fixture.scenario != .restaurantKitchenReady &&
                 fixture.scenario != .restaurantMenu && fixture.scenario != .restaurantDrinks &&
                 fixture.scenario != .restaurantPayment && fixture.scenario != .restaurantFloorPlan &&

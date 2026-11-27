@@ -19,6 +19,7 @@ enum Prep: String, CaseIterable {
 enum MenuGroup: String, CaseIterable { case food = "Plats", drinks = "Boissons" }
 enum RestaurantFault: LocalizedError {
     case access, stale, unavailable, invalid, stock, balanceChanged, floorSlotOccupied, floorRoomName, guestCount
+    case incidentReason, incidentExists
     var errorDescription: String? {
         switch self {
         case .access: "Vérifiez le rôle et déverrouillez la caisse."
@@ -30,6 +31,8 @@ enum RestaurantFault: LocalizedError {
         case .floorSlotOccupied: "Cette case est occupée dans l’espace de destination. Choisissez une case libre."
         case .floorRoomName: "Saisissez un nom d’espace unique de 1 à 40 caractères."
         case .guestCount: "Le nombre de convives doit correspondre aux places disponibles à cette table."
+        case .incidentReason: "Saisissez un motif de 1 à 240 caractères."
+        case .incidentExists: "Un incident est déjà consigné pour cette ligne."
         }
     }
 }

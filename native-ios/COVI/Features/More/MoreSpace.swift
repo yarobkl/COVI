@@ -82,6 +82,7 @@ struct MoreSpace: View {
     @Query private var restaurantOrders: [CommerceOrder]
     @Query private var restaurantPayments: [PaymentRecord]
     @Query private var restaurantRefunds: [Refund]
+    @Query private var restaurantIncidents: [RestaurantIncident]
     private enum Destination: Hashable { case settings, salonReport, restaurantReport, restaurantTeam, restaurantMenu, restaurantDrinks }
     @State private var destination: Destination?
 #if DEBUG && targetEnvironment(simulator)
@@ -104,6 +105,8 @@ struct MoreSpace: View {
         _restaurantOrders = Query(filter: #Predicate<CommerceOrder> { $0.establishmentID == id }, sort: \.createdAt, order: .reverse)
         _restaurantPayments = Query(filter: #Predicate<PaymentRecord> { $0.establishmentID == id })
         _restaurantRefunds = Query(filter: #Predicate<Refund> { $0.establishmentID == id })
+        _restaurantIncidents = Query(filter: #Predicate<RestaurantIncident> { $0.establishmentID == id },
+                                     sort: \.recordedAt, order: .reverse)
     }
 
     var body: some View {
@@ -238,7 +241,7 @@ struct MoreSpace: View {
             case .restaurantReport:
                 if managesRestaurant {
                     RestaurantFinanceReport(shop: shop, orders: restaurantOrders,
-                        payments: restaurantPayments, refunds: restaurantRefunds)
+                        payments: restaurantPayments, refunds: restaurantRefunds, incidents: restaurantIncidents)
                 }
             case .restaurantTeam:
                 if managesRestaurant {
@@ -467,6 +470,7 @@ private struct RestaurantFinanceReport: View {
     let orders: [CommerceOrder]
     let payments: [PaymentRecord]
     let refunds: [Refund]
+    let incidents: [RestaurantIncident]
     @Environment(\.dynamicTypeSize) private var textSize
 #if DEBUG && targetEnvironment(simulator)
     @Environment(\.coviSimulatorDiagnostics) private var diagnostics
@@ -597,6 +601,7 @@ private struct RestaurantFinanceReport: View {
 
     private func activityCard(_ snapshot: RestaurantCashReportSnapshot) -> some View {
         let tickets = snapshot.tableCount == 1 ? "1 ticket de table" : "\(snapshot.tableCount) tickets de table"
+        let periodIncidents = incidents.filter { Calendar.current.isDate($0.recordedAt, equalTo: month, toGranularity: .month) }
         return COVICard {
             VStack(alignment: .leading, spacing: 6) {
                 tenderRow("Espèces encaissées", symbol: "banknote", amount: snapshot.cash,
@@ -616,6 +621,28 @@ private struct RestaurantFinanceReport: View {
                 Divider()
                 COVIIconRow(symbol: "arrow.uturn.backward", title: "Remboursements enregistrés",
                     detail: "\(snapshot.refundCount) · \(money(snapshot.refunded))", accessory: nil)
+                Divider()
+                NavigationLink {
+                    List {
+                        if periodIncidents.isEmpty {
+                            ContentUnavailableView("Aucun incident ce mois-ci", systemImage: "checkmark.circle")
+                        }
+                        ForEach(periodIncidents) { incident in
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("\(incident.tableLabel) · \(incident.dishName)").font(.headline)
+                                Text(incident.reason)
+                                Text(incident.recordedAt.formatted(date: .abbreviated, time: .shortened))
+                                    .font(.caption).foregroundStyle(COVITheme.secondaryText)
+                            }
+                            .padding(.vertical, 5)
+                        }
+                    }
+                    .navigationTitle("Incidents de service")
+                } label: {
+                    COVIIconRow(symbol: "exclamationmark.circle", title: "Incidents de service",
+                        detail: "\(periodIncidents.count)")
+                }
+                .buttonStyle(.plain)
             }
         }
     }

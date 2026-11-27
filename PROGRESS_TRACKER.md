@@ -292,6 +292,21 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   le remboursement intégral par paiement. Le plafond affiché sur la
   maquette est un exemple, à distinguer d’un réglage réel.
 
+### Déclaration d’un incident Restaurant
+
+- La planche `A2188A03` a été relue. Le parcours SwiftUI part d’un
+  plat servi sur une table en cours. Il affiche le plat, le montant
+  de la ligne, le rôle et un motif obligatoire. Le propriétaire ou
+  le responsable autorisé peut consigner un incident par ligne.
+- Le journal local garde l’établissement, la table, le ticket, la
+  ligne, l’auteur, le motif et l’heure. Rapports service affiche
+  les incidents du mois sélectionné et ouvre leur détail. Le
+  remboursement par ligne et le plafond journalier restent à intégrer.
+- Le modèle SwiftData ajoute une table locale. La migration depuis
+  une installation existante et la synchronisation entre appareils
+  restent à valider. Les preuves de compilation, tests et captures
+  sont attendues dans les diagnostics natifs.
+
 ### Gestion de la carte du Restaurant
 
 - La planche `683EE982` a été inspectée. Plus ouvre un écran dédié

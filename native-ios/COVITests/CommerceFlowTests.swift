@@ -10,7 +10,7 @@ final class CommerceFlowTests: XCTestCase {
             Establishment.self, Membership.self, CatalogItem.self, DiningTable.self, CommerceOrder.self,
             OrderLine.self, PaymentRecord.self, StockMovement.self, Bale.self, OutboxEvent.self,
             SalonClient.self, SalonStaff.self, SalonVisit.self, SalonSaleLine.self,
-            ExpenseEntry.self
+            ExpenseEntry.self, RestaurantIncident.self
         ])
         let container = try ModelContainer(for: schema, configurations: [
             ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
@@ -1109,6 +1109,63 @@ final class CommerceFlowTests: XCTestCase {
         try service.advance(lines, from: .cooking, table: table, order: order)
         XCTAssertTrue(lines.allSatisfy { $0.preparation == Prep.ready.rawValue })
         XCTAssertEqual(try db.fetchCount(FetchDescriptor<OutboxEvent>()), events + pending.count + lines.count)
+    }
+
+    func testRestaurantRecordsAServedLineIncidentOnceWithoutChangingTheBill() throws {
+        let db = try database()
+        let owner = UUID(), manager = UUID(), waiter = UUID()
+        let shop = Establishment(ownerID: owner, name: "Restaurant", kind: .restaurant, city: "Brazzaville")
+        let table = DiningTable(establishmentID: shop.id, label: "Table 01", capacity: 4)
+        let dish = CatalogItem(establishmentID: shop.id, title: "Poulet braisé", priceMinor: 8_000)
+        let managerAccess = Membership(accountID: manager, establishmentID: shop.id, role: .manager)
+        dish.menuCategory = MenuGroup.food.rawValue
+        db.insert(shop); db.insert(table); db.insert(dish); db.insert(managerAccess)
+        db.insert(Membership(accountID: waiter, establishmentID: shop.id, role: .waiter))
+        try db.save()
+        let pin = ownerPIN()
+        for employee in [manager, waiter] {
+            try pin.configureCashierPIN("1234", for: employee, shopID: shop.id)
+            XCTAssertTrue(pin.verify("1234", scope: .cashier(staffID: employee, shopID: shop.id)))
+        }
+        let ownerService = RestaurantService(shop: shop, actor: owner, role: .owner, pin: pin, db: db)
+        let managerService = RestaurantService(shop: shop, actor: manager, role: .manager, pin: pin, db: db)
+        let waiterService = RestaurantService(shop: shop, actor: waiter, role: .waiter, pin: pin, db: db)
+        try ownerService.open(table)
+        let order = try XCTUnwrap(db.fetch(FetchDescriptor<CommerceOrder>()).first)
+        try ownerService.send([dish.id: 1], menu: [dish], table: table, order: order)
+        let line = try XCTUnwrap(db.fetch(FetchDescriptor<OrderLine>()).first)
+
+        func record(_ service: RestaurantService, reason: String = "  Plat servi froid  ") throws {
+            try service.recordIncident(lineID: line.id, table: table, order: order, reason: reason)
+        }
+        XCTAssertThrowsError(try record(ownerService))
+        try ownerService.advance(line, from: .received, table: table, order: order)
+        try ownerService.advance(line, from: .cooking, table: table, order: order)
+        try ownerService.advance(line, from: .ready, table: table, order: order)
+        XCTAssertThrowsError(try record(waiterService))
+        XCTAssertThrowsError(try record(ownerService, reason: "   "))
+        XCTAssertThrowsError(try record(ownerService, reason: String(repeating: "a", count: 241)))
+        XCTAssertThrowsError(try ownerService.recordIncident(lineID: UUID(), table: table, order: order, reason: "Retour"))
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<RestaurantIncident>()), 0)
+
+        XCTAssertTrue(pin.verify("1234", scope: .cashier(staffID: manager, shopID: shop.id)))
+        try record(managerService)
+        let incident = try XCTUnwrap(db.fetch(FetchDescriptor<RestaurantIncident>()).first)
+        XCTAssertEqual(incident.lineID, line.id)
+        XCTAssertEqual(incident.orderID, order.id)
+        XCTAssertEqual(incident.establishmentID, shop.id)
+        XCTAssertEqual(incident.actorID, manager)
+        XCTAssertEqual(incident.reason, "Plat servi froid")
+        XCTAssertThrowsError(try record(ownerService, reason: "Autre motif"))
+        managerAccess.active = false
+        try db.save()
+        XCTAssertThrowsError(try record(managerService)) { error in
+            XCTAssertEqual(error as? RestaurantFault, .access)
+        }
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<RestaurantIncident>()), 1)
+        XCTAssertEqual(order.totalMinor, 8_000)
+        XCTAssertEqual(line.preparation, Prep.served.rawValue)
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<PaymentRecord>()), 0)
     }
 
     func testRestaurantRejectsUnconfirmedMobilePaymentAndInsufficientCash() throws {
