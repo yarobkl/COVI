@@ -938,6 +938,41 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
   du journal vérifie que seul le transfert iCloud en attente entre
   dans le compteur, tandis que la vente reste dans le journal local.
 
+### Lot 3 — En-tête métier et accessibilité
+
+- Le concept « COVI — Trois écrans, une expérience fluide » (`38512445…`)
+  présente un en-tête commun aux trois métiers et une sélection champagne
+  dans la navigation. Sur `edff5a3`, l’en-tête SwiftUI affiche le métier,
+  l’établissement actif et le sélecteur « Mes espaces ». Le statut iCloud
+  propriétaire reste connecté à l’état réel. La barre d’onglets iOS reçoit
+  la palette COVI et une image pour l’état sélectionné.
+- Sur `edff5a3`, Debug, Release et **164 XCTest sans échec**.
+  Les [66 captures](https://github.com/yarobkl/COVI/actions/runs/46036045193/artifacts/15217662981)
+  montrent en Boutique le symbole, « Maison Kaboum » et le sélecteur.
+  Le nom passe sur deux lignes en XXXL, où le statut iCloud est tronqué.
+  Le scénario a capturé Accueil. Les captures Salle et Agenda de cette
+  révision cadrent les vues métier. La sélection foncée est visible
+  dans la barre ivoire iOS, dont la forme et la surbrillance diffèrent
+  du panneau arrondi et de la capsule champagne du concept.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/46036045193)
+- Sur `620137e`, les icônes de Commander et du journal de synchronisation
+  ont une taille fixe. Les touches de quantité gardent leur zone de
+  44 points et la quantité reste agrandie en XXXL. Les
+  [66 captures](https://github.com/yarobkl/COVI/actions/runs/46036404263/artifacts/15218612657)
+  ont été comparées à `2A49F962` et `13FF89C0`. En XXXL, le moins,
+  la quantité et le plus sont distincts, et les icônes sont séparées
+  des libellés. Les lignes suivantes demandent de défiler. En taille
+  standard, les quantités restent dans la ligne et le journal conserve
+  ses états. Les photos de Commander et les interactions sur appareil
+  restent à traiter ou vérifier.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/46036404263)
+  a validé Debug, Release et **164 XCTest sans échec**.
+- Sur `55fd25a`, le statut du propriétaire accepte plusieurs lignes
+  aux tailles d’accessibilité. Les diagnostics de Vendre, Salle et Agenda
+  passent par l’en-tête réel avec un compte local et un gestionnaire de PIN
+  en mémoire. Les nouvelles captures sont à comparer après le
+  [diagnostic GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/46038509254).
+
 ### Lot 3 — Boutique
 
 - La planche `9BF220F7` a été inspectée. Sur Vendre, le panier apparaît dans
