@@ -38,6 +38,7 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f native-ios/backend/tests/bootstrap.sql
           psql -v ON_ERROR_STOP=1 -f native-ios/backend/migrations/20261125220000_team_authority.sql
           psql -v ON_ERROR_STOP=1 -f native-ios/backend/migrations/20261127152713_native_team_invitations.sql
+          psql -v ON_ERROR_STOP=1 -f native-ios/backend/migrations/20261127175600_native_team_directory.sql
           psql -v ON_ERROR_STOP=1 -f native-ios/backend/tests/team_authority.sql
           psql -v ON_ERROR_STOP=1 -f native-ios/backend/tests/team_invitations.sql
       - name: Check establishment creation and invitation use across two PostgreSQL connections
