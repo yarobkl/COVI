@@ -875,7 +875,19 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
 - Les droits de modification du catalogue et le contrôle de
   chevauchement s’appliquent. Les instantanés CloudKit savent
   distinguer une durée supprimée et un ancien format sans durée.
-- Les preuves de rendu et de test restent à consigner.
+- Sur `3c365fb`, Debug, Release et **157 XCTest sans échec**.
+  Les tests couvrent la saisie et l’effacement de la durée, le
+  refus d’une durée hors limites ou sur un produit et la lecture
+  d’un ancien instantané conservant la durée locale.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/45946759975)
+- Les [captures iPhone](https://github.com/yarobkl/COVI/actions/runs/45946759975/artifacts/15176196356)
+  ont été comparées au Catalogue `6155DBBE` et au formulaire
+  `058F98E6`. Le catalogue présente 2 h 30, 45 min et 1 h. Le
+  formulaire reprend 15 h–17 h depuis la prestation de 120 min.
+  Sur le scénario occupé, les confirmations sont désactivées.
+- Le catalogue utilise des pictogrammes. Les photos, l’affectation
+  par prestation, la migration et la synchronisation sur appareils
+  physiques restent à traiter ou vérifier.
 
 ### Salon — Répertoire et fiche client
 
