@@ -245,28 +245,50 @@ struct SalonSpace: View {
         }
     }
 
-    private var directoryFilters: some View {
-        ScrollView(.horizontal) {
-            HStack(spacing: 8) {
-                ForEach(SalonDirectoryFilter.allCases) { option in
-                    let selected = option == directoryFilter
-                    Button { directoryFilter = option } label: {
-                        Text(option == .all ? "Tous (\(clients.count))" : option.rawValue)
-                            .font(.caption.weight(.semibold))
-                            .fixedSize()
-                            .padding(.horizontal, 9)
-                            .frame(minHeight: 44)
-                            .foregroundStyle(selected ? .white : COVITheme.navy)
-                            .background(selected ? COVITheme.navy : COVITheme.card, in: Capsule())
+    @ViewBuilder private var directoryFilters: some View {
+        if textSize.isAccessibilitySize {
+            Menu {
+                Picker("Filtrer les clients", selection: $directoryFilter) {
+                    ForEach(SalonDirectoryFilter.allCases) { option in
+                        Text(directoryFilterTitle(option)).tag(option)
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(selected ? .isSelected : [])
+                }
+            } label: {
+                Label(directoryFilterTitle(directoryFilter), systemImage: "line.3.horizontal.decrease.circle")
+                    .font(.subheadline.weight(.semibold))
+                    .multilineTextAlignment(.leading)
+                    .frame(minHeight: 44)
+                    .foregroundStyle(COVITheme.navy)
+            }
+            .accessibilityLabel("Filtrer les clients")
+            .accessibilityValue(directoryFilterTitle(directoryFilter))
+        } else {
+            ScrollView(.horizontal) {
+                HStack(spacing: 8) {
+                    ForEach(SalonDirectoryFilter.allCases) { option in
+                        let selected = option == directoryFilter
+                        Button { directoryFilter = option } label: {
+                            Text(directoryFilterTitle(option))
+                                .font(.caption.weight(.semibold))
+                                .fixedSize()
+                                .padding(.horizontal, 9)
+                                .frame(minHeight: 44)
+                                .foregroundStyle(selected ? .white : COVITheme.navy)
+                                .background(selected ? COVITheme.navy : COVITheme.card, in: Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityAddTraits(selected ? .isSelected : [])
+                    }
                 }
             }
+            .scrollIndicators(.hidden)
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("Filtrer les clients")
         }
-        .scrollIndicators(.hidden)
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Filtrer les clients")
+    }
+
+    private func directoryFilterTitle(_ option: SalonDirectoryFilter) -> String {
+        option == .all ? "Tous (\(clients.count))" : option.rawValue
     }
 
     private func clientRow(_ client: SalonClient, visitCount: Int,

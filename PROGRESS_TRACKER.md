@@ -183,6 +183,25 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/46015687275)
   · [Captures](https://github.com/yarobkl/COVI/actions/runs/46015687275/artifacts/15207253504)
 
+### Salon — Détail des absences et fiches clients
+
+- Sur `89b8594`, la carte « Absences clients » ouvre les rendez-vous
+  marqués absents de la période choisie. La liste affiche les clients,
+  les prestations connues, les créneaux et les collaborateurs. Elle
+  reste dans la navigation du rapport.
+- La planche `C0053217` montre un filtre Absences, une pastille dans le
+  répertoire et un compteur sur la fiche. Les trois reprennent les
+  absences explicitement enregistrées. Les visites encaissées restent
+  comptées et le filtre RDV à venir reste indépendant.
+- [Diagnostics de `89b8594`](https://github.com/yarobkl/COVI/actions/runs/46024648620)
+  réussis en Debug et Release, avec **164 XCTest sans échec** et
+  64 captures. Les [captures](https://github.com/yarobkl/COVI/actions/runs/46024648620/artifacts/15211864748)
+  comparées à `57D4B495` et `C0053217` montrent le chevron du rapport,
+  une absence dans le détail, le filtre qui isole Cédric avec deux
+  absences et la fiche de Mireille à zéro. En XXXL, les capsules
+  défilantes masquaient le filtre actif. Le correctif affiche la
+  sélection dans un menu natif. La nouvelle capture reste à contrôler.
+
 ### Plus et Paramètres
 
 - La référence `D2C012FF` a été vérifiée. Plus ouvre Paramètres depuis
@@ -774,7 +793,23 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
 
 - Le propriétaire autorise le choix et la mise en place du backend, ainsi que la livraison TestFlight après validation.
 - Supabase Auth et PostgreSQL sont retenus pour la préproduction native. La migration `native-ios/backend/migrations/20261125220000_team_authority.sql` introduit un schéma privé et une résolution serveur des rôles tenant compte des révocations. La migration reste à exécuter et à tester sur une cible de préproduction. Le projet historique COVI répond `ACTIVE_HEALTHY` depuis sa remise en service.
-- Les flux Apple/Google, invitations et sessions restent à implémenter en préservant les établissements existants.
+- Le raccordement des identités Apple/Google et des sessions au backend reste à faire en préservant les établissements existants.
+- Sur `ea99d97`, la migration `20261127152713_native_team_invitations.sql`
+  ajoute l’émission, la révocation et l’utilisation privée des codes
+  d’équipe. Le propriétaire choisit un rôle, le code expire après 24 h
+  et la base n’en conserve que l’empreinte. Une session valide est
+  requise à l’utilisation. Un code ne peut pas changer un rôle actif.
+  Après révocation d’une adhésion, une nouvelle invitation peut
+  restaurer l’accès explicitement.
+- Les tests PostgreSQL 17 jetables couvrent le refus pour les sessions
+  expirées, le rôle propriétaire, les codes expirés, révoqués ou rejoués,
+  et l’absence d’accès direct depuis `anon` et `authenticated`.
+  Deux connexions concurrentes obtiennent une seule adhésion pour le
+  même code. La limite concurrente de trois établissements passe aussi.
+  [GitHub Actions](https://github.com/yarobkl/COVI/actions/runs/46025343476)
+- L’accès à la préproduction était toujours refusé le 27 novembre.
+  La passerelle authentifiée, l’application de la migration hébergée et
+  le parcours SwiftUI d’invitation restent à intégrer et à vérifier.
 - Le profil de distribution corrigé a permis de signer et livrer la bêta technique 1.0.13 (10051), basée sur `6eb37ed` ([exécution signée](https://github.com/yarobkl/COVI/actions/runs/45706005104)). L’envoi de la refonte COVI 2.0 reste soumis à sa validation visuelle et fonctionnelle.
 
 ### Lot 3 — Parcours d’entrée
