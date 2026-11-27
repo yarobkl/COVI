@@ -15,6 +15,7 @@ final class COVISimulatorDiagnostics {
         case spaces
         case establishmentSetup = "establishment-setup"
         case cashierPIN = "cashier-pin"
+        case syncCentre = "sync-centre"
         case boutiqueHome = "boutique-home"
         case boutiqueArrivals = "boutique-arrivals"
         case boutiquePhotoSearch = "boutique-photo-search"
@@ -117,7 +118,7 @@ final class COVISimulatorDiagnostics {
         let simulatorSession = AppSession(keychain: storage)
         session = simulatorSession
         pin = PINManager(keychain: storage)
-        if [.salonMore, .salonSettings, .restaurantTeam, .establishmentSetup, .cashierPIN].contains(scenario) {
+        if [.salonMore, .salonSettings, .restaurantTeam, .establishmentSetup, .cashierPIN, .syncCentre].contains(scenario) {
             try simulatorSession.createLocalAccount(name: scenario == .cashierPIN ? "Marc" : "Camille Démo")
             guard let accountID = simulatorSession.accountID else { throw Failure.invalidScenario }
             owner = accountID
@@ -156,6 +157,12 @@ final class COVISimulatorDiagnostics {
         if scenario == .establishmentSetup {
             basket = [:]
             due = 0
+            return
+        }
+        if scenario == .syncCentre {
+            basket = [:]
+            due = 0
+            try seedSyncCentre()
             return
         }
         if scenario == .spaces {
@@ -258,6 +265,32 @@ final class COVISimulatorDiagnostics {
             ], discount: 0, quote: due, tender: .cash, received: cashReceived,
                 confirmed: false, shop: shop, actor: owner, pin: pin, context: context)
         }
+    }
+
+    private func seedSyncCentre() throws {
+        let context = container.mainContext
+        context.insert(shop)
+        let date = Date.now
+        for (index, state) in [SyncState.pending, .syncing, .conflict, .synced].enumerated() {
+            let kind: ShopChange.Kind = state == .pending || state == .synced ? .rename : .refund
+            let entity = kind == .rename ? shop.id : UUID()
+            let timestamp = date.addingTimeInterval(Double(-index * 60))
+            let change = ShopChange(kind: kind, owner: owner, shop: shop.id, entity: entity,
+                                    revision: 1, name: kind == .rename ? shop.name : nil,
+                                    amount: kind == .refund ? 1_000 : nil, date: timestamp)
+            let event = OutboxEvent(establishmentID: shop.id, entityID: entity, eventType: "shop.v1",
+                                    payloadJSON: try JSONEncoder().encode(change))
+            event.state = state
+            event.createdAt = timestamp
+            context.insert(event)
+        }
+        try BusinessOutbox.enqueue(kind: "boutique.stock.adjusted", establishmentID: shop.id,
+                                   entityID: UUID(), actorID: owner, in: context)
+        // Cette autre boutique ne doit pas alimenter le compteur ou le journal affiché.
+        let other = Establishment(ownerID: owner, name: "Autre établissement", kind: .boutique, city: "Brazzaville")
+        context.insert(other)
+        try SyncCoordinator.enqueue(.rename, shop: other, in: context)
+        try context.save()
     }
 
     private func seedRestaurantFloorPlan() throws {
@@ -770,6 +803,7 @@ struct COVISimulatorDiagnosticView: View {
             // Le formulaire et la fiche Salon signalent leur propre apparition.
             if fixture.salonBooking == nil && fixture.salonProfileID == nil &&
                 fixture.scenario != .establishmentSetup && fixture.scenario != .cashierPIN &&
+                fixture.scenario != .syncCentre &&
                 fixture.scenario != .salonReport && fixture.scenario != .salonSettings &&
                 fixture.scenario != .boutiquePhotoSearch &&
                 fixture.scenario != .restaurantReport && fixture.scenario != .restaurantIncident && fixture.scenario != .restaurantTeam &&

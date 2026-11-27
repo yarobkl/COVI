@@ -5,6 +5,25 @@ import XCTest
 
 @MainActor
 final class CommerceFlowTests: XCTestCase {
+    func testSyncJournalCountsOnlyPendingCloudTransfers() throws {
+        let db = try database(), owner = UUID()
+        let shop = Establishment(ownerID: owner, name: "Boutique", kind: .boutique, city: "Brazzaville")
+        db.insert(shop)
+        try SyncCoordinator.enqueue(.rename, shop: shop, in: db)
+        try BusinessOutbox.enqueue(kind: "boutique.sale.completed", establishmentID: shop.id,
+                                   entityID: UUID(), actorID: owner, in: db)
+        try db.save()
+
+        let events = try db.fetch(FetchDescriptor<OutboxEvent>())
+        let cloud = try XCTUnwrap(events.first { $0.eventType == "shop.v1" })
+        let local = try XCTUnwrap(events.first { $0.eventType == "business.v1" })
+        XCTAssertEqual(events.filter(SyncJournal.isAwaitingCloud).map(\.id), [cloud.id])
+        XCTAssertEqual(SyncJournal.title(cloud).label, "Nom de l’établissement modifié")
+        XCTAssertEqual(SyncJournal.title(local).label, "Vente enregistrée")
+        cloud.state = .synced
+        XCTAssertTrue(events.filter(SyncJournal.isAwaitingCloud).isEmpty)
+    }
+
     private func database() throws -> ModelContext {
         let schema = Schema([
             Establishment.self, Membership.self, CatalogItem.self, DiningTable.self, CommerceOrder.self,

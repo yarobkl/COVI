@@ -83,7 +83,7 @@ struct MoreSpace: View {
     @Query private var restaurantPayments: [PaymentRecord]
     @Query private var restaurantRefunds: [Refund]
     @Query private var restaurantIncidents: [RestaurantIncident]
-    private enum Destination: Hashable { case settings, salonReport, restaurantReport, restaurantTeam, restaurantMenu, restaurantDrinks }
+    private enum Destination: Hashable { case settings, salonReport, restaurantReport, restaurantTeam, restaurantMenu, restaurantDrinks, sync }
     @State private var destination: Destination?
 #if DEBUG && targetEnvironment(simulator)
     @Environment(\.coviSimulatorDiagnostics) private var diagnostics
@@ -182,9 +182,10 @@ struct MoreSpace: View {
                                 detail: shop.name)
                         }.buttonStyle(.plain)
                         Divider()
-                        NavigationLink { COVISyncCentre(shop: shop) } label: {
+                        Button { destination = .sync } label: {
                             COVIIconRow(symbol: "icloud", title: "Centre de synchronisation hors-ligne", detail: nil)
                         }
+                        .buttonStyle(.plain)
                         Divider()
                         Button { destination = .settings } label: {
                             COVIIconRow(symbol: "gearshape", title: "Profil et paramètres de sécurité", detail: nil)
@@ -232,6 +233,8 @@ struct MoreSpace: View {
         .background(COVIBackdrop())
         .navigationDestination(item: $destination) { screen in
             switch screen {
+            case .sync:
+                COVISyncCentre(shop: shop)
             case .settings:
                 SystemSettings(shop: shop, actor: actor, pin: pin)
             case .salonReport:
@@ -261,6 +264,7 @@ struct MoreSpace: View {
         }
 #if DEBUG && targetEnvironment(simulator)
         .task {
+            if diagnostics?.scenario == .syncCentre { destination = .sync }
             if managesSalon, diagnostics?.scenario == .salonReport { destination = .salonReport }
             if managesRestaurant, diagnostics?.scenario == .restaurantReport { destination = .restaurantReport }
             if managesRestaurant, diagnostics?.scenario == .restaurantTeam { destination = .restaurantTeam }
@@ -327,82 +331,174 @@ struct MoreSpace: View {
     }
 }
 
+enum SyncJournal {
+    static func isAwaitingCloud(_ event: OutboxEvent) -> Bool {
+        event.eventType == "shop.v1" && event.state == .pending
+    }
+
+    static func title(_ event: OutboxEvent) -> (label: String, symbol: String) {
+        switch event.eventType {
+        case "shop.v1":
+            let kind = try? JSONDecoder().decode(ShopChange.self, from: event.payloadJSON).kind
+            switch kind {
+            case .rename: return ("Nom de l’établissement modifié", "storefront")
+            case .refund: return ("Remboursement enregistré", "arrow.uturn.backward")
+            case nil: return ("Modification de l’établissement", "storefront")
+            }
+        case "business.v1":
+            let kind = try? JSONDecoder().decode(BusinessEventPayload.self, from: event.payloadJSON).kind
+            switch kind {
+            case "boutique.sale.completed", "salon.sale.completed":
+                return ("Vente enregistrée", "bag")
+            case "boutique.stock.adjusted", "salon.stock.adjusted", "restaurant.drink-stock.adjusted":
+                return ("Ajustement de stock", "shippingbox")
+            case "restaurant.order.sent":
+                return ("Commande envoyée", "fork.knife")
+            case "salon.appointment.created", "salon.appointment.rescheduled", "salon.appointment.cancelled":
+                return ("Rendez-vous mis à jour", "calendar")
+            default:
+                return ("Opération enregistrée", "doc.text")
+            }
+        default:
+            return ("Opération locale", "doc.text")
+        }
+    }
+}
+
 private struct COVISyncCentre: View {
     let shop: Establishment
     @Environment(AppSession.self) private var session
     @Environment(\.modelContext) private var context
+    @Environment(\.dynamicTypeSize) private var textSize
     @Query private var outbox: [OutboxEvent]
     @State private var syncing = false
     @State private var result = ""
+#if DEBUG && targetEnvironment(simulator)
+    @Environment(\.coviSimulatorDiagnostics) private var diagnostics
+#endif
 
     init(shop: Establishment) {
         self.shop = shop
         let id = shop.id
-        _outbox = Query(filter: #Predicate<OutboxEvent> { $0.establishmentID == id })
+        _outbox = Query(filter: #Predicate<OutboxEvent> { $0.establishmentID == id },
+                        sort: \.createdAt, order: .reverse)
+    }
+
+    private var canSync: Bool {
+        session.usesAppleAccount && session.accountID == shop.ownerID && !shop.archived
     }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
-                COVISectionTitle("Synchronisation")
-                COVICard {
-                    HStack(spacing: 15) {
-                        Image(systemName: "icloud.and.arrow.up")
-                            .font(.largeTitle).foregroundStyle(COVITheme.warning)
-                        VStack(alignment: .leading, spacing: 7) {
-                            Text(session.usesAppleAccount ? "Sauvegarde iCloud" : "Mode hors-ligne actif")
-                                .font(.headline)
-                            Text("\(outbox.filter { $0.state == .pending }.count) opérations en attente · Cache local conservé")
-                                .font(.subheadline).foregroundStyle(COVITheme.secondaryText)
-                        }
-                    }
-                }
+            VStack(alignment: .leading, spacing: 18) {
+                summary
                 COVIButton("Synchroniser maintenant", systemImage: "arrow.triangle.2.circlepath") {
                     Task { await syncNow() }
                 }
-                .disabled(syncing || !session.usesAppleAccount)
+                .disabled(syncing || !canSync)
+                .opacity(syncing || !canSync ? 0.55 : 1)
                 if syncing { ProgressView("Synchronisation en cours…") }
-                if !result.isEmpty { Text(result).foregroundStyle(COVITheme.navy) }
-                COVISectionTitle("Journal des opérations")
+                if !result.isEmpty { Text(result) }
                 COVICard {
-                    if outbox.isEmpty { Text("Aucune opération en attente.") }
-                    ForEach(outbox.sorted { $0.createdAt > $1.createdAt }.prefix(30)) { event in
-                        HStack(spacing: 13) {
-                            Image(systemName: "arrow.triangle.2.circlepath")
-                                .font(.title3)
-                            VStack(alignment: .leading, spacing: 5) {
-                                Text(event.eventType).font(.subheadline.weight(.semibold))
-                                Text(event.createdAt.formatted(date: .abbreviated, time: .shortened))
-                                    .font(.caption).foregroundStyle(COVITheme.secondaryText)
+                    if outbox.isEmpty {
+                        Text("Aucune opération dans le journal.")
+                            .font(.subheadline)
+                            .foregroundStyle(COVITheme.secondaryText)
+                    } else {
+                        VStack(alignment: .leading, spacing: 9) {
+                            ForEach(outbox.prefix(30)) { event in
+                                if event.id != outbox.first?.id { Divider() }
+                                row(event)
                             }
-                            Spacer()
-                            COVIBadge(title: status(event.state),
-                                tint: event.state == .synced ? COVITheme.successTint : COVITheme.warningTint)
                         }
-                        Divider()
                     }
                 }
-                Text("COVI n’exécute aucun débit bancaire. Les paiements Mobile Money sont confirmés manuellement.")
-                    .font(.footnote).foregroundStyle(COVITheme.secondaryText)
             }
-            .padding(18)
+            .foregroundStyle(COVITheme.navy)
+            .padding(COVITheme.Metrics.screenPadding)
+            .frame(maxWidth: 580)
+            .frame(maxWidth: .infinity)
         }
         .background(COVIBackdrop())
         .navigationTitle("Synchronisation")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar(.hidden, for: .tabBar)
+#if DEBUG && targetEnvironment(simulator)
+        .task {
+            if let diagnostics, diagnostics.scenario == .syncCentre, shop.id == diagnostics.shop.id {
+                await diagnostics.signalAfterPresentation()
+            }
+        }
+#endif
     }
 
-    private func status(_ value: SyncState) -> String {
-        switch value {
-        case .pending: "En attente"
-        case .syncing: "En cours"
-        case .synced: "Confirmée"
-        case .conflict: "À vérifier"
-        case .failed: "Échec"
+    private var summary: some View {
+        let layout = textSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: 13))
+        let waiting = outbox.filter(SyncJournal.isAwaitingCloud).count
+        let title = canSync ? "Sauvegarde iCloud" : "Mode hors ligne actif"
+        return layout {
+            Image(systemName: canSync ? "icloud" : "icloud.slash")
+                .font(.title2)
+                .foregroundStyle(COVITheme.warning)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title).font(.headline)
+                Text(waiting == 1 ? "1 transfert iCloud en attente" : "\(waiting) transferts iCloud en attente")
+                    .font(.subheadline).foregroundStyle(COVITheme.secondaryText)
+                if !canSync {
+                    Text("La sauvegarde iCloud est accessible au propriétaire connecté avec Apple.")
+                        .font(.caption).foregroundStyle(COVITheme.secondaryText)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(14)
+        .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 14))
+        .accessibilityElement(children: .combine)
+    }
+
+    private func row(_ event: OutboxEvent) -> some View {
+        let details = SyncJournal.title(event)
+        let layout = textSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6))
+            : AnyLayout(HStackLayout(spacing: 10))
+        return layout {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: details.symbol)
+                    .frame(width: 24)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(details.label).font(.subheadline.weight(.semibold))
+                    Text(event.createdAt.formatted(date: .abbreviated, time: .shortened))
+                        .font(.caption).foregroundStyle(COVITheme.secondaryText)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            statusBadge(event)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func statusBadge(_ event: OutboxEvent) -> COVIBadge {
+        guard event.eventType == "shop.v1" else { return COVIBadge(title: "Journal local") }
+        switch event.state {
+        case .pending:
+            return COVIBadge(title: "En attente", tint: COVITheme.warningTint, foreground: COVITheme.warning)
+        case .syncing:
+            return COVIBadge(title: "En cours", tint: COVITheme.blue.opacity(0.12), foreground: COVITheme.blue)
+        case .synced:
+            return COVIBadge(title: "Confirmée", tint: COVITheme.successTint, foreground: COVITheme.success)
+        case .conflict:
+            return COVIBadge(title: "À vérifier", tint: COVITheme.dangerTint, foreground: .red)
+        case .failed:
+            return COVIBadge(title: "Échec", tint: COVITheme.dangerTint, foreground: .red)
         }
     }
 
     private func syncNow() async {
-        guard session.usesAppleAccount, !syncing else { return }
+        guard canSync, !syncing else { return }
         syncing = true
         defer { syncing = false }
         do {
