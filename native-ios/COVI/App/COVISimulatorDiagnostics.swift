@@ -13,6 +13,7 @@ final class COVISimulatorDiagnostics {
     enum Scenario: String {
         case welcome
         case spaces
+        case shopHeader = "shop-header"
         case establishmentSetup = "establishment-setup"
         case cashierPIN = "cashier-pin"
         case syncCentre = "sync-centre"
@@ -122,7 +123,7 @@ final class COVISimulatorDiagnostics {
         let simulatorSession = AppSession(keychain: storage)
         session = simulatorSession
         pin = PINManager(keychain: storage)
-        if [.salonMore, .salonSettings, .restaurantTeam, .establishmentSetup, .cashierPIN, .syncCentre].contains(scenario) {
+        if [.salonMore, .salonSettings, .restaurantTeam, .establishmentSetup, .cashierPIN, .syncCentre, .shopHeader].contains(scenario) {
             try simulatorSession.createLocalAccount(name: scenario == .cashierPIN ? "Marc" : "Camille Démo")
             guard let accountID = simulatorSession.accountID else { throw Failure.invalidScenario }
             owner = accountID
@@ -147,6 +148,7 @@ final class COVISimulatorDiagnostics {
             ownerID: scenario == .cashierPIN ? UUID() : owner,
             name: scenario == .cashierPIN ? "Maison Kongo Style" : name,
             kind: kind, city: "Brazzaville", currencyCode: "XAF")
+        if scenario == .shopHeader { shop.name = "Maison Kaboum" }
 
         if scenario == .cashierPIN {
             basket = [:]
@@ -780,7 +782,7 @@ struct COVISimulatorDiagnosticView: View {
 
     var body: some View {
         Group {
-            if [.welcome, .establishmentSetup, .accountLogin, .accountRegistration].contains(fixture.scenario) {
+            if [.welcome, .establishmentSetup, .accountLogin, .accountRegistration, .shopHeader].contains(fixture.scenario) {
                 // RootView utilise une session mémoire, anonyme ou locale selon le scénario.
                 RootView()
             } else if fixture.scenario == .spaces {
@@ -821,6 +823,7 @@ struct COVISimulatorDiagnosticView: View {
             // Le formulaire et la fiche Salon signalent leur propre apparition.
             if fixture.salonBooking == nil && fixture.salonProfileID == nil &&
                 fixture.scenario != .establishmentSetup && fixture.scenario != .cashierPIN &&
+                fixture.scenario != .shopHeader &&
                 fixture.scenario != .syncCentre &&
                 fixture.scenario != .accountLogin && fixture.scenario != .accountRegistration &&
                 fixture.scenario != .salonReport && fixture.scenario != .salonReportAbsences &&

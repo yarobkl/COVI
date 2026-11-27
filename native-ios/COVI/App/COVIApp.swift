@@ -10,6 +10,7 @@ import SwiftData
 #endif
 
     init() {
+        COVITabAppearance.install()
 #if DEBUG && targetEnvironment(simulator)
         // La demande de capture est traitée avant toute ouverture du stockage réel.
         // Une erreur de fixture ne doit jamais revenir au compte ou au disque réels.

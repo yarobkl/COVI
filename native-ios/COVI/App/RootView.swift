@@ -38,25 +38,7 @@ struct RootView: View {
                 VStack(spacing: 0) {
                     if let shop = shops.first(where: { $0.id == preferred }) ?? shops.first,
                        let role = role(shop, account) {
-                        HStack(spacing: 10) {
-                            Image("WelcomeMark")
-                                .resizable().scaledToFit().frame(width: 86, height: 42)
-                                .accessibilityLabel("COVI, Commerce & Vie")
-                            Spacer(minLength: 4)
-                            Button { spaceSheet = .spaces } label: {
-                                HStack(spacing: 7) {
-                                    Text(shop.name).lineLimit(1)
-                                    Image(systemName: "chevron.down").font(.caption.bold())
-                                }
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(COVITheme.navy)
-                                .padding(.horizontal, 12).padding(.vertical, 11)
-                                .background(COVITheme.champagne, in: Capsule())
-                            }
-                            .accessibilityLabel("Mes espaces, établissement actif : \(shop.name)")
-                        }
-                        .padding(.horizontal, 16)
-                        .background(COVITheme.cream)
+                        COVIShopHeader(shop: shop) { spaceSheet = .spaces }
                         // La synchronisation appartient à l'en-tête de l'espace,
                         // pas à une barre supplémentaire sous les onglets iOS.
                         if role == .owner {
@@ -156,6 +138,64 @@ struct RootView: View {
         } catch {
             context.rollback()
         }
+    }
+}
+
+@MainActor
+private struct COVIShopHeader: View {
+    let shop: Establishment
+    let onOpenSpaces: () -> Void
+    @Environment(\.dynamicTypeSize) private var textSize
+#if DEBUG && targetEnvironment(simulator)
+    @Environment(\.coviSimulatorDiagnostics) private var diagnostics
+#endif
+
+    var body: some View {
+        let (activity, symbol) = switch shop.kind {
+        case .boutique: ("Boutique", "storefront")
+        case .restaurant: ("Restaurant", "fork.knife")
+        case .salon: ("Salon de coiffure", "scissors")
+        }
+        return Button(action: onOpenSpaces) {
+            HStack(spacing: 10) {
+                Image(systemName: symbol)
+                    .font(.system(size: 19, weight: .medium))
+                    .foregroundStyle(.white)
+                    .frame(width: 42, height: 42)
+                    .background(COVITheme.navy, in: RoundedRectangle(cornerRadius: 12))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("COVI").font(.caption.weight(.bold))
+                    Text(shop.name)
+                        .font(.subheadline.weight(.bold))
+                        .lineLimit(textSize.isAccessibilitySize ? nil : 1)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(activity)
+                        .font(.caption)
+                        .foregroundStyle(COVITheme.secondaryText)
+                }
+                Image(systemName: "chevron.down")
+                    .font(.caption.weight(.semibold))
+                Spacer(minLength: 0)
+            }
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+            .padding(.horizontal, 16)
+            .padding(.vertical, 5)
+            .foregroundStyle(COVITheme.navy)
+            .background(COVITheme.cream)
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Mes espaces")
+        .accessibilityValue("\(shop.name), \(activity)")
+        .accessibilityAddTraits(.isButton)
+#if DEBUG && targetEnvironment(simulator)
+        .task {
+            if let diagnostics, diagnostics.scenario == .shopHeader, diagnostics.shop.id == shop.id {
+                await diagnostics.signalAfterPresentation()
+            }
+        }
+#endif
     }
 }
 

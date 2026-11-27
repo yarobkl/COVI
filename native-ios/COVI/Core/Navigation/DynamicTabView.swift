@@ -1,5 +1,34 @@
 import SwiftUI
 import SwiftData
+import UIKit
+
+@MainActor
+enum COVITabAppearance {
+    static func install() {
+        let appearance = UITabBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = UIColor(COVITheme.cream)
+        appearance.shadowColor = UIColor(COVITheme.separator)
+        appearance.selectionIndicatorImage = UIGraphicsImageRenderer(
+            size: CGSize(width: 52, height: 38)).image { _ in
+            UIColor(COVITheme.champagne).setFill()
+            UIBezierPath(roundedRect: CGRect(x: 0, y: 0, width: 52, height: 38),
+                         cornerRadius: 12).fill()
+        }.withRenderingMode(.alwaysOriginal)
+        let selected = UIColor(COVITheme.navy)
+        let unselected = UIColor(COVITheme.secondaryText)
+        for item in [appearance.stackedLayoutAppearance, appearance.inlineLayoutAppearance,
+                     appearance.compactInlineLayoutAppearance] {
+            item.selected.iconColor = selected
+            item.selected.titleTextAttributes = [.foregroundColor: selected]
+            item.normal.iconColor = unselected
+            item.normal.titleTextAttributes = [.foregroundColor: unselected]
+        }
+        let bar = UITabBar.appearance()
+        bar.standardAppearance = appearance
+        bar.scrollEdgeAppearance = appearance
+    }
+}
 
 enum BusinessTab: String, Hashable, Identifiable {
     case home, sell, stock, orders, more, service, tables, kitchen, today, agenda, checkout, clients
@@ -54,6 +83,7 @@ struct DynamicTabView: View {
     @Bindable var pinManager: PINManager
     let onSwitchShop: () -> Void
     @Environment(AppSession.self) private var session
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var selected: BusinessTab = .home
     @State private var pending: BusinessTab?
     @State private var showingPIN = false
@@ -72,7 +102,9 @@ struct DynamicTabView: View {
                     pending = requested
                     showingPIN = true
                 } else {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.86)) { selected = requested }
+                    withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.86)) {
+                        selected = requested
+                    }
                     pinManager.touch()
                     HapticService.tap()
                 }
@@ -129,7 +161,7 @@ struct DynamicTabView: View {
             if let diagnostics, diagnostics.shop.id == establishment.id, diagnostics.owner == accountID,
                role == .owner, pinManager.mayOperate(shop: establishment, actor: accountID) {
                 switch diagnostics.scenario {
-                case .sale, .checkout, .boutiquePhotoSearch: selected = .sell
+                case .sale, .checkout, .boutiquePhotoSearch, .shopHeader: selected = .sell
                 case .restaurantTables, .restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace, .restaurantFloorZoom, .restaurantFloorGuests: selected = .tables
                 case .restaurantKitchen, .restaurantKitchenReady: selected = .kitchen
                 case .salonCheckout: selected = .checkout
