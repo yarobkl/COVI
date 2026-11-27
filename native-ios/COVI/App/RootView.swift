@@ -93,7 +93,7 @@ struct RootView: View {
                 .sheet(item: $spaceSheet) { page in
                     switch page {
                     case .setup:
-                        EstablishmentSetup(account: account) { id in
+                        EstablishmentSetup(account: account, onCancel: { spaceSheet = nil }) { id in
                             selectShop(id, for: account)
                             spaceSheet = nil
                         }
@@ -423,11 +423,17 @@ private struct WelcomeTradePhoto: View {
     }
 }
 
+@MainActor
 private struct EstablishmentSetup: View {
     let account: UUID
+    var onCancel: (() -> Void)? = nil
     let onCreated: (UUID) -> Void
     @Environment(AppSession.self) private var session
     @Environment(\.modelContext) private var context
+    @Environment(\.dynamicTypeSize) private var textSize
+#if DEBUG && targetEnvironment(simulator)
+    @Environment(\.coviSimulatorDiagnostics) private var diagnostics
+#endif
     @State private var name = ""
     @State private var city = ""
     @State private var kind = BusinessKind.boutique
@@ -436,86 +442,159 @@ private struct EstablishmentSetup: View {
     @State private var saved = false
 
     var body: some View {
+        let disabled = saved || clean(name).isEmpty || clean(city).isEmpty
+        let createButton = COVIButton("Créer mon espace") { create() }
+            .disabled(disabled)
+            .opacity(disabled ? 0.55 : 1)
+        let activities = textSize.isAccessibilitySize ?
+            AnyLayout(VStackLayout(spacing: 8)) : AnyLayout(HStackLayout(spacing: 10))
+
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 18) {
                     Image("WelcomeMark")
-                        .resizable().scaledToFit().frame(width: 145)
+                        .resizable().scaledToFit().frame(width: 134)
                         .frame(maxWidth: .infinity)
-                        .padding(.top, 10)
-                    HStack(spacing: 12) {
-                        COVIBadge(title: "Étape 1 sur 2")
-                        GeometryReader { geometry in
-                            Capsule().fill(COVITheme.navy.opacity(0.12))
-                                .overlay(alignment: .leading) {
-                                    Capsule().fill(COVITheme.navy)
-                                        .frame(width: geometry.size.width / 2)
-                                }
-                        }
-                        .frame(height: 8)
-                    }
-                    VStack(alignment: .leading, spacing: 7) {
+                        .accessibilityLabel("COVI, Commerce & Vie")
+                    VStack(alignment: .leading, spacing: 5) {
                         Text("Votre établissement")
-                            .font(.system(size: 35, weight: .bold))
-                            .foregroundStyle(COVITheme.navy)
+                            .font(.largeTitle.bold())
+                            .accessibilityAddTraits(.isHeader)
                         Text("Renseignez les informations de votre commerce.")
+                            .font(.subheadline)
                             .foregroundStyle(COVITheme.secondaryText)
                     }
-                    HStack(spacing: 10) {
+                    activities {
                         kindCard(.boutique, title: "Boutique", symbol: "bag")
                         kindCard(.restaurant, title: "Restaurant", symbol: "fork.knife")
                         kindCard(.salon, title: "Salon", symbol: "scissors")
                     }
-                    COVICard {
-                        VStack(alignment: .leading, spacing: 15) {
-                            Label("Nom de l’établissement", systemImage: "storefront")
-                                .font(.subheadline.weight(.semibold))
-                            TextField("Ex. Maison Kongo Style", text: $name)
-                                .textContentType(.organizationName)
-                            Divider()
-                            Label("Ville", systemImage: "mappin.and.ellipse")
-                                .font(.subheadline.weight(.semibold))
-                            TextField("Ex. Brazzaville", text: $city)
-                            Divider()
-                            Label("Devise", systemImage: "banknote")
-                                .font(.subheadline.weight(.semibold))
-                            Picker("Devise", selection: $currency) {
-                                ForEach(SupportedCurrency.options) { option in
-                                    Text(option.label + " · " + option.code).tag(option.code)
-                                }
-                            }
-                            .tint(COVITheme.navy)
-                            Text("La devise est fixée lors de la création : aucune conversion automatique.")
-                                .font(.caption).foregroundStyle(COVITheme.secondaryText)
-                        }
-                        .foregroundStyle(COVITheme.navy)
+                    detailsCard
+                    if !error.isEmpty {
+                        Text(error).foregroundStyle(.red)
                     }
-                    COVIButton("Créer mon espace") { create() }
-                        .disabled(saved || clean(name).isEmpty || clean(city).isEmpty)
-                    if !error.isEmpty { Text(error).foregroundStyle(.red) }
+                    if textSize.isAccessibilitySize { createButton }
                 }
-                .padding(22)
+                .padding(COVITheme.Metrics.screenPadding)
+                .frame(maxWidth: 560)
+                .frame(maxWidth: .infinity)
             }
+            .scrollDismissesKeyboard(.interactively)
             .background(COVIBackdrop())
+            .safeAreaInset(edge: .bottom) {
+                if !textSize.isAccessibilitySize {
+                    createButton
+                        .padding(.horizontal, COVITheme.Metrics.screenPadding)
+                        .padding(.vertical, 10)
+                        .frame(maxWidth: 560)
+                        .frame(maxWidth: .infinity)
+                        .background(COVITheme.cream)
+                }
+            }
+            .foregroundStyle(COVITheme.navy)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                if let onCancel {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Retour", action: onCancel)
+                    }
+                }
+            }
+        }
+#if DEBUG && targetEnvironment(simulator)
+        .task {
+            guard let diagnostics, diagnostics.scenario == .establishmentSetup,
+                  account == diagnostics.owner, context.container === diagnostics.container else { return }
+            name = "Maison Kongo Style"
+            city = "Brazzaville"
+            await diagnostics.signalAfterPresentation()
+        }
+#endif
+    }
+
+    private var detailsCard: some View {
+        COVICard {
+            VStack(alignment: .leading, spacing: 12) {
+                detailRow("Nom de l’établissement", symbol: "storefront") {
+                    TextField("Nom de l’établissement", text: $name, prompt: Text("Ex. Maison Kongo Style"))
+                        .textContentType(.organizationName)
+                }
+                Divider()
+                detailRow("Ville", symbol: "mappin.and.ellipse") {
+                    TextField("Ville", text: $city, prompt: Text("Ex. Brazzaville"))
+                        .textContentType(.addressCity)
+                }
+                Divider()
+                detailRow("Devise", symbol: "banknote") {
+                    Menu {
+                        Picker("Devise", selection: $currency) {
+                            ForEach(SupportedCurrency.options) { option in
+                                Text(option.label + " · " + option.code).tag(option.code)
+                            }
+                        }
+                    } label: {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            let label = SupportedCurrency.options.first { $0.code == currency }?.label ?? currency
+                            Text("\(label) · \(currency)")
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.caption2.bold())
+                                .accessibilityHidden(true)
+                        }
+                        .foregroundStyle(COVITheme.blue)
+                    }
+                    .accessibilityLabel("Devise")
+                    .accessibilityValue(currency)
+                    Text("La devise est fixée lors de la création, sans conversion automatique.")
+                        .font(.caption)
+                        .foregroundStyle(COVITheme.secondaryText)
+                }
+            }
+        }
+    }
+
+    private func detailRow<Content: View>(_ title: String, symbol: String,
+                                           @ViewBuilder content: () -> Content) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: symbol)
+                .frame(width: 24)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 5) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .accessibilityHidden(true)
+                content()
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
     private func kindCard(_ candidate: BusinessKind, title: String, symbol: String) -> some View {
-        Button { kind = candidate; HapticService.tap() } label: {
-            VStack(spacing: 13) {
-                Image(systemName: symbol).font(.system(size: 27))
-                Text(title).font(.subheadline.weight(.semibold))
-                    .minimumScaleFactor(0.75).lineLimit(1)
+        let layout = textSize.isAccessibilitySize ?
+            AnyLayout(HStackLayout(spacing: 12)) : AnyLayout(VStackLayout(spacing: 8))
+        return Button {
+            kind = candidate
+            HapticService.tap()
+        } label: {
+            layout {
+                Image(systemName: symbol)
+                    .font(.system(size: 24))
+                    .accessibilityHidden(true)
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .fixedSize(horizontal: false, vertical: true)
             }
+            .frame(maxWidth: .infinity, minHeight: 62)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 8)
             .foregroundStyle(COVITheme.navy)
-            .frame(maxWidth: .infinity, minHeight: 86)
-            .padding(.vertical, 10)
             .background(kind == candidate ? COVITheme.champagne : .white,
-                        in: RoundedRectangle(cornerRadius: 18))
-            .overlay(RoundedRectangle(cornerRadius: 18)
-                .stroke(kind == candidate ? COVITheme.navy : COVITheme.separator,
-                        lineWidth: kind == candidate ? 2 : 1))
+                        in: RoundedRectangle(cornerRadius: 16))
+            .overlay {
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(kind == candidate ? COVITheme.navy : COVITheme.separator,
+                                  lineWidth: kind == candidate ? 1.5 : 1)
+                    .allowsHitTesting(false)
+            }
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(kind == candidate ? .isSelected : [])

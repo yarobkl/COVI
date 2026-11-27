@@ -13,6 +13,7 @@ final class COVISimulatorDiagnostics {
     enum Scenario: String {
         case welcome
         case spaces
+        case establishmentSetup = "establishment-setup"
         case boutiqueHome = "boutique-home"
         case boutiqueArrivals = "boutique-arrivals"
         case boutiquePhotoSearch = "boutique-photo-search"
@@ -115,7 +116,7 @@ final class COVISimulatorDiagnostics {
         let simulatorSession = AppSession(keychain: storage)
         session = simulatorSession
         pin = PINManager(keychain: storage)
-        if scenario == .salonMore || scenario == .salonSettings || scenario == .restaurantTeam {
+        if [.salonMore, .salonSettings, .restaurantTeam, .establishmentSetup].contains(scenario) {
             try simulatorSession.createLocalAccount(name: "Camille Démo")
             guard let accountID = simulatorSession.accountID else { throw Failure.invalidScenario }
             owner = accountID
@@ -139,6 +140,11 @@ final class COVISimulatorDiagnostics {
             id: UUID(uuidString: "00000000-0000-4000-8000-000000000002")!,
             ownerID: owner, name: name, kind: kind, city: "Brazzaville", currencyCode: "XAF")
 
+        if scenario == .establishmentSetup {
+            basket = [:]
+            due = 0
+            return
+        }
         if scenario == .spaces {
             basket = [:]
             due = 0
@@ -710,9 +716,8 @@ struct COVISimulatorDiagnosticView: View {
 
     var body: some View {
         Group {
-            if fixture.scenario == .welcome {
-                // La session mémoire est vide : RootView affiche le véritable accueil
-                // sans compte restauré et sans démarrer une synchronisation.
+            if [.welcome, .establishmentSetup].contains(fixture.scenario) {
+                // RootView utilise une session mémoire, anonyme ou locale selon le scénario.
                 RootView()
             } else if fixture.scenario == .spaces {
                 COVISpaces(account: fixture.owner, accountName: "Camille Démo", activeID: fixture.shop.id,
@@ -748,6 +753,7 @@ struct COVISimulatorDiagnosticView: View {
         .task {
             // Le formulaire et la fiche Salon signalent leur propre apparition.
             if fixture.salonBooking == nil && fixture.salonProfileID == nil &&
+                fixture.scenario != .establishmentSetup &&
                 fixture.scenario != .salonReport && fixture.scenario != .salonSettings &&
                 fixture.scenario != .boutiquePhotoSearch &&
                 fixture.scenario != .restaurantReport && fixture.scenario != .restaurantIncident && fixture.scenario != .restaurantTeam &&
