@@ -3,8 +3,8 @@ import SwiftData
 import XCTest
 @testable import COVI
 
-// Modèle Bale antérieur à l'ajout de costKnown, avec les mêmes noms et types persistés.
-private enum LegacyLotCost {
+// Modèles antérieurs à l’ajout de costKnown et missedAt.
+private enum LegacyNativeStore {
     @Model final class Bale {
         @Attribute(.unique) var id: UUID
         var shop: UUID
@@ -20,11 +20,35 @@ private enum LegacyLotCost {
             self.received = received
         }
     }
+
+    @Model final class SalonVisit {
+        @Attribute(.unique) var id: UUID
+        var shop: UUID
+        var client: UUID
+        var service: UUID
+        var stylist: String
+        var start: Date
+        var end: Date
+        var walkIn: Bool
+        var cancelled = false
+        var receipt: UUID?
+
+        init(id: UUID, shop: UUID, client: UUID, service: UUID, start: Date, end: Date) {
+            self.id = id
+            self.shop = shop
+            self.client = client
+            self.service = service
+            stylist = "Chloé"
+            self.start = start
+            self.end = end
+            walkIn = false
+        }
+    }
 }
 
 @MainActor
 final class LotCostMigrationTests: XCTestCase {
-    func testLegacySQLiteCostsAndLinkedStockSurviveMigrationAndReopening() throws {
+    func testLegacySQLiteCostsStockAndSalonAppointmentsSurviveMigrationAndReopening() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -36,12 +60,18 @@ final class LotCostMigrationTests: XCTestCase {
         let itemID = UUID()
         let movementID = UUID()
         let received = Date(timeIntervalSince1970: 1_790_000_000)
+        let salonID = UUID()
+        let openVisitID = UUID()
+        let paidVisitID = UUID()
+        let retainedReceipt = UUID()
+        let appointmentEnd = received.addingTimeInterval(1_800)
+        let recordedAbsence = appointmentEnd.addingTimeInterval(60)
 
         try autoreleasepool {
             let schema = Schema([
                 MaintenanceEntry.self,
-                SalonVisit.self, SalonClient.self, SalonSaleLine.self, SalonStaff.self,
-                LegacyLotCost.Bale.self, SyncCheckpoint.self, CloudAccountBinding.self,
+                LegacyNativeStore.SalonVisit.self, SalonClient.self, SalonSaleLine.self, SalonStaff.self,
+                LegacyNativeStore.Bale.self, SyncCheckpoint.self, CloudAccountBinding.self,
                 ReceiptCloudCheckpoint.self, ReceiptCloudMarker.self,
                 ExpenseCloudCheckpoint.self, ExpenseCloudMarker.self, PendingExpenseVoid.self,
                 OperationalCloudCheckpoint.self, OperationalCloudMarker.self,
@@ -55,8 +85,8 @@ final class LotCostMigrationTests: XCTestCase {
             let db = ModelContext(container)
             let shop = Establishment(id: shopID, ownerID: owner, name: "Boutique", kind: .boutique, city: "Brazzaville")
             db.insert(shop)
-            db.insert(LegacyLotCost.Bale(id: zeroID, shop: shopID, label: "Zéro confirmé", cost: 0, received: received))
-            db.insert(LegacyLotCost.Bale(id: paidID, shop: shopID, label: "Achat", cost: 12500, received: received))
+            db.insert(LegacyNativeStore.Bale(id: zeroID, shop: shopID, label: "Zéro confirmé", cost: 0, received: received))
+            db.insert(LegacyNativeStore.Bale(id: paidID, shop: shopID, label: "Achat", cost: 12500, received: received))
             let article = CatalogItem(establishmentID: shopID, title: "Veste", priceMinor: 3000)
             article.id = itemID
             article.stockOnHand = 2
@@ -66,6 +96,16 @@ final class LotCostMigrationTests: XCTestCase {
             movement.id = movementID
             movement.baleID = paidID
             db.insert(movement)
+            let salon = Establishment(id: salonID, ownerID: owner, name: "Salon", kind: .salon, city: "Brazzaville")
+            let client = SalonClient(shop: salonID, name: "Mireille")
+            let service = CatalogItem(establishmentID: salonID, title: "Coupe", priceMinor: 5_000, isService: true)
+            db.insert(salon); db.insert(client); db.insert(service)
+            let openVisit = LegacyNativeStore.SalonVisit(id: openVisitID, shop: salonID, client: client.id,
+                service: service.id, start: received, end: appointmentEnd)
+            let paidVisit = LegacyNativeStore.SalonVisit(id: paidVisitID, shop: salonID, client: client.id,
+                service: service.id, start: received.addingTimeInterval(-1_800), end: received)
+            paidVisit.receipt = retainedReceipt
+            db.insert(openVisit); db.insert(paidVisit)
             try db.save()
         }
 
@@ -82,13 +122,23 @@ final class LotCostMigrationTests: XCTestCase {
             XCTAssertTrue(paid.costKnown)
             XCTAssertEqual(paid.shop, shopID)
             XCTAssertEqual(paid.received, received)
-            let article = try XCTUnwrap(db.fetch(FetchDescriptor<CatalogItem>()).first)
+            let article = try XCTUnwrap(db.fetch(FetchDescriptor<CatalogItem>(
+                predicate: #Predicate { $0.id == itemID })).first)
             XCTAssertEqual(article.id, itemID)
             XCTAssertEqual(article.stockOnHand, 2)
             let movement = try XCTUnwrap(db.fetch(FetchDescriptor<StockMovement>()).first)
             XCTAssertEqual(movement.id, movementID)
             XCTAssertEqual(movement.baleID, paidID)
             XCTAssertEqual(movement.delta, 2)
+            let visits = try db.fetch(FetchDescriptor<COVI.SalonVisit>())
+            XCTAssertEqual(visits.count, 2)
+            let openVisit = try XCTUnwrap(visits.first { $0.id == openVisitID })
+            let paidVisit = try XCTUnwrap(visits.first { $0.id == paidVisitID })
+            XCTAssertTrue(openVisit.isOpen)
+            XCTAssertNil(openVisit.missedAt)
+            XCTAssertNil(paidVisit.missedAt)
+            XCTAssertEqual(paidVisit.receipt, retainedReceipt)
+            try SalonLedger.markMissed(openVisit, shop: salonID, actor: owner, at: recordedAbsence, db: db)
             db.insert(COVI.Bale(shop: shopID, label: "Coût absent", cost: nil))
             try db.save()
         }
@@ -101,5 +151,8 @@ final class LotCostMigrationTests: XCTestCase {
         let unknown = try XCTUnwrap(lots.first { $0.label == "Coût absent" })
         XCTAssertNil(unknown.knownCost)
         XCTAssertFalse(unknown.costKnown)
+        let visits = try db.fetch(FetchDescriptor<COVI.SalonVisit>())
+        XCTAssertEqual(visits.first { $0.id == openVisitID }?.missedAt, recordedAbsence)
+        XCTAssertEqual(visits.first { $0.id == paidVisitID }?.receipt, retainedReceipt)
     }
 }
