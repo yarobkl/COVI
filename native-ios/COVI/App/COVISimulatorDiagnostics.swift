@@ -12,6 +12,7 @@ final class COVISimulatorDiagnostics {
 
     enum Scenario: String {
         case welcome
+        case spaces
         case boutiqueHome = "boutique-home"
         case boutiqueArrivals = "boutique-arrivals"
         case boutiquePhotoSearch = "boutique-photo-search"
@@ -138,6 +139,12 @@ final class COVISimulatorDiagnostics {
             id: UUID(uuidString: "00000000-0000-4000-8000-000000000002")!,
             ownerID: owner, name: name, kind: kind, city: "Brazzaville", currencyCode: "XAF")
 
+        if scenario == .spaces {
+            basket = [:]
+            due = 0
+            try seedSpaces()
+            return
+        }
         if kind == .restaurant {
             basket = [:]
             due = 0
@@ -260,6 +267,23 @@ final class COVISimulatorDiagnostics {
                 try service.finish(table, order: order, paid: false)
             }
         }
+    }
+
+    private func seedSpaces() throws {
+        let context = container.mainContext
+        shop.name = "Maison Kongo Style"
+        context.insert(shop)
+        context.insert(Establishment(ownerID: owner, name: "Le Brazza Grill",
+            kind: .restaurant, city: "Brazzaville"))
+        let salon = Establishment(ownerID: UUID(), name: "Studio Élégance", kind: .salon, city: "Brazzaville")
+        context.insert(salon)
+        context.insert(Membership(accountID: owner, establishmentID: salon.id, role: .cashier))
+        let formerShop = Establishment(ownerID: UUID(), name: "Ancien espace", kind: .salon, city: "Brazzaville")
+        context.insert(formerShop)
+        let formerAccess = Membership(accountID: owner, establishmentID: formerShop.id, role: .cashier)
+        formerAccess.active = false
+        context.insert(formerAccess)
+        try context.save()
     }
 
     private func seedRestaurantTables() throws -> RestaurantSample {
@@ -690,6 +714,9 @@ struct COVISimulatorDiagnosticView: View {
                 // La session mémoire est vide : RootView affiche le véritable accueil
                 // sans compte restauré et sans démarrer une synchronisation.
                 RootView()
+            } else if fixture.scenario == .spaces {
+                COVISpaces(account: fixture.owner, accountName: "Camille Démo", activeID: fixture.shop.id,
+                           onSelect: { _ in }, onAdd: {})
             } else if fixture.scenario == .boutiqueArrivals {
                 NavigationStack {
                     BoutiqueArrivals(shop: fixture.shop, actor: fixture.owner, goods: [])

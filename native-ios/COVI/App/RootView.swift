@@ -3,14 +3,18 @@ import SwiftData
 
 @MainActor
 struct RootView: View {
+    private enum SpaceSheet: String, Identifiable {
+        case spaces, setup
+        var id: Self { self }
+    }
+
     @Query(sort: \Establishment.name) private var establishments: [Establishment]
     @Query private var memberships: [Membership]
     @Environment(AppSession.self) private var session
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var phase
     @State private var selectedID: UUID?
-    @State private var addingShop = false
-    @State private var showingSpaces = false
+    @State private var spaceSheet: SpaceSheet?
     private func selectShop(_ id: UUID, for account: UUID) {
         pinManager.lock()
         selectedID = id
@@ -39,7 +43,7 @@ struct RootView: View {
                                 .resizable().scaledToFit().frame(width: 86, height: 42)
                                 .accessibilityLabel("COVI, Commerce & Vie")
                             Spacer(minLength: 4)
-                            Button { showingSpaces = true } label: {
+                            Button { spaceSheet = .spaces } label: {
                                 HStack(spacing: 7) {
                                     Text(shop.name).lineLimit(1)
                                     Image(systemName: "chevron.down").font(.caption.bold())
@@ -62,7 +66,7 @@ struct RootView: View {
                                 .padding(.bottom, 5)
                         }
                         DynamicTabView(establishment: shop, accountID: account, role: role,
-                                       pinManager: pinManager, onSwitchShop: { showingSpaces = true })
+                                       pinManager: pinManager, onSwitchShop: { spaceSheet = .spaces })
                             .id("\(account)-\(shop.id)-\(role.rawValue)")
                     } else if importingDirectory {
                         ContentUnavailableView {
@@ -86,44 +90,24 @@ struct RootView: View {
                     }
                 }
                 .background(COVITheme.cream)
-                .sheet(isPresented: $addingShop) {
-                    EstablishmentSetup(account: account) { id in
-                        selectShop(id, for: account)
-                        addingShop = false
-                    }
-                }
-                .sheet(isPresented: $showingSpaces) {
-                    NavigationStack {
-                        ScrollView {
-                            VStack(alignment: .leading, spacing: 22) {
-                                Image("WelcomeMark").resizable().scaledToFit()
-                                    .frame(width: 150).frame(maxWidth: .infinity)
-                                Text("Mes espaces")
-                                    .font(.system(size: 36, weight: .bold))
-                                    .foregroundStyle(COVITheme.navy)
-                                Text("Basculez d’un établissement à l’autre sans vous déconnecter.")
-                                    .foregroundStyle(COVITheme.secondaryText)
-                                COVISectionTitle("Établissements détenus (\(shops.filter { $0.ownerID == account }.count) / \(EstablishmentPolicy.maximumActivePerOwner) maximum)")
-                                ForEach(shops.filter { $0.ownerID == account }) { candidate in
-                                    spaceButton(candidate, activeID: activeID, account: account)
-                                }
-                                if shops.contains(where: { $0.ownerID != account }) {
-                                    COVISectionTitle("Accès collaborateur")
-                                    ForEach(shops.filter { $0.ownerID != account }) { candidate in
-                                        spaceButton(candidate, activeID: activeID, account: account)
-                                    }
-                                }
-                                if EstablishmentPolicy.canCreate(owner: account, in: establishments) {
-                                    COVIButton("Ajouter un établissement", systemImage: "plus", role: .secondary) {
-                                        showingSpaces = false
-                                        addingShop = true
-                                    }
-                                }
-                            }
-                            .padding(22)
+                .sheet(item: $spaceSheet) { page in
+                    switch page {
+                    case .setup:
+                        EstablishmentSetup(account: account) { id in
+                            selectShop(id, for: account)
+                            spaceSheet = nil
                         }
-                        .background(COVIBackdrop())
-                        .toolbar { Button("Fermer") { showingSpaces = false } }
+                    case .spaces:
+                        COVISpaces(account: account, accountName: session.displayName, activeID: activeID,
+                                   onSelect: { id in
+                            guard let candidate = establishments.first(where: { $0.id == id }),
+                                  role(candidate, account) != nil else { return }
+                            selectShop(id, for: account)
+                            spaceSheet = nil
+                        }, onAdd: {
+                            guard EstablishmentPolicy.canCreate(owner: account, in: establishments) else { return }
+                            spaceSheet = .setup
+                        })
                     }
                 }
             } else { COVIWelcome() }
@@ -135,36 +119,11 @@ struct RootView: View {
             if session.usesAppleAccount { await importDirectory(owner) }
         }
         .onChange(of: phase) { _, phase in if phase != .active { pinManager.lock() } }
-        .onChange(of: session.accountID) { _, _ in pinManager.lock(); selectedID = nil; addingShop = false }
-    }
-
-    private func spaceButton(_ candidate: Establishment, activeID: UUID?, account: UUID) -> some View {
-        Button {
-            selectShop(candidate.id, for: account)
-            showingSpaces = false
-        } label: {
-            COVICard {
-                HStack(spacing: 15) {
-                    Image(systemName: candidate.kind == .boutique ? "bag" : candidate.kind == .restaurant ? "fork.knife" : "scissors")
-                        .font(.title2).foregroundStyle(COVITheme.navy)
-                        .frame(width: 68, height: 68)
-                        .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 14))
-                    VStack(alignment: .leading, spacing: 7) {
-                        Text(candidate.name).font(.headline).foregroundStyle(COVITheme.navy)
-                        COVIBadge(title: candidate.kind == .boutique ? "Boutique" : candidate.kind == .restaurant ? "Restaurant" : "Salon")
-                        Text("\(candidate.city) · \(candidate.currencyCode)")
-                            .font(.caption).foregroundStyle(COVITheme.secondaryText)
-                    }
-                    Spacer(minLength: 4)
-                    Image(systemName: candidate.id == activeID ? "checkmark.circle.fill" : "circle")
-                        .font(.title2).foregroundStyle(COVITheme.navy)
-                }
-            }
-            .overlay(RoundedRectangle(cornerRadius: COVITheme.Metrics.cardRadius)
-                .stroke(candidate.id == activeID ? COVITheme.navy : .clear, lineWidth: 1.5))
+        .onChange(of: session.accountID) { _, _ in
+            pinManager.lock()
+            selectedID = nil
+            spaceSheet = nil
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Ouvrir \(candidate.name)")
     }
 
     private func importDirectory(_ account: UUID) async {
@@ -197,6 +156,153 @@ struct RootView: View {
         } catch {
             context.rollback()
         }
+    }
+}
+
+@MainActor
+struct COVISpaces: View {
+    let account: UUID
+    let accountName: String
+    let activeID: UUID?
+    let onSelect: (UUID) -> Void
+    let onAdd: () -> Void
+    @Query(sort: \Establishment.name) private var establishments: [Establishment]
+    @Query private var memberships: [Membership]
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var textSize
+
+    private var owned: [Establishment] {
+        var shops = establishments.filter { $0.ownerID == account && !$0.archived }
+        if let index = shops.firstIndex(where: { $0.id == activeID }), index > 0 {
+            let selected = shops.remove(at: index)
+            shops.insert(selected, at: 0)
+        }
+        return shops
+    }
+
+    var body: some View {
+        let owned = self.owned
+        let shared = establishments.compactMap { shop -> (shop: Establishment, role: StaffRole)? in
+            guard shop.ownerID != account,
+                  let role = StaffAccess.role(for: account, in: shop, memberships: memberships)
+            else { return nil }
+            return (shop, role)
+        }
+        let remaining = max(0, EstablishmentPolicy.maximumActivePerOwner - owned.count)
+
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    HStack {
+                        Image("WelcomeMark")
+                            .resizable().scaledToFit()
+                            .frame(width: 120, height: 52)
+                            .accessibilityLabel("COVI, Commerce & Vie")
+                        Spacer()
+                        if !accountName.isEmpty {
+                            let initials = String(accountName.split(separator: " ").prefix(2).compactMap(\.first)).uppercased()
+                            Text(initials)
+                                .font(.subheadline.bold())
+                                .padding(10)
+                                .background(COVITheme.champagne, in: Circle())
+                                .accessibilityLabel(accountName)
+                        }
+                    }
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("Mes espaces").font(.largeTitle.bold()).accessibilityAddTraits(.isHeader)
+                        Text("Basculez d’un établissement à l’autre sans vous déconnecter.")
+                            .font(.subheadline).foregroundStyle(COVITheme.secondaryText)
+                    }
+                    VStack(alignment: .leading, spacing: 9) {
+                        Text("Établissements détenus (\(owned.count) / \(EstablishmentPolicy.maximumActivePerOwner) maximum)")
+                            .font(.subheadline.bold()).accessibilityAddTraits(.isHeader)
+                        ForEach(owned) { shop in
+                            spaceButton(shop, role: .owner)
+                        }
+                    }
+                    if !shared.isEmpty {
+                        VStack(alignment: .leading, spacing: 9) {
+                            Text("Accès collaborateur")
+                                .font(.subheadline.bold()).accessibilityAddTraits(.isHeader)
+                            ForEach(shared, id: \.shop.id) { space in
+                                spaceButton(space.shop, role: space.role)
+                            }
+                        }
+                    }
+                }
+                .foregroundStyle(COVITheme.navy)
+                .padding(.horizontal, COVITheme.Metrics.screenPadding)
+                .padding(.bottom, 16)
+                .frame(maxWidth: 560)
+                .frame(maxWidth: .infinity)
+            }
+            .background(COVIBackdrop())
+            .safeAreaInset(edge: .bottom) {
+                if EstablishmentPolicy.canCreate(owner: account, in: establishments) {
+                    COVIButton("Ajouter un établissement\n\(remaining == 1 ? "1 place restante" : "\(remaining) places restantes")",
+                               systemImage: "plus", role: .secondary, action: onAdd)
+                        .padding(.horizontal, COVITheme.Metrics.screenPadding)
+                        .padding(.vertical, 10)
+                        .frame(maxWidth: 560)
+                        .frame(maxWidth: .infinity)
+                        .background(COVITheme.cream)
+                }
+            }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Fermer") { dismiss() } }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    private func spaceButton(_ shop: Establishment, role: StaffRole) -> some View {
+        let selected = shop.id == activeID
+        let (activity, symbol) = switch shop.kind {
+        case .boutique: ("Boutique", "bag")
+        case .restaurant: ("Restaurant", "fork.knife")
+        case .salon: ("Salon", "scissors")
+        }
+        let roleLabel = switch role {
+        case .owner: ""
+        case .manager: "Responsable"
+        case .cashier: "Caissier"
+        case .waiter: "Serveur"
+        case .kitchen: "Cuisine"
+        case .stylist: "Coiffure"
+        }
+        let layout = textSize.isAccessibilitySize ?
+            AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 12))
+        return Button { onSelect(shop.id) } label: {
+            COVICard {
+                layout {
+                    Image(systemName: symbol)
+                        .font(.title2)
+                        .frame(width: 58, height: 54)
+                        .background(COVITheme.champagne, in: RoundedRectangle(cornerRadius: 12))
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(shop.name).font(.headline)
+                        COVIBadge(title: roleLabel.isEmpty ? activity : "\(activity) · \(roleLabel)")
+                        Text("\(shop.city) · \(shop.currencyCode)")
+                            .font(.caption).foregroundStyle(COVITheme.secondaryText)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    Image(systemName: selected ? "checkmark.circle.fill" : (role == .owner ? "circle" : "person.2"))
+                        .font(.title2)
+                        .accessibilityHidden(true)
+                }
+                .foregroundStyle(COVITheme.navy)
+            }
+            .overlay {
+                if selected {
+                    RoundedRectangle(cornerRadius: COVITheme.Metrics.cardRadius)
+                        .strokeBorder(COVITheme.navy, lineWidth: 1.5)
+                        .allowsHitTesting(false)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 }
 

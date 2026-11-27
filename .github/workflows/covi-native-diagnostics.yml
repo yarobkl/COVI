@@ -71,7 +71,7 @@ jobs:
           xcrun simctl status_bar "$DEVICE_ID" override --time "9:41" --batteryState charged --batteryLevel 100
           trap 'xcrun simctl status_bar "$DEVICE_ID" clear' EXIT
           # Give the newest diagnostic an opportunity to render before the regression sweep.
-          for SCENARIO in restaurant-order-drinks salon-agenda salon-agenda-grid boutique-photo-search restaurant-incident restaurant-kitchen restaurant-kitchen-ready restaurant-paid-table restaurant-floor-guests restaurant-floor-zoom boutique-arrivals restaurant-floor-terrace restaurant-floor-plan restaurant-floor-edit restaurant-payment restaurant-drinks restaurant-menu restaurant-team restaurant-report salon-more salon-settings salon-report salon-checkout salon-catalog welcome boutique-home boutique-sale boutique-checkout restaurant-tables restaurant-table restaurant-order salon-today salon-booking salon-booking-conflict salon-clients salon-clients-upcoming salon-profile; do
+          for SCENARIO in spaces restaurant-order-drinks salon-agenda salon-agenda-grid boutique-photo-search restaurant-incident restaurant-kitchen restaurant-kitchen-ready restaurant-paid-table restaurant-floor-guests restaurant-floor-zoom boutique-arrivals restaurant-floor-terrace restaurant-floor-plan restaurant-floor-edit restaurant-payment restaurant-drinks restaurant-menu restaurant-team restaurant-report salon-more salon-settings salon-report salon-checkout salon-catalog welcome boutique-home boutique-sale boutique-checkout restaurant-tables restaurant-table restaurant-order salon-today salon-booking salon-booking-conflict salon-clients salon-clients-upcoming salon-profile; do
             MARKER="$APP_DATA/tmp/covi-diagnostic-$SCENARIO.ready"
             rm -f "$MARKER"
             xcrun simctl launch --terminate-running-process "$DEVICE_ID" com.covi.app --covi-diagnostic-scenario "$SCENARIO" -AppleLanguages '(fr)' -AppleLocale fr_FR
@@ -87,7 +87,7 @@ jobs:
           done
           # Validate the same native views with iPhone accessibility text.
           run_bounded xcrun simctl ui "$DEVICE_ID" content_size accessibility-extra-extra-extra-large
-          for SCENARIO in restaurant-order-drinks salon-profile boutique-home salon-agenda restaurant-kitchen restaurant-drinks salon-checkout salon-catalog; do
+          for SCENARIO in spaces restaurant-order-drinks salon-profile boutique-home salon-agenda restaurant-kitchen restaurant-drinks salon-checkout salon-catalog; do
             MARKER="$APP_DATA/tmp/covi-diagnostic-$SCENARIO.ready"
             rm -f "$MARKER"
             xcrun simctl launch --terminate-running-process "$DEVICE_ID" com.covi.app --covi-diagnostic-scenario "$SCENARIO" -AppleLanguages '(fr)' -AppleLocale fr_FR
@@ -103,6 +103,7 @@ jobs:
           printf '%s\n' \
             "Debug iPhone simulator; synthetic data stored in memory only; no network or TestFlight upload." \
             "welcome: actual RootView with an empty in-memory session." \
+            "spaces: actual COVISpaces with two owned establishments, one active collaboration and one revoked access." \
             "boutique-home: BoutiqueSpace with two completed in-memory sales (cash and Airtel Money), and low stock." \
             "boutique-photo-search: actual Vision search using an isolated synthetic photo and a preselected catalog candidate." \
             "boutique-sale/checkout: actual DynamicTabView, BoutiqueSpace and Checkout." \
