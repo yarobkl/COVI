@@ -568,13 +568,14 @@ struct RestaurantFloorPlan<Detail: View>: View {
                             placement: RestaurantTablePlacement, rowHeight: CGFloat) -> some View {
         let selected = selectedID == table.id
         let emphasized = highlightedState == nil || highlightedState == state || selected
+        let turned = !placement.rotation.isMultiple(of: 2)
+        let nameBelowDrawing = turned && !textSize.isAccessibilitySize
         return Button {
             selectedID = selected ? nil : table.id
             HapticService.tap()
         } label: {
             VStack(spacing: 2) {
                 GeometryReader { proxy in
-                    let turned = !placement.rotation.isMultiple(of: 2)
                     let size = turned ? CGSize(width: proxy.size.height, height: proxy.size.width) : proxy.size
                     let drawing = FloorTableDrawing(shape: placement.shape, capacity: table.capacity, size: size)
                     ZStack {
@@ -583,14 +584,19 @@ struct RestaurantFloorPlan<Detail: View>: View {
                             .rotationEffect(.degrees(Double(placement.rotation) * 90))
                         if !textSize.isAccessibilitySize {
                             VStack(spacing: 2) {
-                                Text(table.label)
-                                    .font(.caption.weight(.bold))
-                                    .lineLimit(1).minimumScaleFactor(0.66)
-                                Label("\(table.capacity)", systemImage: "person")
-                                    .font(.caption2.weight(.semibold))
+                                if !nameBelowDrawing {
+                                    floorTableName(table.label)
+                                }
+                                HStack(spacing: 2) {
+                                    Image(systemName: "person")
+                                    Text("\(table.capacity)")
+                                }
+                                .font(.caption2.weight(.semibold))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
                             }
                             .foregroundStyle(COVITheme.navy)
-                            .padding(.horizontal, turned && compactOverview ? 1 : 3)
+                            .padding(.horizontal, nameBelowDrawing ? 0 : 3)
                             .frame(width: turned ? drawing.surface.height : drawing.surface.width)
                         }
                     }
@@ -598,20 +604,33 @@ struct RestaurantFloorPlan<Detail: View>: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .contentShape(Rectangle())
                 }
-                .frame(height: rowHeight)
-                if textSize.isAccessibilitySize {
+                .frame(height: textSize.isAccessibilitySize ? rowHeight : nil)
+                if nameBelowDrawing {
+                    floorTableName(table.label)
+                        .frame(maxWidth: .infinity)
+                        .accessibilityHidden(true)
+                } else if textSize.isAccessibilitySize {
                     Text("\(table.label) · \(table.capacity) places")
                         .font(.headline)
                     Text(state.rawValue).font(.subheadline)
                 }
             }
+            .frame(height: textSize.isAccessibilitySize ? nil : rowHeight)
             .foregroundStyle(COVITheme.navy)
             .opacity(emphasized ? 1 : 0.48)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(table.label), \(table.capacity) places, \(state.rawValue)")
         .accessibilityHint("Affiche le résumé de la table")
         .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    private func floorTableName(_ name: String) -> some View {
+        Text(name)
+            .font(.caption.weight(.bold))
+            .lineLimit(1)
+            .minimumScaleFactor(0.66)
     }
 
     private func tableDrawing(_ drawing: FloorTableDrawing, state: RestaurantFloorState, selected: Bool) -> some View {
