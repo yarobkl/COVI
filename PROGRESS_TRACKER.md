@@ -827,10 +827,24 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   sélecteur de salle malgré le succès des tests d’appui. Le nom
   de la Table 6 pivotée est abrégé dans la grille. En XXXL, les
   trois places occupées sur six sont lisibles dans le résumé.
-- La révision suivante rapproche les commandes de la planche en
+- Sur `eec60bf`, le résumé rapproche les commandes de la planche en
   réunissant l’action principale, « Déplacer » et « Plus » sur
   une rangée en taille standard. Le test vérifie aussi que les
   compteurs sont entièrement sous le sélecteur de salle.
+  [Quatre XCUITest sans échec](https://github.com/yarobkl/COVI/actions/runs/46161856996/job/141030709015)
+- Les [captures de cette révision](https://github.com/yarobkl/COVI/actions/runs/46161856996/artifacts/15270439743)
+  montrent simultanément les quatre compteurs et les huit tables
+  lorsque le résumé de Table 10 ou celui de Table 6 est ouvert.
+  La prise de commande et l’encaissement restent visibles.
+  Table 6 affiche un reste dû de 16 000 FCFA. À XXXL, le résumé
+  conserve la capacité et les trois places occupées sur six.
+  Terrasse montre uniquement les deux tables qui lui sont
+  affectées et le scénario zoom affiche 150 %.
+  [Debug, Release et 165 XCTest sans échec](https://github.com/yarobkl/COVI/actions/runs/46161856996/job/141030708812)
+- Le libellé de la Table 6 pivotée reste abrégé dans le plan,
+  deux compteurs s’affichent sur deux lignes et la maquette
+  prévoit aussi « Réserver ». L’essai sur iPhone physique
+  reste à faire.
 
 ### Table réglée et départ des clients
 

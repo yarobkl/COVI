@@ -130,6 +130,15 @@ garde sa capacité, ses chaises et sa position. Le sélecteur masque
 encore le haut des compteurs et le texte de la Table 6 pivotée est
 abrégé. En XXXL, l’occupation de Table 6 reste lisible dans le résumé.
 
+La [capture de Salle avec les commandes regroupées](https://github.com/yarobkl/COVI/actions/runs/46161856996/artifacts/15270439743)
+montre maintenant les quatre compteurs, les huit tables et le résumé
+dans la même vue, comme la planche `e5113fe8…`. Le même cadrage
+est visible avec Table 6 à encaisser. « Déplacer » et « Plus »
+sont alignés avec l’action principale. La commande et deux compteurs
+tiennent sur deux lignes. Le libellé de la Table 6 pivotée reste
+abrégé. La réservation, les éléments de décor et l’essai sur
+iPhone physique restent à traiter.
+
 ## Reprise du lot visuel COVI 2.0
 
 - Le build TestFlight 1.0.13 (10051), issu du commit `6eb37ed`, valide la
