@@ -419,8 +419,10 @@ final class CommerceFlowTests: XCTestCase {
         XCTAssertThrowsError(try service.open(table, guestCount: 5))
         XCTAssertFalse(table.isOccupied)
         XCTAssertThrowsError(try service.open(table, guestCount: 0))
-        try service.open(table, guestCount: 2)
-        let order = try XCTUnwrap(db.fetch(FetchDescriptor<CommerceOrder>()).first)
+        let order = try service.open(table, guestCount: 2)
+        XCTAssertEqual(table.activeSessionID, order.id)
+        XCTAssertThrowsError(try service.open(table, guestCount: 2))
+        XCTAssertEqual(try db.fetchCount(FetchDescriptor<CommerceOrder>()), 1)
         XCTAssertEqual(order.restaurantGuestCount, 2)
 
         try service.confirmGuests(3, at: table, order: order)

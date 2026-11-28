@@ -214,7 +214,7 @@ struct DynamicTabView: View {
                 case .sale, .checkout, .boutiquePhotoSearch, .shopHeader, .boutiqueCategory: selected = .sell
                 case .restaurantTables, .restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace,
                      .restaurantFloorZoom, .restaurantFloorGuests, .restaurantFloorCheckout,
-                     .restaurantFloorCheckoutSheet: selected = .tables
+                     .restaurantFloorCheckoutSheet, .restaurantFloorOrderStart: selected = .tables
                 case .restaurantKitchen, .restaurantKitchenReady: selected = .kitchen
                 case .salonCheckout: selected = .checkout
                 case .salonReport, .salonReportAbsences, .salonMore, .salonSettings, .restaurantReport, .restaurantTeam, .restaurantMenu, .restaurantDrinks, .syncCentre: selected = .more

@@ -219,7 +219,8 @@ enum RestaurantBill {
             try save()
         } catch { db.rollback(); throw error }
     }
-    func open(_ table: DiningTable, guestCount: Int? = nil) throws {
+    @discardableResult
+    func open(_ table: DiningTable, guestCount: Int? = nil) throws -> CommerceOrder {
         try authorize()
         guard table.establishmentID == shop.id, table.activeSessionID == nil, !table.isOccupied else { throw RestaurantFault.stale }
         if let guestCount { try validateGuests(guestCount, at: table) }
@@ -234,6 +235,7 @@ enum RestaurantBill {
             try BusinessOutbox.enqueue(kind: "restaurant.table.opened", establishmentID: shop.id,
                 entityID: order.id, actorID: actor, relatedIDs: [table.id], in: db)
             try save()
+            return order
         } catch { db.rollback(); throw error }
     }
     func confirmGuests(_ count: Int, at table: DiningTable, order: CommerceOrder) throws {

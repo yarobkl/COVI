@@ -46,7 +46,7 @@ struct RestaurantSpace: View {
         Group {
             if tab == .tables && showFloorPlan {
                 RestaurantFloorPlan(tables: tables, orders: orders, lines: lines,
-                    payments: payments, service: service) { table in
+                    payments: payments, menu: menu, service: service) { table in
                     tableDetail(table)
                 }
             } else {
@@ -349,7 +349,7 @@ struct RestaurantTable: View {
         .sheet(isPresented: $editingGuests) {
             RestaurantGuestEditor(table: table, existingCount: order?.restaurantGuestCount) { count in
                 if let order { try service.confirmGuests(count, at: table, order: order) }
-                else { try service.open(table, guestCount: count) }
+                else { _ = try service.open(table, guestCount: count) }
             }
         }
         .sheet(isPresented: $ordering) { if let order { RestaurantComposer(menu: menu, table: table, order: order, service: service) } }
@@ -399,12 +399,15 @@ struct RestaurantTable: View {
     }
 }
 
-private struct RestaurantGuestEditor: View {
+struct RestaurantGuestEditor: View {
     let table: DiningTable
     let save: (Int) throws -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var count: Int
     @State private var message = ""
+#if DEBUG && targetEnvironment(simulator)
+    @Environment(\.coviSimulatorDiagnostics) private var diagnostics
+#endif
 
     init(table: DiningTable, existingCount: Int?, save: @escaping (Int) throws -> Void) {
         self.table = table
@@ -446,5 +449,12 @@ private struct RestaurantGuestEditor: View {
             }
         }
         .presentationDetents([.medium, .large])
+#if DEBUG && targetEnvironment(simulator)
+        .task {
+            if let diagnostics, diagnostics.scenario == .restaurantFloorOrderStart {
+                await diagnostics.signalAfterPresentation()
+            }
+        }
+#endif
     }
 }

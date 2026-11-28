@@ -33,6 +33,7 @@ final class COVISimulatorDiagnostics {
         case restaurantFloorGuests = "restaurant-floor-guests"
         case restaurantFloorCheckout = "restaurant-floor-checkout"
         case restaurantFloorCheckoutSheet = "restaurant-floor-checkout-sheet"
+        case restaurantFloorOrderStart = "restaurant-floor-order-start"
         case restaurantTable = "restaurant-table"
         case restaurantOrder = "restaurant-order"
         case restaurantOrderDrinks = "restaurant-order-drinks"
@@ -63,12 +64,13 @@ final class COVISimulatorDiagnostics {
 
         var showsShopHeader: Bool {
             [.shopHeader, .boutiqueCategory, .restaurantFloorPlan, .restaurantFloorCheckout,
-             .restaurantFloorCheckoutSheet, .salonAgenda].contains(self)
+             .restaurantFloorCheckoutSheet, .restaurantFloorOrderStart, .salonAgenda].contains(self)
         }
 
         var isFloorPlan: Bool {
             [.restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace, .restaurantFloorZoom,
-             .restaurantFloorGuests, .restaurantFloorCheckout, .restaurantFloorCheckoutSheet].contains(self)
+             .restaurantFloorGuests, .restaurantFloorCheckout, .restaurantFloorCheckoutSheet,
+             .restaurantFloorOrderStart].contains(self)
         }
 
         var floorSampleLabel: String {
@@ -157,6 +159,7 @@ final class COVISimulatorDiagnostics {
         switch scenario {
         case .restaurantTables, .restaurantFloorPlan, .restaurantFloorEdit, .restaurantFloorTerrace,
              .restaurantFloorZoom, .restaurantFloorGuests, .restaurantFloorCheckout, .restaurantFloorCheckoutSheet,
+             .restaurantFloorOrderStart,
              .restaurantTable, .restaurantOrder, .restaurantOrderDrinks, .restaurantReport, .restaurantIncident,
              .restaurantTeam, .restaurantKitchen, .restaurantKitchenReady, .restaurantMenu,
              .restaurantDrinks, .restaurantPayment, .restaurantPaidTable:

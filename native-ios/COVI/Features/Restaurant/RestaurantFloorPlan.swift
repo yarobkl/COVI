@@ -130,16 +130,29 @@ enum RestaurantFloorZoom {
 }
 
 struct RestaurantFloorPlan<Detail: View>: View {
-    private struct CheckoutTarget: Identifiable {
+    private struct TableSession: Identifiable {
         let table: DiningTable
         let order: CommerceOrder
         var id: UUID { order.id }
+    }
+
+    private enum OrderSheet: Identifiable {
+        case guests(DiningTable)
+        case composer(TableSession)
+
+        var id: UUID {
+            switch self {
+            case .guests(let table): table.id
+            case .composer(let session): session.id
+            }
+        }
     }
 
     let tables: [DiningTable]
     let orders: [CommerceOrder]
     let lines: [OrderLine]
     let payments: [PaymentRecord]
+    let menu: [CatalogItem]
     let service: RestaurantService
     private let detail: (DiningTable) -> Detail
     @AppStorage private var layoutData: Data
@@ -154,19 +167,22 @@ struct RestaurantFloorPlan<Detail: View>: View {
     @State private var showingRoomEditor = false
     @State private var highlightedState: RestaurantFloorState?
     @State private var editingTable: DiningTable?
-    @State private var checkout: CheckoutTarget?
-    @State private var checkoutError = ""
+    @State private var checkout: TableSession?
+    @State private var orderSheet: OrderSheet?
+    @State private var nextOrder: TableSession?
+    @State private var actionError = ""
 #if DEBUG && targetEnvironment(simulator)
     @Environment(\.coviSimulatorDiagnostics) private var diagnostics
     @State private var diagnosticLayout: Data?
 #endif
 
     init(tables: [DiningTable], orders: [CommerceOrder], lines: [OrderLine], payments: [PaymentRecord],
-         service: RestaurantService, @ViewBuilder detail: @escaping (DiningTable) -> Detail) {
+         menu: [CatalogItem], service: RestaurantService, @ViewBuilder detail: @escaping (DiningTable) -> Detail) {
         self.tables = tables
         self.orders = orders
         self.lines = lines
         self.payments = payments
+        self.menu = menu
         self.service = service
         self.detail = detail
         _layoutData = AppStorage(wrappedValue: Data(), "covi.floor-plan.v1." + service.shop.id.uuidString)
@@ -208,6 +224,7 @@ struct RestaurantFloorPlan<Detail: View>: View {
                         if diagnostics.scenario == .restaurantFloorZoom { zoom = 1.5 }
                         else { selectedID = sample.id }
                         if diagnostics.scenario == .restaurantFloorEdit { editingTable = sample }
+                        else if diagnostics.scenario == .restaurantFloorOrderStart { presentOrder(sample) }
                         else if diagnostics.scenario == .restaurantFloorCheckoutSheet,
                                 let order = orders.first(where: { $0.id == sample.activeSessionID }) {
                             presentCheckout(sample, order: order)
@@ -232,6 +249,22 @@ struct RestaurantFloorPlan<Detail: View>: View {
                 .presentationDetents([.fraction(0.84), .large])
                 .presentationDragIndicator(.visible)
         }
+        .sheet(item: $orderSheet, onDismiss: {
+            if let nextOrder {
+                self.nextOrder = nil
+                orderSheet = .composer(nextOrder)
+            }
+        }) { sheet in
+            switch sheet {
+            case .guests(let table):
+                RestaurantGuestEditor(table: table, existingCount: nil) { count in
+                    let order = try service.open(table, guestCount: count)
+                    nextOrder = TableSession(table: table, order: order)
+                }
+            case .composer(let target):
+                RestaurantComposer(menu: menu, table: target.table, order: target.order, service: service)
+            }
+        }
         .sheet(isPresented: $showingRoomEditor) {
             RestaurantFloorRoomEditor(existing: renamingRoom) { name, kind in
                 let added = try saveLayout { layout -> UUID? in
@@ -244,20 +277,31 @@ struct RestaurantFloorPlan<Detail: View>: View {
                 if let added { selectRoom(added) }
             }
         }
-        .alert("Encaissement", isPresented: Binding(get: { !checkoutError.isEmpty },
-            set: { if !$0 { checkoutError = "" } })) {
+        .alert("Salle", isPresented: Binding(get: { !actionError.isEmpty },
+            set: { if !$0 { actionError = "" } })) {
             Button("OK") {}
         } message: {
-            Text(checkoutError)
+            Text(actionError)
         }
     }
 
     private func presentCheckout(_ table: DiningTable, order: CommerceOrder) {
         do {
             guard try service.paymentBalance(table, order: order) > 0 else { throw RestaurantFault.invalid }
-            checkout = CheckoutTarget(table: table, order: order)
+            checkout = TableSession(table: table, order: order)
         } catch {
-            checkoutError = error.localizedDescription
+            actionError = error.localizedDescription
+        }
+    }
+
+    private func presentOrder(_ table: DiningTable) {
+        do {
+            try service.authorize()
+            guard table.establishmentID == service.shop.id,
+                  !table.isOccupied, table.activeSessionID == nil else { throw RestaurantFault.stale }
+            orderSheet = .guests(table)
+        } catch {
+            actionError = error.localizedDescription
         }
     }
 
@@ -571,27 +615,7 @@ struct RestaurantFloorPlan<Detail: View>: View {
     private func selection(_ table: DiningTable, state: RestaurantFloorState, order: CommerceOrder?) -> some View {
         COVICard {
             VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(table.label).font(.title3.bold()).accessibilityAddTraits(.isHeader)
-                        Label("Capacité : \(table.capacity) places", systemImage: "person")
-                            .font(.subheadline)
-                        if let guests = order?.restaurantGuestCount ?? (table.isOccupied ? nil : 0) {
-                            Label("Places occupées : \(guests) / \(table.capacity)", systemImage: "person.2")
-                                .font(.subheadline)
-                        } else {
-                            Label("Convives non renseignés", systemImage: "person.2")
-                                .font(.subheadline)
-                        }
-                    }
-                    Spacer(minLength: 6)
-                    Button { selectedID = nil } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .frame(width: 44, height: 44)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Fermer le résumé de la table")
-                }
+                selectionHeading(table, order: order)
                 COVIBadge(title: state.rawValue, tint: state.tint)
                 if let order {
                     let amount = RestaurantBill.remaining(order, payments: payments)
@@ -612,6 +636,13 @@ struct RestaurantFloorPlan<Detail: View>: View {
                         }
                     }
                         .font(.subheadline)
+                }
+                if state == .available, table.activeSessionID == nil,
+                   service.admin || service.role == .waiter {
+                    COVIButton("Prendre une commande",
+                               systemImage: textSize.isAccessibilitySize ? nil : "plus.circle") {
+                        presentOrder(table)
+                    }
                 }
                 let actionLayout = textSize.isAccessibilitySize
                     ? AnyLayout(VStackLayout(spacing: 8))
@@ -650,6 +681,51 @@ struct RestaurantFloorPlan<Detail: View>: View {
                 .buttonStyle(.plain)
             }
             .foregroundStyle(COVITheme.navy)
+        }
+    }
+
+    private func selectionHeading(_ table: DiningTable, order: CommerceOrder?) -> some View {
+        let guests = order?.restaurantGuestCount ?? (table.isOccupied ? nil : 0)
+        return VStack(alignment: .leading, spacing: 4) {
+            Text(table.label)
+                .font(.title3.bold())
+                .accessibilityAddTraits(.isHeader)
+                .padding(.trailing, 48)
+            Group {
+                if textSize.isAccessibilitySize {
+                    Text("Capacité : \(table.capacity)")
+                        .accessibilityLabel("Capacité : \(table.capacity) places")
+                    if let guests {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Places occupées")
+                            Text("\(guests) sur \(table.capacity)").fontWeight(.semibold)
+                        }
+                        .accessibilityElement(children: .combine)
+                    } else {
+                        Text("Convives non renseignés")
+                    }
+                } else {
+                    Label("Capacité : \(table.capacity) places", systemImage: "person")
+                    if let guests {
+                        Label("Places occupées : \(guests) / \(table.capacity)", systemImage: "person.2")
+                    } else {
+                        Label("Convives non renseignés", systemImage: "person.2")
+                    }
+                }
+            }
+            .font(.subheadline)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.trailing, textSize.isAccessibilitySize ? 0 : 48)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .overlay(alignment: .topTrailing) {
+            Button { selectedID = nil } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 18))
+                    .frame(width: 44, height: 44)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Fermer le résumé de la table")
         }
     }
 }
