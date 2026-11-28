@@ -28,17 +28,9 @@
     align-items: center;
     gap: var(--space-3);
     min-height: 60px;
-    padding: var(--space-2) var(--gutter) var(--space-2) calc(var(--margin-offset) + var(--space-3));
+    padding: var(--space-2) var(--gutter);
     border-bottom: var(--border-hair) solid var(--line);
     background: var(--paper);
-  }
-  .topbar::before {
-    content: '';
-    position: absolute;
-    inset-block: 0;
-    inset-inline-start: var(--margin-offset);
-    width: 2px;
-    background: var(--margin-line);
   }
   .topbar__shop {
     flex: 1 1 0;
@@ -74,15 +66,12 @@
     padding: 0;
     margin-inline-start: auto;
     overflow: hidden;
-    border: var(--border-field) solid var(--action);
+    border: 0;
     border-radius: 50%;
-    background: var(--sheet);
+    background: var(--action-tint-strong);
     color: var(--action);
     font-size: var(--step--1);
     font-weight: var(--weight-bold);
-    box-shadow:
-      0 0 0 3px var(--sheet),
-      0 0 0 4.5px #a9b9d8;
     transition: background-color var(--dur-fast) var(--ease-out);
   }
   .avatar img {
@@ -238,11 +227,8 @@
     inset-inline: var(--space-2);
     bottom: 4px;
     height: 3px;
-    border-radius: 40% 60% 50% 50% / 100%;
+    border-radius: var(--radius-pill);
     background: currentColor;
-    rotate: -1deg;
-    transform-origin: left;
-    animation: covi-underline var(--dur-base) var(--ease-out) both;
   }
 
   /* En-tête d’écran : titre (+ repère), et l’action principale à droite. */

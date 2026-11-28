@@ -1,6 +1,6 @@
 /* ==========================================================================
    COVI — base.css
-   Reset léger, typographie, fond papier Seyès (CSS pur), liens, focus,
+   Reset léger, typographie, fond uni, liens, focus,
    sélection, réduction des animations, quelques utilitaires indispensables.
    Dépend de tokens.css.
    ========================================================================== */
@@ -124,7 +124,9 @@
   }
   h1 {
     font-size: var(--step-4);
-    color: var(--action);
+    font-weight: var(--weight-heavy);
+    letter-spacing: -0.02em;
+    color: var(--ink);
     line-height: var(--leading-tight);
   }
   h2 {
@@ -195,20 +197,11 @@
     outline-offset: var(--focus-offset);
   }
 
-  /* ---------- Fond papier : quadrillage Seyès très pâle (CSS pur) ----------
-     Carreau de 32 px : 3 lignes fines tous les 8 px, une ligne plus marquée,
-     une verticale. Utilisé par body (téléphone) et .seyes (feuille). */
+  /* ---------- Fond : uni et clair (Esprit Wave). `.seyes` reste un nom de classe utilisé par
+     les pages, mais n'affiche plus de quadrillage. ---------- */
   body,
   .seyes {
     background-color: var(--paper);
-    background-image:
-      linear-gradient(to right, transparent calc(var(--seyes-big) - 1px), var(--grid-fine) 0),
-      linear-gradient(to bottom, transparent calc(var(--seyes-big) - 1px), var(--grid-strong) 0),
-      linear-gradient(to bottom, transparent calc(var(--seyes-fine) - 1px), var(--grid-fine) 0);
-    background-size:
-      var(--seyes-big) var(--seyes-big),
-      var(--seyes-big) var(--seyes-big),
-      100% var(--seyes-fine);
   }
 
   /* Impression (reçu, bilan) : pas de quadrillage, pas de décor. */
@@ -253,20 +246,10 @@
     white-space: nowrap;
   }
 
-  /* Marge rouge du cahier : le contenu commence après elle. */
+  /* Ancienne marge rouge du cahier : supprimée. La classe garde la gouttière de la page. */
   .margin-rule {
     position: relative;
-    padding-inline-start: calc(var(--margin-offset) + var(--space-3));
-  }
-  .margin-rule::before {
-    content: '';
-    position: absolute;
-    inset-block: 0;
-    inset-inline-start: var(--margin-offset);
-    width: 2px;
-    background: var(--margin-line);
-    pointer-events: none;
-    z-index: var(--z-margin);
+    padding-inline-start: var(--gutter);
   }
 
   /* Chiffres */
@@ -280,7 +263,7 @@
   }
   .hand {
     font-family: var(--font-hand);
-    font-weight: 400;
+    font-weight: var(--weight-semibold);
     color: var(--action);
     line-height: 1.2;
   }

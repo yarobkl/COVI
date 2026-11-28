@@ -1,5 +1,5 @@
 /* Caisse multi-caissiers : pavé du code PIN, espace caissier, équipe (Ma boutique), changement de
-   caissier sur l'appareil partagé, ventes par caissier. Mêmes jetons que le reste du cahier ;
+   caissier sur l'appareil partagé, ventes par caissier. Mêmes jetons que le reste de l'app ;
    toute cible tactile fait au moins --tap-min (44 px), les touches du pavé --tap-sale-lg. */
 @layer app {
   /* Pavé du code PIN ------------------------------------------------------------------------- */
@@ -26,31 +26,36 @@
   .pinpad__dot {
     width: 16px;
     height: 16px;
-    border: 2px solid var(--ink);
+    border: 2px solid var(--line-field);
     border-radius: var(--radius-pill);
   }
   .pinpad__dot--on {
-    background: var(--ink);
+    border-color: var(--pin-dot, var(--action));
+    background: var(--pin-dot, var(--action));
   }
   .pinpad__keys {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-2);
+    gap: var(--space-3);
   }
   .pinpad__key {
     min-height: var(--tap-sale-lg);
-    border: var(--border-tactile, 2px solid var(--ink));
-    border-radius: var(--radius-2);
-    background: var(--surface-key);
+    border: 0;
+    border-radius: var(--radius-4);
+    background: var(--surface-key, var(--action-tint));
     color: var(--ink);
     font-family: var(--font-figures);
-    font-size: var(--step-2);
-    box-shadow: var(--shadow-press-sm);
+    font-size: var(--step-3);
+    font-weight: var(--weight-semibold);
+    font-variant-numeric: var(--numeric-tabular);
     cursor: pointer;
+    transition: background-color var(--dur-fast) var(--ease-out);
+  }
+  .pinpad__key:hover:not(:disabled) {
+    background: var(--surface-key-hover, var(--action-tint-strong));
   }
   .pinpad__key:active:not(:disabled) {
-    box-shadow: var(--shadow-press-none);
-    transform: translate(var(--press-offset-sm), var(--press-offset-sm));
+    transform: scale(0.97);
   }
   .pinpad__key:disabled {
     background: var(--disabled-bg);
@@ -67,6 +72,29 @@
     outline-offset: var(--focus-offset);
   }
 
+  /* Écran plein du code caissier : bleu de nuit. Les couleurs sont redéfinies ici seulement ;
+     boutons, messages et pavé s'adaptent sans changer de composant. */
+  .pin-screen,
+  .counter {
+    --paper: var(--night);
+    --sheet: var(--night-raised);
+    --surface-key: var(--night-raised);
+    --surface-key-hover: #1d3c80;
+    --ink: #ffffff;
+    --ink-soft: var(--night-ink-muted);
+    --ink-muted: var(--night-ink-muted);
+    --action: var(--sale-accent);
+    --action-hover: #ffe27a;
+    --action-ink: var(--night);
+    --action-tint: rgb(255 255 255 / 0.08);
+    --action-tint-strong: rgb(255 255 255 / 0.14);
+    --line: rgb(255 255 255 / 0.16);
+    --line-field: rgb(255 255 255 / 0.4);
+    --disabled-bg: rgb(255 255 255 / 0.06);
+    --disabled-ink: var(--night-ink-muted);
+    --focus-color: var(--sale-accent);
+    color: var(--ink);
+  }
   .pin-screen {
     display: grid;
     align-content: center;
