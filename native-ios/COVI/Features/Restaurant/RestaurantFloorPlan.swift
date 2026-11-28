@@ -530,42 +530,33 @@ struct RestaurantFloorPlan<Detail: View>: View {
         }
     }
 
-    @ViewBuilder private func filters(_ states: [UUID: RestaurantFloorState]) -> some View {
+    private func filters(_ states: [UUID: RestaurantFloorState]) -> some View {
         let counts = Dictionary(grouping: states.values, by: { $0 }).mapValues(\.count)
         let filters = RestaurantFloorState.allCases.filter { $0 != .paidOccupied || counts[$0] != nil }
-        let columns = textSize.isAccessibilitySize ? 1 : sizeClass == .regular ? 4 : 2
-        let grid = LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: columns), spacing: 6) {
+        let compactFilters = compactOverview && filters.count == 4
+        let columns = textSize.isAccessibilitySize ? 1 : (compactFilters || sizeClass == .regular ? 4 : 2)
+        return LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: columns), spacing: 6) {
             ForEach(filters, id: \.self) { state in
-                filterButton(state, count: counts[state] ?? 0)
+                filterButton(state, count: counts[state] ?? 0, compact: compactFilters)
             }
-        }
-        if compactOverview {
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 4) {
-                    ForEach(filters, id: \.self) { state in
-                        filterButton(state, count: counts[state] ?? 0)
-                            .fixedSize(horizontal: true, vertical: false)
-                    }
-                }
-                grid
-            }
-        } else {
-            grid
         }
     }
 
-    private func filterButton(_ state: RestaurantFloorState, count: Int) -> some View {
+    private func filterButton(_ state: RestaurantFloorState, count: Int, compact: Bool) -> some View {
         let selected = highlightedState == state
         return Button { highlightedState = selected ? nil : state } label: {
             HStack(spacing: 4) {
-                Circle().fill(selected ? .white : state.outline).frame(width: 7, height: 7)
+                Circle().fill(selected ? .white : state.outline)
+                    .frame(width: compact ? 5 : 7, height: compact ? 5 : 7)
                     .accessibilityHidden(true)
                 Text("\(state.rawValue) (\(count))")
-                    .font(.caption.weight(.semibold))
+                    .font((compact ? Font.caption2 : Font.caption).weight(.semibold))
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .foregroundStyle(selected ? .white : COVITheme.navy)
+            .padding(.horizontal, compact ? 2 : 5)
             .frame(maxWidth: .infinity, minHeight: 44)
-            .padding(.horizontal, 5)
             .background(selected ? COVITheme.navy : .white, in: Capsule())
         }
         .buttonStyle(.plain)
