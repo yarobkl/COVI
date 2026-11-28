@@ -8,7 +8,6 @@ struct RestaurantSpace: View {
     let role: StaffRole
     let pin: PINManager
     @Environment(\.modelContext) private var db
-    @Environment(\.dynamicTypeSize) private var textSize
     @Query private var tables: [DiningTable]
     @Query private var orders: [CommerceOrder]
     @Query private var payments: [PaymentRecord]
@@ -55,7 +54,7 @@ struct RestaurantSpace: View {
         }
         .background(COVIBackdrop())
         .navigationTitle(tab == .kitchen ? "Cuisine" : tab == .tables && showFloorPlan ? "Salle" : tab.title)
-        .navigationBarTitleDisplayMode(tab == .tables && showFloorPlan && textSize.isAccessibilitySize ? .inline : .automatic)
+        .navigationBarTitleDisplayMode(tab == .tables && showFloorPlan ? .inline : .automatic)
         .toolbar {
             if tab == .tables {
                 ToolbarItemGroup(placement: .topBarTrailing) {

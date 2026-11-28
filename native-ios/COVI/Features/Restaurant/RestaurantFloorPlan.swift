@@ -193,6 +193,10 @@ struct RestaurantFloorPlan<Detail: View>: View {
         tables.sorted { $0.label.localizedStandardCompare($1.label) == .orderedAscending }
     }
 
+    private var compactOverview: Bool {
+        sizeClass == .compact && textSize <= .large
+    }
+
     var body: some View {
         let current = configuration
         let room = current.spaces.first { $0.id == roomID }
@@ -202,10 +206,11 @@ struct RestaurantFloorPlan<Detail: View>: View {
                 .padding(.vertical, 6)
             ScrollViewReader { scroll in
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: compactOverview ? 10 : 16) {
                         plan(configuration: current, room: room)
                     }
-                    .padding(18)
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, compactOverview ? 8 : 18)
                 }
                 .onChange(of: selectedID) { _, id in
                     guard id != nil else { return }
@@ -480,16 +485,17 @@ struct RestaurantFloorPlan<Detail: View>: View {
     @ViewBuilder private func floorViewport(_ states: [UUID: RestaurantFloorState], tables: [DiningTable],
                                              positions: [UUID: RestaurantTablePlacement]) -> some View {
         if textSize.isAccessibilitySize {
-            floorGrid(states, tables: tables, positions: positions)
+            floorGrid(states, tables: tables, positions: positions, rowHeight: 130)
         } else {
             let last = tables.compactMap { positions[$0.id]?.slot }.max() ?? 0
             let rows = last / RestaurantFloorLayout.columns + 1
-            let baseHeight = CGFloat(rows) * 104 - 8
+            let rowHeight: CGFloat = compactOverview && rows <= 3 ? 68 : 96
+            let baseHeight = CGFloat(rows) * (rowHeight + 8) - 8
             let scale = RestaurantFloorZoom.bounded(zoom * pinchScale)
             GeometryReader { proxy in
                 let width = proxy.size.width
                 ScrollView([.horizontal, .vertical]) {
-                    floorGrid(states, tables: tables, positions: positions)
+                    floorGrid(states, tables: tables, positions: positions, rowHeight: rowHeight)
                         .frame(width: width, height: baseHeight)
                         .scaleEffect(scale, anchor: .topLeading)
                         .frame(width: width * scale, height: baseHeight * scale, alignment: .topLeading)
@@ -506,7 +512,7 @@ struct RestaurantFloorPlan<Detail: View>: View {
     }
 
     private func floorGrid(_ states: [UUID: RestaurantFloorState], tables: [DiningTable],
-                           positions: [UUID: RestaurantTablePlacement]) -> some View {
+                           positions: [UUID: RestaurantTablePlacement], rowHeight: CGFloat) -> some View {
         let occupants = Dictionary(uniqueKeysWithValues: tables.compactMap { table in
             positions[table.id].map { ($0.slot, table) }
         })
@@ -516,41 +522,59 @@ struct RestaurantFloorPlan<Detail: View>: View {
         return LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: columns), spacing: 8) {
             ForEach(slots, id: \.self) { slot in
                 if let table = occupants[slot], let state = states[table.id], let placement = positions[table.id] {
-                    floorTable(table, state: state, placement: placement)
+                    floorTable(table, state: state, placement: placement, rowHeight: rowHeight)
                 } else {
-                    Color.clear.frame(height: 96).accessibilityHidden(true)
+                    Color.clear.frame(height: rowHeight).accessibilityHidden(true)
                 }
             }
         }
     }
 
-    private func filters(_ states: [UUID: RestaurantFloorState]) -> some View {
+    @ViewBuilder private func filters(_ states: [UUID: RestaurantFloorState]) -> some View {
         let counts = Dictionary(grouping: states.values, by: { $0 }).mapValues(\.count)
+        let filters = RestaurantFloorState.allCases.filter { $0 != .paidOccupied || counts[$0] != nil }
         let columns = textSize.isAccessibilitySize ? 1 : sizeClass == .regular ? 4 : 2
-        return LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: columns), spacing: 6) {
-            ForEach(RestaurantFloorState.allCases.filter { $0 != .paidOccupied || counts[$0] != nil }, id: \.self) { state in
-                let selected = highlightedState == state
-                Button { highlightedState = selected ? nil : state } label: {
-                    HStack(spacing: 5) {
-                        Circle().fill(selected ? .white : state.outline).frame(width: 8, height: 8)
-                            .accessibilityHidden(true)
-                        Text("\(state.rawValue) (\(counts[state] ?? 0))")
-                            .font(.caption.weight(.semibold))
-                    }
-                    .foregroundStyle(selected ? .white : COVITheme.navy)
-                    .frame(maxWidth: .infinity, minHeight: 44)
-                    .padding(.horizontal, 4)
-                    .background(selected ? COVITheme.navy : .white, in: Capsule())
-                }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(selected ? .isSelected : [])
-                .accessibilityHint("Met en évidence les tables dans cet état")
+        let grid = LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: columns), spacing: 6) {
+            ForEach(filters, id: \.self) { state in
+                filterButton(state, count: counts[state] ?? 0)
             }
         }
+        if compactOverview {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 4) {
+                    ForEach(filters, id: \.self) { state in
+                        filterButton(state, count: counts[state] ?? 0)
+                            .fixedSize(horizontal: true, vertical: false)
+                    }
+                }
+                grid
+            }
+        } else {
+            grid
+        }
+    }
+
+    private func filterButton(_ state: RestaurantFloorState, count: Int) -> some View {
+        let selected = highlightedState == state
+        return Button { highlightedState = selected ? nil : state } label: {
+            HStack(spacing: 4) {
+                Circle().fill(selected ? .white : state.outline).frame(width: 7, height: 7)
+                    .accessibilityHidden(true)
+                Text("\(state.rawValue) (\(count))")
+                    .font(.caption.weight(.semibold))
+            }
+            .foregroundStyle(selected ? .white : COVITheme.navy)
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .padding(.horizontal, 5)
+            .background(selected ? COVITheme.navy : .white, in: Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityHint("Met en évidence les tables dans cet état")
     }
 
     private func floorTable(_ table: DiningTable, state: RestaurantFloorState,
-                            placement: RestaurantTablePlacement) -> some View {
+                            placement: RestaurantTablePlacement, rowHeight: CGFloat) -> some View {
         let selected = selectedID == table.id
         let emphasized = highlightedState == nil || highlightedState == state || selected
         return Button {
@@ -583,7 +607,7 @@ struct RestaurantFloorPlan<Detail: View>: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .contentShape(Rectangle())
                 }
-                .frame(height: textSize.isAccessibilitySize ? 130 : 96)
+                .frame(height: rowHeight)
                 if textSize.isAccessibilitySize {
                     Text("\(table.label) · \(table.capacity) places")
                         .font(.headline)

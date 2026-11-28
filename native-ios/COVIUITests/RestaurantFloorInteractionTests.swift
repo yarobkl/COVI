@@ -44,6 +44,24 @@ final class RestaurantFloorInteractionTests: XCTestCase {
         XCTAssertTrue(app.buttons["Ouvrir une session"].exists)
     }
 
+    func testAllEightTablesRemainTouchableWithTheSummaryOpen() {
+        let app = launch("restaurant-floor-plan")
+        let start = app.buttons["Prendre une commande"]
+        XCTAssertTrue(start.waitForExistence(timeout: 15))
+        XCTAssertTrue(start.isHittable)
+        for number in [1, 2, 3, 4, 5, 6, 8, 10] {
+            let table = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Table \(number), ")).firstMatch
+            XCTAssertTrue(table.isHittable, "Table \(number) doit rester accessible")
+        }
+        for status in ["Disponible (5)", "Occupée (1)", "En service (1)", "À encaisser (1)"] {
+            XCTAssertTrue(app.buttons[status].isHittable, status)
+        }
+        let first = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Table 1, ")).firstMatch
+        first.tap()
+        XCTAssertTrue(app.staticTexts["Table 1"].exists)
+        XCTAssertTrue(start.isHittable)
+    }
+
     private func launch(_ scenario: String) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = [
