@@ -9,6 +9,7 @@ import UIKit
 @MainActor
 final class COVISimulatorDiagnostics {
     static let argument = "--covi-diagnostic-scenario"
+    static let interactiveArgument = "--covi-diagnostic-interactive"
 
     enum Scenario: String {
         case welcome
@@ -858,7 +859,7 @@ struct COVISimulatorDiagnosticView: View {
             }
         }
         .environment(\.coviSimulatorDiagnostics, fixture)
-        .allowsHitTesting(false)
+        .allowsHitTesting(ProcessInfo.processInfo.arguments.contains(COVISimulatorDiagnostics.interactiveArgument))
         .task {
             // Le formulaire et la fiche Salon signalent leur propre apparition.
             if fixture.salonBooking == nil && fixture.salonProfileID == nil &&

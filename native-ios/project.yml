@@ -37,6 +37,19 @@ targets:
         SWIFT_VERSION: "5.0"
         GENERATE_INFOPLIST_FILE: YES
         CODE_SIGNING_ALLOWED: NO
+  COVIUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: COVIUITests
+    dependencies:
+      - target: COVI
+    settings:
+      base:
+        SWIFT_VERSION: "5.0"
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: COVI
+        CODE_SIGNING_ALLOWED: NO
 schemes:
   COVI:
     build:
@@ -47,3 +60,11 @@ schemes:
         - COVITests
     archive:
       config: Release
+  COVIInteraction:
+    build:
+      targets:
+        COVI: all
+    test:
+      config: Debug
+      targets:
+        - COVIUITests
