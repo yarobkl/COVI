@@ -737,6 +737,37 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   a validé Debug, Release et **165 XCTest sans échec**. Les appuis
   en complément des captures et le parcours physique restent à tester.
 
+### Prendre une commande depuis Salle
+
+- Sur `47a2787`, « Prendre une commande » ouvre depuis le résumé
+  d’une table libre le formulaire des convives. La confirmation
+  enregistre la session et présente la carte de cette même table.
+  L’ouverture conserve les contrôles du rôle, du PIN, de la
+  capacité et de l’occupation. Le test SwiftData vérifie que
+  la session retournée est celle de la table et qu’un deuxième
+  appel ne crée pas de doublon.
+- Trois des [72 captures](https://github.com/yarobkl/COVI/actions/runs/46149542712/artifacts/15266032364)
+  ont été examinées à partir de la planche Salle `e5113fe8…`. Sur iPhone
+  simulé, le résumé de Table 10 reprend la capacité de 10 places,
+  l’occupation à 0 sur 10 et l’action principale « Prendre une
+  commande ». La feuille SwiftUI affiche la capacité, le nombre de
+  convives et les commandes d’annulation et de confirmation.
+  À XXXL, le résumé de Table 6 affiche « Places occupées » en
+  entier sur deux lignes et « 3 sur 6 ». Le solde et les actions
+  restent accessibles en défilant. La planche montre « Réserver »
+  et « Plus » dans le résumé, ce qui reste à rapprocher du rendu
+  actuel. Les interactions restent à vérifier sur iPhone physique.
+- Sur `b66f073`, deux XCUITest passent sur simulateur. Le premier
+  annule l’ouverture, reprend la même table et confirme l’accès à
+  « Commander · Table 10 ». Le second touche « Encaisser » et
+  retrouve la feuille de Table 6. Les tests utilisent les contrôles
+  SwiftUI et des données éphémères.
+  [Interactions](https://github.com/yarobkl/COVI/actions/runs/46149682300/job/140993385571)
+- Le [diagnostic du même commit](https://github.com/yarobkl/COVI/actions/runs/46149682300/job/140993385352)
+  a passé **165 XCTest sans échec** ainsi que les compilations Debug
+  et Release. Les [captures associées](https://github.com/yarobkl/COVI/actions/runs/46149682300/artifacts/15265977604)
+  sont publiées.
+
 ### Table réglée et départ des clients
 
 - Le solde ferme la commande et conserve l’occupation de la table.

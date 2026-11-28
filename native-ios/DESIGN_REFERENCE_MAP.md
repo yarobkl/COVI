@@ -99,6 +99,19 @@ la salle et le début du résumé sont visibles. Le libellé des places
 occupées se coupe et les actions demandent de défiler. Les appuis
 sur appareil et les autres commandes du concept restent à traiter.
 
+Les [captures « Prendre une commande »](https://github.com/yarobkl/COVI/actions/runs/46149542712/artifacts/15266032364)
+ont été comparées à la planche Salle `e5113fe8…`. Le résumé sur
+iPhone simulé affiche Table 10, sa capacité de 10 places, une
+occupation à 0 sur 10 et l’action principale de la planche.
+Le formulaire natif demande le nombre de convives avant l’ouverture
+de la carte. Les actions « Réserver » et « Plus » du résumé de
+la planche restent à traiter. Sur la capture XXXL de Table 6,
+« Places occupées » tient sur deux lignes et « 3 sur 6 » est
+entièrement visible. Le solde et les actions se trouvent plus bas.
+Deux [tests d’interaction sur simulateur](https://github.com/yarobkl/COVI/actions/runs/46149682300/job/140993385571)
+confirment les parcours de commande et d’encaissement. La comparaison
+avec la planche et ces essais couvrent le simulateur iPhone.
+
 ## Reprise du lot visuel COVI 2.0
 
 - Le build TestFlight 1.0.13 (10051), issu du commit `6eb37ed`, valide la
