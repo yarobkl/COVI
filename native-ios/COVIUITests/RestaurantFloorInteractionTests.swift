@@ -30,6 +30,20 @@ final class RestaurantFloorInteractionTests: XCTestCase {
         XCTAssertTrue(app.buttons["Confirmer le solde"].exists)
     }
 
+    func testTableOptionsOpenDetailsForTheSelectedTable() {
+        let app = launch("restaurant-floor-plan")
+        let more = app.buttons["restaurant-floor-table-more"]
+        XCTAssertTrue(more.waitForExistence(timeout: 15))
+        more.tap()
+
+        let details = app.buttons["Détails de la table"]
+        XCTAssertTrue(details.waitForExistence(timeout: 8))
+        details.tap()
+
+        XCTAssertTrue(app.navigationBars["Table 10"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.buttons["Ouvrir une session"].exists)
+    }
+
     private func launch(_ scenario: String) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = [

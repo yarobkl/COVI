@@ -166,6 +166,7 @@ struct RestaurantFloorPlan<Detail: View>: View {
     @State private var renamingRoom: RestaurantFloorRoom?
     @State private var showingRoomEditor = false
     @State private var highlightedState: RestaurantFloorState?
+    @State private var detailTableID: UUID?
     @State private var editingTable: DiningTable?
     @State private var checkout: TableSession?
     @State private var orderSheet: OrderSheet?
@@ -233,6 +234,11 @@ struct RestaurantFloorPlan<Detail: View>: View {
                     }
                 }
 #endif
+            }
+        }
+        .navigationDestination(item: $detailTableID) { id in
+            if let table = tables.first(where: { $0.id == id }) {
+                detail(table)
             }
         }
         .sheet(item: $editingTable) { table in
@@ -387,9 +393,10 @@ struct RestaurantFloorPlan<Detail: View>: View {
                     RoundedRectangle(cornerRadius: 12).strokeBorder(COVITheme.navy.opacity(0.25))
                         .allowsHitTesting(false)
                 }
-            if let table = displayed.first(where: { $0.id == selectedID }), let state = states[table.id] {
+            if let table = displayed.first(where: { $0.id == selectedID }),
+               let state = states[table.id], let placement = positions[table.id] {
                 let order = table.activeSessionID.flatMap { ordersByID[$0]?.first }
-                selection(table, state: state, order: order)
+                selection(table, placement: placement, state: state, order: order)
                     .id("restaurant-table-summary")
             }
         }
@@ -612,11 +619,27 @@ struct RestaurantFloorPlan<Detail: View>: View {
         }
     }
 
-    private func selection(_ table: DiningTable, state: RestaurantFloorState, order: CommerceOrder?) -> some View {
+    private func selection(_ table: DiningTable, placement: RestaurantTablePlacement,
+                           state: RestaurantFloorState, order: CommerceOrder?) -> some View {
         COVICard {
             VStack(alignment: .leading, spacing: 10) {
-                selectionHeading(table, order: order)
-                COVIBadge(title: state.rawValue, tint: state.tint)
+                HStack(alignment: .top, spacing: 8) {
+                    if textSize <= .large {
+                        let size = CGSize(width: 58, height: 52)
+                        let rotated = !placement.rotation.isMultiple(of: 2)
+                        let drawingSize = rotated ? CGSize(width: size.height, height: size.width) : size
+                        let drawing = FloorTableDrawing(shape: placement.shape, capacity: table.capacity, size: drawingSize)
+                        tableDrawing(drawing, state: state, selected: true)
+                            .frame(width: drawingSize.width, height: drawingSize.height)
+                            .rotationEffect(.degrees(Double(placement.rotation) * 90))
+                            .frame(width: size.width, height: size.height)
+                            .accessibilityHidden(true)
+                    }
+                    VStack(alignment: .leading, spacing: 6) {
+                        selectionHeading(table, order: order)
+                        COVIBadge(title: state.rawValue, tint: state.tint)
+                    }
+                }
                 if let order {
                     let amount = RestaurantBill.remaining(order, payments: payments)
                     let paid = state == .paidOccupied
@@ -644,6 +667,14 @@ struct RestaurantFloorPlan<Detail: View>: View {
                         presentOrder(table)
                     }
                 }
+                if let order, state == .checkout, order.state == .accepted,
+                   let due = try? RestaurantBill.checkoutBalance(order,
+                       lines: lines.filter { $0.orderID == order.id }, payments: payments), due > 0 {
+                    COVIButton("Encaisser", systemImage: textSize.isAccessibilitySize ? nil : "creditcard",
+                               role: .secondary) {
+                        presentCheckout(table, order: order)
+                    }
+                }
                 let actionLayout = textSize.isAccessibilitySize
                     ? AnyLayout(VStackLayout(spacing: 8))
                     : AnyLayout(HStackLayout(spacing: 8))
@@ -653,32 +684,33 @@ struct RestaurantFloorPlan<Detail: View>: View {
                                    role: .secondary) { editingTable = table }
                             .accessibilityLabel("Déplacer ou orienter")
                     }
-                    if let order, state == .checkout, order.state == .accepted,
-                       let due = try? RestaurantBill.checkoutBalance(order,
-                           lines: lines.filter { $0.orderID == order.id }, payments: payments), due > 0 {
-                        COVIButton("Encaisser", systemImage: textSize.isAccessibilitySize ? nil : "creditcard",
-                                   role: .secondary) {
-                            presentCheckout(table, order: order)
+                    Menu {
+                        Button("Détails de la table", systemImage: "table.furniture") {
+                            detailTableID = table.id
+                        }
+                    } label: {
+                        Group {
+                            if textSize.isAccessibilitySize {
+                                Text("Plus")
+                            } else {
+                                Label("Plus", systemImage: "ellipsis")
+                            }
+                        }
+                        .font(.headline.weight(.semibold))
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .frame(maxWidth: .infinity, minHeight: COVITheme.Metrics.buttonHeight)
+                        .foregroundStyle(COVITheme.navy)
+                        .background(COVITheme.champagne.opacity(0.30),
+                                    in: RoundedRectangle(cornerRadius: COVITheme.Metrics.buttonRadius))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: COVITheme.Metrics.buttonRadius)
+                                .strokeBorder(COVITheme.navy.opacity(0.35), lineWidth: 1.5)
                         }
                     }
+                    .accessibilityLabel("Plus d’actions pour \(table.label)")
+                    .accessibilityIdentifier("restaurant-floor-table-more")
                 }
-                NavigationLink {
-                    detail(table)
-                } label: {
-                    Group {
-                        if textSize.isAccessibilitySize {
-                            Text("Détails de la table")
-                        } else {
-                            Label("Détails de la table", systemImage: "arrow.forward")
-                        }
-                    }
-                        .font(.subheadline.weight(.semibold))
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(.white)
-                        .background(COVITheme.navy, in: RoundedRectangle(cornerRadius: 12))
-                }
-                .buttonStyle(.plain)
             }
             .foregroundStyle(COVITheme.navy)
         }

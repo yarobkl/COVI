@@ -86,7 +86,7 @@ jobs:
           xcrun simctl status_bar "$DEVICE_ID" override --time "9:41" --batteryState charged --batteryLevel 100
           trap 'xcrun simctl status_bar "$DEVICE_ID" clear' EXIT
           # Give the newest diagnostic an opportunity to render before the regression sweep.
-          for SCENARIO in restaurant-floor-order-start restaurant-floor-checkout restaurant-floor-checkout-sheet boutique-category shop-header salon-report-absences salon-clients-absences salon-report account-login account-registration sync-centre cashier-pin establishment-setup spaces restaurant-order-drinks salon-agenda salon-agenda-grid boutique-photo-search restaurant-incident restaurant-kitchen restaurant-kitchen-ready restaurant-paid-table restaurant-floor-guests restaurant-floor-zoom boutique-arrivals restaurant-floor-terrace restaurant-floor-plan restaurant-floor-edit restaurant-payment restaurant-drinks restaurant-menu restaurant-team restaurant-report salon-more salon-settings salon-checkout salon-catalog welcome boutique-home boutique-sale boutique-checkout restaurant-tables restaurant-table restaurant-order salon-today salon-booking salon-booking-conflict salon-clients salon-clients-upcoming salon-profile; do
+          for SCENARIO in restaurant-floor-plan restaurant-floor-order-start restaurant-floor-checkout restaurant-floor-checkout-sheet boutique-category shop-header salon-report-absences salon-clients-absences salon-report account-login account-registration sync-centre cashier-pin establishment-setup spaces restaurant-order-drinks salon-agenda salon-agenda-grid boutique-photo-search restaurant-incident restaurant-kitchen restaurant-kitchen-ready restaurant-paid-table restaurant-floor-guests restaurant-floor-zoom boutique-arrivals restaurant-floor-terrace restaurant-floor-edit restaurant-payment restaurant-drinks restaurant-menu restaurant-team restaurant-report salon-more salon-settings salon-checkout salon-catalog welcome boutique-home boutique-sale boutique-checkout restaurant-tables restaurant-table restaurant-order salon-today salon-booking salon-booking-conflict salon-clients salon-clients-upcoming salon-profile; do
             MARKER="$APP_DATA/tmp/covi-diagnostic-$SCENARIO.ready"
             rm -f "$MARKER"
             xcrun simctl launch --terminate-running-process "$DEVICE_ID" com.covi.app --covi-diagnostic-scenario "$SCENARIO" -AppleLanguages '(fr)' -AppleLocale fr_FR
@@ -144,7 +144,7 @@ jobs:
             "restaurant-floor-guests: actual floor summary with two covers explicitly recorded for a three-seat table." \
             "restaurant-floor-zoom: actual floor viewport set to 150 percent, room selector still visible." \
             "restaurant-floor-terrace: real room selector showing only its two assigned tables and their live statuses." \
-            "restaurant-floor-plan/floor-edit: real Salle and position editor, eight in-memory tables, Table 10 moved to column 3, Table 6 turned 90 degrees." \
+            "restaurant-floor-plan/floor-edit: real Salle and position editor, eight in-memory tables, Table 10 with its thumbnail and context menu, Table 6 turned 90 degrees." \
             "restaurant-payment: actual Table checkout sheet with a 28500 XAF bill and 15000 XAF entered but unconfirmed." \
             "restaurant-drinks: actual Plus destination with four balances, recorded reservations and a journaled service deduction." \
             "Account header and ShopSyncStatus are outside the business captures." \
