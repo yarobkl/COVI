@@ -768,6 +768,36 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   et Release. Les [captures associées](https://github.com/yarobkl/COVI/actions/runs/46149682300/artifacts/15265977604)
   sont publiées.
 
+### Aperçu de table et menu Plus dans Salle
+
+- Sur `0207e27`, le résumé utilise le dessin du plan pour afficher
+  la forme, l’orientation et les chaises de la table sélectionnée
+  jusqu’à la taille de texte Standard. Les tailles suivantes donnent
+  toute la largeur au titre et aux informations de capacité et
+  d’occupation.
+- « Plus » rassemble l’accès à la fiche de la table. « Déplacer »
+  reste accessible aux rôles autorisés. « Prendre une commande »
+  et « Encaisser » gardent leur contrôle métier avant l’ouverture
+  des feuilles correspondantes.
+- Les [trois XCUITest](https://github.com/yarobkl/COVI/actions/runs/46151887464/job/141000100101)
+  passent sur iPhone simulé. « Plus » puis « Détails de la table »
+  ouvre la fiche de Table 10. Les tests de prise de commande
+  après annulation et d’ouverture de l’encaissement passent aussi.
+- Le [diagnostic macOS](https://github.com/yarobkl/COVI/actions/runs/46151887464/job/141000100312)
+  a compilé Debug et Release et exécuté **165 XCTest sans échec**.
+  Trois des [72 captures](https://github.com/yarobkl/COVI/actions/runs/46151887464/artifacts/15266802120)
+  ont été comparées à la planche Salle `e5113fe8…`. L’aperçu de
+  Table 10 montre dix chaises, une capacité de 10, l’occupation à
+  0 sur 10, la commande principale et la rangée « Déplacer » et
+  « Plus ». Table 6 conserve son orientation et son reste dû de
+  16 000 FCFA. En XXXL, la vignette laisse place au libellé complet
+  des places occupées et à la valeur « 3 sur 6 ».
+- Le résumé prend deux rangées de commandes à taille standard. Le
+  haut du plan et les filtres passent hors champ quand le résumé
+  s’affiche. La planche présente aussi « Réserver » et affiche
+  toutes les tables à la fois. Ces écarts et l’essai sur iPhone
+  physique restent ouverts.
+
 ### Table réglée et départ des clients
 
 - Le solde ferme la commande et conserve l’occupation de la table.

@@ -104,13 +104,24 @@ ont été comparées à la planche Salle `e5113fe8…`. Le résumé sur
 iPhone simulé affiche Table 10, sa capacité de 10 places, une
 occupation à 0 sur 10 et l’action principale de la planche.
 Le formulaire natif demande le nombre de convives avant l’ouverture
-de la carte. Les actions « Réserver » et « Plus » du résumé de
-la planche restent à traiter. Sur la capture XXXL de Table 6,
+de la carte. Cette capture précède l’ajout du menu « Plus ».
+Sur la capture XXXL de Table 6,
 « Places occupées » tient sur deux lignes et « 3 sur 6 » est
 entièrement visible. Le solde et les actions se trouvent plus bas.
 Deux [tests d’interaction sur simulateur](https://github.com/yarobkl/COVI/actions/runs/46149682300/job/140993385571)
 confirment les parcours de commande et d’encaissement. La comparaison
 avec la planche et ces essais couvrent le simulateur iPhone.
+
+Le [nouveau résumé de Table 10](https://github.com/yarobkl/COVI/actions/runs/46151887464/artifacts/15266802120)
+reprend la vignette à dix chaises de la planche `e5113fe8…`.
+« Déplacer » et « Plus » sont côte à côte sous « Prendre une commande ».
+Le dessin du plan reprend la capacité et l’orientation, avec les
+couleurs d’état de l’application. À XXXL, la capture de Table 6
+conserve le nom, la capacité et les places occupées en pleine largeur.
+Un [test d’interaction](https://github.com/yarobkl/COVI/actions/runs/46151887464/job/141000100101)
+ouvre la bonne fiche depuis « Plus ». L’action « Réserver », la
+vue simultanée de toutes les tables et l’essai sur iPhone physique
+restent à traiter.
 
 ## Reprise du lot visuel COVI 2.0
 
