@@ -139,6 +139,13 @@ tiennent sur deux lignes. Le libellé de la Table 6 pivotée reste
 abrégé. La réservation, les éléments de décor et l’essai sur
 iPhone physique restent à traiter.
 
+Dans les [captures de la Table 6 pivotée](https://github.com/yarobkl/COVI/actions/runs/46172214618/artifacts/15274557993),
+le nom est lisible sous le dessin et le pictogramme de capacité reste
+dans la table. La planche `e5113fe8…` montre ce nom à l’intérieur
+d’une table horizontale. La variante pivotée conserve les six chaises,
+la couleur d’état et le résumé sélectionné. La comparaison porte sur
+l’iPhone simulé.
+
 ## Reprise du lot visuel COVI 2.0
 
 - Le build TestFlight 1.0.13 (10051), issu du commit `6eb37ed`, valide la

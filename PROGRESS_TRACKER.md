@@ -862,6 +862,19 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   deux espaces distincts au dessin et au nom, et borne le dessin
   à son espace après rotation.
   [Debug, Release et 165 XCTest sans échec](https://github.com/yarobkl/COVI/actions/runs/46169543816/job/141054597007)
+- Sur `8bb93a2`, la [capture iPhone de Salle](https://github.com/yarobkl/COVI/actions/runs/46172214618/artifacts/15274557993)
+  montre « Table 6 » en entier sous la table pivotée, avec
+  les six chaises et le pictogramme de capacité séparés.
+  Les quatre compteurs et les huit tables restent visibles
+  avec les résumés de Table 10 et de Table 6. À XXXL, le
+  résumé indique toujours trois places occupées sur six.
+- La planche `e5113fe8…` affiche le nom à l’intérieur de la
+  Table 6 dessinée à l’horizontale. La variante pivotée place le
+  nom sous la table pour le garder lisible. La réservation et
+  la vérification physique restent ouvertes.
+- [Debug, Release et 165 XCTest sans échec](https://github.com/yarobkl/COVI/actions/runs/46172214618/job/141062933462)
+  et [4 XCUITest sans échec](https://github.com/yarobkl/COVI/actions/runs/46172214618/job/141062933584)
+  sur le même commit.
 
 ### Table réglée et départ des clients
 
