@@ -18,11 +18,17 @@ const restaurantPages = [
 ] as const
 const salonPages = [
   pages.accueil,
-  pages['salon-services'],
   pages['salon-bookings'],
-  pages.personnel,
+  pages['salon-caisse'],
+  pages['salon-clients'],
+  pages['salon-services'],
+  pages['salon-equipe'],
+  pages['salon-stock'],
+  pages['salon-rapports'],
   pages.charges,
+  pages.personnel,
   pages.assistant,
+  pages['salon-reglages'],
   pages.boutique,
 ] as const
 
@@ -44,7 +50,7 @@ export function navigationFor(kind: Sector): {
       sommaire: salonPages,
       bottomBar: salonPages.slice(0, 3),
       morePages: salonPages.slice(3),
-      primary: 'salon-services',
+      primary: 'salon-bookings',
     }
   return { sommaire, bottomBar, morePages, primary: 'vendre' }
 }
@@ -57,5 +63,11 @@ export const availableInSector = (kind: Sector, page: PageId) =>
         'restaurant-menu',
         'salon-services',
         'salon-bookings',
+        'salon-caisse',
+        'salon-clients',
+        'salon-equipe',
+        'salon-stock',
+        'salon-rapports',
+        'salon-reglages',
       ].includes(page)
     : navigationFor(kind).sommaire.some((x) => x.page === page)

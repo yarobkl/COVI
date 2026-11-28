@@ -18,6 +18,12 @@ export type PageId =
   | 'restaurant-menu'
   | 'salon-services'
   | 'salon-bookings'
+  | 'salon-caisse'
+  | 'salon-clients'
+  | 'salon-equipe'
+  | 'salon-stock'
+  | 'salon-rapports'
+  | 'salon-reglages'
 
 /** Arrivages can be filtered to supplier orders or bales (« Commandes », « Ballons »). */
 export type ArrivalFilter = 'commandes' | 'ballons'
@@ -44,6 +50,12 @@ export const pageIds: readonly PageId[] = [
   'restaurant-menu',
   'salon-services',
   'salon-bookings',
+  'salon-caisse',
+  'salon-clients',
+  'salon-equipe',
+  'salon-stock',
+  'salon-rapports',
+  'salon-reglages',
 ]
 
 const isPage = (s: string): s is PageId => (pageIds as readonly string[]).includes(s)

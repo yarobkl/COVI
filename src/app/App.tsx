@@ -18,7 +18,14 @@ import { RestaurantMenuPage } from '../features/restaurant/RestaurantMenuPage'
 import { RestaurantOrdersPage } from '../features/restaurant/RestaurantOrdersPage'
 import { RestaurantStaffPanel } from '../features/restaurant/RestaurantStaffPanel'
 import { SalonServicesPage } from '../features/salon/SalonServicesPage'
-import { SalonBookingsPage } from '../features/salon/SalonBookingsPage'
+import { SalonAgendaPage } from '../features/salon/SalonAgendaPage'
+import { SalonCheckoutPage } from '../features/salon/SalonCheckoutPage'
+import { SalonClientsPage } from '../features/salon/SalonClientsPage'
+import { SalonHomePage } from '../features/salon/SalonHomePage'
+import { SalonReportsPage } from '../features/salon/SalonReportsPage'
+import { SalonSettingsPage } from '../features/salon/SalonSettingsPage'
+import { SalonStockPage } from '../features/salon/SalonStockPage'
+import { SalonTeamPage } from '../features/salon/SalonTeamPage'
 import { SectorHomePage } from '../features/sectors/SectorHomePage'
 import { TillSwitch } from '../features/team/TillSwitch'
 import { SettingsPage } from '../features/settings/SettingsPage'
@@ -83,19 +90,18 @@ function ArrivalsScreen({ shopId, filter }: { shopId: string; filter?: ArrivalFi
 
 function renderPage(route: Route, { shop, updateShop, onSimulation, ownerId }: PageContext) {
   const sector = sectorOf(shop.business_kind)
-  if (!availableInSector(sector, route.page))
-    return sector === 'retail' ? (
+  const home =
+    sector === 'retail' ? (
       <DashboardPage shop={shop} onSimulation={onSimulation} />
+    ) : sector === 'salon' ? (
+      <SalonHomePage shopId={shop.id} shopName={shop.name} role="owner" />
     ) : (
       <SectorHomePage shop={shop} />
     )
+  if (!availableInSector(sector, route.page)) return home
   switch (route.page) {
     case 'accueil':
-      return sector === 'retail' ? (
-        <DashboardPage shop={shop} onSimulation={onSimulation} />
-      ) : (
-        <SectorHomePage shop={shop} />
-      )
+      return home
     case 'restaurant-orders':
       return <RestaurantOrdersPage shopId={shop.id} />
     case 'restaurant-tables':
@@ -103,9 +109,21 @@ function renderPage(route: Route, { shop, updateShop, onSimulation, ownerId }: P
     case 'restaurant-menu':
       return <RestaurantMenuPage shopId={shop.id} />
     case 'salon-services':
-      return <SalonServicesPage shopId={shop.id} />
+      return <SalonServicesPage shopId={shop.id} role="owner" />
     case 'salon-bookings':
-      return <SalonBookingsPage shopId={shop.id} />
+      return <SalonAgendaPage shopId={shop.id} role="owner" />
+    case 'salon-caisse':
+      return <SalonCheckoutPage shopId={shop.id} role="owner" />
+    case 'salon-clients':
+      return <SalonClientsPage shopId={shop.id} role="owner" />
+    case 'salon-equipe':
+      return <SalonTeamPage shopId={shop.id} role="owner" />
+    case 'salon-stock':
+      return <SalonStockPage shopId={shop.id} role="owner" />
+    case 'salon-rapports':
+      return <SalonReportsPage shopId={shop.id} />
+    case 'salon-reglages':
+      return <SalonSettingsPage shopId={shop.id} />
     case 'vendre':
       return <TillSwitch shopId={shop.id} />
     case 'stock':
@@ -260,6 +278,7 @@ export function App({
   signOut,
   updateShop,
   onSimulation,
+  onAddEstablishment,
 }: {
   shop: Shop
   /** The signed-in account of the validated session (AuthGate). */
@@ -267,6 +286,7 @@ export function App({
   signOut: () => Promise<void>
   updateShop: (shop: Shop) => void
   onSimulation: () => void
+  onAddEstablishment?: () => void
 }) {
   const { route, navigate } = useHashRoute()
   const sector = sectorOf(shop.business_kind)
@@ -345,7 +365,7 @@ export function App({
               ? 'Nouvelle vente'
               : sector === 'restaurant'
                 ? 'Mes tables'
-                : 'Mes prestations'}
+                : 'Ouvrir l’agenda'}
           </ButtonLink>
         </div>
         <NotificationBell state={notifications} className="bell--sommaire" withLabel />
@@ -369,6 +389,9 @@ export function App({
           )}
           <button type="button" className="btn btn--ghost sommaire__quiet" onClick={askSignOut}>
             Se déconnecter
+          </button>
+          <button type="button" className="btn btn--ghost sommaire__quiet" onClick={() => onAddEstablishment?.()}>
+            Ajouter un établissement
           </button>
           <LegalLinks />
         </div>
@@ -462,6 +485,9 @@ export function App({
             )}
             <Button variant="danger" onClick={askSignOut}>
               Se déconnecter
+            </Button>
+            <Button variant="secondary" onClick={() => { setMenuOpen(false); onAddEstablishment?.() }}>
+              Ajouter un établissement
             </Button>
             <LegalLinks />
           </div>

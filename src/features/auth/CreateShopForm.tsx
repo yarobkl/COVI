@@ -20,6 +20,7 @@ import {
 import { ShopGpsControl, type ShopGpsPosition } from '../locations/ShopGpsControl'
 import { AuthPage } from './AuthPage'
 import { authError } from './authErrors'
+import { PhoneInput } from './PhoneInput'
 
 /** First sign-in: creates the owner's business with country-specific bookkeeping currency. */
 export function CreateShopForm({
@@ -28,6 +29,7 @@ export function CreateShopForm({
   onCreated,
   onJoin,
   onRestaurantJoin,
+  onSalonJoin,
   accountMetadata,
 }: {
   message: string
@@ -36,6 +38,7 @@ export function CreateShopForm({
   /** « J’ai un code de caissier » : opens the join page instead of creating a shop. */
   onJoin?: () => void
   onRestaurantJoin?: () => void
+  onSalonJoin?: () => void
   accountMetadata?: Record<string, unknown> | null
 }) {
   const hints = ownerOnboardingHints(accountMetadata)
@@ -174,6 +177,14 @@ export function CreateShopForm({
               </Button>
             </div>
           )}
+          {onSalonJoin && (
+            <div className="auth__join">
+              <p>Vous travaillez dans un salon de coiffure ?</p>
+              <Button variant="secondary" size="lg" block onClick={onSalonJoin}>
+                J’ai un code d’accès à un salon
+              </Button>
+            </div>
+          )}
           {onJoin && (
             <div className="auth__join">
               <p>Vous travaillez dans la boutique de quelqu’un ?</p>
@@ -220,17 +231,7 @@ export function CreateShopForm({
               label="Téléphone du propriétaire"
               hint="Indiquez un numéro international, par exemple +242061234567."
             >
-              {(control) => (
-                <Input
-                  {...control}
-                  name="phone"
-                  autoComplete="tel"
-                  type="tel"
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                />
-              )}
+              {(control) => <PhoneInput control={control} value={phone} onChange={setPhone} />}
             </Field>
           </>
         )}
