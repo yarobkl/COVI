@@ -798,6 +798,40 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   toutes les tables à la fois. Ces écarts et l’essai sur iPhone
   physique restent ouverts.
 
+### Vue d’ensemble de Salle avec le résumé ouvert
+
+- Sur `75c5208`, le plan de trois rangées ou moins se resserre
+  sur iPhone en taille de texte standard. Le titre « Salle »
+  tient dans la barre de navigation. Les plans plus longs,
+  le zoom et les tailles d’accessibilité restent défilables.
+- Le [premier essai](https://github.com/yarobkl/COVI/actions/runs/46158817816/job/141021307530)
+  a permis de toucher les huit tables et de passer du résumé
+  de Table 10 à celui de Table 1. « Disponible » et « Occupée »
+  restaient hors champ lorsque les compteurs occupaient deux rangées.
+- Sur `ef3151a`, les quatre compteurs habituels tiennent dans
+  une grille d’une rangée en taille standard. Chaque filtre
+  garde une hauteur tactile minimale de 44 points. À grande
+  taille et quand l’état « Réglée · occupée » s’ajoute, la
+  disposition peut reprendre plusieurs rangées.
+- Les [quatre XCUITest](https://github.com/yarobkl/COVI/actions/runs/46159605617/job/141023732870)
+  passent sur iPhone simulé. Le nouveau scénario confirme que les
+  huit tables, les quatre compteurs et « Prendre une commande »
+  sont accessibles avec le résumé ouvert. Il ouvre Table 1 sans
+  défiler. La prise de commande, l’encaissement et le menu « Plus »
+  passent également.
+- Le [diagnostic macOS](https://github.com/yarobkl/COVI/actions/runs/46159605617/job/141023733208)
+  a compilé Debug et Release et exécuté **165 XCTest sans échec**.
+  Les [captures](https://github.com/yarobkl/COVI/actions/runs/46159605617/artifacts/15269787299)
+  comparées à la planche `e5113fe8…` montrent les huit tables avec
+  le résumé ouvert. Le haut des compteurs est masqué par le
+  sélecteur de salle malgré le succès des tests d’appui. Le nom
+  de la Table 6 pivotée est abrégé dans la grille. En XXXL, les
+  trois places occupées sur six sont lisibles dans le résumé.
+- La révision suivante rapproche les commandes de la planche en
+  réunissant l’action principale, « Déplacer » et « Plus » sur
+  une rangée en taille standard. Le test vérifie aussi que les
+  compteurs sont entièrement sous le sélecteur de salle.
+
 ### Table réglée et départ des clients
 
 - Le solde ferme la commande et conserve l’occupation de la table.

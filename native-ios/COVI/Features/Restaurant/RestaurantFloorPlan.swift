@@ -590,7 +590,7 @@ struct RestaurantFloorPlan<Detail: View>: View {
                                     .font(.caption2.weight(.semibold))
                             }
                             .foregroundStyle(COVITheme.navy)
-                            .padding(.horizontal, 3)
+                            .padding(.horizontal, turned && compactOverview ? 1 : 3)
                             .frame(width: turned ? drawing.surface.height : drawing.surface.width)
                         }
                     }
@@ -636,7 +636,17 @@ struct RestaurantFloorPlan<Detail: View>: View {
 
     private func selection(_ table: DiningTable, placement: RestaurantTablePlacement,
                            state: RestaurantFloorState, order: CommerceOrder?) -> some View {
-        COVICard {
+        let canStart = state == .available && table.activeSessionID == nil &&
+            (service.admin || service.role == .waiter)
+        let bill = order.flatMap { candidate -> CommerceOrder? in
+            guard state == .checkout, candidate.state == .accepted,
+                  let due = try? RestaurantBill.checkoutBalance(candidate,
+                      lines: lines.filter { $0.orderID == candidate.id }, payments: payments),
+                  due > 0 else { return nil }
+            return candidate
+        }
+        let compactActions = compactOverview && (canStart || bill != nil)
+        return COVICard {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .top, spacing: 8) {
                     if textSize <= .large {
@@ -675,59 +685,98 @@ struct RestaurantFloorPlan<Detail: View>: View {
                     }
                         .font(.subheadline)
                 }
-                if state == .available, table.activeSessionID == nil,
-                   service.admin || service.role == .waiter {
-                    COVIButton("Prendre une commande",
-                               systemImage: textSize.isAccessibilitySize ? nil : "plus.circle") {
-                        presentOrder(table)
-                    }
-                }
-                if let order, state == .checkout, order.state == .accepted,
-                   let due = try? RestaurantBill.checkoutBalance(order,
-                       lines: lines.filter { $0.orderID == order.id }, payments: payments), due > 0 {
-                    COVIButton("Encaisser", systemImage: textSize.isAccessibilitySize ? nil : "creditcard",
-                               role: .secondary) {
-                        presentCheckout(table, order: order)
-                    }
+                if !compactActions {
+                    primaryAction(for: table, canStart: canStart, bill: bill, compact: false)
                 }
                 let actionLayout = textSize.isAccessibilitySize
                     ? AnyLayout(VStackLayout(spacing: 8))
                     : AnyLayout(HStackLayout(spacing: 8))
                 actionLayout {
+                    if compactActions {
+                        primaryAction(for: table, canStart: canStart, bill: bill, compact: true)
+                    }
                     if service.admin {
-                        COVIButton("Déplacer", systemImage: textSize.isAccessibilitySize ? nil : "arrow.up.and.down.and.arrow.left.and.right",
-                                   role: .secondary) { editingTable = table }
-                            .accessibilityLabel("Déplacer ou orienter")
+                        moveAction(for: table, compact: compactActions)
                     }
                     Menu {
                         Button("Détails de la table", systemImage: "table.furniture") {
                             detailTableID = table.id
                         }
                     } label: {
-                        Group {
-                            if textSize.isAccessibilitySize {
-                                Text("Plus")
-                            } else {
-                                Label("Plus", systemImage: "ellipsis")
-                            }
-                        }
-                        .font(.headline.weight(.semibold))
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .frame(maxWidth: .infinity, minHeight: COVITheme.Metrics.buttonHeight)
-                        .foregroundStyle(COVITheme.navy)
-                        .background(COVITheme.champagne.opacity(0.30),
-                                    in: RoundedRectangle(cornerRadius: COVITheme.Metrics.buttonRadius))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: COVITheme.Metrics.buttonRadius)
-                                .strokeBorder(COVITheme.navy.opacity(0.35), lineWidth: 1.5)
-                        }
+                        tableActionLabel("Plus", symbol: "ellipsis", compact: compactActions)
                     }
                     .accessibilityLabel("Plus d’actions pour \(table.label)")
                     .accessibilityIdentifier("restaurant-floor-table-more")
                 }
             }
             .foregroundStyle(COVITheme.navy)
+        }
+    }
+
+    @ViewBuilder private func primaryAction(for table: DiningTable, canStart: Bool,
+                                            bill: CommerceOrder?, compact: Bool) -> some View {
+        if canStart {
+            COVIButton("Prendre une commande",
+                       systemImage: compact || textSize.isAccessibilitySize ? nil : "plus.circle") {
+                presentOrder(table)
+            }
+            .layoutPriority(1)
+        } else if let bill {
+            COVIButton("Encaisser", systemImage: textSize.isAccessibilitySize ? nil : "creditcard",
+                       role: .secondary) {
+                presentCheckout(table, order: bill)
+            }
+            .layoutPriority(1)
+        }
+    }
+
+    @ViewBuilder private func moveAction(for table: DiningTable, compact: Bool) -> some View {
+        let symbol = "arrow.up.and.down.and.arrow.left.and.right"
+        if compact {
+            Button { editingTable = table } label: {
+                tableActionLabel("Déplacer", symbol: symbol, compact: true)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Déplacer ou orienter")
+        } else {
+            COVIButton("Déplacer", systemImage: textSize.isAccessibilitySize ? nil : symbol,
+                       role: .secondary) { editingTable = table }
+                .accessibilityLabel("Déplacer ou orienter")
+        }
+    }
+
+    private func tableActionLabel(_ title: LocalizedStringKey, symbol: String, compact: Bool) -> some View {
+        Group {
+            if compact {
+                VStack(spacing: 4) {
+                    Image(systemName: symbol).font(.subheadline)
+                        .accessibilityHidden(true)
+                    Text(title).font(.caption.weight(.semibold))
+                }
+                .padding(.horizontal, 8)
+                .frame(minWidth: 44)
+                .fixedSize(horizontal: true, vertical: false)
+            } else {
+                Group {
+                    if textSize.isAccessibilitySize {
+                        Text(title)
+                    } else {
+                        Label(title, systemImage: symbol)
+                    }
+                }
+                .font(.headline.weight(.semibold))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .frame(minHeight: COVITheme.Metrics.buttonHeight)
+        .foregroundStyle(COVITheme.navy)
+        .background(COVITheme.champagne.opacity(0.30),
+                    in: RoundedRectangle(cornerRadius: COVITheme.Metrics.buttonRadius))
+        .overlay {
+            RoundedRectangle(cornerRadius: COVITheme.Metrics.buttonRadius)
+                .strokeBorder(COVITheme.navy.opacity(0.35), lineWidth: 1.5)
         }
     }
 

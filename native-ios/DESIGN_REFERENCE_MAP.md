@@ -123,6 +123,13 @@ ouvre la bonne fiche depuis « Plus ». L’action « Réserver », la
 vue simultanée de toutes les tables et l’essai sur iPhone physique
 restent à traiter.
 
+La [vue compacte de Salle](https://github.com/yarobkl/COVI/actions/runs/46159605617/artifacts/15269787299)
+montre les huit tables sur trois rangées, avec le résumé et la prise
+de commande visibles en même temps. Comme sur `e5113fe8…`, Table 10
+garde sa capacité, ses chaises et sa position. Le sélecteur masque
+encore le haut des compteurs et le texte de la Table 6 pivotée est
+abrégé. En XXXL, l’occupation de Table 6 reste lisible dans le résumé.
+
 ## Reprise du lot visuel COVI 2.0
 
 - Le build TestFlight 1.0.13 (10051), issu du commit `6eb37ed`, valide la

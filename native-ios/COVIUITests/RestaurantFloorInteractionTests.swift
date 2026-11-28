@@ -53,8 +53,13 @@ final class RestaurantFloorInteractionTests: XCTestCase {
             let table = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Table \(number), ")).firstMatch
             XCTAssertTrue(table.isHittable, "Table \(number) doit rester accessible")
         }
+        let roomOptions = app.buttons["Gérer les espaces"]
+        XCTAssertTrue(roomOptions.exists)
         for status in ["Disponible (5)", "Occupée (1)", "En service (1)", "À encaisser (1)"] {
-            XCTAssertTrue(app.buttons[status].isHittable, status)
+            let filter = app.buttons[status]
+            XCTAssertTrue(filter.isHittable, status)
+            XCTAssertGreaterThanOrEqual(filter.frame.minY, roomOptions.frame.maxY,
+                                        "\(status) doit être entièrement sous le sélecteur de salle")
         }
         let first = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Table 1, ")).firstMatch
         first.tap()
