@@ -159,6 +159,7 @@ struct RestaurantFloorPlan<Detail: View>: View {
     @Environment(\.dynamicTypeSize) private var textSize
     @Environment(\.horizontalSizeClass) private var sizeClass
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .caption) private var tableNameLineHeight: CGFloat = 16
     @State private var selectedID: UUID?
     @State private var zoom: CGFloat = 1
     @GestureState private var pinchScale: CGFloat = 1
@@ -570,6 +571,7 @@ struct RestaurantFloorPlan<Detail: View>: View {
         let emphasized = highlightedState == nil || highlightedState == state || selected
         let turned = !placement.rotation.isMultiple(of: 2)
         let nameBelowDrawing = turned && !textSize.isAccessibilitySize
+        let drawingHeight = rowHeight - (nameBelowDrawing ? tableNameLineHeight + 2 : 0)
         return Button {
             selectedID = selected ? nil : table.id
             HapticService.tap()
@@ -582,6 +584,7 @@ struct RestaurantFloorPlan<Detail: View>: View {
                         tableDrawing(drawing, state: state, selected: selected)
                             .frame(width: size.width, height: size.height)
                             .rotationEffect(.degrees(Double(placement.rotation) * 90))
+                            .frame(width: proxy.size.width, height: proxy.size.height)
                         if !textSize.isAccessibilitySize {
                             VStack(spacing: 2) {
                                 if !nameBelowDrawing {
@@ -600,14 +603,14 @@ struct RestaurantFloorPlan<Detail: View>: View {
                             .frame(width: turned ? drawing.surface.height : drawing.surface.width)
                         }
                     }
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+                    .clipped()
                     .accessibilityHidden(true)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .contentShape(Rectangle())
                 }
-                .frame(height: textSize.isAccessibilitySize ? rowHeight : nil)
+                .frame(height: drawingHeight)
                 if nameBelowDrawing {
                     floorTableName(table.label)
-                        .frame(maxWidth: .infinity)
+                        .frame(maxWidth: .infinity, minHeight: tableNameLineHeight, maxHeight: tableNameLineHeight)
                         .accessibilityHidden(true)
                 } else if textSize.isAccessibilitySize {
                     Text("\(table.label) · \(table.capacity) places")
@@ -615,7 +618,6 @@ struct RestaurantFloorPlan<Detail: View>: View {
                     Text(state.rawValue).font(.subheadline)
                 }
             }
-            .frame(height: textSize.isAccessibilitySize ? nil : rowHeight)
             .foregroundStyle(COVITheme.navy)
             .opacity(emphasized ? 1 : 0.48)
             .contentShape(Rectangle())

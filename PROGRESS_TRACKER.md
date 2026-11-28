@@ -846,6 +846,23 @@ et inspectée. Le build technique 1.0.13 (10051) reste distinct de COVI 2.0.
   prévoit aussi « Réserver ». L’essai sur iPhone physique
   reste à faire.
 
+### Libellé des tables pivotées dans Salle
+
+- Sur `dbd1f35`, les tables à 90° et 270° affichent le nom
+  sous le dessin, sur la largeur de la case. Le pictogramme
+  et la capacité restent au centre de la table. Le libellé
+  VoiceOver associe toujours le nom, la capacité et l’état.
+- Les [quatre XCUITest](https://github.com/yarobkl/COVI/actions/runs/46169543816/job/141054597508)
+  passent. Le plan reste utilisable avec le résumé ouvert.
+  La prise de commande, l’encaissement et le menu « Plus »
+  passent également.
+- Les [captures sur iPhone simulé](https://github.com/yarobkl/COVI/actions/runs/46169543816/artifacts/15274390703)
+  révèlent que « Table 6 » est entière mais chevauche encore le
+  dessin et le marqueur de capacité. Le correctif suivant réserve
+  deux espaces distincts au dessin et au nom, et borne le dessin
+  à son espace après rotation.
+  [Debug, Release et 165 XCTest sans échec](https://github.com/yarobkl/COVI/actions/runs/46169543816/job/141054597007)
+
 ### Table réglée et départ des clients
 
 - Le solde ferme la commande et conserve l’occupation de la table.
@@ -985,6 +1002,9 @@ décrivent la base native du 19 novembre et ne mesurent pas la réalisation de C
 - Le 27 novembre, l’accès à la cible de préproduction reste indisponible.
   Le déploiement de la fonction et des migrations ainsi que l’essai avec
   des comptes Supabase réels et le parcours SwiftUI d’invitation restent à faire.
+- Le 28 novembre, cinq tests HTTP du point d’entrée d’équipe passent
+  en local. Le connecteur Supabase retrouve le projet historique et
+  renvoie `INVALID_ARGUMENT` pour la référence de préproduction.
 - Le profil de distribution corrigé a permis de signer et livrer la bêta technique 1.0.13 (10051), basée sur `6eb37ed` ([exécution signée](https://github.com/yarobkl/COVI/actions/runs/45706005104)). L’envoi de la refonte COVI 2.0 reste soumis à sa validation visuelle et fonctionnelle.
 
 ### Lot 3 — Parcours d’entrée
