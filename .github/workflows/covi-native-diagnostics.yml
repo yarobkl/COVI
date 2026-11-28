@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install XcodeGen
         run: brew install xcodegen
-      - name: Verify the real floor controls with XCUITest
+      - name: Verify floor and kitchen controls with XCUITest
         working-directory: native-ios
         run: |
           set -euo pipefail

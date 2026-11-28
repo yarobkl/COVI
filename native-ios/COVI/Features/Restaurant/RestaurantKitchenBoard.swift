@@ -49,33 +49,49 @@ struct RestaurantKitchenBoard: View {
             (option, tickets(for: option, active: active, byOrder: byOrder))
         })
         let visible = byFilter[selectedFilter] ?? []
+        let activeTicketCount = Set(((byFilter[.queue] ?? []) + (byFilter[.ready] ?? [])).map(\.id)).count
         let filterLayout = textSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(spacing: 6)) : AnyLayout(HStackLayout(spacing: 8))
-        filterLayout {
-            ForEach(Filter.allCases, id: \.self) { option in
-                filter(option, count: byFilter[option]?.count ?? 0)
+        VStack(alignment: .leading, spacing: 14) {
+            if textSize.isAccessibilitySize {
+                activeTicketsBadge(activeTicketCount)
+            }
+            filterLayout {
+                ForEach(Filter.allCases, id: \.self) { option in
+                    filter(option, count: byFilter[option]?.count ?? 0)
+                }
+            }
+            if visible.isEmpty {
+                ContentUnavailableView("Aucun ticket", systemImage: "checkmark.circle",
+                    description: Text("Les tickets de cet état apparaissent ici."))
+            } else {
+                LazyVStack(spacing: 10) {
+                    ForEach(visible) { ticket in
+                        ticketCard(ticket)
+                    }
+                }
             }
         }
-
-        if visible.isEmpty {
-            ContentUnavailableView("Aucun ticket", systemImage: "checkmark.circle",
-                description: Text("Les tickets de cet état apparaissent ici."))
-        } else {
-            LazyVStack(spacing: 10) {
-                ForEach(visible) { ticket in
-                    ticketCard(ticket)
+        .toolbar {
+            if !textSize.isAccessibilitySize {
+                ToolbarItem(placement: .topBarTrailing) {
+                    activeTicketsBadge(activeTicketCount)
                 }
             }
         }
 #if DEBUG && targetEnvironment(simulator)
-        Color.clear.frame(height: 0)
-            .task {
-                if let diagnostics, diagnostics.scenario == .restaurantKitchenReady {
-                    selectedFilter = .ready
-                    await diagnostics.signalAfterPresentation()
-                }
+        .task {
+            if let diagnostics, [.restaurantKitchen, .restaurantKitchenReady].contains(diagnostics.scenario) {
+                if diagnostics.scenario == .restaurantKitchenReady { selectedFilter = .ready }
+                await diagnostics.signalAfterPresentation()
             }
+        }
 #endif
+    }
+
+    private func activeTicketsBadge(_ count: Int) -> some View {
+        COVIBadge(title: count == 1 ? "1 ticket actif" : "\(count) tickets actifs")
+            .accessibilityIdentifier("kitchen-active-ticket-count")
     }
 
     private func tickets(for filter: Filter, active: [UUID: [CommerceOrder]],

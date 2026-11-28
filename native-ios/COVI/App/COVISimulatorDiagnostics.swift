@@ -65,7 +65,8 @@ final class COVISimulatorDiagnostics {
 
         var showsShopHeader: Bool {
             [.shopHeader, .boutiqueCategory, .restaurantFloorPlan, .restaurantFloorCheckout,
-             .restaurantFloorCheckoutSheet, .restaurantFloorOrderStart, .salonAgenda].contains(self)
+             .restaurantFloorCheckoutSheet, .restaurantFloorOrderStart,
+             .restaurantKitchen, .restaurantKitchenReady, .salonAgenda].contains(self)
         }
 
         var isFloorPlan: Bool {
@@ -165,7 +166,8 @@ final class COVISimulatorDiagnostics {
              .restaurantTeam, .restaurantKitchen, .restaurantKitchenReady, .restaurantMenu,
              .restaurantDrinks, .restaurantPayment, .restaurantPaidTable:
             kind = .restaurant
-            name = "Restaurant de démonstration"
+            name = [.restaurantKitchen, .restaurantKitchenReady].contains(scenario)
+                ? "Le Brazza Grill" : "Restaurant de démonstration"
         case .salonCatalog, .salonReport, .salonReportAbsences, .salonMore, .salonSettings, .salonCheckout, .salonToday, .salonAgenda, .salonAgendaGrid, .salonBooking, .salonBookingConflict, .salonClients, .salonClientsUpcoming, .salonClientsAbsences, .salonProfile:
             kind = .salon
             name = "Studio Élégance"
